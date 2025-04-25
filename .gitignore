@@ -1,0 +1,40 @@
+# OS generated files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Node.js and npm (if applicable)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Python (if applicable)
+__pycache__/
+*.pyc
+*.pyd
+.venv/
+env/
+
+# macOS specific files
+.localized
+
+# Build output (if applicable - adjust based on your project)
+build/
+dist/
+out/
+target/
+
+# Log files
+*.log
+
+# Temporary files and directories
+tmp/
+temp/
+*.tmp
+
+# Personal files (if you have any you don't want to track)
+# my-secret-config.json
