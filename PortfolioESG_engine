@@ -1,0 +1,110 @@
+# ----------------------------------------------------------- #
+#                           Libraries                         #
+# ----------------------------------------------------------- #
+import pandas as pd
+import numpy as np
+import os
+import random
+import time
+from datetime import datetime, timedelta
+from math import comb  # Import combination function
+import matplotlib.pyplot as plt
+import itertools
+import sys  # Import sys module for logging
+import json # For logging to html readable
+
+# ----------------------------------------------------------- #
+#                           Classes                           #
+# ----------------------------------------------------------- #
+
+# -------- (I) Time tracking --------
+class ExecutionTimer:
+    def __init__(self, rolling_window=10):
+        self.start_time = None
+        self.total_time = 0
+        self.run_count = 0
+        self.avg_time = 0  # Rolling average execution time
+        self.rolling_window = rolling_window  # Number of recent simulations to consider
+        self.recent_times = []  # Store recent simulation times
+
+    def start(self):
+        """Start a new timing session."""
+        if self.start_time is not None:
+            raise RuntimeError("Timer is already running. Call stop() before starting again.")
+        self.start_time = time.time()
+
+    def stop(self):
+        """Stop timing, update rolling average execution time."""
+        if self.start_time is None:
+            raise RuntimeError("Timer is not running. Call start() before stopping.")
+        elapsed = time.time() - self.start_time
+        self.start_time = None  # Reset start time
+
+        # Update rolling average
+        self.recent_times.append(elapsed)
+        if len(self.recent_times) > self.rolling_window:
+            self.recent_times.pop(0)  # Remove the oldest time to maintain the rolling window
+        self.avg_time = sum(self.recent_times) / len(self.recent_times)
+
+        return elapsed
+
+    def estimate_remaining(self, total_runs, completed_runs):
+        """Estimate remaining time based on rolling average execution time."""
+        if completed_runs == 0:
+            return None  # Avoid division by zero
+        remaining_runs = total_runs - completed_runs
+        remaining_time = remaining_runs * self.avg_time
+        return timedelta(seconds=remaining_time)
+
+    def reset(self):
+        """Reset the timer statistics."""
+        self.start_time = None
+        self.total_time = 0
+        self.run_count = 0
+        self.avg_time = 0
+        self.recent_times = []
+
+# -------- (II) Logging --------
+
+class Logger:
+    def __init__(self, log_path, flush_interval=10, web_log_path=None):
+        self.log_path = log_path
+        self.web_log_path = web_log_path  # Path to the web-accessible log file
+        self.messages = []
+        self.flush_interval = flush_interval
+        self.log_count = 0
+        self.web_data = {}  # Data to be written to the web log file
+
+    def log(self, message, web_data=None):
+        """Logs messages and optionally updates the web log file."""
+        print(message)  # Console output
+        self.messages.append(message)
+        self.log_count += 1
+
+        # Update web log file if web_data is provided
+        if web_data and self.web_log_path:
+            self.web_data.update(web_data)
+            with open(self.web_log_path, 'w') as web_file:
+                json.dump(self.web_data, web_file, indent=4)
+                web_file.flush()            # Ensure data is flushed from buffer
+                os.fsync(web_file.fileno()) # Force write to disk (good for web access)
+
+        if self.log_count % self.flush_interval == 0:
+            self.flush()
+
+    def flush(self):
+        """Write logs to file in bulk and clear memory."""
+        if self.messages:
+            with open(self.log_path, 'a') as file:
+                file.write("\n".join(self.messages) + "\n")
+            self.messages = []  # Clear memory
+
+    def update_web_log(self, key, value):
+        """Update a specific key in the web log JSON file."""
+        if self.web_log_path:
+            self.web_data[key] = value
+            with open(self.web_log_path, 'w') as web_file:
+                json.dump(self.web_data, web_file, indent=4)
+                web_file.flush()
+                os.fsync(web_file.fileno())
+
