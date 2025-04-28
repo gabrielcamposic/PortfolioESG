@@ -7,6 +7,9 @@
 .vscode/
 *.code-workspace
 
+# JetBrains IDEs (like PyCharm, IntelliJ)
+.idea/
+
 # Node.js and npm (if applicable)
 node_modules/
 package-lock.json
