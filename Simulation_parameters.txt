@@ -2,24 +2,12 @@ min_stocks=5
 max_stocks=5
 sim_runs=10
 initial_investment=1000
-rf=0.1325
+rf=0.1425
 start_date=2015-07-01
-
-server_paths = {
-    'prod': {
-        'config_file': '~/PortfolioESG_Data/Simulation_parameters.txt',
-        'stock_data_file': '~/PortfolioESG_Data/findb/StockDataDB.csv',
-        'portfolio_folder': '~/PortfolioESG_Data/Benchmarks/',
-        'esg_stock_file': '~/PortfolioESG_Data/Tickers_ESG_Targets.txt',
-        'charts_folder': '~/PortfolioESG_Prod/html/Charts/',
-        'log_file_path': '~/PortfolioESG_Data/Logs/Portfolios_simulation.log',
-        'web_log_path': '/var/www/html/progress.json',
-    },
-    'test': {
-        'config_file': '~/Documents/Prog/PortfolioESG_Data/Simulation_parameters.txt',
-        'stock_data_file': '~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv',
-        'portfolio_folder': '~/Documents/Prog/PortfolioESG_Data/Benchmarks/',
-        'esg_stock_file': '~/Documents/Prog/PortfolioESG_Data/Tickers_ESG_Targets.txt',
-        'charts_folder': '~/Documents/Prog/PortfolioESG_Prod//html/Charts/',
-        'log_file_path': '~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log',
-        'web_log_path': '~/Documents/Prog/PortfolioESG_Prod/html/progress.json
+config_file=~/Documents/Prog/PortfolioESG_Data/Simulation_parameters.txt
+stock_data_file'=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
+portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
+esg_stock_file=~/Documents/Prog/PortfolioESG_Data/Tickers_ESG_Targets.txt
+charts_folder=~/Documents/Prog/PortfolioESG_Prod//html/Charts/
+log_file_path=~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log
+web_log_path=~/Documents/Prog/PortfolioESG_Prod/html/progress.json
