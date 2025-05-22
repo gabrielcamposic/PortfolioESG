@@ -1,6 +1,6 @@
-min_stocks=2
+min_stocks=5
 max_stocks=5
-sim_runs=10
+sim_runs=100
 initial_investment=1000
 rf=0.1425
 start_date=2015-07-01

@@ -413,18 +413,20 @@ def find_best_stock_combination(
 
     # Estimate runtime (simplified from Old.py for brevity, can be expanded)
     avg_simulation_time_per_run = 0.05 # Default average time if estimation fails
+    # We will use the timer_instance's internal rolling average after the main loop starts.
+    # The initial estimation here is just for a very rough upfront estimate.
     if total_simulations_expected > 0 and len(available_stocks_for_search) >= min_portfolio_size :
-        timer_instance.reset()
-        timer_instance.start()
+        temp_timer_for_estimation = ExecutionTimer(rolling_window=10) # Use a temporary timer
+        temp_timer_for_estimation.start()
         # Perform a few sample simulations for estimation
         sample_combo = available_stocks_for_search[:min_portfolio_size]
         sample_df_subset = source_stock_prices_df[['Date'] + sample_combo]
         for _ in range(min(10, num_simulation_runs)): # Estimate with up to 10 runs
             weights = generate_portfolio_weights(len(sample_combo))
             simulation_engine_calc(sample_df_subset, weights, current_initial_investment, current_rf_rate, logger_instance)
-        elapsed_for_sample = timer_instance.stop()
+        elapsed_for_sample = temp_timer_for_estimation.stop() # Stop the temporary timer
         avg_simulation_time_per_run = elapsed_for_sample / min(10, num_simulation_runs) if min(10, num_simulation_runs) > 0 else 0.05
-        timer_instance.reset() # Reset timer for actual simulation
+    timer_instance.reset() # Reset the main timer before the actual simulation loop
 
     estimated_total_runtime = timedelta(seconds=total_simulations_expected * avg_simulation_time_per_run)
     estimated_completion_datetime = datetime.now() + estimated_total_runtime
@@ -439,15 +441,12 @@ def find_best_stock_combination(
     best_overall_expected_return = None
     best_overall_volatility = None
     total_simulations_done = 0
-    overall_start_time = time.time()
+    # The timer_instance will track the cumulative time of individual simulations.
 
     for num_stocks_in_combo in range(min_portfolio_size, max_portfolio_size + 1):
         num_combinations_for_size = comb(len(available_stocks_for_search), num_stocks_in_combo)
         simulations_for_this_size = num_combinations_for_size * num_simulation_runs
         logger_instance.log(f"\n    Starting {num_stocks_in_combo}-stock portfolios ({num_combinations_for_size} combos, {simulations_for_this_size} total sims)...")
-        
-        if timer_instance.start_time is not None: timer_instance.stop() # Ensure timer is stopped
-        timer_instance.start() # Start timer for this batch of combinations
 
         best_sharpe_for_size = -float("inf")
         completed_sims_for_size = 0
@@ -457,11 +456,13 @@ def find_best_stock_combination(
             df_subset_for_simulation = source_stock_prices_df[['Date'] + stock_combo_list]
 
             for sim_idx in range(num_simulation_runs):
+                timer_instance.start() # Time each individual simulation
                 weights = generate_portfolio_weights(len(stock_combo_list))
                 exp_ret, vol, sharpe, final_val, roi = simulation_engine_calc(
                     df_subset_for_simulation, weights, current_initial_investment, current_rf_rate, logger_instance
                 )
-                total_simulations_done += 1
+                timer_instance.stop() # Stop timing individual simulation; this updates internal averages
+                total_simulations_done += 1 # Increment after timing
                 completed_sims_for_size +=1
 
                 if not pd.isna(sharpe) and sharpe > best_sharpe_for_size:
@@ -476,9 +477,18 @@ def find_best_stock_combination(
                         best_overall_volatility = vol
                         logger_instance.log(f"    🌟 New Overall Best! Sharpe: {sharpe:.4f}, Stocks: {', '.join(stock_combo_list)}")
 
-                # Progress Logging (simplified, can be expanded like in Old.py)
-                # Log at ~10% intervals or at least every 100 simulations if total_simulations_expected is large
-                if total_simulations_done % max(1, min(100, total_simulations_expected // 10)) == 0 and total_simulations_done < total_simulations_expected :
+                # Progress Logging
+                # Aim for roughly 100 progress updates.
+                # If total_simulations_expected is small, this might mean logging every few simulations.
+                # If total_simulations_expected is large, the interval will be larger.
+                log_interval = max(1, total_simulations_expected // 100) # Target ~100 updates
+
+                # For very large numbers of simulations, prevent logging too frequently.
+                if total_simulations_expected > 100000: # Example: if > 100k sims
+                    log_interval = max(log_interval, 500) # Log no more often than every 500
+                elif total_simulations_expected > 20000: # Example: if > 20k sims
+                    log_interval = max(log_interval, 100)  # Log no more often than every 100
+                if total_simulations_done % log_interval == 0 and total_simulations_done < total_simulations_expected:
                     progress_percent = (total_simulations_done / total_simulations_expected) * 100
                     est_rem_time = timer_instance.estimate_remaining(total_simulations_expected, total_simulations_done)
                     logger_instance.log(f"    Progress: {total_simulations_done}/{total_simulations_expected} ({progress_percent:.1f}%). Est. Rem. Time: {est_rem_time}")
@@ -489,11 +499,9 @@ def find_best_stock_combination(
                         "estimated_completion_time": (datetime.now() + est_rem_time).strftime('%Y-%m-%d %H:%M:%S') if est_rem_time else "N/A"
                     })
         
-        elapsed_for_size = timer_instance.stop()
-        logger_instance.log(f"    Completed {num_stocks_in_combo}-stock portfolios in {timedelta(seconds=elapsed_for_size)}.")
+        logger_instance.log(f"    Completed all {num_stocks_in_combo}-stock portfolio simulations.")
 
-    total_execution_time_secs = time.time() - overall_start_time
-    logger_instance.log(f"\n    Brute-force search completed in {timedelta(seconds=total_execution_time_secs)}.")
+    logger_instance.log(f"\n    Brute-force search completed. Total simulation time: {timedelta(seconds=timer_instance.overall_total_time)}.")
     if best_overall_portfolio_combo:
         logger_instance.log(f"    🏆 Best Overall Portfolio Found:")
         logger_instance.log(f"       Stocks: {', '.join(best_overall_portfolio_combo)}")
