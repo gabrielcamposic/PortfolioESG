@@ -1,10 +1,41 @@
+# --- Target stock list and date range ---#
+esg_stocks_list = AMBP3.SA, EMBR3.SA, PSSA3.SA, MRFG3.SA, CEAB3.SA, ORVR3.SA, RDOR3.SA, BRFS3.SA, CMIG4.SA, ITUB3.SA, ITUB4.SA, TOTS3.SA, CPLE3.SA, STBP3.SA, LREN3.SA, CPLE6.SA, JHSF3.SA, BBDC4.SA, ITSA4.SA, WEGE3.SA
+start_date=2025-01-01
+
+# --- Target portfolio parameters ---#
 min_stocks=5
 max_stocks=5
-sim_runs=10000
 initial_investment=1000
 rf=0.1475
-start_date=2025-01-01
-esg_stocks_list = AMBP3.SA, EMBR3.SA, PSSA3.SA, MRFG3.SA, CEAB3.SA, ORVR3.SA, RDOR3.SA, BRFS3.SA, CMIG4.SA, ITUB3.SA, ITUB4.SA, TOTS3.SA, CPLE3.SA, STBP3.SA, LREN3.SA, CPLE6.SA, JHSF3.SA, BBDC4.SA, ITSA4.SA, WEGE3.SA
+
+# --- Adaptive Simulation Parameters ---
+# Set to false to use the fixed sim_runs from this file for all combinations
+adaptive_sim_enabled = true
+# Initial number of simulations for a quick scan of a combination's potential
+initial_scan_sims = 200
+# If a combo's sharpe is below (best_overall_sharpe * early_discard_factor)
+# after initial_scan_sims, and best_overall_sharpe is meaningful (>0.1),
+# stop simulating this combo early.
+early_discard_factor = 0.75
+early_discard_min_best_sharpe = 0.1
+# Minimum simulations for the progressive phase before convergence checks start
+progressive_min_sims = 200
+# Base number for logarithmic scaling: sims = base * log(k)^2
+progressive_base_log_k = 500
+# Overall cap for simulations in the progressive phase for a single combination
+progressive_max_sims_cap = 3000
+# How many recent Sharpe ratios to consider for convergence
+progressive_convergence_window = 50
+# If max-min of recent sharpes is below this, consider it converged
+progressive_convergence_delta = 0.005
+# Interval (in simulations) at which to check for convergence
+progressive_check_interval = 50
+# Percentage of top combinations to re-run with full simulations for refinement
+top_n_percent_refinement = 0.10
+# Number of simulations for the refinement phase, or for all combinations if adaptive_sim_enabled is false.
+sim_runs=1000
+
+# --- Working folders ---#
 stock_data_file=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
 portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
 charts_folder=~/Documents/Prog/PortfolioESG_Prod/html/Charts/

@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import itertools
 import sys  # Import sys module for logging
 import json # For logging to html readable
+import math 
 
 # ----------------------------------------------------------- #
 #                           Classes                           #
@@ -145,6 +146,18 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "charts_folder": str,
         "log_file_path": str,
         "web_log_path": str,
+        # Adaptive Simulation Parameters
+        "adaptive_sim_enabled": bool,
+        "initial_scan_sims": int,
+        "early_discard_factor": float,
+        "early_discard_min_best_sharpe": float,
+        "progressive_min_sims": int,
+        "progressive_base_log_k": int, # or float if fractional base is desired
+        "progressive_max_sims_cap": int,
+        "progressive_convergence_window": int,
+        "progressive_convergence_delta": float,
+        "progressive_check_interval": int,
+        "top_n_percent_refinement": float,
     }
 
     try:
@@ -192,6 +205,13 @@ def load_simulation_parameters(filepath, logger_instance=None):
                             processed_value = int(value_str)
                         elif target_type == float:
                             processed_value = float(value_str)
+                        elif target_type == bool:
+                            if value_str.lower() == 'true':
+                                processed_value = True
+                            elif value_str.lower() == 'false':
+                                processed_value = False
+                            else:
+                                raise ValueError(f"Boolean value for '{key}' must be 'true' or 'false', got '{value_str}'")
                         elif target_type == str:
                             # Expand user paths for string types
                             if value_str.startswith('~'):
@@ -245,6 +265,33 @@ def load_simulation_parameters(filepath, logger_instance=None):
     #         else: print(message)
 
     return parameters
+
+# Helper function for adaptive sampling
+def should_continue_sampling(sharpes, min_iter, max_iter_for_combo, convergence_window, delta_threshold, logger_instance=None):
+    """
+    Decides if more simulations are needed for a combination based on convergence.
+    """
+    current_sim_count = len(sharpes)
+    if current_sim_count < min_iter:
+        return True # Not enough initial samples
+    if current_sim_count >= max_iter_for_combo:
+        return False # Reached max allowed for this combo
+
+    # Ensure enough data for a stable window, but only if we haven't hit max_iter
+    if current_sim_count < convergence_window:
+        return True
+
+    recent_sharpes = sharpes[-convergence_window:]
+    if not recent_sharpes: # Should ideally not happen if current_sim_count >= convergence_window
+        return True
+
+    delta = max(recent_sharpes) - min(recent_sharpes)
+    
+    # Optional: detailed logging for convergence check
+    # if logger_instance:
+    #     logger_instance.log(f"    Convergence check: sims={current_sim_count}, recent_delta={delta:.4f}, threshold={delta_threshold}", level='DEBUG')
+
+    return delta > delta_threshold
 
 def calculate_individual_sharpe_ratios(stock_daily_returns, risk_free_rate):
     """
@@ -377,7 +424,7 @@ def simulation_engine_calc(
         return np.nan, np.nan, np.nan, np.nan, np.nan
 
 def find_best_stock_combination(
-    source_stock_prices_df,     # Main StockClose_df (e.g., top 20)
+    source_stock_prices_df,     # Main StockClose_df (e.g., top N stocks by Sharpe)
     stocks_to_consider_list,    # E.g., ESG_STOCKS_LIST
     current_initial_investment,
     min_portfolio_size,
@@ -443,6 +490,10 @@ def find_best_stock_combination(
     best_overall_expected_return = None
     best_overall_volatility = None
     total_simulations_done = 0
+    
+    all_combination_results_for_refinement = [] # Stores results for potential refinement
+    total_actual_simulations_run_phase1 = 0
+
     logged_thresholds = set() # Initialize once for the entire function call
     # The timer_instance will track the cumulative time of individual simulations.
 
@@ -451,23 +502,94 @@ def find_best_stock_combination(
         simulations_for_this_size = num_combinations_for_size * num_simulation_runs
         current_time_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger_instance.log(f"\n    Starting {num_stocks_in_combo}-stock portfolios ({num_combinations_for_size} combos, {simulations_for_this_size} total sims) at {current_time_str}...")
+        
+        # Determine target simulations for this k if adaptive
+        # This is the max number of sims for the progressive phase for this k
+        target_sims_for_k_progressive = num_simulation_runs # Fallback to fixed if not adaptive
+        if ADAPTIVE_SIM_ENABLED:
+            if num_stocks_in_combo < 2: # Min stocks for log formula
+                target_sims_for_k_progressive = PROGRESSIVE_MIN_SIMS
+            else:
+                log_k_sq = (math.log(float(num_stocks_in_combo)) ** 2) if num_stocks_in_combo >=1 else 0
+                calculated_sims = int(PROGRESSIVE_BASE_LOG_K * log_k_sq)
+                capped_sims = min(calculated_sims, PROGRESSIVE_MAX_SIMS_CAP)
+                target_sims_for_k_progressive = max(capped_sims, PROGRESSIVE_MIN_SIMS)
+            # logger_instance.log(f"    Adaptive target sims for k={num_stocks_in_combo}: {target_sims_for_k_progressive}", level='DEBUG')
 
         best_sharpe_for_size = -float("inf")
         completed_sims_for_size = 0
+        # Variables to track best result for the current combination (within adaptive loop)
+        best_sharpe_this_combo = -float("inf")
+        best_weights_this_combo = None
+        best_exp_ret_this_combo = np.nan
+        best_vol_this_combo = np.nan
+        best_final_val_this_combo = np.nan
+        best_roi_this_combo = np.nan
 
         for stock_combo in itertools.combinations(available_stocks_for_search, num_stocks_in_combo):
             stock_combo_list = list(stock_combo)
             df_subset_for_simulation = source_stock_prices_df[['Date'] + stock_combo_list]
 
-            for sim_idx in range(num_simulation_runs):
+            # --- Adaptive Simulation Loop for this specific combination ---
+            actual_sims_run_for_combo = 0
+            all_sharpes_this_combo = [] # Stores sharpe ratios for convergence check for this combo
+            
+            # Reset bests for this specific combination before its simulation loop
+            best_sharpe_this_combo = -float("inf") 
+            # ... (reset other best_..._this_combo vars if needed, though they are overwritten)
+
+            # Determine the max number of simulations for this particular combination run
+            # If adaptive, it's target_sims_for_k_progressive, else it's the fixed num_simulation_runs
+            max_sims_for_this_combo_run = target_sims_for_k_progressive if ADAPTIVE_SIM_ENABLED else num_simulation_runs
+
+            for sim_idx in range(max_sims_for_this_combo_run): # Loop up to the adaptive/fixed target
                 timer_instance.start() # Time each individual simulation
                 weights = generate_portfolio_weights(len(stock_combo_list))
                 exp_ret, vol, sharpe, final_val, roi = simulation_engine_calc(
                     df_subset_for_simulation, weights, current_initial_investment, current_rf_rate, logger_instance
                 )
                 timer_instance.stop() # Stop timing individual simulation; this updates internal averages
-                total_simulations_done += 1 # Increment after timing
-                completed_sims_for_size +=1
+                actual_sims_run_for_combo += 1
+                total_actual_simulations_run_phase1 += 1 # Accumulate total actual sims
+
+                if not pd.isna(sharpe) and sharpe > best_sharpe_this_combo:
+                    best_sharpe_this_combo = sharpe
+                    best_weights_this_combo = weights
+                    best_exp_ret_this_combo = exp_ret
+                    best_vol_this_combo = vol
+                    best_final_val_this_combo = final_val
+                    best_roi_this_combo = roi
+
+                if ADAPTIVE_SIM_ENABLED:
+                    all_sharpes_this_combo.append(sharpe if not pd.isna(sharpe) else -float('inf'))
+
+                    # 1. Initial Scan & Early Discard for this combination
+                    if actual_sims_run_for_combo == INITIAL_SCAN_SIMS:
+                        if overall_best_sharpe > EARLY_DISCARD_MIN_BEST_SHARPE and \
+                           best_sharpe_this_combo < overall_best_sharpe * EARLY_DISCARD_FACTOR:
+                            # logger_instance.log(f"    INFO: Early discard for {stock_combo_list} after {actual_sims_run_for_combo} sims. Combo Sharpe {best_sharpe_this_combo:.4f} vs Best Overall {overall_best_sharpe:.4f}", level='INFO')
+                            break # Stop simulating this specific combination
+
+                    # 2. Convergence Check for this combination
+                    if actual_sims_run_for_combo >= PROGRESSIVE_MIN_SIMS and \
+                       actual_sims_run_for_combo % PROGRESSIVE_CHECK_INTERVAL == 0:
+                        if not should_continue_sampling(
+                                all_sharpes_this_combo,
+                                PROGRESSIVE_MIN_SIMS,
+                                max_sims_for_this_combo_run, # Max for this combo
+                                PROGRESSIVE_CONVERGENCE_WINDOW,
+                                PROGRESSIVE_CONVERGENCE_DELTA,
+                                logger_instance): # Pass logger if should_continue_sampling uses it
+                            # logger_instance.log(f"    INFO: Converged for {stock_combo_list} after {actual_sims_run_for_combo} sims. Sharpe {best_sharpe_this_combo:.4f}", level='INFO')
+                            break # Stop simulating this specific combination
+            # --- End of Adaptive Simulation Loop for this combination ---
+            
+            # Use the best result found for this combination (after adaptive/fixed runs)
+            sharpe, weights, exp_ret, vol, final_val, roi = (
+                best_sharpe_this_combo, best_weights_this_combo, 
+                best_exp_ret_this_combo, best_vol_this_combo,
+                best_final_val_this_combo, best_roi_this_combo
+            )
 
                 if not pd.isna(sharpe) and sharpe > best_sharpe_for_size:
                     best_sharpe_for_size = sharpe
@@ -479,11 +601,22 @@ def find_best_stock_combination(
                         best_overall_roi_val = roi
                         best_overall_expected_return = exp_ret
                         best_overall_volatility = vol
-                        logger_instance.log(f"    🌟 New Overall Best! Sharpe: {sharpe:.4f}, Stocks: {', '.join(stock_combo_list)}, Weights: {', '.join(f'{w:.4f}' for w in weights)}")
+                        logger_instance.log(f"    🌟 New Overall Best (Phase 1)! Sharpe: {sharpe:.4f}, Stocks: {', '.join(stock_combo_list)}, Weights: {', '.join(f'{w:.4f}' for w in weights)}, Sims: {actual_sims_run_for_combo}")
+
+            if ADAPTIVE_SIM_ENABLED and not pd.isna(sharpe): # Store result for potential refinement
+                all_combination_results_for_refinement.append({
+                    'sharpe': sharpe, 'weights': weights, 'stocks': stock_combo_list,
+                    'roi': roi, 'exp_ret': exp_ret, 'vol': vol, 
+                    'sims_run': actual_sims_run_for_combo # Sims for this combo
+                })
 
                 # Progress Logging at ~25% intervals
                 # Calculate current progress percentage
-                current_progress_percentage = (total_simulations_done / total_simulations_expected) * 100
+                # total_simulations_done now tracks actual simulations, not combinations * fixed_runs
+                # For progress based on combinations processed:
+                completed_sims_for_size +=1 # This now tracks completed combinations for this size
+                total_combinations_processed_so_far = sum(comb(len(available_stocks_for_search), k) for k in range(min_portfolio_size, num_stocks_in_combo)) + completed_sims_for_size
+                current_progress_percentage = (total_combinations_processed_so_far / total_combinations_to_evaluate) * 100
                 
                 # Define logging thresholds (e.g., 25%, 50%, 75%)
                 # We'll use a set to keep track of which thresholds have been logged
@@ -493,20 +626,85 @@ def find_best_stock_combination(
 
                 for threshold_pct in [25, 50, 75]: # Log at these percentages
                     if current_progress_percentage >= threshold_pct and threshold_pct not in logged_thresholds:
-                        logged_thresholds.add(threshold_pct) # Mark as logged
-                        est_rem_time = timer_instance.estimate_remaining(total_simulations_expected, total_simulations_done)
-                        logger_instance.log(f"    Progress: {total_simulations_done}/{total_simulations_expected} ({current_progress_percentage:.1f}%). Est. Rem. Time: {est_rem_time}")
+                        logged_thresholds.add(threshold_pct) # Mark as logged for this k-size
+                        remaining_combinations = total_combinations_to_evaluate - total_combinations_processed_so_far
+                        if timer_instance.avg_time > 0: # avg_time is now per-combination
+                            # Estimate remaining time based on combinations, not individual simulations
+                            est_rem_time_seconds = timer_instance.avg_time * remaining_combinations
+                            est_rem_time_delta = timedelta(seconds=est_rem_time_seconds)
+                            est_completion_time_str = (datetime.now() + est_rem_time_delta).strftime('%Y-%m-%d %H:%M:%S')
+                            logger_instance.log(f"    Progress (Combinations): {total_combinations_processed_so_far}/{total_combinations_to_evaluate} ({current_progress_percentage:.1f}%). Est. Rem. Time (Phase 1): {est_rem_time_delta}")
+                        else:
+                            est_rem_time_delta_str = "Calculating..."
+                            est_completion_time_str = "Calculating..."
+                            logger_instance.log(f"    Progress (Combinations): {total_combinations_processed_so_far}/{total_combinations_to_evaluate} ({current_progress_percentage:.1f}%). Calculating Est. Rem. Time...")
+                        
                         logger_instance.update_web_log("overall_progress", {
-                            "completed_simulations": total_simulations_done,
-                            "total_simulations": total_simulations_expected,
+                            "completed_combinations": total_combinations_processed_so_far,
+                            "total_combinations": total_combinations_to_evaluate,
                             "percentage": current_progress_percentage,
-                            "estimated_completion_time": (datetime.now() + est_rem_time).strftime('%Y-%m-%d %H:%M:%S') if est_rem_time else "N/A"
+                            "estimated_completion_time": est_completion_time_str
                         })
                         break # Log only one threshold per iteration if multiple are crossed
-        
         logger_instance.log(f"    Completed all {num_stocks_in_combo}-stock portfolio simulations.")
 
-    logger_instance.log(f"\n    Brute-force search completed. Total simulation time: {timedelta(seconds=timer_instance.total_time)}.")
+    logger_instance.log(f"\n    Initial adaptive search phase completed. Total combinations processed: {total_combinations_to_evaluate}. Total actual simulations in phase 1: {total_actual_simulations_run_phase1:,}")
+    logger_instance.log(f"    Total time for initial phase: {timedelta(seconds=timer_instance.total_time)}.")
+
+    # --- Refinement Phase ---
+    if ADAPTIVE_SIM_ENABLED and TOP_N_PERCENT_REFINEMENT > 0 and all_combination_results_for_refinement:
+        logger_instance.log(f"\n    --- Starting Refinement Phase for Top {TOP_N_PERCENT_REFINEMENT*100:.0f}% Combinations ---")
+        all_combination_results_for_refinement.sort(key=lambda x: x['sharpe'], reverse=True)
+        num_to_refine = int(len(all_combination_results_for_refinement) * TOP_N_PERCENT_REFINEMENT)
+        if num_to_refine == 0 and len(all_combination_results_for_refinement) > 0: # Ensure at least one if list is not empty
+            num_to_refine = 1
+        
+        top_combinations_to_refine = all_combination_results_for_refinement[:num_to_refine]
+        logger_instance.log(f"    Refining {len(top_combinations_to_refine)} combinations with {num_simulation_runs} simulations each (using fixed SIM_RUNS from simpar.txt)...")
+
+        refinement_timer_start = time.time()
+        for i, combo_data in enumerate(top_combinations_to_refine):
+            logger_instance.log(f"    Refining combo {i+1}/{len(top_combinations_to_refine)}: {', '.join(combo_data['stocks'])} (Prev Sharpe: {combo_data['sharpe']:.4f} from {combo_data['sims_run']} sims)")
+            
+            # For refinement, run a fixed number of simulations (SIM_RUNS from params)
+            # We need to simulate this combo again, num_simulation_runs times
+            best_sharpe_refined = -float("inf")
+            best_weights_refined = None
+            best_exp_ret_refined = np.nan
+            best_vol_refined = np.nan
+            best_final_val_refined = np.nan
+            best_roi_refined = np.nan
+            actual_sims_for_refinement_combo = 0
+
+            df_subset_for_refinement = source_stock_prices_df[['Date'] + combo_data['stocks']]
+            for _ in range(num_simulation_runs): # Use the original SIM_RUNS for refinement
+                weights_ref = generate_portfolio_weights(len(combo_data['stocks']))
+                exp_ret_ref, vol_ref, sharpe_ref, final_val_ref, roi_ref = simulation_engine_calc(
+                    df_subset_for_refinement, weights_ref, current_initial_investment, current_rf_rate, logger_instance
+                )
+                actual_sims_for_refinement_combo += 1
+                if not pd.isna(sharpe_ref) and sharpe_ref > best_sharpe_refined:
+                    best_sharpe_refined = sharpe_ref
+                    best_weights_refined = weights_ref
+                    best_exp_ret_refined = exp_ret_ref
+                    best_vol_refined = vol_ref
+                    best_final_val_refined = final_val_ref
+                    best_roi_refined = roi_ref
+
+            # Update overall best if this refined combo is better
+            if not pd.isna(best_sharpe_refined) and best_sharpe_refined > overall_best_sharpe:
+                overall_best_sharpe = best_sharpe_refined
+                best_overall_portfolio_combo = combo_data['stocks']
+                best_overall_weights_alloc = best_weights_refined
+                best_overall_final_val = best_final_val_refined
+                best_overall_roi_val = best_roi_refined
+                best_overall_expected_return = best_exp_ret_refined
+                best_overall_volatility = best_vol_refined
+                logger_instance.log(f"    🌟 New Overall Best (Refined)! Sharpe: {best_sharpe_refined:.4f}, Stocks: {', '.join(combo_data['stocks'])}, Weights: {', '.join(f'{w:.4f}' for w in best_weights_refined)}, Sims: {actual_sims_for_refinement_combo}")
+        
+        refinement_total_time = time.time() - refinement_timer_start
+        logger_instance.log(f"    Refinement phase completed. Total time for refinement: {timedelta(seconds=refinement_total_time)}.")
+
     if best_overall_portfolio_combo:
         logger_instance.log(f"    🏆 Best Overall Portfolio Found:")
         logger_instance.log(f"       Stocks: {', '.join(best_overall_portfolio_combo)}")
@@ -550,9 +748,6 @@ PRELIM_LOG_PATH = os.path.join(SCRIPT_DIR, PRELIM_LOG_FILENAME)
 PRELIM_WEB_LOG_PATH = os.path.join(SCRIPT_DIR, PRELIM_WEB_LOG_FILENAME)
 
 # Ensure preliminary log directory (script's own directory) exists - usually not an issue.
-# os.makedirs(os.path.dirname(PRELIM_LOG_PATH), exist_ok=True) # Not strictly needed if SCRIPT_DIR
-# if PRELIM_WEB_LOG_PATH:
-#     os.makedirs(os.path.dirname(PRELIM_WEB_LOG_PATH), exist_ok=True)
 
 logger = Logger(
     log_path=PRELIM_LOG_PATH,
@@ -581,6 +776,20 @@ INITIAL_INVESTMENT = sim_params.get("initial_investment", 10000.0)
 RF_RATE = sim_params.get("rf")
 START_DATE_STR = sim_params.get("start_date")
 ESG_STOCKS_LIST = sim_params.get("esg_stocks_list", []) # Load the list of ESG stocks
+
+# Adaptive Simulation Parameters (loaded from sim_params with defaults)
+ADAPTIVE_SIM_ENABLED = sim_params.get("adaptive_sim_enabled", True)
+INITIAL_SCAN_SIMS = sim_params.get("initial_scan_sims", 200)
+EARLY_DISCARD_FACTOR = sim_params.get("early_discard_factor", 0.75)
+EARLY_DISCARD_MIN_BEST_SHARPE = sim_params.get("early_discard_min_best_sharpe", 0.1)
+PROGRESSIVE_MIN_SIMS = sim_params.get("progressive_min_sims", 200)
+PROGRESSIVE_BASE_LOG_K = sim_params.get("progressive_base_log_k", 500)
+PROGRESSIVE_MAX_SIMS_CAP = sim_params.get("progressive_max_sims_cap", 3000)
+PROGRESSIVE_CONVERGENCE_WINDOW = sim_params.get("progressive_convergence_window", 50)
+PROGRESSIVE_CONVERGENCE_DELTA = sim_params.get("progressive_convergence_delta", 0.005)
+PROGRESSIVE_CHECK_INTERVAL = sim_params.get("progressive_check_interval", 50)
+TOP_N_PERCENT_REFINEMENT = sim_params.get("top_n_percent_refinement", 0.10)
+
 
 # Paths are now sourced *exclusively* from simpar.txt
 # The load_simulation_parameters function already handles os.path.expanduser()
@@ -679,17 +888,12 @@ logger.log(f"    Top {MAX_STOCKS} stocks by Sharpe Ratio (based on simpar.txt 'm
 # Ensure 'Date' column is included, then add the top 20 stocks
 StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_N_stocks_by_sharpe]
 
-# logger.log("    --- Head of StockDailyReturn_df (Filtered for Top 20 Stocks by Sharpe) ---") # Commented out for brevity
-# logger.log(f"\n{StockDailyReturn_df.head()}") # Commented out for brevity
-# logger.log("    --- Tail of StockDailyReturn_df (Filtered for Top 20 Stocks by Sharpe) ---")
-# logger.log(f"\n{StockDailyReturn_df.tail()}") # Commented out for brevity
-
 # Filter StockClose_df as well, as it's used by find_best_stock_combination
 StockClose_df = StockClose_df[['Date'] + top_N_stocks_by_sharpe]
 # --- Initialize Execution Timer ---
 sim_timer = ExecutionTimer(rolling_window=max(10, SIM_RUNS // 100)) # Adjust rolling window based on sim_runs
 
-# --- Find Best Stock Combination (e.g., from ESG list within Top 20) ---
+# --- Find Best Stock Combination (e.g., from ESG list within Top N) ---
 logger.log("\n--- Starting Search for Best Stock Combination ---")
 
 # StockClose_df here is already filtered to top 20 stocks by Sharpe.
