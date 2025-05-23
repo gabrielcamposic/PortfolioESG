@@ -13,48 +13,22 @@ import time
 import json
 from fake_useragent import UserAgent
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-
+from urllib3.util.retry import Retry # Corrected import
 # ----------------------------------------------------------- #
 #                       Global variables                      #
 # ----------------------------------------------------------- #
 
-choose_server = 'test'  # either 'prod' or 'test'
-DEBUG = False
+# These will be populated by load_download_parameters
+DEBUG_MODE = False
+HISTORY_YEARS = 10
+FINDATA_DIR = ""
+FINDB_DIR = ""
+TICKERS_FILE = ""
+DB_FILEPATH = "" # Will be constructed
+DOWNLOAD_LOG_FILE = ""
+PROGRESS_JSON_FILE = ""
 
-server_paths = {
-    'prod': {
-        'findata': '~/PortfolioESG_Data/findata/',
-        'findb': '~/PortfolioESG_Data/findb/',
-        'tickers_file': '~/PortfolioESG_Data/Tickers.txt',
-        'log_file_path': '~/PortfolioESG_Prod/Logs/Ticker_download.log',
-        'web_log_path': '/var/www/html/progress.json',
-    },
-    'test': {
-        'findata': '~/Documents/Prog/PortfolioESG_Data/findata/',
-        'findb': '~/Documents/Prog/PortfolioESG_Data/findb/',
-        'tickers_file': '~/Documents/Prog/PortfolioESG_Data/Tickers.txt',
-        'log_file_path': '~/Documents/Prog/PortfolioESG_Prod/Logs/Ticker_download.log',
-        'web_log_path': '~/Documents/Prog/PortfolioESG_Prod/html/progress.json',
-    }
-}
-
-# Expand user paths for the selected server
-if choose_server not in server_paths:
-    raise ValueError("Invalid server choice. Please choose either 'prod' or 'test'.")
-paths = {key: os.path.expanduser(value) for key, value in server_paths[choose_server].items()}
-
-findata = paths['findata']
-findb = paths['findb']
-tickers_file = paths['tickers_file']
-log_file_path = paths['log_file_path']
-web_log_path = paths['web_log_path']
-
-db_filename = "StockDataDB.csv"
-db_filepath = os.path.join(findb, db_filename)
-years = 10
-
-# Fallback list of user agents
+# Fallback list of user agents (moved here, after parameter placeholders)
 FALLBACK_USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -67,9 +41,9 @@ FALLBACK_USER_AGENTS = [
     "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36",
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1"
 ]
-
-USER_AGENTS = FALLBACK_USER_AGENTS  # Ensure always defined
-ua = None  # To avoid NameError if refresh logic tries to use ua
+USER_AGENTS = FALLBACK_USER_AGENTS # Initialize with fallback
+ua = None # For fake_useragent instance
+PROXIES_LIST = [] # Initialize
 
 # ----------------------------------------------------------- #
 #                           Classes                           #
@@ -108,14 +82,116 @@ class Logger:
                 file.write("\n".join(self.messages) + "\n")
             self.messages = []  # Clear memory
 
-logger = Logger(
-    log_path=log_file_path,
-    web_log_path=web_log_path  # Shared JSON file for progress monitoring
-)
+    def update_web_log(self, key, value):
+        """Update a specific key in the web log JSON file."""
+        if self.web_log_path:
+            self.web_data[key] = value
+            try:
+                with open(self.web_log_path, 'w') as web_file:
+                    json.dump(self.web_data, web_file, indent=4)
+                    web_file.flush()
+                    os.fsync(web_file.fileno())
+            except Exception as e:
+                print(f"Error updating web log file {self.web_log_path}: {e}") # Log to console if logger itself fails
 
 # ----------------------------------------------------------- #
 #                        Basic Functions                      #
 # ----------------------------------------------------------- #
+
+def load_download_parameters(filepath, logger_instance=None):
+    """
+    Reads download parameters from the given file, converts to appropriate types,
+    and expands paths.
+    """
+    parameters = {}
+    expected_types = {
+        "debug_mode": bool,
+        "history_years": int,
+        "findata_directory": str,
+        "findb_directory": str,
+        "tickers_list_file": str,
+        "download_log_file": str,
+        "progress_json_file": str,
+        # Optional proxy/user-agent params
+        "fetch_proxies_enabled": bool,
+        "proxy_fetch_limit": int,
+        "dynamic_user_agents_enabled": bool # Not used yet, but good to have
+    }
+
+    try:
+        with open(filepath, 'r') as f:
+            for line_number, line in enumerate(f, 1):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                
+                parts = line.split('=', 1)
+                if len(parts) != 2:
+                    message = f"Warning: Malformed line {line_number} in '{filepath}': '{line}'. Skipping."
+                    if logger_instance: logger_instance.log(message)
+                    else: print(message)
+                    continue
+                
+                key, value_str = parts[0].strip(), parts[1].strip()
+                processed_value = None
+
+                if key in expected_types:
+                    target_type = expected_types[key]
+                    try:
+                        if target_type == int:
+                            processed_value = int(value_str)
+                        elif target_type == float: # Though no floats expected here yet
+                            processed_value = float(value_str)
+                        elif target_type == bool:
+                            if value_str.lower() == 'true':
+                                processed_value = True
+                            elif value_str.lower() == 'false':
+                                processed_value = False
+                            else:
+                                raise ValueError(f"Boolean value for '{key}' must be 'true' or 'false', got '{value_str}'")
+                        elif target_type == str:
+                            if value_str.startswith('~'):
+                                processed_value = os.path.expanduser(value_str)
+                            else:
+                                processed_value = value_str
+                        parameters[key] = processed_value
+                    except ValueError:
+                        message = (f"Warning: Could not convert value '{value_str}' for key '{key}' to {target_type.__name__} "
+                                   f"in '{filepath}'. Using raw string value '{value_str}'.")
+                        if logger_instance: logger_instance.log(message)
+                        else: print(message)
+                        parameters[key] = value_str # Fallback to string
+                else:
+                    # Handle unknown keys by treating them as strings after path expansion
+                    message = f"Info: Unknown parameter key '{key}' found in '{filepath}'. Treating as string."
+                    if logger_instance: logger_instance.log(message)
+                    else: print(message)
+                    if value_str.startswith('~'):
+                        processed_value = os.path.expanduser(value_str)
+                    else:
+                        processed_value = value_str
+                    parameters[key] = processed_value
+
+    except FileNotFoundError:
+        message = f"CRITICAL ERROR: Parameters file '{filepath}' not found. Cannot load download settings."
+        if logger_instance: logger_instance.log(message)
+        else: print(message)
+        raise
+    except Exception as e:
+        message = f"CRITICAL ERROR: Failed to read or parse parameters file '{filepath}': {e}"
+        if logger_instance: logger_instance.log(message)
+        else: print(message)
+        raise
+
+    # Validate that critical parameters are present
+    critical_keys = ["findata_directory", "findb_directory", "tickers_list_file", "download_log_file"]
+    for crit_key in critical_keys:
+        if crit_key not in parameters or not parameters[crit_key]: # Check if key exists and has a non-empty value
+            message = f"CRITICAL ERROR: Missing or empty critical parameter '{crit_key}' in '{filepath}'."
+            if logger_instance: logger_instance.log(message)
+            else: print(message)
+            raise ValueError(message)
+    return parameters
 
 # Function to fetch dynamic user agents
 def fetch_dynamic_user_agents():
@@ -203,20 +279,17 @@ def rotate_user_agent_and_proxy(session, user_agents, proxies):
     if user_agents:
         random_user_agent = random.choice(user_agents)
         session.headers.update({"User-Agent": random_user_agent})
-        if DEBUG:
+        if DEBUG_MODE and logger: # Ensure logger is available
             logger.log(f"Rotated User-Agent: {random_user_agent}")
     else:
-        if DEBUG:
+        if DEBUG_MODE:
             logger.log("⚠️ No user agents available for rotation.")
 
     if proxies:
         random_proxy = random.choice(proxies)
         session.proxies.update(random_proxy)
-        if DEBUG:
+        if DEBUG_MODE and logger:
             logger.log(f"Rotated Proxy: {random_proxy}")
-    else:
-        if DEBUG:
-            logger.log("⚠️ No proxies available for rotation.")
 
 def get_previous_business_day():
     today = datetime.today()
@@ -271,11 +344,11 @@ def get_sao_paulo_holidays(year):
 
     return holiday_dict
 
-def get_missing_dates(ticker, findata, start_date, end_date):
+def get_missing_dates(ticker, current_findata_dir, start_date, end_date):
     """
     Return only business days (excluding weekends and holidays) that are missing for a given ticker.
     """
-    ticker_folder = os.path.join(findata, ticker)
+    ticker_folder = os.path.join(current_findata_dir, ticker)
     if not os.path.exists(ticker_folder):
         logger.log(f"📂 No folder found for {ticker}. All dates are missing.")
         ticker_holidays = holidays.Brazil(years=range(start_date.year, end_date.year + 1), subdiv='SP')
@@ -314,12 +387,12 @@ def read_tickers_from_file(file_path):
         tickers = [line.strip() for line in f.readlines() if line.strip()]
     return tickers
 
-def save_ticker_data_to_csv(ticker, data, findata):
+def save_ticker_data_to_csv(ticker, data, current_findata_dir):
     """
     Save the fetched data for a ticker to individual CSVs in the findata folder (one file per date).
     """
-    # Ensure the findata folder for the ticker exists
-    ticker_folder = os.path.join(findata, ticker)
+    # Ensure the current_findata_dir folder for the ticker exists
+    ticker_folder = os.path.join(current_findata_dir, ticker)
     if not os.path.exists(ticker_folder):
         os.makedirs(ticker_folder)
 
@@ -369,7 +442,7 @@ def debug_check_dates_against_holidays(dates_to_check):
         else:
             print(f"❌ {d} is NOT marked as a holiday")
 
-def download_and_append(tickers, findata, findb, db_filepath):
+def download_and_append(tickers_list, current_findata_dir, current_findb_dir, current_db_filepath):
     """
     Download missing data for each ticker, compare with existing data in findata and StockDataDB.csv,
     and update StockDataDB.csv with only the missing rows.
@@ -378,23 +451,23 @@ def download_and_append(tickers, findata, findb, db_filepath):
     common_cols = ['Date', 'Stock', 'Open', 'Low', 'High', 'Close', 'Volume']
 
     end_date = datetime.strptime(get_previous_business_day(), '%Y-%m-%d')
-    start_date = datetime.today() - timedelta(days=365 * years)
+    start_date = datetime.today() - timedelta(days=365 * HISTORY_YEARS)
 
     # Step 1: Load existing StockDataDB.csv
-    if os.path.exists(db_filepath):
-        existing_db = pd.read_csv(db_filepath)
+    if os.path.exists(current_db_filepath):
+        existing_db = pd.read_csv(current_db_filepath)
         existing_db['Date'] = pd.to_datetime(existing_db['Date'], format='mixed', errors='coerce').dt.date
         logger.log(f"✅ Loaded existing StockDataDB.csv with {len(existing_db)} rows.")
     else:
         existing_db = pd.DataFrame(columns=common_cols)
-        logger.log("⚠️ StockDataDB.csv does not exist. Starting with an empty database.")
+        logger.log(f"⚠️ {current_db_filepath} does not exist. Starting with an empty database.")
 
     # Step 2: Load all data from findata folder
     findata_rows = []
-    for ticker in tickers:
-        ticker_folder = os.path.join(findata, ticker)
+    for ticker_item in tickers_list: # Iterate using the passed tickers_list
+        ticker_folder = os.path.join(current_findata_dir, ticker_item)
         if not os.path.exists(ticker_folder):
-            logger.log(f"📂 No folder found for {ticker}. Skipping.")
+            logger.log(f"📂 No folder found for {ticker_item}. Skipping.")
             continue
 
         for file in os.listdir(ticker_folder):
@@ -402,12 +475,16 @@ def download_and_append(tickers, findata, findb, db_filepath):
                 file_path = os.path.join(ticker_folder, file)
                 try:
                     file_data = pd.read_csv(file_path)
-                    file_data['Date'] = pd.to_datetime(file_data['Date'], format='mixed', errors='coerce').dt.date
-                    file_data['Stock'] = ticker
+                    # Ensure 'Date' column exists before trying to convert
+                    if 'Date' in file_data.columns:
+                        file_data['Date'] = pd.to_datetime(file_data['Date'], format='mixed', errors='coerce').dt.date
+                    else:
+                        logger.log(f"⚠️ 'Date' column missing in file {file_path}. Skipping this file.")
+                        continue # Skip this file
+                    file_data['Stock'] = ticker_item # Assign the correct ticker_item
                     findata_rows.append(file_data)
                 except Exception as e:
                     logger.log(f"⚠️ Failed to load file {file_path}: {e}")
-
     if findata_rows:
         findata_df = pd.concat(findata_rows, ignore_index=True)
         logger.log(f"✅ Loaded {len(findata_df)} rows from findata folder.")
@@ -416,47 +493,50 @@ def download_and_append(tickers, findata, findb, db_filepath):
         logger.log("⚠️ No data found in findata folder.")
 
     # Step 3: Combine existing_db and findata_df, and deduplicate
-    combined_data = pd.concat([existing_db, findata_df], ignore_index=True)
-    combined_data = combined_data.drop_duplicates(subset=['Date', 'Stock'], keep='last')
+    if not findata_df.empty:
+        combined_data = pd.concat([existing_db, findata_df], ignore_index=True)
+        combined_data = combined_data.drop_duplicates(subset=['Date', 'Stock'], keep='last')
+    else:
+        combined_data = existing_db.drop_duplicates(subset=['Date', 'Stock'], keep='last')
     logger.log(f"✅ Combined data has {len(combined_data)} unique rows after deduplication.")
 
     # Step 4: Download missing data for each ticker
     all_downloaded_data = []
-    for i, ticker in enumerate(tickers):
+    for i, ticker_to_process in enumerate(tickers_list): # Minor rename for clarity
         # 🔁 Refresh user agents every 10 tickers
         if i > 0 and i % 10 == 0 and ua:
             try:
                 USER_AGENTS = [ua.random for _ in range(50)]
-                if DEBUG:
-                    logger.log(f"🔁 Refreshed user agent list after {i} tickers.")
+                if DEBUG_MODE and logger:
+                    logger.log(f"🔁 Refreshed user agent list after {i} tickers processed.")
             except Exception as e:
-                if DEBUG:
+                if DEBUG_MODE and logger:
                     logger.log(f"⚠️ Failed to refresh user agents: {e}")
 
         # Step 1: Determine missing business days
-        missing_dates = get_missing_dates(ticker, findata, start_date, end_date)
-        if DEBUG:
-            logger.log(f"🔍 Missing dates for {ticker}: {[d.strftime('%Y-%m-%d') for d in missing_dates]}")
+        missing_dates = get_missing_dates(ticker_to_process, current_findata_dir, start_date, end_date)
+        if DEBUG_MODE:
+            logger.log(f"🔍 Missing dates for {ticker_to_process}: {[d.strftime('%Y-%m-%d') for d in missing_dates]}")
         confirmed_missing_dates = []
         for d in missing_dates:
-            file_path = os.path.join(findata, ticker, f"StockData_{ticker}_{d.date()}.csv")
+            file_path = os.path.join(current_findata_dir, ticker_to_process, f"StockData_{ticker_to_process}_{d.date()}.csv")
             if not os.path.exists(file_path):
                 confirmed_missing_dates.append(d)
 
         if not confirmed_missing_dates:
-            logger.log(f"✅ All data for {ticker} is already downloaded. Skipping.")
+            logger.log(f"✅ All data for {ticker_to_process} is already downloaded. Skipping.")
             continue
 
         # Step 2: Fetch missing data
         rotate_user_agent_and_proxy(session, USER_AGENTS, PROXIES_LIST)
         end_date_for_download = max(confirmed_missing_dates) + timedelta(days=1)
         data = yfin.download(
-            ticker,
+            ticker_to_process,
             start=min(confirmed_missing_dates).strftime('%Y-%m-%d'),
             end=end_date_for_download.strftime('%Y-%m-%d')
         )
         if data.empty:
-            logger.log(f"⚠️ No data fetched for {ticker}. Skipping.")
+            logger.log(f"⚠️ No data fetched for {ticker_to_process}. Skipping.")
             continue
 
         data.reset_index(inplace=True)
@@ -475,23 +555,23 @@ def download_and_append(tickers, findata, findb, db_filepath):
                     data.rename(columns={datetime_cols[0]: 'Date'}, inplace=True)
 
         if 'Date' not in data.columns:
-            logger.log(f"⚠️ Ticker {ticker}: No 'Date' column found after reset. Skipping.")
+            logger.log(f"⚠️ Ticker {ticker_to_process}: No 'Date' column found after reset. Skipping.")
             continue
 
         # Step 5: Filter and Save
         data['Date'] = pd.to_datetime(data['Date']).dt.date
-        data['Stock'] = ticker
+        data['Stock'] = ticker_to_process
         data = data[data['Date'].isin([d.date() for d in confirmed_missing_dates])]
 
         if data.empty:
-            logger.log(f"⚠️ No new data to save for {ticker} after filtering for missing dates.")
+            logger.log(f"⚠️ No new data to save for {ticker_to_process} after filtering for missing dates.")
             continue
 
         logger.log(
-            f"📈 Downloaded {len(data)} rows for {ticker} from {min(confirmed_missing_dates).strftime('%Y-%m-%d')} to {max(confirmed_missing_dates).strftime('%Y-%m-%d')}"
+            f"📈 Downloaded {len(data)} rows for {ticker_to_process} from {min(confirmed_missing_dates).strftime('%Y-%m-%d')} to {max(confirmed_missing_dates).strftime('%Y-%m-%d')}"
         )
 
-        save_ticker_data_to_csv(ticker, data, findata)
+        save_ticker_data_to_csv(ticker_to_process, data, current_findata_dir)
         all_downloaded_data.append(data)
 
     # Step 5: Combine downloaded data with combined_data
@@ -502,19 +582,62 @@ def download_and_append(tickers, findata, findb, db_filepath):
         logger.log(f"✅ Final combined data has {len(combined_data)} unique rows after adding downloaded data.")
 
     # Step 6: Save the updated StockDataDB.csv
-    combined_data.to_csv(db_filepath, index=False)
-    logger.log(f"✅ Updated StockDataDB.csv with {len(combined_data)} total unique rows.")
+    combined_data.to_csv(current_db_filepath, index=False)
+    logger.log(f"✅ Updated {current_db_filepath} with {len(combined_data)} total unique rows.")
 
 # ----------------------------------------------------------- #
 #                     Execution Pipeline                      #
 # ----------------------------------------------------------- #
 
+# --- Configuration Loading ---
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARAMETERS_FILE_PATH = os.path.join(SCRIPT_DIR, "downpar.txt")
+
+# Initialize preliminary logger
+prelim_log_path = os.path.join(SCRIPT_DIR, "download_bootstrap.log")
+logger = Logger(log_path=prelim_log_path, web_log_path=None) # No web log for bootstrap
+logger.log(f"Logger initialized with preliminary path: {prelim_log_path}")
+logger.log(f"Attempting to load parameters from: {PARAMETERS_FILE_PATH}")
+
+try:
+    params = load_download_parameters(PARAMETERS_FILE_PATH, logger_instance=logger)
+    logger.log(f"Successfully loaded parameters from: {PARAMETERS_FILE_PATH}")
+except FileNotFoundError:
+    logger.log(f"CRITICAL ERROR: Parameters file not found at '{PARAMETERS_FILE_PATH}'. Exiting.")
+    exit(1) # Use exit(1) for error
+except ValueError as ve: # Catch specific ValueError from load_download_parameters for missing critical params
+    logger.log(f"CRITICAL ERROR: {ve}. Exiting.")
+    exit(1)
+except Exception as e:
+    logger.log(f"CRITICAL ERROR: Failed to load parameters from '{PARAMETERS_FILE_PATH}'. Error: {e}. Exiting.")
+    exit(1)
+
+# Assign global variables from loaded parameters
+DEBUG_MODE = params.get("debug_mode", False)
+HISTORY_YEARS = params.get("history_years", 10)
+FINDATA_DIR = params.get("findata_directory") # Critical, checked in load_download_parameters
+FINDB_DIR = params.get("findb_directory")     # Critical
+TICKERS_FILE = params.get("tickers_list_file") # Critical
+DOWNLOAD_LOG_FILE = params.get("download_log_file") # Critical
+PROGRESS_JSON_FILE = params.get("progress_json_file", os.path.join(SCRIPT_DIR, "progress.json")) # Default if not specified
+
+DB_FILENAME = "StockDataDB.csv" # Standard name for the database file
+DB_FILEPATH = os.path.join(FINDB_DIR, DB_FILENAME)
+
+# Update logger with paths from parameters
+logger.log_path = DOWNLOAD_LOG_FILE
+logger.web_log_path = PROGRESS_JSON_FILE # Can be None if not in params
+os.makedirs(os.path.dirname(DOWNLOAD_LOG_FILE), exist_ok=True)
+if PROGRESS_JSON_FILE: # Only create dir if path is set
+    os.makedirs(os.path.dirname(PROGRESS_JSON_FILE), exist_ok=True)
+logger.log(f"Logger paths updated. Log file: {DOWNLOAD_LOG_FILE}, Web log: {PROGRESS_JSON_FILE if PROGRESS_JSON_FILE else 'None'}")
+
+# --- End Configuration Loading ---
+
 start_time = datetime.now()
 logger.log(f"🚀 Starting execution pipeline at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-logger.log(
-    "🧾 Execution timestamps updated.",
-    web_data={"execution_start": start_time.strftime('%Y-%m-%d %H:%M:%S')}
-)
+logger.update_web_log("download_execution_start", start_time.strftime('%Y-%m-%d %H:%M:%S'))
+
 # Fetch dynamic user agents or use the fallback list
 try:
     from fake_useragent import UserAgent
@@ -528,16 +651,18 @@ except Exception as e:
 if not USER_AGENTS:
     logger.log("⚠️ No user agents available. Falling back to default behavior.")
 
-# Fetch proxies using proxybroker
-# PROXIES_LIST = fetch_proxies_from_public_list(limit=10)
-# if not PROXIES_LIST:
-#     logger.log("⚠️ No proxies available. Proceeding without proxies.")
+# Fetch proxies if enabled in parameters
+FETCH_PROXIES_ENABLED = params.get("fetch_proxies_enabled", False) # Default to false
+PROXY_FETCH_LIMIT = params.get("proxy_fetch_limit", 10)
 
-PROXIES_LIST = fetch_combined_proxy_list(limit=20)
-if not PROXIES_LIST:
-    logger.log("⚠️ No proxies available. Proceeding without proxies.")
+if FETCH_PROXIES_ENABLED:
+    PROXIES_LIST = fetch_combined_proxy_list(limit=PROXY_FETCH_LIMIT)
+    if PROXIES_LIST:
+        logger.log(f"✅ Loaded {len(PROXIES_LIST)} proxies from multiple sources.")
+    else:
+        logger.log("⚠️ Proxy fetching enabled, but no proxies were loaded. Proceeding without proxies.")
 else:
-    logger.log(f"✅ Loaded {len(PROXIES_LIST)} proxies from multiple sources.")
+    logger.log("⚠️ No proxies available. Proceeding without proxies.")
 
 # Create a session
 session = requests.Session()
@@ -552,16 +677,13 @@ adapter = HTTPAdapter(max_retries=retry_strategy)
 session.mount("http://", adapter)
 session.mount("https://", adapter)
 
-tickers = read_tickers_from_file(tickers_file)
-if not tickers:
+tickers_to_download = read_tickers_from_file(TICKERS_FILE)
+if not tickers_to_download:
     logger.log("⚠️ No tickers found in the file. Exiting.")
-    exit(1)
-download_and_append(tickers, findata, findb, db_filepath)
+    exit(1) # Use exit(1) for error
+download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH)
 
 end_time = datetime.now()
 logger.log(f"✅ Execution completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')} in {end_time - start_time}")
-
-logger.log(
-    "🧾 Execution timestamps updated.",
-    web_data={"execution_end": end_time.strftime('%Y-%m-%d %H:%M:%S')}
-)
+logger.update_web_log("download_execution_end", end_time.strftime('%Y-%m-%d %H:%M:%S'))
+logger.flush() # Final flush

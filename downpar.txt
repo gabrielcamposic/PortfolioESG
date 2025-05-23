@@ -1,0 +1,24 @@
+# Download Script Parameters for PortfolioESG
+
+# --- General Settings ---
+# Enable extensive debug logging (true/false)
+debug_mode = false
+# Number of past years of data to consider for downloads (e.g., for calculating start_date)
+history_years = 10
+
+# --- File and Directory Paths ---
+# Directory for individual daily stock data CSVs (per ticker)
+findata_directory = ~/Documents/Prog/PortfolioESG_Data/findata/
+# Directory for the consolidated stock database (StockDataDB.csv)
+findb_directory = ~/Documents/Prog/PortfolioESG_Data/findb/
+# Full path to the file containing the list of tickers to download
+tickers_list_file = ~/Documents/Prog/PortfolioESG_Data/Tickers.txt
+# Full path for the download script's log file
+download_log_file = ~/Documents/Prog/PortfolioESG_Prod/Logs/Ticker_download.log
+# Full path for the web-accessible progress JSON file (can be same as Engine's or different)
+progress_json_file = ~/Documents/Prog/PortfolioESG_Prod/html/progress.json
+
+# --- Optional: Proxy and User-Agent settings (if you want to configure them here) ---
+# fetch_proxies_enabled = true
+# proxy_fetch_limit = 10
+# dynamic_user_agents_enabled = true
