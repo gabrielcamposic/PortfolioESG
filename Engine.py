@@ -449,7 +449,8 @@ def find_best_stock_combination(
     for num_stocks_in_combo in range(min_portfolio_size, max_portfolio_size + 1):
         num_combinations_for_size = comb(len(available_stocks_for_search), num_stocks_in_combo)
         simulations_for_this_size = num_combinations_for_size * num_simulation_runs
-        logger_instance.log(f"\n    Starting {num_stocks_in_combo}-stock portfolios ({num_combinations_for_size} combos, {simulations_for_this_size} total sims)...")
+        current_time_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        logger_instance.log(f"\n    Starting {num_stocks_in_combo}-stock portfolios ({num_combinations_for_size} combos, {simulations_for_this_size} total sims) at {current_time_str}...")
 
         best_sharpe_for_size = -float("inf")
         completed_sims_for_size = 0
