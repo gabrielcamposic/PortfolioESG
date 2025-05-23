@@ -45,6 +45,8 @@ class ExecutionTimer:
         if len(self.recent_times) > self.rolling_window:
             self.recent_times.pop(0)  # Remove the oldest time to maintain the rolling window
         self.avg_time = sum(self.recent_times) / len(self.recent_times)
+        self.total_time += elapsed # Accumulate total time of timed operations
+        self.run_count += 1        # Increment the count of timed operations
 
         return elapsed
 
@@ -503,7 +505,7 @@ def find_best_stock_combination(
         
         logger_instance.log(f"    Completed all {num_stocks_in_combo}-stock portfolio simulations.")
 
-    logger_instance.log(f"\n    Brute-force search completed. Total simulation time: {timedelta(seconds=timer_instance.overall_total_time)}.")
+    logger_instance.log(f"\n    Brute-force search completed. Total simulation time: {timedelta(seconds=timer_instance.total_time)}.")
     if best_overall_portfolio_combo:
         logger_instance.log(f"    🏆 Best Overall Portfolio Found:")
         logger_instance.log(f"       Stocks: {', '.join(best_overall_portfolio_combo)}")

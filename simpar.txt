@@ -1,9 +1,9 @@
-min_stocks=5
-max_stocks=5
-sim_runs=100
+min_stocks=4
+max_stocks=4
+sim_runs=1000
 initial_investment=1000
 rf=0.1425
-start_date=2015-07-01
+start_date=2025-01-01
 esg_stocks_list = AMBP3.SA, EMBR3.SA, PSSA3.SA, MRFG3.SA, CEAB3.SA, ORVR3.SA, RDOR3.SA, BRFS3.SA, CMIG4.SA, ITUB3.SA, ITUB4.SA, TOTS3.SA, CPLE3.SA, STBP3.SA, LREN3.SA, CPLE6.SA, JHSF3.SA, BBDC4.SA, ITSA4.SA, WEGE3.SA
 stock_data_file=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
 portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
