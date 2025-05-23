@@ -441,6 +441,7 @@ def find_best_stock_combination(
     best_overall_expected_return = None
     best_overall_volatility = None
     total_simulations_done = 0
+    logged_thresholds = set() # Initialize once for the entire function call
     # The timer_instance will track the cumulative time of individual simulations.
 
     for num_stocks_in_combo in range(min_portfolio_size, max_portfolio_size + 1):
@@ -477,27 +478,28 @@ def find_best_stock_combination(
                         best_overall_volatility = vol
                         logger_instance.log(f"    🌟 New Overall Best! Sharpe: {sharpe:.4f}, Stocks: {', '.join(stock_combo_list)}")
 
-                # Progress Logging
-                # Aim for roughly 100 progress updates.
-                # If total_simulations_expected is small, this might mean logging every few simulations.
-                # If total_simulations_expected is large, the interval will be larger.
-                log_interval = max(1, total_simulations_expected // 100) # Target ~100 updates
+                # Progress Logging at ~25% intervals
+                # Calculate current progress percentage
+                current_progress_percentage = (total_simulations_done / total_simulations_expected) * 100
+                
+                # Define logging thresholds (e.g., 25%, 50%, 75%)
+                # We'll use a set to keep track of which thresholds have been logged
+                # Initialize logged_thresholds if it's the first run of this inner loop for the current num_stocks_in_combo
+                if 'logged_thresholds' not in locals() or completed_sims_for_size == 1 : # reset for each stock_combo batch
+                    logged_thresholds = set()
 
-                # For very large numbers of simulations, prevent logging too frequently.
-                if total_simulations_expected > 100000: # Example: if > 100k sims
-                    log_interval = max(log_interval, 500) # Log no more often than every 500
-                elif total_simulations_expected > 20000: # Example: if > 20k sims
-                    log_interval = max(log_interval, 100)  # Log no more often than every 100
-                if total_simulations_done % log_interval == 0 and total_simulations_done < total_simulations_expected:
-                    progress_percent = (total_simulations_done / total_simulations_expected) * 100
-                    est_rem_time = timer_instance.estimate_remaining(total_simulations_expected, total_simulations_done)
-                    logger_instance.log(f"    Progress: {total_simulations_done}/{total_simulations_expected} ({progress_percent:.1f}%). Est. Rem. Time: {est_rem_time}")
-                    logger_instance.update_web_log("overall_progress", {
-                        "completed_simulations": total_simulations_done,
-                        "total_simulations": total_simulations_expected,
-                        "percentage": progress_percent,
-                        "estimated_completion_time": (datetime.now() + est_rem_time).strftime('%Y-%m-%d %H:%M:%S') if est_rem_time else "N/A"
-                    })
+                for threshold_pct in [25, 50, 75]: # Log at these percentages
+                    if current_progress_percentage >= threshold_pct and threshold_pct not in logged_thresholds:
+                        logged_thresholds.add(threshold_pct) # Mark as logged
+                        est_rem_time = timer_instance.estimate_remaining(total_simulations_expected, total_simulations_done)
+                        logger_instance.log(f"    Progress: {total_simulations_done}/{total_simulations_expected} ({current_progress_percentage:.1f}%). Est. Rem. Time: {est_rem_time}")
+                        logger_instance.update_web_log("overall_progress", {
+                            "completed_simulations": total_simulations_done,
+                            "total_simulations": total_simulations_expected,
+                            "percentage": current_progress_percentage,
+                            "estimated_completion_time": (datetime.now() + est_rem_time).strftime('%Y-%m-%d %H:%M:%S') if est_rem_time else "N/A"
+                        })
+                        break # Log only one threshold per iteration if multiple are crossed
         
         logger_instance.log(f"    Completed all {num_stocks_in_combo}-stock portfolio simulations.")
 
@@ -595,9 +597,8 @@ if WEB_LOG_PATH_PARAM and WEB_LOG_PATH_PARAM != logger.web_log_path:
     logger.log(f"Info: Updating web log path from parameters file to: {WEB_LOG_PATH_PARAM}")
     os.makedirs(os.path.dirname(WEB_LOG_PATH_PARAM), exist_ok=True)
     logger.web_log_path = WEB_LOG_PATH_PARAM
-
 # Log final configuration values
-logger.log("Final configuration loaded:")
+logger.log("Final configuration loaded:") # Optional: Comment out for less verbose startup
 for key, value in sim_params.items(): # Use sim_params which is the direct output of load_simulation_parameters
     # Log the actual loaded value, not the potentially defaulted global variable
     logger.log(f"  - {key}: {value}")
@@ -668,7 +669,7 @@ logger.log(f"    Top 20 stocks by Sharpe Ratio: {', '.join(top_20_stocks_by_shar
 # Ensure 'Date' column is included, then add the top 20 stocks
 StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_20_stocks_by_sharpe]
 
-logger.log("    --- Head of StockDailyReturn_df (Filtered for Top 20 Stocks by Sharpe) ---")
+# logger.log("    --- Head of StockDailyReturn_df (Filtered for Top 20 Stocks by Sharpe) ---") # Commented out for brevity
 # logger.log(f"\n{StockDailyReturn_df.head()}") # Commented out for brevity
 # logger.log("    --- Tail of StockDailyReturn_df (Filtered for Top 20 Stocks by Sharpe) ---")
 # logger.log(f"\n{StockDailyReturn_df.tail()}") # Commented out for brevity
