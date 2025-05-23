@@ -591,17 +591,17 @@ def find_best_stock_combination(
                 best_final_val_this_combo, best_roi_this_combo
             )
 
-                if not pd.isna(sharpe) and sharpe > best_sharpe_for_size:
-                    best_sharpe_for_size = sharpe
-                    if sharpe > overall_best_sharpe:
-                        overall_best_sharpe = sharpe
-                        best_overall_portfolio_combo = stock_combo_list
-                        best_overall_weights_alloc = weights
-                        best_overall_final_val = final_val
-                        best_overall_roi_val = roi
-                        best_overall_expected_return = exp_ret
-                        best_overall_volatility = vol
-                        logger_instance.log(f"    🌟 New Overall Best (Phase 1)! Sharpe: {sharpe:.4f}, Stocks: {', '.join(stock_combo_list)}, Weights: {', '.join(f'{w:.4f}' for w in weights)}, Sims: {actual_sims_run_for_combo}")
+            if not pd.isna(sharpe) and sharpe > best_sharpe_for_size:
+                best_sharpe_for_size = sharpe
+                if sharpe > overall_best_sharpe:
+                    overall_best_sharpe = sharpe
+                    best_overall_portfolio_combo = stock_combo_list
+                    best_overall_weights_alloc = weights
+                    best_overall_final_val = final_val
+                    best_overall_roi_val = roi
+                    best_overall_expected_return = exp_ret
+                    best_overall_volatility = vol
+                    logger_instance.log(f"    🌟 New Overall Best (Phase 1)! Sharpe: {sharpe:.4f}, Stocks: {', '.join(stock_combo_list)}, Weights: {', '.join(f'{w:.4f}' for w in weights)}, Sims: {actual_sims_run_for_combo}")
 
             if ADAPTIVE_SIM_ENABLED and not pd.isna(sharpe): # Store result for potential refinement
                 all_combination_results_for_refinement.append({
@@ -872,24 +872,34 @@ IndividualSharpeRatios_sr = calculate_individual_sharpe_ratios(StockDailyReturn_
 
 # --- Filter DataFrames for Top Stocks by Sharpe Ratio based on MAX_STOCKS ---
 
-# Determine the number of top stocks to filter based on MAX_STOCKS
-if 3 <= MAX_STOCKS <= 5:
-    num_top_stocks_for_filtering = 25
-elif 6 <= MAX_STOCKS <= 10:
-    num_top_stocks_for_filtering = 30
-elif 11 <= MAX_STOCKS <= 20:
-    num_top_stocks_for_filtering = 40
+# Determine the number of top stocks for the initial broader filter based on MAX_STOCKS from simpar.txt
+# This num_top_stocks_for_filtering will be used to select from the global stock universe
+# before intersecting with the ESG_STOCKS_LIST.
+if 3 <= MAX_STOCKS <= 5: # If target portfolio size is small
+    num_top_stocks_for_filtering = 25 # Consider a pool of top 25 global stocks
+elif 6 <= MAX_STOCKS <= 10: # If target portfolio size is medium
+    num_top_stocks_for_filtering = 30 # Consider a pool of top 30 global stocks
+elif 11 <= MAX_STOCKS <= 20: # If target portfolio size is large
+    num_top_stocks_for_filtering = 40 # Consider a pool of top 40 global stocks
 else:
     logger.log(f"    Warning: MAX_STOCKS ({MAX_STOCKS}) is outside the defined tier ranges (3-5, 6-10, 11-20). Defaulting to a pool size of 40 for initial Sharpe Ratio filtering.")
     num_top_stocks_for_filtering = 40
-top_N_stocks_by_sharpe = IndividualSharpeRatios_sr.nlargest(MAX_STOCKS).index.tolist() # Use MAX_STOCKS from simpar.txt
-logger.log(f"    Top {MAX_STOCKS} stocks by Sharpe Ratio (based on simpar.txt 'max_stocks'): {', '.join(top_N_stocks_by_sharpe)}")
+top_n_stocks_by_sharpe = IndividualSharpeRatios_sr.nlargest(num_top_stocks_for_filtering).index.tolist() # Use the dynamically determined number
 
-# Ensure 'Date' column is included, then add the top 20 stocks
-StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_N_stocks_by_sharpe]
+# Check if the number of stocks found is less than num_top_stocks_for_filtering,
+# which can happen if the total number of stocks in IndividualSharpeRatios_sr is small.
+actual_stocks_found_count = len(top_n_stocks_by_sharpe)
+if actual_stocks_found_count < num_top_stocks_for_filtering:
+    logger.log(f"    Note: Requested top {num_top_stocks_for_filtering} stocks, but only {actual_stocks_found_count} unique stocks available in the data after date filtering.")
+    num_top_stocks_for_filtering = actual_stocks_found_count # Adjust to actual count
+
+logger.log(f"    Global top {len(top_n_stocks_by_sharpe)} stocks by Sharpe Ratio selected for initial pool: {', '.join(top_n_stocks_by_sharpe)}")
+
+# Ensure 'Date' column is included, then add the top n stocks
+StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_n_stocks_by_sharpe]
 
 # Filter StockClose_df as well, as it's used by find_best_stock_combination
-StockClose_df = StockClose_df[['Date'] + top_N_stocks_by_sharpe]
+StockClose_df = StockClose_df[['Date'] + top_n_stocks_by_sharpe]
 # --- Initialize Execution Timer ---
 sim_timer = ExecutionTimer(rolling_window=max(10, SIM_RUNS // 100)) # Adjust rolling window based on sim_runs
 
