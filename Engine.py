@@ -661,16 +661,23 @@ StockDailyReturn_df.replace(np.nan, 0, inplace=True)
 # The daily returns in StockDailyReturn_df are already percentages, so we divide by 100.
 IndividualSharpeRatios_sr = calculate_individual_sharpe_ratios(StockDailyReturn_df.iloc[:, 1:] / 100, RF_RATE)
 
-# --- Debug: Print Individual Sharpe Ratios ---
-# logger.log("    --- Individual Stock Sharpe Ratios (Annualized) ---")
-# logger.log(f"\n{IndividualSharpeRatios_sr.sort_values(ascending=False).to_string()}") # Commented out for brevity
+# --- Filter DataFrames for Top Stocks by Sharpe Ratio based on MAX_STOCKS ---
 
-# --- Filter DataFrames for Top 20 Stocks by Sharpe Ratio ---
-top_20_stocks_by_sharpe = IndividualSharpeRatios_sr.nlargest(20).index.tolist()
-logger.log(f"    Top 20 stocks by Sharpe Ratio: {', '.join(top_20_stocks_by_sharpe)}")
+# Determine the number of top stocks to filter based on MAX_STOCKS
+if 3 <= MAX_STOCKS <= 5:
+    num_top_stocks_for_filtering = 25
+elif 6 <= MAX_STOCKS <= 10:
+    num_top_stocks_for_filtering = 30
+elif 11 <= MAX_STOCKS <= 20:
+    num_top_stocks_for_filtering = 40
+else:
+    logger.log(f"    Warning: MAX_STOCKS ({MAX_STOCKS}) is outside the defined tier ranges (3-5, 6-10, 11-20). Defaulting to a pool size of 40 for initial Sharpe Ratio filtering.")
+    num_top_stocks_for_filtering = 40
+top_N_stocks_by_sharpe = IndividualSharpeRatios_sr.nlargest(MAX_STOCKS).index.tolist() # Use MAX_STOCKS from simpar.txt
+logger.log(f"    Top {MAX_STOCKS} stocks by Sharpe Ratio (based on simpar.txt 'max_stocks'): {', '.join(top_N_stocks_by_sharpe)}")
 
 # Ensure 'Date' column is included, then add the top 20 stocks
-StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_20_stocks_by_sharpe]
+StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_N_stocks_by_sharpe]
 
 # logger.log("    --- Head of StockDailyReturn_df (Filtered for Top 20 Stocks by Sharpe) ---") # Commented out for brevity
 # logger.log(f"\n{StockDailyReturn_df.head()}") # Commented out for brevity
@@ -678,7 +685,7 @@ StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_20_stocks_by_sharpe]
 # logger.log(f"\n{StockDailyReturn_df.tail()}") # Commented out for brevity
 
 # Filter StockClose_df as well, as it's used by find_best_stock_combination
-StockClose_df = StockClose_df[['Date'] + top_20_stocks_by_sharpe]
+StockClose_df = StockClose_df[['Date'] + top_N_stocks_by_sharpe]
 # --- Initialize Execution Timer ---
 sim_timer = ExecutionTimer(rolling_window=max(10, SIM_RUNS // 100)) # Adjust rolling window based on sim_runs
 
