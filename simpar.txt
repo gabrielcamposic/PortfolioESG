@@ -1,5 +1,5 @@
 min_stocks=3
-max_stocks=3
+max_stocks=5
 sim_runs=10000
 initial_investment=1000
 rf=0.1475
