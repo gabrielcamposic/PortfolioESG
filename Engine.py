@@ -479,7 +479,7 @@ def find_best_stock_combination(
                         best_overall_roi_val = roi
                         best_overall_expected_return = exp_ret
                         best_overall_volatility = vol
-                        logger_instance.log(f"    🌟 New Overall Best! Sharpe: {sharpe:.4f}, Stocks: {', '.join(stock_combo_list)}")
+                        logger_instance.log(f"    🌟 New Overall Best! Sharpe: {sharpe:.4f}, Stocks: {', '.join(stock_combo_list)}, Weights: {', '.join(f'{w:.4f}' for w in weights)}")
 
                 # Progress Logging at ~25% intervals
                 # Calculate current progress percentage
