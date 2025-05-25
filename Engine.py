@@ -840,6 +840,11 @@ if missing_critical:
 
 # --- End of Configuration Loading ---
 
+overall_script_start_time = datetime.now()
+logger.log(f"🚀 Engine.py script started at: {overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+logger.update_web_log("engine_script_start_time", overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S'))
+
+
 # ----------------------------------------------------------- #
 #                     Execution Pipeline                      #
 # ----------------------------------------------------------- #
@@ -847,13 +852,18 @@ if missing_critical:
 # --- Read & Wrangle Stock Data ---
 StockDataDB_df = pd.read_csv(STOCK_DATA_FILE)
 StockDataDB_df['Date'] = pd.to_datetime(StockDataDB_df['Date'], format='mixed', errors='coerce').dt.date # Convert to date format, handle mixed formats
+
+logger.log("\n--- Starting Data Loading and Wrangling ---")
+section_start_time = datetime.now()
+logger.update_web_log("data_wrangling_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
+
 StockDataDB_df.fillna({'Close': 0}, inplace=True) # Replace NaN with 0 for closing prices
 StockDataDB_df.sort_values(by=['Date', 'Stock'], inplace=True)
 
 # Filter data based on the start_date
 if START_DATE:
     StockDataDB_df = StockDataDB_df[StockDataDB_df['Date'] >= START_DATE]
-    logger.log(f"    Filtering data from {START_DATE} to {StockDataDB_df['Date'].max()}.")
+    logger.log(f"    Data filtered from {START_DATE} to {StockDataDB_df['Date'].max()}.")
 
 # Pivot to get closing prices structured by stock
 StockClose_df = StockDataDB_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
@@ -900,17 +910,25 @@ StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_n_stocks_by_sharpe]
 
 # Filter StockClose_df as well, as it's used by find_best_stock_combination
 StockClose_df = StockClose_df[['Date'] + top_n_stocks_by_sharpe]
+
+section_end_time = datetime.now()
+section_duration = section_end_time - section_start_time
+logger.log(f"--- Data Loading and Wrangling finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
+logger.update_web_log("data_wrangling_end", section_end_time.strftime('%Y-%m-%d %H:%M:%S'))
+logger.update_web_log("data_wrangling_duration", str(section_duration))
+
 # --- Initialize Execution Timer ---
 sim_timer = ExecutionTimer(rolling_window=max(10, SIM_RUNS // 100)) # Adjust rolling window based on sim_runs
 
 # --- Find Best Stock Combination (e.g., from ESG list within Top N) ---
 logger.log("\n--- Starting Search for Best Stock Combination ---")
+section_start_time = datetime.now()
+logger.update_web_log("stock_combination_search_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
 
 # StockClose_df here is already filtered to top 20 stocks by Sharpe.
 # ESG_STOCKS_LIST is the list of target tickers from simpar.txt.
 # The find_best_stock_combination will find the best combo from ESG_STOCKS_LIST (target list)
 # that are also present in the (already filtered) StockClose_df.
-
 (best_portfolio_stocks, best_weights, best_sharpe,
  best_final_value, best_roi, best_exp_return,
  best_volatility, avg_sim_time) = find_best_stock_combination(
@@ -925,5 +943,16 @@ logger.log("\n--- Starting Search for Best Stock Combination ---")
     sim_timer                   # Pass the timer instance
 )
 
-logger.log("\n--- Engine Processing Finished ---")
+section_end_time = datetime.now()
+section_duration = section_end_time - section_start_time
+logger.log(f"--- Search for Best Stock Combination finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
+logger.update_web_log("stock_combination_search_end", section_end_time.strftime('%Y-%m-%d %H:%M:%S'))
+logger.update_web_log("stock_combination_search_duration", str(section_duration))
+
+overall_script_end_time = datetime.now()
+total_script_duration = overall_script_end_time - overall_script_start_time
+logger.log(f"\n🏁 Engine Processing Finished at {overall_script_end_time.strftime('%Y-%m-%d %H:%M:%S')} 🏁")
+logger.log(f"⏳ Total script execution time: {total_script_duration} ⏳")
+logger.update_web_log("engine_script_end_time", overall_script_end_time.strftime('%Y-%m-%d %H:%M:%S'))
+logger.update_web_log("engine_script_total_duration", str(total_script_duration))
 logger.flush() # Final flush
