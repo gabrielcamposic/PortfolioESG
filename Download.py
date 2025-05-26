@@ -60,8 +60,10 @@ class Logger:
 
     def log(self, message, web_data=None):
         """Logs messages and optionally updates the web log file."""
-        print(message)  # Console output
-        self.messages.append(message)
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        log_entry = f"{timestamp} - {message}"
+        print(log_entry)  # Console output
+        self.messages.append(log_entry)
         self.log_count += 1
 
         # Update web log file if web_data is provided
@@ -163,18 +165,21 @@ def load_download_parameters(filepath, logger_instance=None):
                         parameters[key] = value_str # Fallback to string
                         processed_value = value_str # Ensure processed_value reflects the fallback for logging
                     # This log is now correctly indented and follows the try-except block for known keys
-                    logger_instance.log(f"DEBUG: Loaded parameter: {key} = {processed_value}")
+                    if DEBUG_MODE and logger_instance:
+                        logger_instance.log(f"DEBUG: Loaded parameter: {key} = {processed_value}")
                 else:
                     # Handle unknown keys by treating them as strings after path expansion
                     message = f"Info: Unknown parameter key '{key}' found in '{filepath}'. Treating as string."
                     if logger_instance: logger_instance.log(message)
                     else: print(message)
+
                     if value_str.startswith('~'):
                         processed_value = os.path.expanduser(value_str)
                     else:
                         processed_value = value_str
                     parameters[key] = processed_value
-                    logger_instance.log(f"DEBUG: Loaded unknown parameter: {key} = {processed_value}")
+                    if DEBUG_MODE and logger_instance:
+                        logger_instance.log(f"DEBUG: Loaded unknown parameter: {key} = {processed_value}")
 
     except FileNotFoundError:
         message = f"CRITICAL ERROR: Parameters file '{filepath}' not found. Cannot load download settings."
@@ -199,7 +204,8 @@ def load_download_parameters(filepath, logger_instance=None):
 
 # Function to fetch dynamic user agents
 def fetch_dynamic_user_agents():
-    logger.log("DEBUG: Attempting to fetch dynamic user agents.")
+    if DEBUG_MODE:
+        logger.log("DEBUG: Attempting to fetch dynamic user agents.")
     try:
         # Example API for fetching user agents (replace with a reliable source if needed)
         response = requests.get("https://useragentapi.com/api/v4/json/f7afb3be4db1a4fd3f67cea1c225fadc/user_agents")
@@ -209,10 +215,12 @@ def fetch_dynamic_user_agents():
         # Extract user agents from the JSON response
         user_agents = [agent['user_agent'] for agent in data.get('data', [])]
 
-        logger.log(f"DEBUG: Fetched {len(user_agents)} dynamic user agents.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Fetched {len(user_agents)} dynamic user agents.")
         return user_agents
     except Exception as e:
-        logger.log(f"DEBUG: Failed to fetch dynamic user agents: {e}")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Failed to fetch dynamic user agents: {e}")
         logger.log(f"⚠️ Failed to fetch dynamic user agents: {e}")
         return None
 
@@ -232,7 +240,8 @@ def fetch_dynamic_user_agents():
 #     return proxies
 
 def fetch_proxies_from_public_list(limit=10):
-    logger.log(f"DEBUG: Attempting to fetch proxies from public list (limit: {limit}).")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Attempting to fetch proxies from public list (limit: {limit}).")
     proxies = []
     try:
         response = requests.get("https://www.proxyscan.io/api/proxy?limit=20&type=http,https")
@@ -246,9 +255,11 @@ def fetch_proxies_from_public_list(limit=10):
                     "http": f"http://{ip}:{port}",
                     "https": f"https://{ip}:{port}"
                 })
-        logger.log(f"DEBUG: Fetched {len(proxies)} proxies from public list.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Fetched {len(proxies)} proxies from public list.")
     except Exception as e:
-        logger.log(f"DEBUG: Error fetching proxies from public list: {e}")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Error fetching proxies from public list: {e}")
         logger.log(f"⚠️ Failed to fetch proxies from public list: {e}")
     return proxies  # Return an empty list if fetching fails
 def fetch_combined_proxy_list(limit=20):
@@ -276,9 +287,11 @@ def fetch_combined_proxy_list(limit=20):
                         "https": f"https://{ip}:{port}"
                     })
 
-        logger.log(f"DEBUG: Fetched a total of {len(proxies)} proxies from combined sources before limit.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Fetched a total of {len(proxies)} proxies from combined sources before limit.")
     except Exception as e:
-        logger.log(f"DEBUG: Error fetching combined proxy list: {e}")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Error fetching combined proxy list: {e}")
         logger.log(f"⚠️ Error fetching proxies from one or more sources: {e}")
 
     return proxies[:limit] # Apply limit after fetching
@@ -288,14 +301,17 @@ def rotate_user_agent_and_proxy(session, user_agents, proxies):
     if user_agents:
         random_user_agent = random.choice(user_agents)
         session.headers.update({"User-Agent": random_user_agent})
-        logger.log(f"DEBUG: Rotated User-Agent: {random_user_agent}")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Rotated User-Agent: {random_user_agent}")
     else:
-        logger.log("DEBUG: No user agents available for rotation.")
+        if DEBUG_MODE:
+            logger.log("DEBUG: No user agents available for rotation.")
 
     if proxies:
         random_proxy = random.choice(proxies)
         session.proxies.update(random_proxy)
-        logger.log(f"DEBUG: Rotated Proxy: {random_proxy}")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Rotated Proxy: {random_proxy}")
 
 def get_previous_business_day():
     today = datetime.today()
@@ -354,7 +370,8 @@ def get_missing_dates(ticker, current_findata_dir, start_date, end_date):
     """
     Return only business days (excluding weekends and holidays) that are missing for a given ticker.
     """
-    logger.log(f"DEBUG: get_missing_dates for ticker: {ticker}, start: {start_date.strftime('%Y-%m-%d')}, end: {end_date.strftime('%Y-%m-%d')}")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: get_missing_dates for ticker: {ticker}, start: {start_date.strftime('%Y-%m-%d')}, end: {end_date.strftime('%Y-%m-%d')}")
     ticker_folder = os.path.join(current_findata_dir, ticker)
     if not os.path.exists(ticker_folder):
         logger.log(f"📂 No folder found for {ticker}. All dates are missing.")
@@ -374,7 +391,8 @@ def get_missing_dates(ticker, current_findata_dir, start_date, end_date):
             except ValueError:
                 logger.log(f"⚠️ Skipping file with invalid date format: {file}")
                 continue
-    logger.log(f"DEBUG: Found {len(existing_dates)} existing date files for {ticker}.")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Found {len(existing_dates)} existing date files for {ticker}.")
 
     # Step 2: Build full business date range (excluding holidays/weekends)
     all_years = list(range(start_date.year, end_date.year + 1))
@@ -385,17 +403,20 @@ def get_missing_dates(ticker, current_findata_dir, start_date, end_date):
         br_holidays.update(custom)
 
     business_days = pd.bdate_range(start=start_date, end=end_date, freq='C', holidays=br_holidays)
-    logger.log(f"DEBUG: Generated {len(business_days)} business days in range for {ticker}.")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Generated {len(business_days)} business days in range for {ticker}.")
 
     # Step 3: Find missing dates (as datetime, not .date)
     missing_dates = [dt for dt in business_days if dt.date() not in existing_dates]
-    logger.log(f"DEBUG: Identified {len(missing_dates)} missing dates for {ticker}.")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Identified {len(missing_dates)} missing dates for {ticker}.")
 
     return missing_dates
 
 def read_tickers_from_file(file_path):
     with open(file_path, 'r') as f:
-        logger.log(f"DEBUG: Reading tickers from file: {file_path}")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Reading tickers from file: {file_path}")
         tickers = [line.strip() for line in f.readlines() if line.strip()]
     return tickers
 
@@ -403,7 +424,8 @@ def save_ticker_data_to_csv(ticker, data, current_findata_dir):
     """
     Save the fetched data for a ticker to individual CSVs in the findata folder (one file per date).
     """
-    logger.log(f"DEBUG: save_ticker_data_to_csv for ticker: {ticker}")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: save_ticker_data_to_csv for ticker: {ticker}")
     # Ensure the current_findata_dir folder for the ticker exists
     ticker_folder = os.path.join(current_findata_dir, ticker)
     if not os.path.exists(ticker_folder):
@@ -412,7 +434,8 @@ def save_ticker_data_to_csv(ticker, data, current_findata_dir):
     # Validate the data
     if data.empty:
         logger.log(f"⚠️ No data to save for ticker: {ticker}. DataFrame is empty.")
-        logger.log(f"DEBUG: No data to save for {ticker} as DataFrame is empty.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: No data to save for {ticker} as DataFrame is empty.")
         return
 
     # Make sure 'Date' is a datetime object
@@ -426,16 +449,19 @@ def save_ticker_data_to_csv(ticker, data, current_findata_dir):
 
         try:
             group.to_csv(file_path, index=False)
-            logger.log(f"DEBUG: Saved data for {ticker} on {date} to {file_path}")
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: Saved data for {ticker} on {date} to {file_path}")
             logger.log(f"✅ Data for {ticker} on {date} saved to {file_path}")
         except Exception as e:
             logger.log(f"⚠️ Error saving data for {ticker} on {date}: {e}")
-            logger.log(f"DEBUG: Error saving data for {ticker} on {date}: {e}")
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: Error saving data for {ticker} on {date}: {e}")
 
 def debug_check_dates_against_holidays(dates_to_check):
     from datetime import datetime
     import holidays
 
+    # This function seems to be for manual debugging, so its internal prints are fine.
     checked_dates = [datetime.strptime(d, "%Y-%m-%d").date() for d in dates_to_check]
     all_years = set(d.year for d in checked_dates)
 
@@ -463,7 +489,8 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     Download missing data for each ticker, compare with existing data in findata and StockDataDB.csv,
     and update StockDataDB.csv with only the missing rows.
     """
-    logger.log("DEBUG: Starting download_and_append function.")
+    if DEBUG_MODE:
+        logger.log("DEBUG: Starting download_and_append function.")
     global USER_AGENTS, ua
     common_cols = ['Date', 'Stock', 'Open', 'Low', 'High', 'Close', 'Volume']
 
@@ -473,23 +500,32 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     # Step 1: Load existing StockDataDB.csv
     if os.path.exists(current_db_filepath):
         existing_db = pd.read_csv(current_db_filepath)
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Raw existing_db loaded with {len(existing_db)} rows. Columns: {existing_db.columns.tolist()}")
         existing_db['Date'] = pd.to_datetime(existing_db['Date'], format='mixed', errors='coerce').dt.date
-        logger.log(f"DEBUG: Loaded existing StockDataDB.csv with {len(existing_db)} rows from {current_db_filepath}.")
-        logger.log(f"✅ Loaded existing StockDataDB.csv with {len(existing_db)} rows.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Loaded existing StockDataDB.csv with {len(existing_db)} rows from {current_db_filepath}.")
+        logger.log(f"✅ Loaded existing StockDataDB.csv. Rows: {len(existing_db)}, Path: {current_db_filepath}")
     else:
         existing_db = pd.DataFrame(columns=common_cols)
-        logger.log(f"DEBUG: StockDataDB.csv not found at {current_db_filepath}. Initializing empty DataFrame.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: StockDataDB.csv not found at {current_db_filepath}. Initializing empty DataFrame.")
         logger.log(f"⚠️ {current_db_filepath} does not exist. Starting with an empty database.")
 
     # Step 2: Load all data from findata folder
     findata_rows = []
-    logger.log(f"DEBUG: Starting to load data from findata directory: {current_findata_dir}")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Initiating data load from findata directory: {current_findata_dir}")
     for ticker_item in tickers_list: # Iterate using the passed tickers_list
         ticker_folder = os.path.join(current_findata_dir, ticker_item)
         if not os.path.exists(ticker_folder):
-            logger.log(f"📂 No folder found for {ticker_item}. Skipping.")
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: No findata folder found for ticker {ticker_item} at {ticker_folder}. Skipping this ticker for findata load.")
+            logger.log(f"📂 No data folder for {ticker_item} in findata. Skipping.")
             continue
-
+        
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Processing findata folder for ticker: {ticker_item} at {ticker_folder}")
         for file in os.listdir(ticker_folder):
             if file.endswith(".csv"):
                 file_path = os.path.join(ticker_folder, file)
@@ -498,7 +534,10 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
                     # Ensure 'Date' column exists before trying to convert
                     if 'Date' in file_data.columns:
                         file_data['Date'] = pd.to_datetime(file_data['Date'], format='mixed', errors='coerce').dt.date
-                        logger.log(f"DEBUG: Loaded {len(file_data)} rows from {file_path} for ticker {ticker_item}.")
+                        # Ensure all common columns are present, add if missing
+                        if DEBUG_MODE:
+                            logger.log(f"DEBUG: Successfully loaded {len(file_data)} rows from {file_path} for ticker {ticker_item}. Columns: {file_data.columns.tolist()}")
+
                     else:
                         logger.log(f"⚠️ 'Date' column missing in file {file_path}. Skipping this file.")
                         continue # Skip this file
@@ -507,40 +546,61 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
                 except Exception as e:
                     logger.log(f"⚠️ Failed to load file {file_path}: {e}")
     if findata_rows:
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Preparing to concatenate {len(findata_rows)} DataFrames from findata_rows.")
         findata_df = pd.concat(findata_rows, ignore_index=True)
-        logger.log(f"✅ Loaded {len(findata_df)} rows from findata folder.")
-        logger.log(f"DEBUG: Concatenated {len(findata_df)} rows from findata folder.")
+        logger.log(f"✅ Concatenated all files from findata. Total rows loaded: {len(findata_df)}.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: findata_df columns after concatenation: {findata_df.columns.tolist()}")
+            if not findata_df.empty:
+                logger.log(f"DEBUG: Sample of findata_df (first 2 rows):\n{findata_df.head(2)}")
     else:
         findata_df = pd.DataFrame(columns=common_cols)
         logger.log("⚠️ No data found in findata folder.")
-        logger.log("DEBUG: No data found in findata folder, findata_df is empty.")
+        if DEBUG_MODE:
+            logger.log("DEBUG: findata_df is empty as no CSV files were successfully loaded from the findata directory.")
 
     # Step 3: Combine existing_db and findata_df, and deduplicate
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Preparing to combine existing_db ({len(existing_db)} rows) and findata_df ({len(findata_df)} rows).")
+        logger.log(f"DEBUG: existing_db columns: {existing_db.columns.tolist()}")
+        logger.log(f"DEBUG: findata_df columns: {findata_df.columns.tolist()}")
+
     if not findata_df.empty:
         combined_data = pd.concat([existing_db, findata_df], ignore_index=True)
+        if DEBUG_MODE: logger.log(f"DEBUG: Concatenated existing_db and findata_df. Rows before deduplication: {len(combined_data)}.")
         combined_data = combined_data.drop_duplicates(subset=['Date', 'Stock'], keep='last')
-        logger.log(f"DEBUG: Combined existing_db and findata_df. Before dedup: {len(existing_db) + len(findata_df)}, After dedup: {len(combined_data)}.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Deduplicated combined_data. Rows after deduplication: {len(combined_data)}.")
     else:
         combined_data = existing_db.drop_duplicates(subset=['Date', 'Stock'], keep='last')
-        logger.log(f"DEBUG: findata_df is empty. Using existing_db. Before dedup: {len(existing_db)}, After dedup: {len(combined_data)}.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: findata_df is empty. Used existing_db. Rows before deduplication: {len(existing_db)}, After deduplication: {len(combined_data)}.")
     logger.log(f"✅ Combined data has {len(combined_data)} unique rows after deduplication.")
 
     # Step 4: Download missing data for each ticker
     all_downloaded_data = []
     for i, ticker_to_process in enumerate(tickers_list): # Minor rename for clarity
-        logger.log(f"DEBUG: Processing ticker {i+1}/{len(tickers_list)}: {ticker_to_process}")
+        # This message is useful for progress tracking, could be INFO or conditional DEBUG
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Processing ticker {i+1}/{len(tickers_list)}: {ticker_to_process}")
+        else:
+            logger.log(f"Processing ticker {i+1}/{len(tickers_list)}: {ticker_to_process}") # Keep as INFO-like if not DEBUG_MODE
+
         # 🔁 Refresh user agents every 10 tickers
         if i > 0 and i % 10 == 0 and ua:
             try:
                 USER_AGENTS = [ua.random for _ in range(50)]
-                logger.log(f"DEBUG: Refreshed user agent list after {i} tickers processed.")
+                if DEBUG_MODE:
+                    logger.log(f"DEBUG: Refreshed user agent list after {i} tickers processed.")
             except Exception as e:
-                logger.log(f"DEBUG: Failed to refresh user agents: {e}")
+                if DEBUG_MODE:
+                    logger.log(f"DEBUG: Failed to refresh user agents: {e}")
 
         # Step 1: Determine missing business days
-        logger.log(f"DEBUG: Calling get_missing_dates for {ticker_to_process}.")
+        if DEBUG_MODE: logger.log(f"DEBUG: Calling get_missing_dates for {ticker_to_process}.")
         missing_dates = get_missing_dates(ticker_to_process, current_findata_dir, start_date, end_date)
-        logger.log(f"DEBUG: get_missing_dates returned {len(missing_dates)} potential missing dates for {ticker_to_process}.")
+        if DEBUG_MODE: logger.log(f"DEBUG: get_missing_dates returned {len(missing_dates)} potential missing dates for {ticker_to_process}.")
         confirmed_missing_dates = []
         for d in missing_dates:
             # This check is redundant if get_missing_dates is correct, but good for robustness
@@ -551,15 +611,18 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         if not confirmed_missing_dates:
             logger.log(f"✅ All data for {ticker_to_process} is already downloaded. Skipping.")
             continue
-        logger.log(f"DEBUG: Confirmed {len(confirmed_missing_dates)} missing dates for {ticker_to_process} to download.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Confirmed {len(confirmed_missing_dates)} missing dates for {ticker_to_process} to download.")
 
         # Step 2: Fetch missing data
-        logger.log(f"DEBUG: Rotating user agent and proxy for {ticker_to_process}.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Rotating user agent and proxy for {ticker_to_process}.")
         rotate_user_agent_and_proxy(session, USER_AGENTS, PROXIES_LIST)
         end_date_for_download = max(confirmed_missing_dates) + timedelta(days=1)
         download_start_date_str = min(confirmed_missing_dates).strftime('%Y-%m-%d')
         download_end_date_str = end_date_for_download.strftime('%Y-%m-%d')
-        logger.log(f"DEBUG: Calling yfin.download for {ticker_to_process}, start: {download_start_date_str}, end: {download_end_date_str}")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Calling yfin.download for {ticker_to_process}, start: {download_start_date_str}, end: {download_end_date_str}")
         data = yfin.download(
             ticker_to_process,
             start=download_start_date_str,
@@ -567,7 +630,8 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         )
         if data.empty:
             logger.log(f"⚠️ No data fetched for {ticker_to_process}. Skipping.")
-            logger.log(f"DEBUG: yfin.download returned empty DataFrame for {ticker_to_process}.")
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: yfin.download returned empty DataFrame for {ticker_to_process}.")
             continue
 
         data.reset_index(inplace=True)
@@ -575,7 +639,8 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         # Step 3: Flatten MultiIndex if needed
         if isinstance(data.columns, pd.MultiIndex):
             data.columns = [col[0] if col[0] != '' else col[1] for col in data.columns]
-            logger.log(f"DEBUG: Flattened MultiIndex columns for {ticker_to_process}.")
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: Flattened MultiIndex columns for {ticker_to_process}.")
 
         # Step 4: Ensure 'Date' column
         if 'Date' not in data.columns:
@@ -588,7 +653,8 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
 
         if 'Date' not in data.columns:
             logger.log(f"⚠️ Ticker {ticker_to_process}: No 'Date' column found after reset. Skipping.")
-            logger.log(f"DEBUG: No 'Date' column for {ticker_to_process} after attempting to find/rename. Skipping.")
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: No 'Date' column for {ticker_to_process} after attempting to find/rename. Skipping.")
             continue
 
         # Step 5: Filter and Save
@@ -598,31 +664,38 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
 
         if data.empty:
             logger.log(f"⚠️ No new data to save for {ticker_to_process} after filtering for missing dates.")
-            logger.log(f"DEBUG: DataFrame empty for {ticker_to_process} after filtering for confirmed_missing_dates. Skipping save.")
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: DataFrame empty for {ticker_to_process} after filtering for confirmed_missing_dates. Skipping save.")
             continue
 
         logger.log(
             f"📈 Downloaded {len(data)} rows for {ticker_to_process} from {min(confirmed_missing_dates).strftime('%Y-%m-%d')} to {max(confirmed_missing_dates).strftime('%Y-%m-%d')}"
         )
-        logger.log(f"DEBUG: Downloaded {len(data)} rows for {ticker_to_process}. Calling save_ticker_data_to_csv.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Downloaded {len(data)} rows for {ticker_to_process}. Calling save_ticker_data_to_csv.")
         save_ticker_data_to_csv(ticker_to_process, data, current_findata_dir)
         all_downloaded_data.append(data)
-        logger.log(f"DEBUG: Appended {len(data)} rows for {ticker_to_process} to all_downloaded_data list.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Appended {len(data)} rows for {ticker_to_process} to all_downloaded_data list.")
 
     # Step 5: Combine downloaded data with combined_data
     if all_downloaded_data:
         downloaded_data = pd.concat(all_downloaded_data, ignore_index=True)
-        logger.log(f"DEBUG: Concatenated all_downloaded_data. Total rows: {len(downloaded_data)}.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Concatenated all_downloaded_data. Total rows: {len(downloaded_data)}.")
         combined_data = pd.concat([combined_data, downloaded_data], ignore_index=True)
         combined_data = combined_data.drop_duplicates(subset=['Date', 'Stock'], keep='last')
         logger.log(f"✅ Final combined data has {len(combined_data)} unique rows after adding downloaded data.")
-        logger.log(f"DEBUG: Combined with downloaded_data. Before dedup: {len(combined_data) - len(downloaded_data) + len(downloaded_data)}, After dedup: {len(combined_data)}.")
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Combined with downloaded_data. Before dedup: {len(combined_data) - len(downloaded_data) + len(downloaded_data)}, After dedup: {len(combined_data)}.")
 
     # Step 6: Save the updated StockDataDB.csv
-    logger.log(f"DEBUG: Saving final combined_data with {len(combined_data)} rows to {current_db_filepath}.")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Saving final combined_data with {len(combined_data)} rows to {current_db_filepath}.")
     combined_data.to_csv(current_db_filepath, index=False)
     logger.log(f"✅ Updated {current_db_filepath} with {len(combined_data)} total unique rows.")
-    logger.log("DEBUG: Finished download_and_append function.")
+    if DEBUG_MODE:
+        logger.log("DEBUG: Finished download_and_append function.")
 
 # ----------------------------------------------------------- #
 #                     Execution Pipeline                      #
@@ -670,10 +743,11 @@ os.makedirs(os.path.dirname(DOWNLOAD_LOG_FILE), exist_ok=True)
 if PROGRESS_JSON_FILE: # Only create dir if path is set
     os.makedirs(os.path.dirname(PROGRESS_JSON_FILE), exist_ok=True)
 logger.log(f"Logger paths updated. Log file: {DOWNLOAD_LOG_FILE}, Web log: {PROGRESS_JSON_FILE if PROGRESS_JSON_FILE else 'None'}")
-logger.log(f"DEBUG: Final Parameters Loaded:")
-logger.log(f"DEBUG:   DEBUG_MODE = {DEBUG_MODE}")
-logger.log(f"DEBUG:   HISTORY_YEARS = {HISTORY_YEARS}")
-logger.log(f"DEBUG:   DB_FILEPATH = {DB_FILEPATH}")
+if DEBUG_MODE:
+    logger.log(f"DEBUG: Final Parameters Loaded:")
+    logger.log(f"DEBUG:   DEBUG_MODE = {DEBUG_MODE}")
+    logger.log(f"DEBUG:   HISTORY_YEARS = {HISTORY_YEARS}")
+    logger.log(f"DEBUG:   DB_FILEPATH = {DB_FILEPATH}")
 
 # --- End Configuration Loading ---
 
@@ -681,7 +755,8 @@ start_time = datetime.now()
 logger.log(f"🚀 Starting execution pipeline at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 logger.update_web_log("download_execution_start", start_time.strftime('%Y-%m-%d %H:%M:%S'))
 
-logger.log("DEBUG: Attempting to initialize UserAgent.")
+if DEBUG_MODE:
+    logger.log("DEBUG: Attempting to initialize UserAgent.")
 # Fetch dynamic user agents or use the fallback list
 try:
     from fake_useragent import UserAgent
@@ -690,27 +765,32 @@ try:
     logger.log(f"✅ Generated {len(USER_AGENTS)} dynamic user agents using fake-useragent.")
 except Exception as e:
     USER_AGENTS = FALLBACK_USER_AGENTS
-    logger.log(f"DEBUG: Failed to init UserAgent or generate dynamic agents: {e}. Using fallback.")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Failed to init UserAgent or generate dynamic agents: {e}. Using fallback.")
     logger.log(f"⚠️ Failed to generate dynamic user agents. Using fallback list. Reason: {e}")
 
 if not USER_AGENTS:
-    logger.log("DEBUG: USER_AGENTS list is empty even after fallback. This should not happen if FALLBACK_USER_AGENTS is populated.")
+    if DEBUG_MODE:
+        logger.log("DEBUG: USER_AGENTS list is empty even after fallback. This should not happen if FALLBACK_USER_AGENTS is populated.")
     logger.log("⚠️ No user agents available. Falling back to default behavior.")
 
 # Fetch proxies if enabled in parameters
 FETCH_PROXIES_ENABLED = params.get("fetch_proxies_enabled", False) # Default to false
 PROXY_FETCH_LIMIT = params.get("proxy_fetch_limit", 10)
-logger.log(f"DEBUG: FETCH_PROXIES_ENABLED = {FETCH_PROXIES_ENABLED}, PROXY_FETCH_LIMIT = {PROXY_FETCH_LIMIT}")
+if DEBUG_MODE:
+    logger.log(f"DEBUG: FETCH_PROXIES_ENABLED = {FETCH_PROXIES_ENABLED}, PROXY_FETCH_LIMIT = {PROXY_FETCH_LIMIT}")
 
 if FETCH_PROXIES_ENABLED:
-    logger.log("DEBUG: Fetching proxies as FETCH_PROXIES_ENABLED is True.")
+    if DEBUG_MODE:
+        logger.log("DEBUG: Fetching proxies as FETCH_PROXIES_ENABLED is True.")
     PROXIES_LIST = fetch_combined_proxy_list(limit=PROXY_FETCH_LIMIT)
     if PROXIES_LIST:
         logger.log(f"✅ Loaded {len(PROXIES_LIST)} proxies from multiple sources.")
     else:
         logger.log("⚠️ Proxy fetching enabled, but no proxies were loaded. Proceeding without proxies.")
 else:
-    logger.log("DEBUG: FETCH_PROXIES_ENABLED is False. Skipping proxy fetching.")
+    if DEBUG_MODE:
+        logger.log("DEBUG: FETCH_PROXIES_ENABLED is False. Skipping proxy fetching.")
     logger.log("⚠️ No proxies available. Proceeding without proxies.")
 
 # Create a session
@@ -725,14 +805,17 @@ retry_strategy = Retry(
 adapter = HTTPAdapter(max_retries=retry_strategy)
 session.mount("http://", adapter)
 session.mount("https://", adapter)
-logger.log(f"DEBUG: Session created with retry strategy.")
+if DEBUG_MODE:
+    logger.log(f"DEBUG: Session created with retry strategy.")
 
-logger.log(f"DEBUG: Reading tickers from: {TICKERS_FILE}")
+if DEBUG_MODE:
+    logger.log(f"DEBUG: Reading tickers from: {TICKERS_FILE}")
 tickers_to_download = read_tickers_from_file(TICKERS_FILE)
 if not tickers_to_download:
     logger.log("⚠️ No tickers found in the file. Exiting.")
     exit(1) # Use exit(1) for error
-logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
+if DEBUG_MODE:
+    logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
 download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH)
 
 end_time = datetime.now()
