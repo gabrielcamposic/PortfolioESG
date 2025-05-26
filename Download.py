@@ -502,20 +502,24 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         existing_db = pd.read_csv(current_db_filepath)
         if DEBUG_MODE:
             logger.log(f"DEBUG: Raw existing_db loaded with {len(existing_db)} rows. Columns: {existing_db.columns.tolist()}")
-        existing_db['Date'] = pd.to_datetime(existing_db['Date'], format='mixed', errors='coerce').dt.date
+        existing_db['Date'] = pd.to_datetime(existing_db['Date'], format='mixed', errors='coerce').dt.date # Ensure Date is in correct format
         if DEBUG_MODE:
-            logger.log(f"DEBUG: Loaded existing StockDataDB.csv with {len(existing_db)} rows from {current_db_filepath}.")
+            logger.log(f"DEBUG: Loaded existing StockDataDB.csv. Shape: {existing_db.shape} from {current_db_filepath}.")
         logger.log(f"✅ Loaded existing StockDataDB.csv. Rows: {len(existing_db)}, Path: {current_db_filepath}")
     else:
         existing_db = pd.DataFrame(columns=common_cols)
         if DEBUG_MODE:
-            logger.log(f"DEBUG: StockDataDB.csv not found at {current_db_filepath}. Initializing empty DataFrame.")
+            logger.log(f"DEBUG: StockDataDB.csv not found at {current_db_filepath}. Initializing empty DataFrame. Shape: {existing_db.shape}")
         logger.log(f"⚠️ {current_db_filepath} does not exist. Starting with an empty database.")
 
     # Step 2: Load all data from findata folder
     findata_rows = []
     if DEBUG_MODE:
         logger.log(f"DEBUG: Initiating data load from findata directory: {current_findata_dir}")
+    
+    total_findata_files_processed = 0
+    estimated_total_findata_rows = 0
+    
     for ticker_item in tickers_list: # Iterate using the passed tickers_list
         ticker_folder = os.path.join(current_findata_dir, ticker_item)
         if not os.path.exists(ticker_folder):
@@ -526,30 +530,37 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         
         if DEBUG_MODE:
             logger.log(f"DEBUG: Processing findata folder for ticker: {ticker_item} at {ticker_folder}")
-        for file in os.listdir(ticker_folder):
-            if file.endswith(".csv"):
-                file_path = os.path.join(ticker_folder, file)
-                try:
-                    file_data = pd.read_csv(file_path)
-                    # Ensure 'Date' column exists before trying to convert
-                    if 'Date' in file_data.columns:
-                        file_data['Date'] = pd.to_datetime(file_data['Date'], format='mixed', errors='coerce').dt.date
-                        # Ensure all common columns are present, add if missing
-                        if DEBUG_MODE:
-                            logger.log(f"DEBUG: Successfully loaded {len(file_data)} rows from {file_path} for ticker {ticker_item}. Columns: {file_data.columns.tolist()}")
+        
+        files_in_ticker_folder = [f for f in os.listdir(ticker_folder) if f.endswith(".csv")]
+        if DEBUG_MODE:
+            logger.log(f"DEBUG: Found {len(files_in_ticker_folder)} CSV files in {ticker_folder}.")
 
-                    else:
-                        logger.log(f"⚠️ 'Date' column missing in file {file_path}. Skipping this file.")
-                        continue # Skip this file
-                    file_data['Stock'] = ticker_item # Assign the correct ticker_item
-                    findata_rows.append(file_data)
-                except Exception as e:
-                    logger.log(f"⚠️ Failed to load file {file_path}: {e}")
+        for file_count, file_name in enumerate(files_in_ticker_folder):
+            file_path = os.path.join(ticker_folder, file_name)
+            try:
+                if DEBUG_MODE and file_count % 50 == 0 : # Log every 50 files per ticker to avoid flooding
+                    logger.log(f"DEBUG: Loading file {file_count + 1}/{len(files_in_ticker_folder)} for ticker {ticker_item}: {file_path}")
+                file_data = pd.read_csv(file_path)
+                total_findata_files_processed += 1
+                if 'Date' in file_data.columns:
+                    file_data['Date'] = pd.to_datetime(file_data['Date'], format='mixed', errors='coerce').dt.date
+                else:
+                    logger.log(f"⚠️ 'Date' column missing in file {file_path}. Skipping this file.")
+                    continue
+                file_data['Stock'] = ticker_item
+                estimated_total_findata_rows += len(file_data) # Count rows only if file is valid and processed
+                findata_rows.append(file_data)
+            except Exception as e:
+                logger.log(f"⚠️ Failed to load file {file_path}: {e}")
+    
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Finished iterating through findata folders. Processed {total_findata_files_processed} files. Estimated {estimated_total_findata_rows} rows to load into findata_df.")
+
     if findata_rows:
         if DEBUG_MODE:
-            logger.log(f"DEBUG: Preparing to concatenate {len(findata_rows)} DataFrames from findata_rows.")
+            logger.log(f"DEBUG: Preparing to concatenate {len(findata_rows)} DataFrames from findata_rows into findata_df.")
         findata_df = pd.concat(findata_rows, ignore_index=True)
-        logger.log(f"✅ Concatenated all files from findata. Total rows loaded: {len(findata_df)}.")
+        logger.log(f"✅ Concatenated all files from findata. Total rows loaded: {len(findata_df)}. Shape: {findata_df.shape}.")
         if DEBUG_MODE:
             logger.log(f"DEBUG: findata_df columns after concatenation: {findata_df.columns.tolist()}")
             if not findata_df.empty:
@@ -558,25 +569,31 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         findata_df = pd.DataFrame(columns=common_cols)
         logger.log("⚠️ No data found in findata folder.")
         if DEBUG_MODE:
-            logger.log("DEBUG: findata_df is empty as no CSV files were successfully loaded from the findata directory.")
+            logger.log(f"DEBUG: findata_df is empty as no CSV files were successfully loaded. Shape: {findata_df.shape}")
 
     # Step 3: Combine existing_db and findata_df, and deduplicate
     if DEBUG_MODE:
-        logger.log(f"DEBUG: Preparing to combine existing_db ({len(existing_db)} rows) and findata_df ({len(findata_df)} rows).")
+        logger.log(f"DEBUG: Preparing to combine existing_db (Shape: {existing_db.shape}) and findata_df (Shape: {findata_df.shape}).")
         logger.log(f"DEBUG: existing_db columns: {existing_db.columns.tolist()}")
         logger.log(f"DEBUG: findata_df columns: {findata_df.columns.tolist()}")
 
     if not findata_df.empty:
-        combined_data = pd.concat([existing_db, findata_df], ignore_index=True)
-        if DEBUG_MODE: logger.log(f"DEBUG: Concatenated existing_db and findata_df. Rows before deduplication: {len(combined_data)}.")
+        if DEBUG_MODE: logger.log(f"DEBUG: Concatenating existing_db and findata_df...")
+        combined_data = pd.concat([existing_db, findata_df], ignore_index=True) # Ensure ignore_index
+        if DEBUG_MODE: logger.log(f"DEBUG: Concatenated existing_db and findata_df. Shape before deduplication: {combined_data.shape}.")
+        if DEBUG_MODE: logger.log(f"DEBUG: Deduplicating combined_data...")
         combined_data = combined_data.drop_duplicates(subset=['Date', 'Stock'], keep='last')
         if DEBUG_MODE:
-            logger.log(f"DEBUG: Deduplicated combined_data. Rows after deduplication: {len(combined_data)}.")
-    else:
-        combined_data = existing_db.drop_duplicates(subset=['Date', 'Stock'], keep='last')
+            logger.log(f"DEBUG: Deduplicated combined_data. Shape after deduplication: {combined_data.shape}.")
+    else: # findata_df is empty
+        if DEBUG_MODE: logger.log(f"DEBUG: findata_df is empty. Using existing_db for combined_data.")
+        combined_data = existing_db # No need to concat if findata_df is empty
+        if DEBUG_MODE: logger.log(f"DEBUG: Shape of combined_data (from existing_db) before deduplication: {combined_data.shape}.")
+        if DEBUG_MODE: logger.log(f"DEBUG: Deduplicating combined_data (from existing_db)...")
+        combined_data = combined_data.drop_duplicates(subset=['Date', 'Stock'], keep='last')
         if DEBUG_MODE:
-            logger.log(f"DEBUG: findata_df is empty. Used existing_db. Rows before deduplication: {len(existing_db)}, After deduplication: {len(combined_data)}.")
-    logger.log(f"✅ Combined data has {len(combined_data)} unique rows after deduplication.")
+            logger.log(f"DEBUG: Deduplicated combined_data (from existing_db). Shape after deduplication: {combined_data.shape}.")
+    logger.log(f"✅ Combined data has {len(combined_data)} unique rows after deduplication. Shape: {combined_data.shape}.")
 
     # Step 4: Download missing data for each ticker
     all_downloaded_data = []
