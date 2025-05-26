@@ -415,8 +415,6 @@ def get_missing_dates(ticker, current_findata_dir, start_date, end_date):
 
 def read_tickers_from_file(file_path):
     with open(file_path, 'r') as f:
-        if DEBUG_MODE:
-            logger.log(f"DEBUG: Reading tickers from file: {file_path}")
         tickers = [line.strip() for line in f.readlines() if line.strip()]
     return tickers
 
