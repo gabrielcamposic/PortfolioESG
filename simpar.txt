@@ -1,16 +1,44 @@
+# --- General Settings
+# Enable extensive debug logging (true/false)
 debug_mode = true
 
-# --- Target stock list and date range ---#
+# --- Target stock list and date range
 esg_stocks_list = AMBP3.SA, EMBR3.SA, PSSA3.SA, MRFG3.SA, CEAB3.SA, ORVR3.SA, RDOR3.SA, BRFS3.SA, CMIG4.SA, ITUB3.SA, ITUB4.SA, TOTS3.SA, CPLE3.SA, STBP3.SA, LREN3.SA, CPLE6.SA, JHSF3.SA, BBDC4.SA, ITSA4.SA, WEGE3.SA
 start_date=2025-01-01
 
-# --- Target portfolio parameters ---#
+# --- Target portfolio parameters
 min_stocks=5
 max_stocks=5
 initial_investment=1000
 rf=0.1475
 
-# --- Adaptive Simulation Parameters ---
+# --- Threshold for switching from brute-force to heuristic (Genetic Algorithm)
+# If target portfolio size (k) is <= this value, brute-force is used.
+# If k > this value, the Genetic Algorithm is used.
+# Example: Use brute-force for k=1 to 9, GA for k=10+
+heuristic_threshold_k = 9
+
+# --- Genetic Algorithm Parameters ---
+# Population size for the GA
+ga_population_size = 50
+# Number of generations for the GA to run
+ga_num_generations = 30
+# Probability of mutation for an individual (0.0 to 1.0)
+ga_mutation_rate = 0.02
+# Probability of crossover between two parents (0.0 to 1.0)
+ga_crossover_rate = 0.8
+# Number of best individuals to carry over to the next generation (elitism)
+ga_elitism_count = 2
+# Size of the tournament for parent selection
+ga_tournament_size = 3
+
+# --- Genetic Algorithm Convergence Parameters ---
+# Number of generations to check for convergence (if no significant improvement)
+ga_convergence_generations = 10
+# Minimum change in best Sharpe ratio to be considered an improvement
+ga_convergence_tolerance = 0.0001
+
+# --- Adaptive Simulation Parameters
 # Set to false to use the fixed sim_runs from this file for all combinations
 adaptive_sim_enabled = true
 # Initial number of simulations for a quick scan of a combination's potential
@@ -37,7 +65,7 @@ top_n_percent_refinement = 0.10
 # Number of simulations for the refinement phase, or for all combinations if adaptive_sim_enabled is false.
 sim_runs=1000
 
-# --- Working folders ---#
+# --- Working folders
 stock_data_file=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
 portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
 charts_folder=~/Documents/Prog/PortfolioESG_Prod/html/Charts/
