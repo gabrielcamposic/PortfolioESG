@@ -80,10 +80,12 @@ class Logger:
 
     def log(self, message, web_data=None):
         """Logs messages and optionally updates the web log file."""
-        print(message)  # Console output
-        self.messages.append(message)
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        log_entry = f"{timestamp} - {message}"
+        print(log_entry)  # Console output
+        self.messages.append(log_entry)
         self.log_count += 1
-
+        
         # Update web log file if web_data is provided
         if web_data and self.web_log_path:
             self.web_data.update(web_data)
@@ -91,7 +93,7 @@ class Logger:
                 json.dump(self.web_data, web_file, indent=4)
                 web_file.flush()            # Ensure data is flushed from buffer
                 os.fsync(web_file.fileno()) # Force write to disk (good for web access)
-
+        
         if self.log_count % self.flush_interval == 0:
             self.flush()
 
@@ -99,7 +101,7 @@ class Logger:
         """Write logs to file in bulk and clear memory."""
         if self.messages:
             with open(self.log_path, 'a') as file:
-                file.write("\n".join(self.messages) + "\n")
+                file.write("\n".join(self.messages) + "\n") # Already adds timestamped messages
             self.messages = []  # Clear memory
 
     def update_web_log(self, key, value):
@@ -145,6 +147,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "portfolio_folder": str,
         "charts_folder": str,
         "log_file_path": str,
+        "debug_mode": bool, # Added for debug mode
         "web_log_path": str,
         # Adaptive Simulation Parameters
         "adaptive_sim_enabled": bool,
@@ -489,10 +492,15 @@ def find_best_stock_combination(
     best_overall_roi_val = None
     best_overall_expected_return = None
     best_overall_volatility = None
-    total_simulations_done = 0
+    # total_simulations_done = 0 # Replaced by total_actual_simulations_run_phase1
     
     all_combination_results_for_refinement = [] # Stores results for potential refinement
     total_actual_simulations_run_phase1 = 0
+
+    # For more accurate progress estimation with adaptive sims
+    # This will be the sum of (target_sims_for_k_progressive or num_simulation_runs) for each k
+    # and then multiplied by num_combinations_for_size[k]
+    grand_total_expected_simulations_phase1 = 0
 
     logged_thresholds = set() # Initialize once for the entire function call
     # The timer_instance will track the cumulative time of individual simulations.
@@ -502,7 +510,7 @@ def find_best_stock_combination(
         simulations_for_this_size = num_combinations_for_size * num_simulation_runs
         current_time_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger_instance.log(f"\n    Starting {num_stocks_in_combo}-stock portfolios ({num_combinations_for_size} combos, {simulations_for_this_size} total sims) at {current_time_str}...")
-        
+
         # Determine target simulations for this k if adaptive
         # This is the max number of sims for the progressive phase for this k
         target_sims_for_k_progressive = num_simulation_runs # Fallback to fixed if not adaptive
@@ -514,7 +522,11 @@ def find_best_stock_combination(
                 calculated_sims = int(PROGRESSIVE_BASE_LOG_K * log_k_sq)
                 capped_sims = min(calculated_sims, PROGRESSIVE_MAX_SIMS_CAP)
                 target_sims_for_k_progressive = max(capped_sims, PROGRESSIVE_MIN_SIMS)
-            # logger_instance.log(f"    Adaptive target sims for k={num_stocks_in_combo}: {target_sims_for_k_progressive}", level='DEBUG')
+            if DEBUG_MODE:
+                logger_instance.log(f"DEBUG: Adaptive target sims for k={num_stocks_in_combo}: {target_sims_for_k_progressive} (vs fixed SIM_RUNS: {num_simulation_runs})")
+        
+        # Accumulate to grand total expected simulations for phase 1
+        grand_total_expected_simulations_phase1 += num_combinations_for_size * (target_sims_for_k_progressive if ADAPTIVE_SIM_ENABLED else num_simulation_runs)
 
         best_sharpe_for_size = -float("inf")
         completed_sims_for_size = 0
@@ -529,6 +541,8 @@ def find_best_stock_combination(
         for stock_combo in itertools.combinations(available_stocks_for_search, num_stocks_in_combo):
             stock_combo_list = list(stock_combo)
             df_subset_for_simulation = source_stock_prices_df[['Date'] + stock_combo_list]
+            if DEBUG_MODE:
+                logger_instance.log(f"DEBUG: Evaluating combination: {', '.join(stock_combo_list)}")
 
             # --- Adaptive Simulation Loop for this specific combination ---
             actual_sims_run_for_combo = 0
@@ -567,8 +581,11 @@ def find_best_stock_combination(
                     if actual_sims_run_for_combo == INITIAL_SCAN_SIMS:
                         if overall_best_sharpe > EARLY_DISCARD_MIN_BEST_SHARPE and \
                            best_sharpe_this_combo < overall_best_sharpe * EARLY_DISCARD_FACTOR:
-                            # logger_instance.log(f"    INFO: Early discard for {stock_combo_list} after {actual_sims_run_for_combo} sims. Combo Sharpe {best_sharpe_this_combo:.4f} vs Best Overall {overall_best_sharpe:.4f}", level='INFO')
+                            if DEBUG_MODE:
+                                logger_instance.log(f"DEBUG: Combo {stock_combo_list}: Early discard triggered after {actual_sims_run_for_combo} sims. Combo Sharpe {best_sharpe_this_combo:.4f} (Overall best: {overall_best_sharpe:.4f}, Factor: {EARLY_DISCARD_FACTOR})")
                             break # Stop simulating this specific combination
+                        elif DEBUG_MODE:
+                             logger_instance.log(f"DEBUG: Combo {stock_combo_list}: Initial scan ({INITIAL_SCAN_SIMS} sims) completed. Combo Sharpe {best_sharpe_this_combo:.4f}. No early discard.")
 
                     # 2. Convergence Check for this combination
                     if actual_sims_run_for_combo >= PROGRESSIVE_MIN_SIMS and \
@@ -580,8 +597,11 @@ def find_best_stock_combination(
                                 PROGRESSIVE_CONVERGENCE_WINDOW,
                                 PROGRESSIVE_CONVERGENCE_DELTA,
                                 logger_instance): # Pass logger if should_continue_sampling uses it
-                            # logger_instance.log(f"    INFO: Converged for {stock_combo_list} after {actual_sims_run_for_combo} sims. Sharpe {best_sharpe_this_combo:.4f}", level='INFO')
+                            if DEBUG_MODE:
+                                logger_instance.log(f"DEBUG: Combo {stock_combo_list}: Converged after {actual_sims_run_for_combo} sims. Best Sharpe for combo: {best_sharpe_this_combo:.4f}. Delta vs Threshold: {max(all_sharpes_this_combo[-PROGRESSIVE_CONVERGENCE_WINDOW:]) - min(all_sharpes_this_combo[-PROGRESSIVE_CONVERGENCE_WINDOW:])} vs {PROGRESSIVE_CONVERGENCE_DELTA}")
                             break # Stop simulating this specific combination
+                        elif DEBUG_MODE and actual_sims_run_for_combo % PROGRESSIVE_CHECK_INTERVAL == 0 : # Log if check happened but no convergence
+                            logger_instance.log(f"DEBUG: Combo {stock_combo_list}: Convergence check at {actual_sims_run_for_combo} sims. Delta: {max(all_sharpes_this_combo[-PROGRESSIVE_CONVERGENCE_WINDOW:]) - min(all_sharpes_this_combo[-PROGRESSIVE_CONVERGENCE_WINDOW:])}. Continuing.")
             # --- End of Adaptive Simulation Loop for this combination ---
             
             # Use the best result found for this combination (after adaptive/fixed runs)
@@ -590,6 +610,9 @@ def find_best_stock_combination(
                 best_exp_ret_this_combo, best_vol_this_combo,
                 best_final_val_this_combo, best_roi_this_combo
             )
+            if DEBUG_MODE:
+                logger_instance.log(f"DEBUG: Combo {stock_combo_list} finished with {actual_sims_run_for_combo} actual simulations. Best Sharpe for this combo: {sharpe:.4f}")
+
 
             if not pd.isna(sharpe) and sharpe > best_sharpe_for_size:
                 best_sharpe_for_size = sharpe
@@ -610,45 +633,42 @@ def find_best_stock_combination(
                     'sims_run': actual_sims_run_for_combo # Sims for this combo
                 })
 
-                # Progress Logging at ~25% intervals
-                # Calculate current progress percentage
-                # total_simulations_done now tracks actual simulations, not combinations * fixed_runs
-                # For progress based on combinations processed:
-                completed_sims_for_size +=1 # This now tracks completed combinations for this size
-                total_combinations_processed_so_far = sum(comb(len(available_stocks_for_search), k) for k in range(min_portfolio_size, num_stocks_in_combo)) + completed_sims_for_size
-                current_progress_percentage = (total_combinations_processed_so_far / total_combinations_to_evaluate) * 100
-                
-                # Define logging thresholds (e.g., 25%, 50%, 75%)
-                # We'll use a set to keep track of which thresholds have been logged
-                # Initialize logged_thresholds if it's the first run of this inner loop for the current num_stocks_in_combo
-                if 'logged_thresholds' not in locals() or completed_sims_for_size == 1 : # reset for each stock_combo batch
-                    logged_thresholds = set()
+            # Progress Logging at ~25% intervals based on actual simulations run
+            # total_actual_simulations_run_phase1 is the sum of actual_sims_run_for_combo
+            # grand_total_expected_simulations_phase1 is the sum of (num_combinations_for_size * target_sims_for_k_progressive)
+            
+            current_progress_percentage_actual_sims = (total_actual_simulations_run_phase1 / grand_total_expected_simulations_phase1) * 100 if grand_total_expected_simulations_phase1 > 0 else 0
+            
+            # Reset logged_thresholds for each new k-size batch if needed, or manage globally
+            # For simplicity, let's check thresholds based on total_actual_simulations_run_phase1
 
-                for threshold_pct in [25, 50, 75]: # Log at these percentages
-                    if current_progress_percentage >= threshold_pct and threshold_pct not in logged_thresholds:
-                        logged_thresholds.add(threshold_pct) # Mark as logged for this k-size
-                        remaining_combinations = total_combinations_to_evaluate - total_combinations_processed_so_far
-                        if timer_instance.avg_time > 0: # avg_time is now per-combination
-                            # Estimate remaining time based on combinations, not individual simulations
-                            est_rem_time_seconds = timer_instance.avg_time * remaining_combinations
-                            est_rem_time_delta = timedelta(seconds=est_rem_time_seconds)
-                            est_completion_time_str = (datetime.now() + est_rem_time_delta).strftime('%Y-%m-%d %H:%M:%S')
-                            logger_instance.log(f"    Progress (Combinations): {total_combinations_processed_so_far}/{total_combinations_to_evaluate} ({current_progress_percentage:.1f}%). Est. Rem. Time (Phase 1): {est_rem_time_delta}")
-                        else:
-                            est_rem_time_delta_str = "Calculating..."
-                            est_completion_time_str = "Calculating..."
-                            logger_instance.log(f"    Progress (Combinations): {total_combinations_processed_so_far}/{total_combinations_to_evaluate} ({current_progress_percentage:.1f}%). Calculating Est. Rem. Time...")
-                        
-                        logger_instance.update_web_log("overall_progress", {
-                            "completed_combinations": total_combinations_processed_so_far,
-                            "total_combinations": total_combinations_to_evaluate,
-                            "percentage": current_progress_percentage,
-                            "estimated_completion_time": est_completion_time_str
-                        })
-                        break # Log only one threshold per iteration if multiple are crossed
+            for threshold_pct in [25, 50, 75]: # Log at these percentages of actual simulations
+                if current_progress_percentage_actual_sims >= threshold_pct and threshold_pct not in logged_thresholds:
+                    logged_thresholds.add(threshold_pct) # Mark as logged
+                    
+                    remaining_expected_actual_simulations = grand_total_expected_simulations_phase1 - total_actual_simulations_run_phase1
+                    
+                    if timer_instance.avg_time > 0 and remaining_expected_actual_simulations > 0:
+                        est_rem_time_seconds = timer_instance.avg_time * remaining_expected_actual_simulations
+                        est_rem_time_delta = timedelta(seconds=est_rem_time_seconds)
+                        est_completion_time_str = (datetime.now() + est_rem_time_delta).strftime('%Y-%m-%d %H:%M:%S')
+                        logger_instance.log(f"    Progress (Actual Sims Phase 1): {total_actual_simulations_run_phase1:,}/{grand_total_expected_simulations_phase1:,} ({current_progress_percentage_actual_sims:.1f}%). Est. Rem. Time: {est_rem_time_delta}")
+                    else:
+                        est_rem_time_delta_str = "Calculating..."
+                        est_completion_time_str = "Calculating..."
+                        logger_instance.log(f"    Progress (Actual Sims Phase 1): {total_actual_simulations_run_phase1:,}/{grand_total_expected_simulations_phase1:,} ({current_progress_percentage_actual_sims:.1f}%). Calculating Est. Rem. Time...")
+                    
+                    logger_instance.update_web_log("overall_progress", {
+                        "completed_actual_simulations": total_actual_simulations_run_phase1,
+                        "total_expected_actual_simulations": grand_total_expected_simulations_phase1,
+                        "percentage": current_progress_percentage_actual_sims,
+                        "estimated_completion_time": est_completion_time_str
+                    })
+                    break # Log only one threshold per iteration if multiple are crossed
+
         logger_instance.log(f"    Completed all {num_stocks_in_combo}-stock portfolio simulations.")
 
-    logger_instance.log(f"\n    Initial adaptive search phase completed. Total combinations processed: {total_combinations_to_evaluate}. Total actual simulations in phase 1: {total_actual_simulations_run_phase1:,}")
+    logger_instance.log(f"\n    Initial search phase completed. Total combinations processed: {total_combinations_to_evaluate}. Total actual simulations in phase 1: {total_actual_simulations_run_phase1:,}")
     logger_instance.log(f"    Total time for initial phase: {timedelta(seconds=timer_instance.total_time)}.")
 
     # --- Refinement Phase ---
@@ -664,7 +684,7 @@ def find_best_stock_combination(
 
         refinement_timer_start = time.time()
         for i, combo_data in enumerate(top_combinations_to_refine):
-            logger_instance.log(f"    Refining combo {i+1}/{len(top_combinations_to_refine)}: {', '.join(combo_data['stocks'])} (Prev Sharpe: {combo_data['sharpe']:.4f} from {combo_data['sims_run']} sims)")
+            logger_instance.log(f"    Refining combo {i+1}/{len(top_combinations_to_refine)}: {', '.join(combo_data['stocks'])} (Prev Sharpe: {combo_data['sharpe']:.4f} from {combo_data.get('sims_run', 'N/A')} sims)")
             
             # For refinement, run a fixed number of simulations (SIM_RUNS from params)
             # We need to simulate this combo again, num_simulation_runs times
@@ -776,6 +796,7 @@ INITIAL_INVESTMENT = sim_params.get("initial_investment", 10000.0)
 RF_RATE = sim_params.get("rf")
 START_DATE_STR = sim_params.get("start_date")
 ESG_STOCKS_LIST = sim_params.get("esg_stocks_list", []) # Load the list of ESG stocks
+DEBUG_MODE = sim_params.get("debug_mode", False) # Load debug_mode, default to False
 
 # Adaptive Simulation Parameters (loaded from sim_params with defaults)
 ADAPTIVE_SIM_ENABLED = sim_params.get("adaptive_sim_enabled", True)
@@ -809,9 +830,11 @@ if WEB_LOG_PATH_PARAM and WEB_LOG_PATH_PARAM != logger.web_log_path:
     logger.log(f"Info: Updating web log path from parameters file to: {WEB_LOG_PATH_PARAM}")
     os.makedirs(os.path.dirname(WEB_LOG_PATH_PARAM), exist_ok=True)
     logger.web_log_path = WEB_LOG_PATH_PARAM
+
 # Log final configuration values
 logger.log("Final configuration loaded:") # Optional: Comment out for less verbose startup
-for key, value in sim_params.items(): # Use sim_params which is the direct output of load_simulation_parameters
+logger.log(f"  - DEBUG_MODE: {DEBUG_MODE}") # Explicitly log DEBUG_MODE
+for key, value in sim_params.items():
     # Log the actual loaded value, not the potentially defaulted global variable
     logger.log(f"  - {key}: {value}")
 
@@ -844,6 +867,9 @@ overall_script_start_time = datetime.now()
 logger.log(f"🚀 Engine.py script started at: {overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 logger.update_web_log("engine_script_start_time", overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S'))
 
+
+if DEBUG_MODE:
+    logger.log("DEBUG: Engine.py started in DEBUG mode.")
 
 # ----------------------------------------------------------- #
 #                     Execution Pipeline                      #
