@@ -16,7 +16,7 @@ rf=0.1475
 # If target portfolio size (k) is <= this value, brute-force is used.
 # If k > this value, the Genetic Algorithm is used.
 # Example: Use brute-force for k=1 to 9, GA for k=10+
-heuristic_threshold_k = 9
+heuristic_threshold_k = 4
 
 # --- Genetic Algorithm Parameters ---
 # Population size for the GA

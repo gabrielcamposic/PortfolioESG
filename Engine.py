@@ -168,9 +168,9 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "ga_crossover_rate": float,
         "ga_elitism_count": int,
         "ga_tournament_size": int,
-        # GA Convergence Parameters (already present)
-        # "ga_convergence_generations": int, (already present)
-        # "ga_convergence_tolerance": float, (already present)
+        # GA Convergence Parameters
+        "ga_convergence_generations": int,
+        "ga_convergence_tolerance": float,
         "heuristic_threshold_k": int, # Added: Threshold for switching to heuristic
     }
 
@@ -859,6 +859,8 @@ def run_genetic_algorithm(
     NUM_GENERATIONS = sim_params.get("ga_num_generations", 30)
     # Mutation rate, crossover rate, elitism count, tournament size will be used directly
     # from sim_params in their respective helper functions or GA loop sections.
+    CONVERGENCE_GENERATIONS = sim_params.get("ga_convergence_generations", 10) # Default to 10 generations
+    CONVERGENCE_TOLERANCE = sim_params.get("ga_convergence_tolerance", 0.0001) # Default to small tolerance
     
     logger_instance.log(f"    GA Parameters: Pop. Size={POPULATION_SIZE}, Generations={NUM_GENERATIONS} for k={num_stocks_in_combo}")
 
@@ -900,6 +902,9 @@ def run_genetic_algorithm(
     best_roi_overall_ga = None
     best_exp_ret_overall_ga = None
     best_vol_overall_ga = None
+
+    # For convergence tracking
+    best_sharpe_history = [] 
 
     # --- GA Main Loop ---
     for generation in range(NUM_GENERATIONS):
@@ -968,7 +973,23 @@ def run_genetic_algorithm(
             else:
                 logger_instance.log(f"DEBUG (GA Gen {generation+1}): No individuals evaluated in this generation.")
 
-        # If it's the last generation, or if we add convergence criteria later, we can break
+        # Store best Sharpe for this generation for convergence check
+        current_gen_best_sharpe = evaluated_population_details[0][0] if evaluated_population_details else -float('inf')
+        best_sharpe_history.append(current_gen_best_sharpe)
+        if len(best_sharpe_history) > CONVERGENCE_GENERATIONS:
+            best_sharpe_history.pop(0) # Keep only the last N generations
+
+        # Convergence Check (only if enough history and not the very first few generations)
+        if generation >= CONVERGENCE_GENERATIONS -1 and len(best_sharpe_history) == CONVERGENCE_GENERATIONS:
+            # Check improvement over the window
+            # Improvement is based on the overall best found so far, not just within the window
+            # A simpler check: if the best_sharpe_overall_ga hasn't improved much recently.
+            # For this, we'd need to track best_sharpe_overall_ga at the start of the window.
+            # A more direct check: if the best of this generation isn't much better than the best from CONVERGENCE_GENERATIONS ago.
+            if best_sharpe_history[-1] - best_sharpe_history[0] < CONVERGENCE_TOLERANCE:
+                logger_instance.log(f"    GA: Converged after {generation + 1} generations. Improvement less than tolerance ({CONVERGENCE_TOLERANCE}).")
+                break
+        
         if generation == NUM_GENERATIONS - 1:
             logger_instance.log(f"    GA: Reached final generation {NUM_GENERATIONS}.")
             break 
@@ -1003,9 +1024,6 @@ def run_genetic_algorithm(
                 next_population_stock_lists.append(child2_stocks)
 
         population = next_population_stock_lists # This is the new population for the next generation's fitness evaluation
-        # Proper selection/crossover/mutation is needed here.
-        # For now, we'll let 'population' remain as it was from the initial creation to test the loop structure.
-        # This means each generation will re-evaluate the *initial* population until operators are added.
 
     # --- End of GA Main Loop ---
     if best_combo_overall_ga:
