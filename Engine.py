@@ -168,6 +168,10 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "ga_crossover_rate": float,
         "ga_elitism_count": int,
         "ga_tournament_size": int,
+        # GA Convergence Parameters (already present)
+        # "ga_convergence_generations": int, (already present)
+        # "ga_convergence_tolerance": float, (already present)
+        "heuristic_threshold_k": int, # Added: Threshold for switching to heuristic
     }
 
     try:
@@ -531,8 +535,8 @@ def find_best_stock_combination(
 
     # For more accurate progress estimation with adaptive sims
     # This will be the sum of (target_sims_for_k_progressive or num_simulation_runs) for each k
-    # and then multiplied by num_combinations_for_size[k]
-    grand_total_expected_simulations_phase1 = 0
+    # handled by brute force. This is used for the in-loop progress bar.
+    grand_total_expected_simulations_phase1_bf = prelim_grand_total_expected_simulations_phase1 # Use the pre-calculated value
 
     logged_thresholds = set() # Initialize once for the entire function call
     # The timer_instance will track the cumulative time of individual simulations.
@@ -1181,6 +1185,7 @@ RF_RATE = sim_params.get("rf")
 START_DATE_STR = sim_params.get("start_date")
 ESG_STOCKS_LIST = sim_params.get("esg_stocks_list", []) # Load the list of ESG stocks
 DEBUG_MODE = sim_params.get("debug_mode", False) # Load debug_mode, default to False
+HEURISTIC_THRESHOLD_K = sim_params.get("heuristic_threshold_k", 9) # Define global HEURISTIC_THRESHOLD_K
 
 # Adaptive Simulation Parameters (loaded from sim_params with defaults)
 ADAPTIVE_SIM_ENABLED = sim_params.get("adaptive_sim_enabled", True)
@@ -1238,6 +1243,7 @@ critical_params_to_check = {
     "CHARTS_FOLDER": CHARTS_FOLDER,
     "LOG_FILE_PATH_PARAM": LOG_FILE_PATH_PARAM, # Check the one from params
     "RF_RATE": RF_RATE,
+    "HEURISTIC_THRESHOLD_K": HEURISTIC_THRESHOLD_K, # Add to critical check
     "ESG_STOCKS_LIST": ESG_STOCKS_LIST # Add if this list must not be empty
 }
 missing_critical = [name for name, val in critical_params_to_check.items() if val is None]
