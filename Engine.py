@@ -458,16 +458,39 @@ def find_best_stock_combination(
         return None, None, -float("inf"), None, None, None, None, 0
 
     total_combinations_to_evaluate = sum(comb(len(available_stocks_for_search), k) for k in range(min_portfolio_size, max_portfolio_size + 1))
-    total_simulations_expected = total_combinations_to_evaluate * num_simulation_runs
 
+    # --- Pre-calculate grand_total_expected_simulations_phase1 for better upfront estimation ---
+    prelim_grand_total_expected_simulations_phase1 = 0
+    for k_size_for_calc in range(min_portfolio_size, max_portfolio_size + 1):
+        num_combinations_for_k_size = comb(len(available_stocks_for_search), k_size_for_calc)
+        target_sims_for_k = num_simulation_runs # Fallback
+        if ADAPTIVE_SIM_ENABLED:
+            if k_size_for_calc < 2:
+                target_sims_for_k = PROGRESSIVE_MIN_SIMS
+            else:
+                log_k_sq_calc = (math.log(float(k_size_for_calc)) ** 2) if k_size_for_calc >=1 else 0
+                calculated_sims_calc = int(PROGRESSIVE_BASE_LOG_K * log_k_sq_calc)
+                capped_sims_calc = min(calculated_sims_calc, PROGRESSIVE_MAX_SIMS_CAP)
+                target_sims_for_k = max(capped_sims_calc, PROGRESSIVE_MIN_SIMS)
+        prelim_grand_total_expected_simulations_phase1 += num_combinations_for_k_size * target_sims_for_k
+    # --- End Pre-calculation ---
+
+    # Calculate expected refinement simulations
+    num_refinement_sims_expected = 0
+    if ADAPTIVE_SIM_ENABLED and TOP_N_PERCENT_REFINEMENT > 0:
+        num_to_refine_expected = int(total_combinations_to_evaluate * TOP_N_PERCENT_REFINEMENT)
+        if num_to_refine_expected == 0 and total_combinations_to_evaluate > 0: num_to_refine_expected = 1
+        num_refinement_sims_expected = num_to_refine_expected * num_simulation_runs # Refinement uses fixed SIM_RUNS
+
+    total_simulations_expected_for_upfront_estimate = prelim_grand_total_expected_simulations_phase1 + num_refinement_sims_expected
     logger_instance.log(f"    Portfolio target size range: {min_portfolio_size}-{max_portfolio_size}")
-    logger_instance.log(f"    Total expected simulations: {total_simulations_expected:,}")
+    logger_instance.log(f"    Total expected simulations (Phase 1 Adaptive + Refinement): {total_simulations_expected_for_upfront_estimate:,}")
 
     # Estimate runtime (simplified from Old.py for brevity, can be expanded)
     avg_simulation_time_per_run = 0.05 # Default average time if estimation fails
     # We will use the timer_instance's internal rolling average after the main loop starts.
     # The initial estimation here is just for a very rough upfront estimate.
-    if total_simulations_expected > 0 and len(available_stocks_for_search) >= min_portfolio_size :
+    if total_simulations_expected_for_upfront_estimate > 0 and len(available_stocks_for_search) >= min_portfolio_size :
         temp_timer_for_estimation = ExecutionTimer(rolling_window=10) # Use a temporary timer
         temp_timer_for_estimation.start()
         # Perform a few sample simulations for estimation
@@ -480,7 +503,7 @@ def find_best_stock_combination(
         avg_simulation_time_per_run = elapsed_for_sample / min(10, num_simulation_runs) if min(10, num_simulation_runs) > 0 else 0.05
     timer_instance.reset() # Reset the main timer before the actual simulation loop
 
-    estimated_total_runtime = timedelta(seconds=total_simulations_expected * avg_simulation_time_per_run)
+    estimated_total_runtime = timedelta(seconds=total_simulations_expected_for_upfront_estimate * avg_simulation_time_per_run)
     estimated_completion_datetime = datetime.now() + estimated_total_runtime
     logger_instance.log(f"    Estimated avg sim time/run: {avg_simulation_time_per_run:.4f}s. Estimated total runtime: {estimated_total_runtime}. Est. completion: {estimated_completion_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
     logger_instance.update_web_log("estimated_completion_time", estimated_completion_datetime.strftime('%Y-%m-%d %H:%M:%S'))
