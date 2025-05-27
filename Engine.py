@@ -1135,7 +1135,7 @@ def mutate_portfolio(portfolio_stocks, available_stocks, logger_instance, sim_pa
     mutation_rate = sim_params_dict.get("ga_mutation_rate", 0.01)
     if random.random() < mutation_rate and portfolio_stocks: # Ensure portfolio is not empty
         idx_to_mutate = random.randrange(len(portfolio_stocks))
-        current_stock = portfolio_stocks[idx_to_mutate]
+        current_stock_to_replace = portfolio_stocks[idx_to_mutate] # Corrected variable name
         
         # Create a set of stocks already in the portfolio for efficient lookup
         portfolio_set = set(portfolio_stocks)
@@ -1145,7 +1145,7 @@ def mutate_portfolio(portfolio_stocks, available_stocks, logger_instance, sim_pa
         # as long as the final portfolio remains unique.
         # A simpler approach for now: pick from available_stocks that are not currently in the portfolio.
         # This ensures uniqueness if the new stock replaces an existing one.
-        possible_new_stocks = [s for s in available_stocks if s not in portfolio_set or s == current_stock_to_replace]
+        possible_new_stocks = [s for s in available_stocks if s not in portfolio_set or s == current_stock_to_replace] # Now uses the defined variable
         # Further filter: ensure the new stock is actually different from the one being replaced
         possible_new_stocks = [s for s in possible_new_stocks if s != current_stock_to_replace]
 
@@ -1153,7 +1153,7 @@ def mutate_portfolio(portfolio_stocks, available_stocks, logger_instance, sim_pa
             new_stock = random.choice(possible_new_stocks)
             portfolio_stocks[idx_to_mutate] = new_stock
             if DEBUG_MODE:
-                logger_instance.log(f"DEBUG (GA Mutate): Mutated '{current_stock_to_replace}' to '{new_stock}' in portfolio.")
+                logger_instance.log(f"DEBUG (GA Mutate): Mutated '{current_stock_to_replace}' to '{new_stock}' in portfolio.") # Now uses the defined variable
 
 # ----------------------------------------------------------- #
 #                   Configuration Loading                     #
