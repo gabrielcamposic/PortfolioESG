@@ -1,3 +1,4 @@
+#!/home/gabrielcampos/.pyenv/versions/env-fa/bin/python
 # ----------------------------------------------------------- #
 #                           Libraries                         #
 # ----------------------------------------------------------- #
@@ -13,6 +14,7 @@ import itertools
 import sys  # Import sys module for logging
 import json # For logging to html readable
 import math 
+import shutil # Add this import
 
 # ----------------------------------------------------------- #
 #                           Classes                           #
@@ -172,6 +174,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "ga_convergence_generations": int,
         "ga_convergence_tolerance": float,
         "heuristic_threshold_k": int, # Added: Threshold for switching to heuristic
+        "results_log_csv_path": str, # Added: Path for results CSV log
     }
 
     try:
@@ -443,7 +446,8 @@ def find_best_stock_combination(
     current_initial_investment,
     min_portfolio_size,
     max_portfolio_size,
-    num_simulation_runs,        # SIM_RUNS
+    # num_simulation_runs,        # SIM_RUNS - This will now be taken from global SIM_RUNS or adaptive logic
+    # The above line is commented out as num_simulation_runs is now sourced from global/adaptive logic inside
     current_rf_rate,            # RF_RATE
     logger_instance,
     timer_instance
@@ -474,13 +478,13 @@ def find_best_stock_combination(
     prelim_grand_total_expected_simulations_phase1 = 0
     for k_size_for_calc in range(min_portfolio_size, max_portfolio_size + 1):
         num_combinations_for_k_size = comb(len(available_stocks_for_search), k_size_for_calc)
-        target_sims_for_k = num_simulation_runs # Fallback
+        target_sims_for_k = SIM_RUNS # Fallback
         if ADAPTIVE_SIM_ENABLED:
             if k_size_for_calc < 2:
                 target_sims_for_k = PROGRESSIVE_MIN_SIMS
             else:
                 log_k_sq_calc = (math.log(float(k_size_for_calc)) ** 2) if k_size_for_calc >=1 else 0
-                calculated_sims_calc = int(PROGRESSIVE_BASE_LOG_K * log_k_sq_calc)
+                calculated_sims_calc = int(PROGRESSIVE_BASE_LOG_K * log_k_sq_calc) # SIM_RUNS is not used here
                 capped_sims_calc = min(calculated_sims_calc, PROGRESSIVE_MAX_SIMS_CAP)
                 target_sims_for_k = max(capped_sims_calc, PROGRESSIVE_MIN_SIMS)
         prelim_grand_total_expected_simulations_phase1 += num_combinations_for_k_size * target_sims_for_k
@@ -491,7 +495,7 @@ def find_best_stock_combination(
     if ADAPTIVE_SIM_ENABLED and TOP_N_PERCENT_REFINEMENT > 0:
         num_to_refine_expected = int(total_combinations_to_evaluate * TOP_N_PERCENT_REFINEMENT)
         if num_to_refine_expected == 0 and total_combinations_to_evaluate > 0: num_to_refine_expected = 1
-        num_refinement_sims_expected = num_to_refine_expected * num_simulation_runs # Refinement uses fixed SIM_RUNS
+        num_refinement_sims_expected = num_to_refine_expected * SIM_RUNS # Refinement uses fixed SIM_RUNS
 
     total_simulations_expected_for_upfront_estimate = prelim_grand_total_expected_simulations_phase1 + num_refinement_sims_expected
     
@@ -508,12 +512,12 @@ def find_best_stock_combination(
         temp_timer_for_estimation.start()
         # Perform a few sample simulations for estimation
         sample_combo = available_stocks_for_search[:min_portfolio_size]
-        sample_df_subset = source_stock_prices_df[['Date'] + sample_combo]
-        for _ in range(min(10, num_simulation_runs)): # Estimate with up to 10 runs
+        sample_df_subset = source_stock_prices_df[['Date'] + sample_combo] # SIM_RUNS is not used here
+        for _ in range(min(10, SIM_RUNS)): # Estimate with up to 10 runs
             weights = generate_portfolio_weights(len(sample_combo))
             simulation_engine_calc(sample_df_subset, weights, current_initial_investment, current_rf_rate, logger_instance)
         elapsed_for_sample = temp_timer_for_estimation.stop() # Stop the temporary timer
-        avg_simulation_time_per_run = elapsed_for_sample / min(10, num_simulation_runs) if min(10, num_simulation_runs) > 0 else 0.05
+        avg_simulation_time_per_run = elapsed_for_sample / min(10, SIM_RUNS) if min(10, SIM_RUNS) > 0 else 0.05
     timer_instance.reset() # Reset the main timer before the actual simulation loop
 
     estimated_total_runtime = timedelta(seconds=total_simulations_expected_for_upfront_estimate * avg_simulation_time_per_run)
@@ -550,7 +554,7 @@ def find_best_stock_combination(
             logger_instance.log(f"\n    Starting {num_stocks_in_combo}-stock portfolios (Brute-Force) ({num_combinations_for_size} combos) at {current_time_str}...")
 
             # Determine target simulations for this k if adaptive
-            target_sims_for_k_progressive = num_simulation_runs # Fallback to fixed if not adaptive
+            target_sims_for_k_progressive = SIM_RUNS # Fallback to fixed if not adaptive
             if ADAPTIVE_SIM_ENABLED:
                 if num_stocks_in_combo < 2: # Min stocks for log formula
                     target_sims_for_k_progressive = PROGRESSIVE_MIN_SIMS
@@ -560,7 +564,7 @@ def find_best_stock_combination(
                     capped_sims = min(calculated_sims, PROGRESSIVE_MAX_SIMS_CAP)
                     target_sims_for_k_progressive = max(capped_sims, PROGRESSIVE_MIN_SIMS)
                 if DEBUG_MODE:
-                    logger_instance.log(f"DEBUG: Adaptive target sims for k={num_stocks_in_combo}: {target_sims_for_k_progressive} (vs fixed SIM_RUNS: {num_simulation_runs})")
+                    logger_instance.log(f"DEBUG: Adaptive target sims for k={num_stocks_in_combo}: {target_sims_for_k_progressive} (vs fixed SIM_RUNS: {SIM_RUNS})")
             
             best_sharpe_for_size = -float("inf")
             # Variables to track best result for the current combination (within adaptive loop)
@@ -587,7 +591,7 @@ def find_best_stock_combination(
                 best_roi_this_combo = np.nan
 
                 # Determine the max number of simulations for this particular combination run
-                max_sims_for_this_combo_run = target_sims_for_k_progressive if ADAPTIVE_SIM_ENABLED else num_simulation_runs
+                max_sims_for_this_combo_run = target_sims_for_k_progressive if ADAPTIVE_SIM_ENABLED else SIM_RUNS
                 
                 for sim_idx in range(max_sims_for_this_combo_run): # Loop up to the adaptive/fixed target
                     timer_instance.start() # Time each individual simulation
@@ -715,7 +719,7 @@ def find_best_stock_combination(
                 current_rf_rate,
                 logger_instance,
                 timer_instance,
-                num_simulation_runs # Pass SIM_RUNS for evaluating individuals
+                SIM_RUNS # Pass SIM_RUNS for evaluating individuals
                 # Add GA-specific parameters here (population size, generations, etc.)
             )
 
@@ -746,8 +750,8 @@ def find_best_stock_combination(
         if num_to_refine == 0 and len(all_combination_results_for_refinement) > 0: # Ensure at least one if list is not empty
             num_to_refine = 1
         
-        top_combinations_to_refine = all_combination_results_for_refinement[:num_to_refine]
-        logger_instance.log(f"    Refining {len(top_combinations_to_refine)} combinations with {num_simulation_runs} simulations each (using fixed SIM_RUNS from simpar.txt)...")
+        top_combinations_to_refine = all_combination_results_for_refinement[:num_to_refine] # SIM_RUNS is not used here
+        logger_instance.log(f"    Refining {len(top_combinations_to_refine)} combinations with {SIM_RUNS} simulations each (using fixed SIM_RUNS from simpar.txt)...")
 
         refinement_timer_start = time.time()
         for i, combo_data in enumerate(top_combinations_to_refine):
@@ -764,7 +768,7 @@ def find_best_stock_combination(
             actual_sims_for_refinement_combo = 0
 
             df_subset_for_refinement = source_stock_prices_df[['Date'] + combo_data['stocks']]
-            for _ in range(num_simulation_runs): # Use the original SIM_RUNS for refinement
+            for _ in range(SIM_RUNS): # Use the original SIM_RUNS for refinement
                 weights_ref = generate_portfolio_weights(len(combo_data['stocks']))
                 exp_ret_ref, vol_ref, sharpe_ref, final_val_ref, roi_ref = simulation_engine_calc(
                     df_subset_for_refinement, weights_ref, current_initial_investment, current_rf_rate, logger_instance
@@ -814,7 +818,7 @@ def find_best_stock_combination(
     logger_instance.flush() # Ensure all logs are written
     return (best_overall_portfolio_combo, best_overall_weights_alloc, overall_best_sharpe,
             best_overall_final_val, best_overall_roi_val, best_overall_expected_return,
-            best_overall_volatility, avg_simulation_time_per_run)
+            best_overall_volatility, avg_simulation_time_per_run, available_stocks_for_search)
 
 # ----------------------------------------------------------- #
 #                  Heuristic Functions (Placeholder)          #
@@ -1226,6 +1230,7 @@ PORTFOLIO_FOLDER = sim_params.get("portfolio_folder")
 CHARTS_FOLDER = sim_params.get("charts_folder")
 LOG_FILE_PATH_PARAM = sim_params.get("log_file_path")
 WEB_LOG_PATH_PARAM = sim_params.get("web_log_path")
+RESULTS_LOG_CSV_PATH = sim_params.get("results_log_csv_path") # Load the new path
 
 # Step 5: Update logger paths if they were defined in sim_params and are different
 if LOG_FILE_PATH_PARAM and LOG_FILE_PATH_PARAM != logger.log_path:
@@ -1364,24 +1369,128 @@ logger.update_web_log("stock_combination_search_start", section_start_time.strft
 # The find_best_stock_combination will find the best combo from ESG_STOCKS_LIST (target list)
 # that are also present in the (already filtered) StockClose_df.
 (best_portfolio_stocks, best_weights, best_sharpe,
- best_final_value, best_roi, best_exp_return,
- best_volatility, avg_sim_time) = find_best_stock_combination(
+ best_final_value, best_roi, best_exp_return, best_volatility,
+ avg_sim_time, stock_pool_used_in_search) = find_best_stock_combination(
     StockClose_df,              # Price data for the universe of stocks to select from (e.g., top 20)
     ESG_STOCKS_LIST,            # List of specific stocks to consider for combinations (e.g., ESG list)
     INITIAL_INVESTMENT,
     MIN_STOCKS,                 # Min stocks in a portfolio combination
     MAX_STOCKS,                 # Max stocks in a portfolio combination
-    SIM_RUNS,                   # Number of random weight simulations per combination
+    # SIM_RUNS,                 # This is now handled by global SIM_RUNS or adaptive logic
     RF_RATE,
     logger,                     # Pass the logger instance
     sim_timer                   # Pass the timer instance
 )
+
+def log_optimal_portfolio_results_to_csv(
+    results_filepath,
+    generation_timestamp_dt, # Expecting datetime object
+    min_target_stocks,
+    max_target_stocks,
+    data_start_date_dt, # Expecting date object or None
+    data_end_date_dt,   # Expecting date object or None
+    stock_pool_considered_list,
+    optimal_stocks_list,
+    optimal_weights_list,
+    sharpe_ratio_val,
+    expected_annual_return_decimal_val,
+    expected_annual_volatility_decimal_val,
+    final_portfolio_value,
+    roi_percent_val,
+    initial_investment_val,
+    logger_instance
+):
+    if not results_filepath:
+        logger_instance.log("Warning: results_log_csv_path not defined in parameters. Skipping CSV results log.")
+        return
+    try:
+        data = {
+            'generation_timestamp': [generation_timestamp_dt.strftime('%Y-%m-%d %H:%M:%S')],
+            'min_target_stocks': [min_target_stocks], 'max_target_stocks': [max_target_stocks],
+            'data_start_date': [data_start_date_dt.strftime('%Y-%m-%d') if data_start_date_dt else 'N/A'],
+            'data_end_date': [data_end_date_dt.strftime('%Y-%m-%d') if data_end_date_dt else 'N/A'],
+            'stock_pool_considered': [', '.join(sorted(stock_pool_considered_list)) if stock_pool_considered_list else 'N/A'],
+            'optimal_stocks': [', '.join(sorted(optimal_stocks_list)) if optimal_stocks_list else 'N/A'],
+            'optimal_weights': [', '.join(f'{w:.4f}' for w in optimal_weights_list) if optimal_weights_list else 'N/A'],
+            'sharpe_ratio': [round(sharpe_ratio_val, 4) if not pd.isna(sharpe_ratio_val) else np.nan],
+            'expected_annual_return_pct': [round(expected_annual_return_decimal_val * 100, 2) if not pd.isna(expected_annual_return_decimal_val) else np.nan],
+            'expected_annual_volatility_pct': [round(expected_annual_volatility_decimal_val * 100, 2) if not pd.isna(expected_annual_volatility_decimal_val) else np.nan],
+            'final_value': [round(final_portfolio_value, 2) if not pd.isna(final_portfolio_value) else np.nan],
+            'roi_pct': [round(roi_percent_val, 2) if not pd.isna(roi_percent_val) else np.nan],
+            'initial_investment': [round(initial_investment_val, 2) if not pd.isna(initial_investment_val) else np.nan]
+        }
+        results_df = pd.DataFrame(data)
+        os.makedirs(os.path.dirname(results_filepath), exist_ok=True)
+        file_exists = os.path.isfile(results_filepath)
+        results_df.to_csv(results_filepath, mode='a', header=not file_exists, index=False)
+        logger_instance.log(f"✅ Optimal portfolio results logged to: {results_filepath}")
+    except Exception as e:
+        logger_instance.log(f"❌ Error logging optimal portfolio results to CSV {results_filepath}: {e}")
+
+# Log results to CSV
+if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
+    data_min_date_for_log = StockClose_df['Date'].min() if not StockClose_df.empty else None
+    data_max_date_for_log = StockClose_df['Date'].max() if not StockClose_df.empty else None
+    
+    log_optimal_portfolio_results_to_csv(
+        RESULTS_LOG_CSV_PATH,
+        datetime.now(), # Timestamp for this specific log entry
+        MIN_STOCKS,
+        MAX_STOCKS,
+        data_min_date_for_log,
+        data_max_date_for_log,
+        stock_pool_used_in_search,
+        best_portfolio_stocks,
+        best_weights,
+        best_sharpe,
+        best_exp_return,
+        best_volatility,
+        best_final_value,
+        best_roi,
+        INITIAL_INVESTMENT,
+        logger
+    )
+elif not RESULTS_LOG_CSV_PATH:
+    logger.log("Info: results_log_csv_path not set in simpar.txt. Skipping CSV results log.")
+elif not best_portfolio_stocks:
+    logger.log("Info: No optimal portfolio found by Engine.py. Skipping CSV results log.")
 
 section_end_time = datetime.now()
 section_duration = section_end_time - section_start_time
 logger.log(f"--- Search for Best Stock Combination finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
 logger.update_web_log("stock_combination_search_end", section_end_time.strftime('%Y-%m-%d %H:%M:%S'))
 logger.update_web_log("stock_combination_search_duration", str(section_duration))
+
+# --- Function to copy results log to web accessible location ---
+def copy_results_log_to_web_accessible_location(source_csv_path, logger_instance):
+    if not source_csv_path or not os.path.exists(source_csv_path):
+        logger_instance.log(f"Warning: Source results log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
+        return
+
+    try:
+        # Determine the web_data_dir relative to SCRIPT_DIR
+        # This assumes Engine.py is in PortfolioESG_public
+        # and the target html/data is in PortfolioESG_public/html/data
+        # Adjust if your structure is PortfolioESG_Prod/html/data
+        web_data_dir = os.path.join(SCRIPT_DIR, "html", "data")
+
+        # Example for PortfolioESG_Prod/html/data (if SCRIPT_DIR is PortfolioESG_public)
+        # script_parent_dir = os.path.dirname(SCRIPT_DIR)
+        # web_data_dir = os.path.join(script_parent_dir, "PortfolioESG_Prod", "html", "data")
+
+        if not os.path.exists(web_data_dir):
+            os.makedirs(web_data_dir, exist_ok=True)
+            logger_instance.log(f"Info: Created web data directory: {web_data_dir}")
+
+        destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
+        shutil.copy2(source_csv_path, destination_csv_path)
+        logger_instance.log(f"✅ Copied results log to web-accessible location: {destination_csv_path}")
+    except Exception as e:
+        logger_instance.log(f"❌ Error copying results log to web directory: {e}")
+
+# After logging to the primary CSV, copy it if the path was set
+if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
+    copy_results_log_to_web_accessible_location(RESULTS_LOG_CSV_PATH, logger)
 
 overall_script_end_time = datetime.now()
 total_script_duration = overall_script_end_time - overall_script_start_time

@@ -1,0 +1,33 @@
+{
+    "engine_script_start_time": "2025-05-29 21:14:07",
+    "data_wrangling_start": "2025-05-29 21:14:07",
+    "data_wrangling_end": "2025-05-29 21:14:07",
+    "data_wrangling_duration": "0:00:00.035753",
+    "stock_combination_search_start": "2025-05-29 21:14:07",
+    "estimated_completion_time": "2025-05-29 22:09:55",
+    "best_portfolio_details": {
+        "stocks": [
+            "CEAB3.SA",
+            "ITUB3.SA",
+            "CPLE3.SA",
+            "JHSF3.SA",
+            "TOTS3.SA"
+        ],
+        "weights": [
+            0.1595,
+            0.4134,
+            0.02,
+            0.0004,
+            0.4067
+        ],
+        "sharpe_ratio": 4.9226,
+        "final_value": 1644.82,
+        "roi_percent": 64.48,
+        "expected_return_annual_pct": 131.17,
+        "expected_volatility_annual_pct": 23.65
+    },
+    "stock_combination_search_end": "2025-05-29 22:03:00",
+    "stock_combination_search_duration": "0:48:53.348350",
+    "engine_script_end_time": "2025-05-29 22:03:00",
+    "engine_script_total_duration": "0:48:53.529215"
+}

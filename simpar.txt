@@ -71,3 +71,7 @@ portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
 charts_folder=~/Documents/Prog/PortfolioESG_Prod/html/Charts/
 log_file_path=~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log
 web_log_path=~/Documents/Prog/PortfolioESG_Prod/html/progress.json
+
+# --- Results Logging ---
+# Path to CSV file for logging optimal portfolio results from each run
+results_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_results_log.csv

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar-inner {
+            height: 20px;
+            background-color: #4caf50;
+            width: 0%;
+            transition: width 0.5s;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .columns {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .column {
+            flex: 1;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simulation Progress</h1>
+    <nav>
+        <a href="results_history.html">View Run History</a>
+    </nav>
+
+
+    <!-- Stock Database Update Section -->
+    <div class="section">
+        <h2>Stock database update</h2>
+        <div id="ticker-progress-info">
+            <p>Execution Started At: <span id="execution-start-time">N/A</span></p>
+            <p>Execution Ended At: <span id="execution-end-time">N/A</span></p>
+            <p>Completed Tickers: <span id="ticker-completed">0</span> / <span id="ticker-total">0</span></p>
+            <p>Progress: <span id="ticker-percentage">0</span>%</p>
+            <p>Current Ticker: <span id="ticker-current">N/A</span></p>
+            <p>Date Range: <span id="ticker-date-range">N/A</span></p>
+            <p>Rows Downloaded: <span id="ticker-rows">0</span></p>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-bar-inner" id="ticker-progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- Portfolio Simulation Progress Section -->
+    <div class="section">
+        <h2>Engine.py - Portfolio Optimization Progress</h2>
+        <p><strong>Engine Script Started:</strong> <span id="engine-script-start-time">N/A</span></p>
+        <p><strong>Initial Estimated Completion:</strong> <span id="engine-initial-est-completion">N/A</span></p>
+        <p><strong>Current Phase:</strong> <span id="engine-current-phase">N/A</span></p>
+        <p><strong>Overall Status:</strong> <span id="engine-overall-status">Running...</span></p>
+
+        <div class="columns">
+            <!-- Batch Progress Column -->
+            <!-- This section might be used by download.py or other batch processes -->
+            <div class="column">
+                <h3>Batch Process Monitor</h3>
+                <div id="batch-progress-info">
+                    <p>Batch Start Time: <span id="batch-start-time">N/A</span></p>
+                    <p>Completed Simulations: <span id="batch-completed">0</span> / <span id="batch-total">0</span></p>
+                    <p>Progress: <span id="batch-percentage">0</span>%</p>
+                    <p>Next Update Expected At: <span id="batch-next-update">N/A</span></p>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-bar-inner" id="batch-progress-bar"></div>
+                </div>
+            </div>
+
+            <!-- Engine.py Brute-Force Phase Progress Column -->
+            <div class="column">
+                <h3>Brute-Force Phase Progress (k &le; <span id="engine-bf-k-threshold">N/A</span>)</h3>
+                <div id="engine-bf-phase-info">
+                    <p>Completed Simulations (BF): <span id="engine-bf-completed-sims">0</span> / <span id="engine-bf-total-sims">0</span></p>
+                    <p>Progress (BF): <span id="engine-bf-percentage">0</span>%</p>
+                    <p>Est. BF Phase Completion: <span id="engine-bf-est-completion">N/A</span></p>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-bar-inner" id="engine-bf-progress-bar"></div>
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <h4>Other Phases Status</h4>
+            <p><strong>Genetic Algorithm (GA) (k > <span id="engine-ga-k-threshold">N/A</span>):</strong> <span id="engine-ga-status">Pending/Inactive</span></p>
+            <p><em>GA Details: <span id="engine-ga-details">N/A</span></em></p>
+            <p><strong>Refinement Phase:</strong> <span id="engine-refinement-status">Pending/Inactive</span></p>
+            <p><em>Refinement Details: <span id="engine-refinement-details">N/A</span></em></p>
+        </div>
+
+        <p><strong>Engine Script Ended:</strong> <span id="engine-script-end-time">N/A</span></p>
+        <p><strong>Total Engine Duration:</strong> <span id="engine-script-total-duration">N/A</span></p>
+    </div>
+
+    <!-- Best ESG Portfolio Chart Section -->
+    <div class="section">
+        <h3>Best Overall Portfolio Found (by Engine.py)</h3>
+        <div id="best-esg-portfolio-info">
+            <p>Stocks: <span id="best-esg-stocks">N/A</span></p>
+            <p>Weights: <span id="best-esg-weights">N/A</span></p>
+            <p>Sharpe Ratio: <span id="best-esg-sharpe">N/A</span></p>
+            <p>Initial Investment: <span id="best-esg-initial">N/A</span></p>
+            <p>Final Value: <span id="best-esg-final">N/A</span></p>
+            <p>ROI: <span id="best-esg-roi">N/A</span></p>
+            <p>Expected Annual Return: <span id="best-esg-exp-ret">N/A</span></p>
+            <p>Expected Annual Volatility: <span id="best-esg-exp-vol">N/A</span></p>
+        </div>
+        <img id="portfolio-chart" src="" alt="Portfolio Chart will appear here once generated." />
+    </div>
+
+    <script>
+        let fetchInterval;
+    
+        async function fetchProgress() {
+            try {
+                const response = await fetch('progress.json?t=' + new Date().getTime());
+                const data = await response.json();
+    
+                // Helper function for safe text update
+                function setText(id, value, defaultValue = 'N/A') {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = (value !== undefined && value !== null) ? String(value) : defaultValue;
+                    }
+                }
+    
+                // Helper function for safe progress bar update
+                function setProgress(id, value) {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.style.width = `${Math.max(0, Math.min(100, parseFloat(value) || 0))}%`;
+                    }
+                }
+
+                // --- Stock Database Update Section (for download.py) ---
+                if (data.ticker_download) {
+                    const t = data.ticker_download;
+                    setText('ticker-completed', t.completed_tickers, '0');
+                    setText('ticker-total', t.total_tickers, '0');
+                    setText('ticker-percentage', t.progress !== undefined ? `${parseFloat(t.progress).toFixed(0)}` : '0');
+                    setProgress('ticker-progress-bar', t.progress);
+                    setText('ticker-current', t.current_ticker);
+                    setText('ticker-date-range', t.date_range);
+                    setText('ticker-rows', t.rows, '0');
+                }
+                // These are likely for download.py script timing
+                setText('execution-start-time', data.execution_start); 
+                setText('execution-end-time', data.execution_end);
+    
+                // --- Engine.py - Portfolio Optimization Progress Section ---
+                setText('engine-script-start-time', data.engine_script_start_time);
+                setText('engine-initial-est-completion', data.estimated_completion_time); // Initial overall estimate
+                setText('engine-current-phase', data.current_engine_phase);
+                setText('engine-bf-k-threshold', data.heuristic_threshold_k_value); // Assumes Engine.py adds this
+                setText('engine-ga-k-threshold', data.heuristic_threshold_k_value); // Assumes Engine.py adds this
+
+                // Brute-Force Phase
+                if (data.overall_progress) { // This key from Engine.py is for Brute-Force
+                    const bf = data.overall_progress;
+                    setText('engine-bf-completed-sims', bf.completed_actual_simulations_bf, '0');
+                    setText('engine-bf-total-sims', bf.total_expected_actual_simulations_bf, '0');
+                    const bfPercentage = bf.percentage_bf !== undefined ? parseFloat(bf.percentage_bf).toFixed(0) : '0';
+                    setText('engine-bf-percentage', bfPercentage);
+                    setProgress('engine-bf-progress-bar', bfPercentage);
+                    setText('engine-bf-est-completion', bf.estimated_completion_time_bf);
+                }
+
+                // GA Phase (Example: if Engine.py provides ga_progress object)
+                if (data.ga_progress) {
+                    const ga = data.ga_progress;
+                    setText('engine-ga-status', ga.status || 'N/A');
+                    let gaDetails = [];
+                    if (ga.current_k) gaDetails.push(`k=${ga.current_k}`);
+                    if (ga.current_generation) gaDetails.push(`Gen: ${ga.current_generation}`);
+                    if (ga.best_sharpe_this_k) gaDetails.push(`Best Sharpe (k): ${parseFloat(ga.best_sharpe_this_k).toFixed(4)}`);
+                    setText('engine-ga-details', gaDetails.length > 0 ? gaDetails.join(', ') : 'N/A');
+                } else if (data.current_engine_phase && data.current_engine_phase.toLowerCase().includes('ga')) {
+                    setText('engine-ga-status', 'Active');
+                }
+
+                // Refinement Phase (Example: if Engine.py provides refinement_progress object)
+                if (data.refinement_progress) {
+                    const refine = data.refinement_progress;
+                    setText('engine-refinement-status', refine.status || 'N/A');
+                    setText('engine-refinement-details', refine.details || 'N/A');
+                } else if (data.current_engine_phase && data.current_engine_phase.toLowerCase().includes('refinement')) {
+                    setText('engine-refinement-status', 'Active');
+                }
+
+                setText('engine-script-end-time', data.engine_script_end_time);
+                setText('engine-script-total-duration', data.engine_script_total_duration);
+
+                if (data.engine_script_end_time) {
+                    setText('engine-overall-status', 'Completed');
+                }
+
+                // Check for overall completion to stop fetching (can be refined)
+                if (data.engine_script_end_time && data.execution_end) { // If both main scripts seem done
+                    if (fetchInterval) {
+                        clearInterval(fetchInterval);
+                        console.log('Progress complete. Stopping updates.');
+                    }
+                }
+    
+                // --- Batch Process Monitor (could be download.py or other) ---
+                if (data.batch_progress) {
+                    const batch = data.batch_progress;
+                    setText('batch-start-time', batch.start_time);
+                    setText('batch-completed', batch.completed_simulations, '0');
+                    setText('batch-total', batch.total_simulations, '0');
+                    const batchPercentage = batch.percentage !== undefined ? parseFloat(batch.percentage).toFixed(0) : '0';
+                    setText('batch-percentage', batchPercentage);
+                    setProgress('batch-progress-bar', batchPercentage);
+                    setText('batch-next-update', batch.next_update);
+                }
+    
+                // --- Best Overall Portfolio Section (from Engine.py) ---
+                if (data.best_portfolio_details) {
+                    const best = data.best_portfolio_details;
+                    setText('best-esg-stocks', best.stocks ? best.stocks.join(', ') : 'N/A');
+                    setText('best-esg-weights', best.weights ? best.weights.map(w => parseFloat(w).toFixed(4)).join(', ') : 'N/A');
+                    setText('best-esg-sharpe', best.sharpe_ratio !== undefined ? parseFloat(best.sharpe_ratio).toFixed(4) : 'N/A');
+                    setText('best-esg-initial', best.initial_investment !== undefined ? `$${parseFloat(best.initial_investment).toFixed(2)}` : 'N/A'); // Assumes Engine.py adds this
+                    setText('best-esg-final', best.final_value !== undefined ? `$${parseFloat(best.final_value).toFixed(2)}` : 'N/A');
+                    setText('best-esg-roi', best.roi_percent !== undefined ? `${parseFloat(best.roi_percent).toFixed(2)}%` : 'N/A');
+                    setText('best-esg-exp-ret', best.expected_return_annual_pct !== undefined ? `${parseFloat(best.expected_return_annual_pct).toFixed(2)}%` : 'N/A');
+                    setText('best-esg-exp-vol', best.expected_volatility_annual_pct !== undefined ? `${parseFloat(best.expected_volatility_annual_pct).toFixed(2)}%` : 'N/A');
+                    
+                    // Update chart source only if best portfolio details are present
+                    const chartElement = document.getElementById('portfolio-chart');
+                    if (chartElement) {
+                        chartElement.src = 'Charts/best_esg_portfolio.png?t=' + new Date().getTime();
+                    }
+                }
+    
+            } catch (error) {
+                console.error('Error fetching progress:', error);
+            }
+        }
+    
+        fetchInterval = setInterval(fetchProgress, 10000);
+        fetchProgress();
+    </script>
+
+</body>
+</html>

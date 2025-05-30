@@ -608,11 +608,26 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     # all_downloaded_data list is removed; data will be merged immediately.
     logger.log("🔄 Starting download of new/missing data...")
     for i, ticker_to_process in enumerate(tickers_list): # Minor rename for clarity
+        total_tickers_to_process = len(tickers_list)
+
+        # Update progress for the web log BEFORE processing the current ticker
+        current_ticker_progress_data = {
+            "completed_tickers": i, # Tickers completed *before* this one
+            "total_tickers": total_tickers_to_process,
+            "progress": (i / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0,
+            "current_ticker": ticker_to_process, # This is the one *being* processed
+            "date_range": "N/A", # Will be updated after potential download
+            "rows": 0 # Will be updated after potential download
+        }
+        logger.update_web_log("ticker_download", current_ticker_progress_data)
+
         # This message is useful for progress tracking, could be INFO or conditional DEBUG
         if DEBUG_MODE:
             logger.log(f"DEBUG: Processing ticker {i+1}/{len(tickers_list)}: {ticker_to_process}")
         else:
-            logger.log(f"Processing ticker {i+1}/{len(tickers_list)}: {ticker_to_process}") # Keep as INFO-like if not DEBUG_MODE
+            # Log less frequently if not in debug to avoid flooding, e.g., every 10% or N tickers
+            if i % max(1, total_tickers_to_process // 10) == 0 or i == total_tickers_to_process - 1:
+                logger.log(f"Processing ticker {i+1}/{len(tickers_list)}: {ticker_to_process}")
 
         # 🔁 Refresh user agents every 10 tickers
         if i > 0 and i % 10 == 0 and ua:
@@ -637,8 +652,18 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
                 confirmed_missing_dates.append(d)
 
         if not confirmed_missing_dates:
-            logger.log(f"✅ All data for {ticker_to_process} is already downloaded. Skipping.")
+            logger.log(f"✅ All data for {ticker_to_process} is already downloaded or no missing dates found. Skipping download.")
+            # Update web log to reflect completion of this ticker (even if skipped)
+            current_ticker_progress_data["completed_tickers"] = i + 1
+            current_ticker_progress_data["progress"] = ((i + 1) / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0
+            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (Skipped/No New Dates)"
+            # date_range and rows remain N/A or 0
+            logger.update_web_log("ticker_download", current_ticker_progress_data)
             continue
+
+        # If we proceed, it means there are dates to attempt downloading for.
+        # current_ticker_progress_data["current_ticker"] is already set to ticker_to_process.
+
         if DEBUG_MODE:
             logger.log(f"DEBUG: Confirmed {len(confirmed_missing_dates)} missing dates for {ticker_to_process} to download.")
 
@@ -657,9 +682,16 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             end=download_end_date_str
         )
         if data.empty:
-            logger.log(f"⚠️ No data fetched for {ticker_to_process}. Skipping.")
+            logger.log(f"⚠️ No data fetched by yfinance for {ticker_to_process} for the period {download_start_date_str} to {download_end_date_str}. Skipping save.")
             if DEBUG_MODE:
                 logger.log(f"DEBUG: yfin.download returned empty DataFrame for {ticker_to_process}.")
+            # Update web log to reflect completion of this ticker attempt
+            current_ticker_progress_data["completed_tickers"] = i + 1
+            current_ticker_progress_data["progress"] = ((i + 1) / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0
+            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (No Data Fetched)"
+            current_ticker_progress_data["date_range"] = f"{download_start_date_str} to {download_end_date_str}" # Show attempted range
+            current_ticker_progress_data["rows"] = 0
+            logger.update_web_log("ticker_download", current_ticker_progress_data)
             continue
 
         data.reset_index(inplace=True)
@@ -691,16 +723,26 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         data = data[data['Date'].isin([d.date() for d in confirmed_missing_dates])]
 
         if data.empty:
-            logger.log(f"⚠️ No new data to save for {ticker_to_process} after filtering for missing dates.")
+            logger.log(f"⚠️ No new data to save for {ticker_to_process} after filtering for the {len(confirmed_missing_dates)} specifically missing dates.")
             if DEBUG_MODE:
                 logger.log(f"DEBUG: DataFrame empty for {ticker_to_process} after filtering for confirmed_missing_dates. Skipping save.")
+            # Update web log to reflect completion of this ticker attempt
+            current_ticker_progress_data["completed_tickers"] = i + 1
+            current_ticker_progress_data["progress"] = ((i + 1) / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0
+            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (No Relevant Data)"
+            current_ticker_progress_data["date_range"] = f"{min(confirmed_missing_dates).strftime('%Y-%m-%d')} to {max(confirmed_missing_dates).strftime('%Y-%m-%d')}"
+            current_ticker_progress_data["rows"] = 0
+            logger.update_web_log("ticker_download", current_ticker_progress_data)
             continue
 
+        downloaded_min_date_str = min(data['Date']).strftime('%Y-%m-%d')
+        downloaded_max_date_str = max(data['Date']).strftime('%Y-%m-%d')
         logger.log(
-            f"📈 Downloaded {len(data)} rows for {ticker_to_process} from {min(confirmed_missing_dates).strftime('%Y-%m-%d')} to {max(confirmed_missing_dates).strftime('%Y-%m-%d')}"
+            f"📈 Downloaded {len(data)} relevant rows for {ticker_to_process} from {downloaded_min_date_str} to {downloaded_max_date_str}"
         )
         if DEBUG_MODE:
             logger.log(f"DEBUG: Downloaded {len(data)} rows for {ticker_to_process}. Calling save_ticker_data_to_csv.")
+
         save_ticker_data_to_csv(ticker_to_process, data, current_findata_dir)
         
         # Directly merge the newly downloaded 'data' (for the current ticker) into 'combined_data'
@@ -730,8 +772,26 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             if DEBUG_MODE: 
                 logger.log(f"DEBUG: Deduplicated combined_data after new download for {ticker_to_process}. Shape after dedup: {combined_data.shape}")
             logger.log(f"✅ Merged {len(data)} newly downloaded rows for {ticker_to_process}. Total unique rows in combined_data: {len(combined_data)}")
+            
+            # Update web log with details after successful download and merge for this ticker
+            current_ticker_progress_data["date_range"] = f"{downloaded_min_date_str} to {downloaded_max_date_str}"
+            current_ticker_progress_data["rows"] = len(data)
+            current_ticker_progress_data["completed_tickers"] = i + 1 # Mark this ticker as completed
+            current_ticker_progress_data["progress"] = ((i + 1) / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0
+            logger.update_web_log("ticker_download", current_ticker_progress_data)
 
     # Step 6: Save the updated StockDataDB.csv
+    # Final update for ticker_download to show 100% completion if all tickers were processed
+    if total_tickers_to_process > 0:
+        final_ticker_progress = {
+            "completed_tickers": total_tickers_to_process,
+            "total_tickers": total_tickers_to_process,
+            "progress": 100,
+            "current_ticker": "All tickers processed",
+            "date_range": "N/A", # Not specific to one ticker anymore
+            "rows": "N/A" # Could be a sum if tracked, else N/A
+        }
+        logger.update_web_log("ticker_download", final_ticker_progress)
     if DEBUG_MODE:
         logger.log(f"DEBUG: Saving final combined_data with {len(combined_data)} rows to {current_db_filepath}.")
     combined_data.to_csv(current_db_filepath, index=False)
