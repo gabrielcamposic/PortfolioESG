@@ -728,7 +728,7 @@ def find_best_stock_combination(
                  best_overall_roi_val = best_roi_heuristic
                  best_overall_expected_return = best_exp_ret_heuristic
                  best_overall_volatility = best_vol_heuristic
-                 logger_instance.log(f"    🌟 New Overall Best (Heuristic GA)! Sharpe: {best_sharpe_heuristic:.4f}, Stocks: {', '.join(best_combo_heuristic if best_combo_heuristic else [])}, Weights: {', '.join(f'{w:.4f}' for w in best_weights_heuristic) if best_weights_heuristic else 'N/A'}")
+                 logger_instance.log(f"    🌟 New Overall Best (Heuristic GA)! Sharpe: {best_sharpe_heuristic:.4f}, Stocks: {', '.join(best_combo_heuristic if best_combo_heuristic else [])}, Weights: {', '.join(f'{w:.4f}' for w in best_weights_heuristic) if best_weights_heuristic is not None else 'N/A'}")
 
             logger_instance.log(f"    Completed {num_stocks_in_combo}-stock portfolio search (Heuristic - GA).")
 
