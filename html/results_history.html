@@ -47,6 +47,7 @@
         <thead>
             <tr>
                 <th>Timestamp</th>
+                <th>Engine Version</th>
                 <th>Min Stocks</th>
                 <th>Max Stocks</th>
                 <th>Data Start</th>
@@ -94,7 +95,7 @@
             } catch (error) {
                 console.error('Error fetching or parsing CSV:', error);
                 const tableBody = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
-                tableBody.innerHTML = `<tr><td colspan="${headers ? headers.length : 15}" style="text-align:center; color:red;">Error loading data: ${error.message}. Ensure '${CSV_PATH}' is accessible.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="${(headers && headers.length > 0) ? headers.length : 15}" style="text-align:center; color:red;">Error loading data: ${error.message}. Ensure '${CSV_PATH}' is accessible.</td></tr>`;
             }
         }
 

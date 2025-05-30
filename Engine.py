@@ -16,6 +16,10 @@ import json # For logging to html readable
 import math 
 import shutil # Add this import
 
+# --- Engine Version ---
+ENGINE_VERSION = "1.1.0" # Update this manually for significant changes
+# ----------------------
+
 # ----------------------------------------------------------- #
 #                           Classes                           #
 # ----------------------------------------------------------- #
@@ -175,6 +179,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "ga_convergence_tolerance": float,
         "heuristic_threshold_k": int, # Added: Threshold for switching to heuristic
         "results_log_csv_path": str, # Added: Path for results CSV log
+        "web_accessible_data_folder": str, # Added: Path for web-accessible data
     }
 
     try:
@@ -1231,6 +1236,7 @@ CHARTS_FOLDER = sim_params.get("charts_folder")
 LOG_FILE_PATH_PARAM = sim_params.get("log_file_path")
 WEB_LOG_PATH_PARAM = sim_params.get("web_log_path")
 RESULTS_LOG_CSV_PATH = sim_params.get("results_log_csv_path") # Load the new path
+WEB_ACCESSIBLE_DATA_FOLDER = sim_params.get("web_accessible_data_folder") # Load web data folder path
 
 # Step 5: Update logger paths if they were defined in sim_params and are different
 if LOG_FILE_PATH_PARAM and LOG_FILE_PATH_PARAM != logger.log_path:
@@ -1397,6 +1403,7 @@ def log_optimal_portfolio_results_to_csv(
     expected_annual_volatility_decimal_val,
     final_portfolio_value,
     roi_percent_val,
+    engine_version_str, # Added engine version
     initial_investment_val,
     logger_instance
 ):
@@ -1406,6 +1413,7 @@ def log_optimal_portfolio_results_to_csv(
     try:
         data = {
             'generation_timestamp': [generation_timestamp_dt.strftime('%Y-%m-%d %H:%M:%S')],
+            'engine_version': [engine_version_str], # Added engine version
             'min_target_stocks': [min_target_stocks], 'max_target_stocks': [max_target_stocks],
             'data_start_date': [data_start_date_dt.strftime('%Y-%m-%d') if data_start_date_dt else 'N/A'],
             'data_end_date': [data_end_date_dt.strftime('%Y-%m-%d') if data_end_date_dt else 'N/A'],
@@ -1447,6 +1455,7 @@ if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
         best_volatility,
         best_final_value,
         best_roi,
+        ENGINE_VERSION, # Pass the global engine version
         INITIAL_INVESTMENT,
         logger
     )
@@ -1468,19 +1477,14 @@ def copy_results_log_to_web_accessible_location(source_csv_path, logger_instance
         return
 
     try:
-        # Determine the web_data_dir relative to SCRIPT_DIR
-        # This assumes Engine.py is in PortfolioESG_public
-        # and the target html/data is in PortfolioESG_public/html/data
-        # Adjust if your structure is PortfolioESG_Prod/html/data
-        web_data_dir = os.path.join(SCRIPT_DIR, "html", "data")
+        web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
+        if not web_data_dir:
+            logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy results log to web directory.")
+            return
 
-        # Example for PortfolioESG_Prod/html/data (if SCRIPT_DIR is PortfolioESG_public)
-        # script_parent_dir = os.path.dirname(SCRIPT_DIR)
-        # web_data_dir = os.path.join(script_parent_dir, "PortfolioESG_Prod", "html", "data")
-
-        if not os.path.exists(web_data_dir):
-            os.makedirs(web_data_dir, exist_ok=True)
-            logger_instance.log(f"Info: Created web data directory: {web_data_dir}")
+        if not os.path.exists(web_data_dir): # Ensure the directory exists
+            os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
+            logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
 
         destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
         shutil.copy2(source_csv_path, destination_csv_path)
