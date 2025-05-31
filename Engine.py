@@ -93,12 +93,30 @@ class Logger:
         self.log_count += 1
         
         # Update web log file if web_data is provided
-        if web_data and self.web_log_path:
-            self.web_data.update(web_data)
-            with open(self.web_log_path, 'w') as web_file:
-                json.dump(self.web_data, web_file, indent=4)
-                web_file.flush()            # Ensure data is flushed from buffer
-                os.fsync(web_file.fileno()) # Force write to disk (good for web access)
+        if web_data and self.web_log_path: # web_data is the new data for *this* specific log call
+            loaded_json_data = {}
+            if os.path.exists(self.web_log_path):
+                try:
+                    with open(self.web_log_path, 'r') as f_read:
+                        loaded_json_data = json.load(f_read)
+                except json.JSONDecodeError:
+                    # Log to console as logger might be in a weird state or path is new
+                    print(f"{timestamp} - Warning: Malformed JSON in {self.web_log_path}. Will be overwritten by current update.")
+                except Exception as e:
+                    print(f"{timestamp} - Error reading {self.web_log_path} in log(): {e}")
+            
+            loaded_json_data.update(web_data) # Merge the new data from this specific log call
+            
+            try:
+                with open(self.web_log_path, 'w') as web_file:
+                    json.dump(loaded_json_data, web_file, indent=4)
+                    web_file.flush()
+                    os.fsync(web_file.fileno())
+                self.web_data = loaded_json_data # Update internal state to match what was just written
+            except Exception as e:
+                # Log to console as logger might be in a weird state
+                print(f"{timestamp} - Error writing to web log file {self.web_log_path} in log(): {e}")
+
         
         if self.log_count % self.flush_interval == 0:
             self.flush()
@@ -113,11 +131,27 @@ class Logger:
     def update_web_log(self, key, value):
         """Update a specific key in the web log JSON file."""
         if self.web_log_path:
-            self.web_data[key] = value
-            with open(self.web_log_path, 'w') as web_file:
-                json.dump(self.web_data, web_file, indent=4)
-                web_file.flush()
-                os.fsync(web_file.fileno())
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S') # For potential console logs
+            loaded_json_data = {}
+            if os.path.exists(self.web_log_path):
+                try:
+                    with open(self.web_log_path, 'r') as f_read:
+                        loaded_json_data = json.load(f_read)
+                except json.JSONDecodeError:
+                    print(f"{timestamp} - Warning: Malformed JSON in {self.web_log_path} for update_web_log. Will create new/overwrite with current key.")
+                except Exception as e:
+                    print(f"{timestamp} - Error reading {self.web_log_path} in update_web_log(): {e}")
+            
+            loaded_json_data[key] = value # Update the specific key in the loaded data
+            
+            try:
+                with open(self.web_log_path, 'w') as web_file:
+                    json.dump(loaded_json_data, web_file, indent=4)
+                    web_file.flush()
+                    os.fsync(web_file.fileno())
+                self.web_data = loaded_json_data # Update internal state to match what was just written
+            except Exception as e:
+                print(f"{timestamp} - Error writing to web log file {self.web_log_path} in update_web_log(): {e}")
 
 # ----------------------------------------------------------- #
 #                        Basic Functions                      #
@@ -1403,29 +1437,53 @@ def log_optimal_portfolio_results_to_csv(
     expected_annual_volatility_decimal_val,
     final_portfolio_value,
     roi_percent_val,
-    engine_version_str, # Added engine version
+    engine_version_str, 
     initial_investment_val,
-    logger_instance
+    logger_instance 
 ):
     if not results_filepath:
         logger_instance.log("Warning: results_log_csv_path not defined in parameters. Skipping CSV results log.")
         return
+
+    def ensure_scalar_metric(metric_val, metric_name_for_log):
+        if not np.isscalar(metric_val):
+            # Log detailed warning if a metric that should be scalar is not.
+            logger_instance.log(f"CRITICAL WARNING in log_optimal_portfolio_results_to_csv: Metric '{metric_name_for_log}' expected to be scalar but received type {type(metric_val)} with value: {metric_val}. Using np.nan as fallback.")
+            # Attempt to extract a scalar if it's a 0-d array or single-element list/array
+            if hasattr(metric_val, 'item') and isinstance(metric_val, np.ndarray) and metric_val.ndim == 0: # 0-d numpy array
+                return metric_val.item()
+            if isinstance(metric_val, (list, np.ndarray, pd.Series)) and len(metric_val) == 1:
+                try:
+                    return metric_val[0] if not isinstance(metric_val[0], (list, np.ndarray, pd.Series)) else np.nan # Avoid nested structures
+                except: # Catch any error during extraction
+                    return np.nan
+            return np.nan # Fallback for multi-element arrays or other non-scalar types
+        return metric_val
+
     try:
+        # Ensure all metric values are scalar before using them
+        s_sharpe = ensure_scalar_metric(sharpe_ratio_val, "sharpe_ratio")
+        s_exp_ret = ensure_scalar_metric(expected_annual_return_decimal_val, "expected_annual_return_decimal")
+        s_exp_vol = ensure_scalar_metric(expected_annual_volatility_decimal_val, "expected_annual_volatility_decimal")
+        s_final_val = ensure_scalar_metric(final_portfolio_value, "final_portfolio_value")
+        s_roi_pct = ensure_scalar_metric(roi_percent_val, "roi_percent")
+        s_init_inv = ensure_scalar_metric(initial_investment_val, "initial_investment")
+
         data = {
             'generation_timestamp': [generation_timestamp_dt.strftime('%Y-%m-%d %H:%M:%S')],
-            'engine_version': [engine_version_str], # Added engine version
+            'engine_version': [engine_version_str],
             'min_target_stocks': [min_target_stocks], 'max_target_stocks': [max_target_stocks],
             'data_start_date': [data_start_date_dt.strftime('%Y-%m-%d') if data_start_date_dt else 'N/A'],
             'data_end_date': [data_end_date_dt.strftime('%Y-%m-%d') if data_end_date_dt else 'N/A'],
             'stock_pool_considered': [', '.join(sorted(stock_pool_considered_list)) if stock_pool_considered_list else 'N/A'],
             'optimal_stocks': [', '.join(sorted(optimal_stocks_list)) if optimal_stocks_list else 'N/A'],
             'optimal_weights': [', '.join(f'{w:.4f}' for w in optimal_weights_list) if optimal_weights_list else 'N/A'],
-            'sharpe_ratio': [round(sharpe_ratio_val, 4) if not pd.isna(sharpe_ratio_val) else np.nan],
-            'expected_annual_return_pct': [round(expected_annual_return_decimal_val * 100, 2) if not pd.isna(expected_annual_return_decimal_val) else np.nan],
-            'expected_annual_volatility_pct': [round(expected_annual_volatility_decimal_val * 100, 2) if not pd.isna(expected_annual_volatility_decimal_val) else np.nan],
-            'final_value': [round(final_portfolio_value, 2) if not pd.isna(final_portfolio_value) else np.nan],
-            'roi_pct': [round(roi_percent_val, 2) if not pd.isna(roi_percent_val) else np.nan],
-            'initial_investment': [round(initial_investment_val, 2) if not pd.isna(initial_investment_val) else np.nan]
+            'sharpe_ratio': [round(s_sharpe, 4) if pd.notna(s_sharpe) else np.nan],
+            'expected_annual_return_pct': [round(s_exp_ret * 100, 2) if pd.notna(s_exp_ret) else np.nan],
+            'expected_annual_volatility_pct': [round(s_exp_vol * 100, 2) if pd.notna(s_exp_vol) else np.nan],
+            'final_value': [round(s_final_val, 2) if pd.notna(s_final_val) else np.nan],
+            'roi_pct': [round(s_roi_pct, 2) if pd.notna(s_roi_pct) else np.nan],
+            'initial_investment': [round(s_init_inv, 2) if pd.notna(s_init_inv) else np.nan]
         }
         results_df = pd.DataFrame(data)
         os.makedirs(os.path.dirname(results_filepath), exist_ok=True)
@@ -1434,6 +1492,8 @@ def log_optimal_portfolio_results_to_csv(
         logger_instance.log(f"✅ Optimal portfolio results logged to: {results_filepath}")
     except Exception as e:
         logger_instance.log(f"❌ Error logging optimal portfolio results to CSV {results_filepath}: {e}")
+
+
 
 # Log results to CSV
 if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:

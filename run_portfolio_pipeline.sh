@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # --- Configuration ---
 PROJECT_DIR="/home/gabrielcampos/PortfolioESG_Prod"
 LOG_DIR="$PROJECT_DIR/Logs"
