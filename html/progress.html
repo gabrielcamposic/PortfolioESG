@@ -207,7 +207,7 @@
                     setText('engine-ga-status', ga.status || 'N/A');
                     let gaDetails = [];
                     if (ga.current_k) gaDetails.push(`k=${ga.current_k}`);
-                    if (ga.current_generation) gaDetails.push(`Gen: ${ga.current_generation}`);
+                    if (ga.current_generation) gaDetails.push(`Gen: ${ga.current_generation}${ga.total_generations_ga ? '/' + ga.total_generations_ga : ''}`);
                     if (ga.best_sharpe_this_k) gaDetails.push(`Best Sharpe (k): ${parseFloat(ga.best_sharpe_this_k).toFixed(4)}`);
                     setText('engine-ga-details', gaDetails.length > 0 ? gaDetails.join(', ') : 'N/A');
                 } else if (data.current_engine_phase && data.current_engine_phase.toLowerCase().includes('ga')) {

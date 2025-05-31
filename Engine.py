@@ -587,6 +587,7 @@ def find_best_stock_combination(
     for num_stocks_in_combo in range(min_portfolio_size, max_portfolio_size + 1):
         current_time_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S') # Add this line
 
+        # Update phase specifically for Brute-Force or GA
         if num_stocks_in_combo <= HEURISTIC_THRESHOLD_K:
             # Brute-force logic will go here
             num_combinations_for_size = comb(len(available_stocks_for_search), num_stocks_in_combo)
@@ -594,6 +595,7 @@ def find_best_stock_combination(
 
             # Determine target simulations for this k if adaptive
             target_sims_for_k_progressive = SIM_RUNS # Fallback to fixed if not adaptive
+            logger.update_web_log("current_engine_phase", f"Brute-Force (k={num_stocks_in_combo})")
             if ADAPTIVE_SIM_ENABLED:
                 if num_stocks_in_combo < 2: # Min stocks for log formula
                     target_sims_for_k_progressive = PROGRESSIVE_MIN_SIMS
@@ -744,7 +746,8 @@ def find_best_stock_combination(
         else: # num_stocks_in_combo > HEURISTIC_THRESHOLD_K
             # --- Heuristic Logic (Genetic Algorithm Placeholder) will go here ---
             logger_instance.log(f"\n    Starting {num_stocks_in_combo}-stock portfolios (Heuristic - GA) at {current_time_str}...")
-            
+            logger.update_web_log("current_engine_phase", f"Genetic Algorithm (k={num_stocks_in_combo})")
+
             # Call the Genetic Algorithm function here
             # This function will return the best portfolio it found for this size k
             # It will also handle its own internal logging and progress tracking
@@ -784,6 +787,7 @@ def find_best_stock_combination(
     # --- Refinement Phase ---
     if ADAPTIVE_SIM_ENABLED and TOP_N_PERCENT_REFINEMENT > 0 and all_combination_results_for_refinement:
         logger_instance.log(f"\n    --- Starting Refinement Phase for Top {TOP_N_PERCENT_REFINEMENT*100:.0f}% Combinations ---")
+        logger.update_web_log("current_engine_phase", "Refinement Phase")
         all_combination_results_for_refinement.sort(key=lambda x: x['sharpe'], reverse=True)
         num_to_refine = int(len(all_combination_results_for_refinement) * TOP_N_PERCENT_REFINEMENT)
         if num_to_refine == 0 and len(all_combination_results_for_refinement) > 0: # Ensure at least one if list is not empty
@@ -905,6 +909,13 @@ def run_genetic_algorithm(
     CONVERGENCE_GENERATIONS = sim_params.get("ga_convergence_generations", 10) # Default to 10 generations
     CONVERGENCE_TOLERANCE = sim_params.get("ga_convergence_tolerance", 0.0001) # Default to small tolerance
     
+    # Initial GA progress update
+    logger_instance.update_web_log("ga_progress", {
+        "status": f"Initializing for k={num_stocks_in_combo}",
+        "current_k": num_stocks_in_combo,
+        "total_generations_ga": NUM_GENERATIONS # Add total generations
+    })
+
     logger_instance.log(f"    GA Parameters: Pop. Size={POPULATION_SIZE}, Generations={NUM_GENERATIONS} for k={num_stocks_in_combo}")
 
     # --- Initialization ---
@@ -952,6 +963,14 @@ def run_genetic_algorithm(
     # --- GA Main Loop ---
     for generation in range(NUM_GENERATIONS):
         logger_instance.log(f"    GA Generation {generation + 1}/{NUM_GENERATIONS} for k={num_stocks_in_combo}...")
+        # Update GA progress for the web
+        logger_instance.update_web_log("ga_progress", {
+            "status": "Running",
+            "current_k": num_stocks_in_combo,
+            "current_generation": generation + 1,
+            "total_generations_ga": NUM_GENERATIONS,
+            "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A"
+        })
         
         evaluated_population_details = [] # To store (sharpe, combo_list, weights, exp_ret, vol, final_val, roi) for this generation
 
@@ -1031,10 +1050,25 @@ def run_genetic_algorithm(
             # A more direct check: if the best of this generation isn't much better than the best from CONVERGENCE_GENERATIONS ago.
             if best_sharpe_history[-1] - best_sharpe_history[0] < CONVERGENCE_TOLERANCE:
                 logger_instance.log(f"    GA: Converged after {generation + 1} generations. Improvement less than tolerance ({CONVERGENCE_TOLERANCE}).")
+                logger_instance.log(f"    GA: Converged for k={num_stocks_in_combo} after {generation + 1} generations. Improvement less than tolerance ({CONVERGENCE_TOLERANCE}).")
+                logger_instance.update_web_log("ga_progress", {
+                    "status": f"Converged (k={num_stocks_in_combo})",
+                    "current_k": num_stocks_in_combo,
+                    "current_generation": generation + 1,
+                    "total_generations_ga": NUM_GENERATIONS,
+                    "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A"
+                })
                 break
         
         if generation == NUM_GENERATIONS - 1:
             logger_instance.log(f"    GA: Reached final generation {NUM_GENERATIONS}.")
+            logger_instance.update_web_log("ga_progress", {
+                "status": f"Completed (k={num_stocks_in_combo})",
+                "current_k": num_stocks_in_combo,
+                "current_generation": NUM_GENERATIONS,
+                "total_generations_ga": NUM_GENERATIONS,
+                "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A"
+            })
             break 
         
         # 2. Selection, Crossover, Mutation to create the next generation
@@ -1071,11 +1105,25 @@ def run_genetic_algorithm(
     # --- End of GA Main Loop ---
     if best_combo_overall_ga:
         logger_instance.log(f"    GA: Finished. Best portfolio found for k={num_stocks_in_combo} - Sharpe: {best_sharpe_overall_ga:.4f}")
+        logger_instance.update_web_log("ga_progress", {
+            "status": f"Finished (k={num_stocks_in_combo})",
+            "current_k": num_stocks_in_combo,
+            "current_generation": generation + 1, # Last completed generation
+            "total_generations_ga": NUM_GENERATIONS,
+            "best_sharpe_this_k": round(best_sharpe_overall_ga, 4)
+        })
         return (best_combo_overall_ga, best_weights_overall_ga, best_sharpe_overall_ga,
                 best_final_val_overall_ga, best_roi_overall_ga, best_exp_ret_overall_ga,
                 best_vol_overall_ga)
     else: # Should not happen if population was created and evaluated, but as a fallback
         logger_instance.log(f"    Warning (GA): No best individual found after {NUM_GENERATIONS} generations for k={num_stocks_in_combo}.")
+        logger_instance.update_web_log("ga_progress", {
+            "status": f"No best found (k={num_stocks_in_combo})",
+            "current_k": num_stocks_in_combo,
+            "current_generation": generation + 1, # Last completed generation
+            "total_generations_ga": NUM_GENERATIONS,
+            "best_sharpe_this_k": "N/A"
+        })
     return None, None, -float("inf"), None, None, None, None 
 
 # --- GA Helper Functions (Stubs) ---
@@ -1318,7 +1366,35 @@ if missing_critical:
 
 overall_script_start_time = datetime.now()
 logger.log(f"🚀 Engine.py script started at: {overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-logger.update_web_log("engine_script_start_time", overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S'))
+# Update web log with initial status for Engine.py
+engine_start_web_data = {
+    "engine_script_start_time": overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S'),
+    "engine_script_end_time": "N/A",  # Explicitly reset
+    "engine_script_total_duration": "N/A", # Explicitly reset
+    "estimated_completion_time": "Calculating...", # Initial overall estimate
+    "current_engine_phase": "Initializing...", # Set initial phase
+    "overall_progress": { # Reset brute-force progress (BF phase)
+        "completed_actual_simulations_bf": 0,
+        "total_expected_actual_simulations_bf": 0,
+        "percentage_bf": 0,
+        "estimated_completion_time_bf": "N/A"
+    },
+    "ga_progress": { # Reset GA progress
+        "status": "Pending/Inactive",
+        "current_k": "N/A",
+        "current_generation": "N/A",
+        "total_generations_ga": "N/A", # Add total generations for GA
+        "best_sharpe_this_k": "N/A"
+    },
+    "refinement_progress": { # Reset refinement progress
+        "status": "Pending/Inactive",
+        "details": "N/A"
+    },
+    "best_portfolio_details": None # Reset best portfolio details
+}
+# Use logger.log with web_data to merge these initial values
+logger.log(f"Engine.py web progress initialized.", web_data=engine_start_web_data)
+
 
 
 if DEBUG_MODE:
@@ -1333,6 +1409,7 @@ StockDataDB_df = pd.read_csv(STOCK_DATA_FILE)
 StockDataDB_df['Date'] = pd.to_datetime(StockDataDB_df['Date'], format='mixed', errors='coerce').dt.date # Convert to date format, handle mixed formats
 
 logger.log("\n--- Starting Data Loading and Wrangling ---")
+logger.update_web_log("current_engine_phase", "Data Loading & Wrangling") # Update phase
 section_start_time = datetime.now()
 logger.update_web_log("data_wrangling_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
 
@@ -1401,6 +1478,7 @@ sim_timer = ExecutionTimer(rolling_window=max(10, SIM_RUNS // 100)) # Adjust rol
 
 # --- Find Best Stock Combination (e.g., from ESG list within Top N) ---
 logger.log("\n--- Starting Search for Best Stock Combination ---")
+logger.update_web_log("current_engine_phase", "Stock Combination Search (Brute-Force/GA)") # General phase
 section_start_time = datetime.now()
 logger.update_web_log("stock_combination_search_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
 

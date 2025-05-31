@@ -1,10 +1,10 @@
 {
-    "engine_script_start_time": "2025-05-29 21:14:07",
-    "data_wrangling_start": "2025-05-29 21:14:07",
-    "data_wrangling_end": "2025-05-29 21:14:07",
-    "data_wrangling_duration": "0:00:00.035753",
-    "stock_combination_search_start": "2025-05-29 21:14:07",
-    "estimated_completion_time": "2025-05-29 22:09:55",
+    "engine_script_start_time": "2025-05-31 19:05:17",
+    "data_wrangling_start": "2025-05-31 19:05:17",
+    "data_wrangling_end": "2025-05-31 19:05:17",
+    "data_wrangling_duration": "0:00:00.062890",
+    "stock_combination_search_start": "2025-05-31 19:05:17",
+    "estimated_completion_time": "2025-05-31 21:30:29",
     "best_portfolio_details": {
         "stocks": [
             "CEAB3.SA",
@@ -29,5 +29,15 @@
     "stock_combination_search_end": "2025-05-29 22:03:00",
     "stock_combination_search_duration": "0:48:53.348350",
     "engine_script_end_time": "2025-05-29 22:03:00",
-    "engine_script_total_duration": "0:48:53.529215"
+    "engine_script_total_duration": "0:48:53.529215",
+    "download_execution_start": "2025-05-31 19:01:27",
+    "ticker_download": {
+        "completed_tickers": 64,
+        "total_tickers": 64,
+        "progress": 100,
+        "current_ticker": "StockDataDB.csv saved (138951 rows)",
+        "date_range": "N/A",
+        "rows": "N/A"
+    },
+    "download_execution_end": "2025-05-31 19:04:54"
 }
