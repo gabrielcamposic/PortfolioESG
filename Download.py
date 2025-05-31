@@ -529,6 +529,11 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     # For now, the global start_date for yfinance downloads is defined here.
     global_start_date_for_yfinance = datetime.today() - timedelta(days=365 * HISTORY_YEARS)
 
+    # Helper to get current ticker_download status for modification
+    def get_current_ticker_status():
+        # Fallback to a basic structure if "ticker_download" isn't in web_data yet (should be rare after initial log)
+        return logger.web_data.get("ticker_download", {"current_ticker": "Initializing...", "completed_tickers": 0, "total_tickers": 0, "progress": 0, "date_range": "N/A", "rows": 0}).copy()
+
     # Step 1: Load existing StockDataDB.csv
     # This DataFrame will be the base for accumulating all data.
     if os.path.exists(current_db_filepath):
@@ -536,20 +541,30 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         if DEBUG_MODE:
             logger.log(f"DEBUG: Raw combined_data (from existing_db) loaded with {len(combined_data)} rows. Columns: {combined_data.columns.tolist()}")
         combined_data['Date'] = pd.to_datetime(combined_data['Date'], format='mixed', errors='coerce').dt.date # Ensure Date is in correct format
+        
+        status_update = get_current_ticker_status()
+        status_update["current_ticker"] = f"Loaded StockDataDB.csv ({len(combined_data)} rows)"
+        logger.update_web_log("ticker_download", status_update)
+
         if DEBUG_MODE:
             logger.log(f"DEBUG: Loaded existing StockDataDB.csv into combined_data. Shape: {combined_data.shape} from {current_db_filepath}.")
         logger.log(f"✅ Loaded existing StockDataDB.csv. Rows: {len(combined_data)}, Path: {current_db_filepath}")
     else:
         combined_data = pd.DataFrame(columns=common_cols)
+        status_update = get_current_ticker_status()
+        status_update["current_ticker"] = "StockDataDB.csv not found. Initializing."
+        logger.update_web_log("ticker_download", status_update)
         if DEBUG_MODE:
             logger.log(f"DEBUG: StockDataDB.csv not found at {current_db_filepath}. Initializing empty combined_data. Shape: {combined_data.shape}")
         logger.log(f"⚠️ {current_db_filepath} does not exist. Starting with an empty database.")
 
     # Step 2 & 3 (Merged): Process findata folder ticker by ticker and merge into combined_data
     logger.log(f"🔄 Processing existing data from findata directory: {current_findata_dir}")
-    # Overall counters for findata processing (can be re-evaluated if needed)
-    # total_findata_files_processed_overall = 0
-    # estimated_total_findata_rows_overall = 0
+    
+    status_update = get_current_ticker_status()
+    status_update["current_ticker"] = "Processing local findata directory..."
+    logger.update_web_log("ticker_download", status_update)
+
 
     for ticker_item in tickers_list: # Iterate using the passed tickers_list
         ticker_folder = os.path.join(current_findata_dir, ticker_item)
@@ -558,6 +573,10 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
                 logger.log(f"DEBUG: No findata folder found for ticker {ticker_item} at {ticker_folder}. Skipping this ticker for findata load.")
             logger.log(f"📂 No findata data folder for {ticker_item}. Skipping.")
             continue
+        
+        status_update = get_current_ticker_status()
+        status_update["current_ticker"] = f"Processing local files for {ticker_item}..."
+        logger.update_web_log("ticker_download", status_update)
         
         if DEBUG_MODE:
             logger.log(f"DEBUG: Processing findata for ticker: {ticker_item} from {ticker_folder}")
@@ -638,6 +657,11 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     # Step 4: Download missing data for each ticker
     # all_downloaded_data list is removed; data will be merged immediately.
     logger.log("🔄 Starting download of new/missing data...")
+    
+    status_update = get_current_ticker_status()
+    status_update["current_ticker"] = "Preparing to download new/missing data..."
+    logger.update_web_log("ticker_download", status_update)
+
     for i, ticker_to_process in enumerate(tickers_list): # Minor rename for clarity
         total_tickers_to_process = len(tickers_list)
 
@@ -650,7 +674,10 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             "date_range": "N/A", # Will be updated after potential download
             "rows": 0 # Will be updated after potential download
         }
-        logger.update_web_log("ticker_download", current_ticker_progress_data)
+        # Merge with existing status rather than overwriting other parts of ticker_download
+        merged_status_for_web = get_current_ticker_status()
+        merged_status_for_web.update(current_ticker_progress_data)
+        logger.update_web_log("ticker_download", merged_status_for_web)
 
         # This message is useful for progress tracking, could be INFO or conditional DEBUG
         if DEBUG_MODE:
@@ -687,9 +714,11 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             # Update web log to reflect completion of this ticker (even if skipped)
             current_ticker_progress_data["completed_tickers"] = i + 1
             current_ticker_progress_data["progress"] = ((i + 1) / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0
-            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (Skipped/No New Dates)"
+            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (No new dates)"
             # date_range and rows remain N/A or 0
-            logger.update_web_log("ticker_download", current_ticker_progress_data)
+            merged_status_for_web_skip = get_current_ticker_status()
+            merged_status_for_web_skip.update(current_ticker_progress_data)
+            logger.update_web_log("ticker_download", merged_status_for_web_skip)
             continue
 
         # If we proceed, it means there are dates to attempt downloading for.
@@ -719,10 +748,12 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             # Update web log to reflect completion of this ticker attempt
             current_ticker_progress_data["completed_tickers"] = i + 1
             current_ticker_progress_data["progress"] = ((i + 1) / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0
-            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (No Data Fetched)"
+            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (No data fetched)"
             current_ticker_progress_data["date_range"] = f"{download_start_date_str} to {download_end_date_str}" # Show attempted range
             current_ticker_progress_data["rows"] = 0
-            logger.update_web_log("ticker_download", current_ticker_progress_data)
+            merged_status_for_web_no_fetch = get_current_ticker_status()
+            merged_status_for_web_no_fetch.update(current_ticker_progress_data)
+            logger.update_web_log("ticker_download", merged_status_for_web_no_fetch)
             continue
 
         data.reset_index(inplace=True)
@@ -760,10 +791,12 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             # Update web log to reflect completion of this ticker attempt
             current_ticker_progress_data["completed_tickers"] = i + 1
             current_ticker_progress_data["progress"] = ((i + 1) / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0
-            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (No Relevant Data)"
+            current_ticker_progress_data["current_ticker"] = f"{ticker_to_process} (No relevant data)"
             current_ticker_progress_data["date_range"] = f"{min(confirmed_missing_dates).strftime('%Y-%m-%d')} to {max(confirmed_missing_dates).strftime('%Y-%m-%d')}"
             current_ticker_progress_data["rows"] = 0
-            logger.update_web_log("ticker_download", current_ticker_progress_data)
+            merged_status_for_web_no_relevant = get_current_ticker_status()
+            merged_status_for_web_no_relevant.update(current_ticker_progress_data)
+            logger.update_web_log("ticker_download", merged_status_for_web_no_relevant)
             continue
 
         downloaded_min_date_str = min(data['Date']).strftime('%Y-%m-%d')
@@ -809,7 +842,9 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             current_ticker_progress_data["rows"] = len(data)
             current_ticker_progress_data["completed_tickers"] = i + 1 # Mark this ticker as completed
             current_ticker_progress_data["progress"] = ((i + 1) / total_tickers_to_process) * 100 if total_tickers_to_process > 0 else 0
-            logger.update_web_log("ticker_download", current_ticker_progress_data)
+            merged_status_for_web_success = get_current_ticker_status()
+            merged_status_for_web_success.update(current_ticker_progress_data)
+            logger.update_web_log("ticker_download", merged_status_for_web_success)
 
     # Step 6: Save the updated StockDataDB.csv
     # Final update for ticker_download to show 100% completion if all tickers were processed
@@ -823,9 +858,16 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             "rows": "N/A" # Could be a sum if tracked, else N/A
         }
         logger.update_web_log("ticker_download", final_ticker_progress)
+    
+    status_update = get_current_ticker_status() # Get the latest before this final update
+    status_update["current_ticker"] = "Saving final StockDataDB.csv..."
+    logger.update_web_log("ticker_download", status_update)
+
     if DEBUG_MODE:
         logger.log(f"DEBUG: Saving final combined_data with {len(combined_data)} rows to {current_db_filepath}.")
     combined_data.to_csv(current_db_filepath, index=False)
+    status_update["current_ticker"] = f"StockDataDB.csv saved ({len(combined_data)} rows)" # Update after save
+    logger.update_web_log("ticker_download", status_update)
     logger.log(f"✅ Updated {current_db_filepath} with {len(combined_data)} total unique rows.")
     if DEBUG_MODE:
         logger.log("DEBUG: Finished download_and_append function.")

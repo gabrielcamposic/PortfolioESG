@@ -68,12 +68,12 @@ sim_runs=1000
 # --- Working folders
 stock_data_file=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
 portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
-charts_folder=~/Documents/Prog/PortfolioESG_Prod/html/Charts/
-log_file_path=~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log
-web_log_path=~/Documents/Prog/PortfolioESG_Prod/html/progress.json
+charts_folder=~/Documents/Prog/PortfolioESG_public/html/Charts/
+log_file_path=~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log # Keep logs in _Prod
+web_log_path=~/Documents/Prog/PortfolioESG_public/html/progress.json
 
 # --- Results Logging ---
 # Path to CSV file for logging optimal portfolio results from each run
 results_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_results_log.csv
 # Path to the folder where data for web display (like results_log.csv copy) should be placed
-web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_Prod/html/data/
+web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/

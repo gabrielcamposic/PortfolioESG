@@ -1,4 +1,4 @@
-# Download Script Parameters for PortfolioESG
+your# Download Script Parameters for PortfolioESG
 
 # --- General Settings ---
 # Enable extensive debug logging (true/false)
@@ -14,9 +14,9 @@ findb_directory = ~/Documents/Prog/PortfolioESG_Data/findb/
 # Full path to the file containing the list of tickers to download
 tickers_list_file = ~/Documents/Prog/PortfolioESG_Data/Tickers.txt
 # Full path for the download script's log file
-download_log_file = ~/Documents/Prog/PortfolioESG_Prod/Logs/Ticker_download.log
+download_log_file = ~/Documents/Prog/PortfolioESG_Prod/Logs/Ticker_download.log # Keep logs in _Prod
 # Full path for the web-accessible progress JSON file (can be same as Engine's or different)
-progress_json_file = ~/Documents/Prog/PortfolioESG_Prod/html/progress.json
+progress_json_file = ~/Documents/Prog/PortfolioESG_public/html/progress.json
 
 # --- Optional: Proxy and User-Agent settings (if you want to configure them here) ---
 # fetch_proxies_enabled = true
