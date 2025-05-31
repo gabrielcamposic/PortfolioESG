@@ -72,8 +72,8 @@
         <h2>Engine.py - Portfolio Optimization Progress</h2>
         <p><strong>Engine Script Started:</strong> <span id="engine-script-start-time">N/A</span></p>
         <p><strong>Initial Estimated Completion:</strong> <span id="engine-initial-est-completion">N/A</span></p>
-        <p><strong>Current Phase:</strong> <span id="engine-current-phase">N/A</span></p>
-        <p><strong>Overall Status:</strong> <span id="engine-overall-status">Running...</span></p>
+        <p><strong>Current Phase:</strong> <span id="engine-current-phase">N/A</span></p> <!-- This will be updated by Engine.py's specific logging -->
+        <p><strong>Overall Status:</strong> <span id="engine-overall-status">Pending</span></p>
 
         <div class="columns">
             <!-- Batch Progress Column -->
@@ -168,8 +168,8 @@
                     setText('ticker-rows', t.rows, '0');
                 }
                 // These are likely for download.py script timing
-                setText('execution-start-time', data.execution_start); 
-                setText('execution-end-time', data.execution_end);
+                setText('execution-start-time', data.download_execution_start); 
+                setText('execution-end-time', data.download_execution_end);
     
                 // --- Engine.py - Portfolio Optimization Progress Section ---
                 setText('engine-script-start-time', data.engine_script_start_time);
@@ -177,6 +177,18 @@
                 setText('engine-current-phase', data.current_engine_phase);
                 setText('engine-bf-k-threshold', data.heuristic_threshold_k_value); // Assumes Engine.py adds this
                 setText('engine-ga-k-threshold', data.heuristic_threshold_k_value); // Assumes Engine.py adds this
+
+                // Engine.py Overall Status Logic
+                let engineStatus = 'Pending'; // Default status
+                if (data.engine_script_start_time && !data.engine_script_end_time) {
+                    engineStatus = 'Running...';
+                } else if (data.engine_script_end_time) {
+                    engineStatus = 'Completed';
+                } else if (data.download_execution_start && !data.download_execution_end) {
+                    // If Download.py is running and Engine.py hasn't started/finished this current run
+                    engineStatus = 'Waiting for Download.py';
+                }
+                setText('engine-overall-status', engineStatus);
 
                 // Brute-Force Phase
                 if (data.overall_progress) { // This key from Engine.py is for Brute-Force
@@ -213,10 +225,6 @@
 
                 setText('engine-script-end-time', data.engine_script_end_time);
                 setText('engine-script-total-duration', data.engine_script_total_duration);
-
-                if (data.engine_script_end_time) {
-                    setText('engine-overall-status', 'Completed');
-                }
 
                 // Check for overall completion to stop fetching (can be refined)
                 if (data.engine_script_end_time && data.execution_end) { // If both main scripts seem done

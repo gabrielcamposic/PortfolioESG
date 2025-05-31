@@ -886,7 +886,22 @@ if DEBUG_MODE:
 
 start_time = datetime.now()
 logger.log(f"🚀 Starting execution pipeline at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-logger.update_web_log("download_execution_start", start_time.strftime('%Y-%m-%d %H:%M:%S'))
+
+# Initial web log update for download status
+initial_ticker_download_status = {
+    "completed_tickers": 0,
+    "total_tickers": 0, # Will be updated once tickers_list is read
+    "progress": 0,
+    "current_ticker": "Initializing...",
+    "date_range": "N/A",
+    "rows": 0
+}
+initial_web_log_data = {
+    "download_execution_start": start_time.strftime('%Y-%m-%d %H:%M:%S'),
+    "ticker_download": initial_ticker_download_status,
+    "download_execution_end": "N/A" # Explicitly set to N/A
+}
+logger.log("Download script initialized web progress.", web_data=initial_web_log_data)
 
 if DEBUG_MODE:
     logger.log("DEBUG: Attempting to initialize UserAgent.")
@@ -945,13 +960,33 @@ if DEBUG_MODE:
     logger.log(f"DEBUG: Reading tickers from: {TICKERS_FILE}")
 tickers_to_download = read_tickers_from_file(TICKERS_FILE)
 if not tickers_to_download:
-    logger.log("⚠️ No tickers found in the file. Exiting.")
-    exit(1) # Use exit(1) for error
+    logger.log("⚠️ No tickers found in the Tickers.txt file. Exiting.")
+    # Update web log to indicate failure or no tickers
+    failed_ticker_status = {
+        "completed_tickers": 0,
+        "total_tickers": 0,
+        "progress": 0,
+        "current_ticker": "No tickers found in file",
+        "date_range": "N/A",
+        "rows": 0
+    }
+    logger.update_web_log("ticker_download", failed_ticker_status)
+    logger.update_web_log("download_execution_end", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    logger.flush()
+    exit(1) 
+
+# Update total_tickers in web log now that we have the list
+# Ensure "ticker_download" key exists from initial_web_log_data merge
+current_ticker_status = logger.web_data.get("ticker_download", initial_ticker_download_status).copy() 
+current_ticker_status["total_tickers"] = len(tickers_to_download)
+current_ticker_status["current_ticker"] = "Preparing to process findata..."
+logger.update_web_log("ticker_download", current_ticker_status)
+
 if DEBUG_MODE:
     logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
 download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH)
 
 end_time = datetime.now()
 logger.log(f"✅ Execution completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')} in {end_time - start_time}")
-logger.update_web_log("download_execution_end", end_time.strftime('%Y-%m-%d %H:%M:%S'))
+logger.update_web_log("download_execution_end", end_time.strftime('%Y-%m-%d %H:%M:%S')) # Mark end time
 logger.flush() # Final flush
