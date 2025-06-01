@@ -169,6 +169,74 @@
     <script>
         let fetchInterval;
     
+        function formatDate(dateString) {
+            if (!dateString || dateString === "N/A") return "N/A";
+            try {
+                // Handle cases where only date is provided or if it's already a full datetime string
+                const dateObj = new Date(dateString.includes(' ') ? dateString : dateString + 'T00:00:00Z'); // Assume UTC if only date
+                if (isNaN(dateObj.getTime())) return dateString; // Return original if invalid
+
+                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+                const dayName = days[dateObj.getUTCDay()];
+                const dayOfMonth = String(dateObj.getUTCDate()).padStart(2, '0');
+                const monthName = months[dateObj.getUTCMonth()];
+                const year = String(dateObj.getUTCFullYear()).slice(-2);
+                const hours = String(dateObj.getUTCHours()).padStart(2, '0');
+                const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
+
+                return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
+            } catch (e) {
+                console.warn("Could not format date:", dateString, e);
+                return dateString; // Return original if error
+            }
+        }
+
+        function formatDuration(durationString) {
+            if (!durationString || durationString === "N/A") return "N/A";
+            let totalSeconds = 0;
+            let days = 0;
+
+            const dayMatch = durationString.match(/(\d+)\s*day[s]?,\s*/);
+            if (dayMatch) {
+                days = parseInt(dayMatch[1]);
+                durationString = durationString.substring(dayMatch[0].length);
+            }
+
+            if (durationString.includes(':')) {
+                const parts = durationString.split(':');
+                if (parts.length === 3) {
+                    const secondsAndMs = parts[2].split('.');
+                    totalSeconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(secondsAndMs[0]);
+                } else { return durationString; }
+            } else if (!isNaN(parseFloat(durationString))) {
+                totalSeconds = parseFloat(durationString);
+            } else { return durationString; }
+            if (isNaN(totalSeconds)) return durationString;
+            totalSeconds += days * 86400;
+            const finalDays = Math.floor(totalSeconds / 86400);
+            let remSec = totalSeconds % 86400;
+            const finalHours = Math.floor(remSec / 3600); remSec %= 3600;
+            const finalMinutes = Math.floor(remSec / 60); const finalSeconds = Math.floor(remSec % 60);
+            return `${finalDays > 0 ? `${finalDays} day${finalDays > 1 ? 's' : ''} and ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
+        }
+
+        function formatTickerDateRange(rangeString) {
+            if (!rangeString || rangeString === "N/A" || !rangeString.includes(" to ")) {
+                 // If it's a single date or N/A, format it fully.
+                return formatDate(rangeString);
+            }
+            const parts = rangeString.split(" to ");
+            if (parts.length === 2) {
+                // For ranges, typically we only show the date part.
+                const startDate = formatDate(parts[0]).split(' - ')[0];
+                const endDate = formatDate(parts[1]).split(' - ')[0];
+                return `${startDate} to ${endDate}`;
+            }
+            return rangeString; // Fallback
+        }
+
         async function fetchProgress() {
             try {
                 const response = await fetch('progress.json?t=' + new Date().getTime());
@@ -196,18 +264,18 @@
                     setText('ticker-completed', t.completed_tickers, '0');
                     setText('ticker-total', t.total_tickers, '0');                    
                     setProgress('ticker-progress-bar', t.progress);
-                    setText('ticker-current', t.current_ticker);
-                    setText('ticker-date-range', t.date_range);
+                    setText('ticker-current', t.current_ticker); // No date format
+                    setText('ticker-date-range', formatTickerDateRange(t.date_range));
                     setText('ticker-rows', t.rows, '0');
                 }
                 // These are likely for download.py script timing
-                setText('execution-start-time', data.download_execution_start); 
-                setText('execution-end-time', data.download_execution_end);
+                setText('execution-start-time', formatDate(data.download_execution_start)); 
+                setText('execution-end-time', formatDate(data.download_execution_end));
                 setText('download-overall-status', data.download_overall_status, 'Pending'); // Update download status
     
                 // --- Engine.py - Portfolio Optimization Progress Section ---
-                setText('engine-script-start-time', data.engine_script_start_time);
-                setText('engine-initial-est-completion', data.estimated_completion_time); // Initial overall estimate
+                setText('engine-script-start-time', formatDate(data.engine_script_start_time));
+                setText('engine-initial-est-completion', formatDate(data.estimated_completion_time)); // Initial overall estimate
                 setText('engine-current-phase', data.current_engine_phase);
                 setText('engine-bf-k-threshold', data.heuristic_threshold_k_value); // Assumes Engine.py adds this
                 setText('engine-ga-k-threshold', data.heuristic_threshold_k_value); // Assumes Engine.py adds this
@@ -305,7 +373,7 @@
                     const bfPercentage = bf.percentage_bf !== undefined ? parseFloat(bf.percentage_bf).toFixed(0) : '0';
                     setText('engine-bf-percentage', bfPercentage);
                     setProgress('engine-bf-progress-bar', bfPercentage);
-                    setText('engine-bf-est-completion', bf.estimated_completion_time_bf);
+                    setText('engine-bf-est-completion', formatDate(bf.estimated_completion_time_bf));
                 }
 
                 // GA Phase (Example: if Engine.py provides ga_progress object)
@@ -342,8 +410,8 @@
                     // Potentially set Refinement progress bar to a low value
                 }
 
-                setText('engine-script-end-time', data.engine_script_end_time);
-                setText('engine-script-total-duration', data.engine_script_total_duration);
+                setText('engine-script-end-time', formatDate(data.engine_script_end_time));
+                setText('engine-script-total-duration', formatDuration(data.engine_script_total_duration));
 
                 // Check for overall completion to stop fetching (can be refined)
                 if (data.engine_script_end_time && data.execution_end) { // If both main scripts seem done

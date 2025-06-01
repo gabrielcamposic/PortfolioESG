@@ -71,6 +71,29 @@
     <script>
         const CSV_PATH = 'data/engine_results_log.csv'; // Adjust if your CSV is elsewhere
 
+        function formatDate(dateString) {
+            if (!dateString || dateString === "N/A") return "N/A";
+            try {
+                // Handle cases where only date is provided or if it's already a full datetime string
+                const dateObj = new Date(dateString.includes(' ') ? dateString : dateString + 'T00:00:00Z'); // Assume UTC
+                if (isNaN(dateObj.getTime())) return dateString; // Return original if invalid
+
+                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+                const dayName = days[dateObj.getUTCDay()];
+                const dayOfMonth = String(dateObj.getUTCDate()).padStart(2, '0');
+                const monthName = months[dateObj.getUTCMonth()];
+                const year = String(dateObj.getUTCFullYear()).slice(-2);
+                const hours = String(dateObj.getUTCHours()).padStart(2, '0');
+                const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
+
+                return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
+            } catch (e) {
+                return dateString; // Return original if error
+            }
+        }
+
         async function fetchAndDisplayResults() {
             try {
                 const response = await fetch(CSV_PATH + '?t=' + new Date().getTime()); // Cache buster
@@ -112,7 +135,11 @@
                 const tr = tableBody.insertRow();
                 headers.forEach(header => {
                     const td = tr.insertCell();
-                    td.textContent = rowData[header.trim()] || 'N/A';
+                    let cellValue = rowData[header.trim()] || 'N/A';
+                    if (header.trim().toLowerCase() === 'generation_timestamp' || header.trim().toLowerCase() === 'data_start_date' || header.trim().toLowerCase() === 'data_end_date') {
+                        cellValue = formatDate(cellValue);
+                    }
+                    td.textContent = cellValue;
                 });
             });
         }
@@ -120,7 +147,7 @@
         function renderChart(data) {
             if (data.length === 0) return;
 
-            const timestamps = data.map(row => row.generation_timestamp);
+            const timestamps = data.map(row => formatDate(row.generation_timestamp));
             const sharpeRatios = data.map(row => parseFloat(row.sharpe_ratio));
 
             const ctx = document.getElementById('sharpeRatioChart').getContext('2d');
