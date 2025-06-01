@@ -968,6 +968,8 @@ def run_genetic_algorithm(
             "status": "Running",
             "current_k": num_stocks_in_combo,
             "current_generation": generation + 1,
+            "current_individual_ga": 0, # Initializing for the generation
+            "total_individuals_ga": len(population), # Total for this generation
             "total_generations_ga": NUM_GENERATIONS,
             "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A"
         })
@@ -978,6 +980,17 @@ def run_genetic_algorithm(
         for individual_idx, combo_list in enumerate(population):
             if DEBUG_MODE and (individual_idx % (max(1, len(population)//4))) == 0 : # Log progress within generation
                 logger_instance.log(f"DEBUG (GA Gen {generation+1}): Evaluating individual {individual_idx+1}/{len(population)}: {', '.join(combo_list)}")
+            
+            # Update web log for current individual
+            logger_instance.update_web_log("ga_progress", {
+                "status": "Running", # Keep status
+                "current_k": num_stocks_in_combo, # Keep k
+                "current_generation": generation + 1, # Keep generation
+                "current_individual_ga": individual_idx + 1, # Update current individual
+                "total_individuals_ga": len(population), # Keep total individuals
+                "total_generations_ga": NUM_GENERATIONS, # Keep total generations
+                "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A" # Keep best sharpe
+            })
             
             df_subset_for_individual = source_stock_prices_df[['Date'] + combo_list]
             
