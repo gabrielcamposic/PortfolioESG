@@ -10,16 +10,16 @@
     "stock_combination_search_duration": "0:59:39.856825",
     "engine_script_end_time": "N/A",
     "engine_script_total_duration": "N/A",
-    "download_execution_start": "2025-05-31 19:01:27",
+    "download_execution_start": "2025-06-01 08:35:41",
     "ticker_download": {
         "completed_tickers": 64,
         "total_tickers": 64,
         "progress": 100,
         "current_ticker": "StockDataDB.csv saved (138951 rows)",
-        "date_range": "N/A",
+        "date_range": "2015-06-04 to 2025-05-30",
         "rows": "N/A"
     },
-    "download_execution_end": "2025-05-31 19:04:54",
+    "download_execution_end": "2025-06-01 08:38:54",
     "current_engine_phase": "Genetic Algorithm (k=5)",
     "overall_progress": {
         "completed_actual_simulations_bf": 0,
@@ -40,5 +40,6 @@
     "refinement_progress": {
         "status": "Pending/Inactive",
         "details": "N/A"
-    }
+    },
+    "download_overall_status": "Completed"
 }
