@@ -14,7 +14,7 @@ findb_directory = ~/Documents/Prog/PortfolioESG_Data/findb/
 # Full path to the file containing the list of tickers to download
 tickers_list_file = ~/Documents/Prog/PortfolioESG_Data/Tickers.txt
 # Full path for the download script's log file
-download_log_file = ~/Documents/Prog/PortfolioESG_Prod/Logs/Ticker_download.log # Keep logs in _Prod
+download_log_file = ~/Documents/Prog/PortfolioESG_Prod/Logs/Ticker_download.log
 # Full path for the web-accessible progress JSON file (can be same as Engine's or different)
 progress_json_file = ~/Documents/Prog/PortfolioESG_public/html/progress.json
 

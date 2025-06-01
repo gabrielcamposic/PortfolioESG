@@ -1420,6 +1420,7 @@ engine_start_web_data = {
     "ga_progress": { # Reset GA progress
         "status": "Pending/Inactive",
         "current_k": "N/A",
+        "heuristic_threshold_k_value": HEURISTIC_THRESHOLD_K, # Add threshold here
         "current_generation": "N/A",
         "total_generations_ga": "N/A", # Add total generations for GA
         "best_sharpe_this_k": "N/A"
