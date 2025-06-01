@@ -8,8 +8,7 @@ import os
 import random
 import time
 from datetime import datetime, timedelta
-from math import comb  # Import combination function
-import matplotlib.pyplot as plt
+from math import comb
 import itertools
 import sys  # Import sys module for logging
 import json # For logging to html readable
@@ -184,8 +183,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "start_date": str,  # Keep as string; parse to datetime object later if needed
         "stock_data_file": str, # Added: recognize stock_data_file
         "esg_stocks_list": str, 
-        "portfolio_folder": str,
-        "charts_folder": str,
+        "portfolio_folder": str, # This is still used for reading benchmark portfolios if that feature is active
         "log_file_path": str,
         "debug_mode": bool, # Added for debug mode
         "web_log_path": str,
@@ -1351,8 +1349,7 @@ TOP_N_PERCENT_REFINEMENT = sim_params.get("top_n_percent_refinement", 0.10)
 # Paths are now sourced *exclusively* from simpar.txt
 # The load_simulation_parameters function already handles os.path.expanduser()
 STOCK_DATA_FILE = sim_params.get("stock_data_file")
-PORTFOLIO_FOLDER = sim_params.get("portfolio_folder")
-CHARTS_FOLDER = sim_params.get("charts_folder")
+PORTFOLIO_FOLDER = sim_params.get("portfolio_folder") # Retain if benchmark portfolio reading is used
 LOG_FILE_PATH_PARAM = sim_params.get("log_file_path")
 WEB_LOG_PATH_PARAM = sim_params.get("web_log_path")
 RESULTS_LOG_CSV_PATH = sim_params.get("results_log_csv_path") # Load the new path
@@ -1388,8 +1385,7 @@ if START_DATE_STR:
 # Validate that critical parameters (especially paths) are now loaded
 critical_params_to_check = {
     "STOCK_DATA_FILE": STOCK_DATA_FILE,
-    "PORTFOLIO_FOLDER": PORTFOLIO_FOLDER,
-    "CHARTS_FOLDER": CHARTS_FOLDER,
+    "PORTFOLIO_FOLDER": PORTFOLIO_FOLDER, # Keep if used
     "LOG_FILE_PATH_PARAM": LOG_FILE_PATH_PARAM, # Check the one from params
     "RF_RATE": RF_RATE,
     "HEURISTIC_THRESHOLD_K": HEURISTIC_THRESHOLD_K, # Add to critical check

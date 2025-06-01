@@ -140,7 +140,6 @@
             <p>Expected Annual Return: <span id="best-esg-exp-ret">N/A</span></p>
             <p>Expected Annual Volatility: <span id="best-esg-exp-vol">N/A</span></p>
         </div>
-        <img id="portfolio-chart" src="" alt="Portfolio Chart will appear here once generated." />
     </div>
 
     <script>
@@ -328,11 +327,6 @@
                     setText('best-esg-exp-ret', best.expected_return_annual_pct !== undefined ? `${parseFloat(best.expected_return_annual_pct).toFixed(2)}%` : 'N/A');
                     setText('best-esg-exp-vol', best.expected_volatility_annual_pct !== undefined ? `${parseFloat(best.expected_volatility_annual_pct).toFixed(2)}%` : 'N/A');
                     
-                    // Update chart source only if best portfolio details are present
-                    const chartElement = document.getElementById('portfolio-chart');
-                    if (chartElement) {
-                        chartElement.src = 'Charts/best_esg_portfolio.png?t=' + new Date().getTime();
-                    }
                 }
     
             } catch (error) {
