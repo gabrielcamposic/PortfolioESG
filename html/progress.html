@@ -93,8 +93,8 @@
                 </div>
             </div>
         </div>
-        <div class="section">
-            <h4>Other Phases Status</h4>
+        <div class="section" id="other-phases-column-container" style="display: none;"> <!-- ID added and default hidden -->
+            <h4 id="other-phases-heading">Other Phases Status</h4> <!-- Optional ID for heading if needed separately, but parent div controls all -->
             <div id="ga-section-container" style="display: none;">
                 <p><strong>Genetic Algorithm (GA) (k > <span id="engine-ga-k-threshold">N/A</span>):</strong> <span id="engine-ga-status">Pending/Inactive</span></p>
                 <p><em>GA Details: <span id="engine-ga-details">N/A</span></em></p>
@@ -221,23 +221,32 @@
                 const bfColumn = document.getElementById('bf-column');
                 const gaSectionContainer = document.getElementById('ga-section-container');
                 const refinementSectionContainer = document.getElementById('refinement-section-container');
+                const otherPhasesColumnContainer = document.getElementById('other-phases-column-container'); // Get the new parent container
                 const gaRefinementHr = document.getElementById('ga-refinement-hr');
 
                 if (data.engine_search_modes) {
-                    bfColumn.style.display = data.engine_search_modes.uses_brute_force ? 'block' : 'none';
-                    gaSectionContainer.style.display = data.engine_search_modes.uses_ga ? 'block' : 'none';
-                    refinementSectionContainer.style.display = data.engine_search_modes.uses_refinement ? 'block' : 'none';
+                    const usesBF = data.engine_search_modes.uses_brute_force;
+                    const usesGA = data.engine_search_modes.uses_ga;
+                    const usesRefinement = data.engine_search_modes.uses_refinement;
+
+                    bfColumn.style.display = usesBF ? 'block' : 'none';
+                    gaSectionContainer.style.display = usesGA ? 'block' : 'none';
+                    refinementSectionContainer.style.display = usesRefinement ? 'block' : 'none';
                     
-                    // Show HR if both GA and Refinement are potentially active and shown
-                    if (data.engine_search_modes.uses_ga && data.engine_search_modes.uses_refinement) {
+                    // Control visibility of the "Other Phases" container and its HR
+                    if (usesGA || usesRefinement) {
+                        otherPhasesColumnContainer.style.display = 'block';
                         gaRefinementHr.style.display = 'block';
+                        if (!usesGA || !usesRefinement) { // If only one of them is active, hide HR
+                            gaRefinementHr.style.display = 'none';
+                        }
                     } else {
+                        otherPhasesColumnContainer.style.display = 'none';
                         gaRefinementHr.style.display = 'none';
                     }
                 } else { // Default if flags not present yet
-                    // bfColumn.style.display = 'none'; // Already default by style attribute
-                    // gaSectionContainer.style.display = 'none'; // Already default
-                    // refinementSectionContainer.style.display = 'none'; // Already default
+                    bfColumn.style.display = 'none'; 
+                    otherPhasesColumnContainer.style.display = 'none'; // Hide the whole "Other Phases" section
                 }
 
                 // Brute-Force Phase
