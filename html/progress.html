@@ -46,6 +46,14 @@
             gap: 20px; /* Adjust gap as needed */
             margin-bottom: 15px; /* Space below this block */
         }
+        .status-columns { /* New class for the status section */
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .engine-timing-info > div { /* Target direct div children of .engine-timing-info */
+            flex: 1; /* Make them share space equally, like .column */
+        }
     </style>
 </head>
 <body>
@@ -58,22 +66,27 @@
     <!-- Stock Database Update Section -->
     <div class="section">
         <h2>Stock database update</h2>
-        <div id="ticker-progress-info">
-            <p>Execution Started At: <span id="execution-start-time">N/A</span></p>
-            <p>Execution Ended At: <span id="execution-end-time">N/A</span></p>
-            <p>Completed Tickers: <span id="ticker-completed">0</span> / <span id="ticker-total">0</span></p>
-            <p>Progress: <span id="ticker-percentage">0</span>%</p>
-            <p>Current Ticker: <span id="ticker-current">N/A</span></p>
-            <p>Date Range: <span id="ticker-date-range">N/A</span></p>
-            <p>Rows Downloaded: <span id="ticker-rows">0</span></p>
-        </div>
-        <div class="progress-bar">
-            <div class="progress-bar-inner" id="ticker-progress-bar"></div>
+        <div class="status-columns"> <!-- Reusing status-columns for flex layout -->
+            <div class="column"> <!-- Left Column -->
+                <p>Execution Started At: <span id="execution-start-time">N/A</span></p>
+                <p>Execution Ended At: <span id="execution-end-time">N/A</span></p>                
+                <p>Overall Status: <span id="download-overall-status">Pending</span></p>
+                <div class="progress-bar">
+                    <div class="progress-bar-inner" id="ticker-progress-bar"></div>
+                </div>
+            </div>
+            <div class="column"> <!-- Right Column -->
+                <p>Date Range: <span id="ticker-date-range">N/A</span></p>
+                <p>Current Ticker: <span id="ticker-current">N/A</span></p>
+                <p>Completed Tickers: <span id="ticker-completed">0</span> / <span id="ticker-total">0</span></p>
+                <p>Rows Downloaded: <span id="ticker-rows">0</span></p>
+            </div>
         </div>
     </div>
 
     <!-- Portfolio Simulation Progress Section -->
     <div class="section">
+
         <h2>Engine.py - Portfolio Optimization Progress</h2>
         <div class="engine-timing-info">
             <div>
@@ -85,13 +98,24 @@
                 <p><strong>Total Engine Duration:</strong> <span id="engine-script-total-duration">N/A</span></p>
             </div>
         </div>
-        <p><strong>Current Phase:</strong> <span id="engine-current-phase">N/A</span></p> <!-- This will be updated by Engine.py's specific logging -->
-        <div>
-            <strong>Overall Engine Progress:</strong>
-            <div class="progress-bar"><div class="progress-bar-inner" id="engine-overall-progress-bar"></div></div>
+        <div class="status-columns"> <!-- New parent container for two columns -->
+            <div class="column"> <!-- First column -->
+                <p><strong>Overall Status:</strong> <span id="engine-overall-status">Pending</span></p>
+                <div>
+                    <strong>Overall Engine Progress:</strong>
+                    <div class="progress-bar"><div class="progress-bar-inner" id="engine-overall-progress-bar"></div></div>
+                </div>
+            </div>
+            <div class="column"> <!-- Second column -->
+                <p><strong>Current Phase:</strong> <span id="engine-current-phase">N/A</span></p>
+                <div>
+                    <strong>Current Phase Progress:</strong>
+                    <div class="progress-bar"><div class="progress-bar-inner" id="engine-current-phase-progress-bar"></div></div>
+                </div>
+            </div>
         </div>
-        <p><strong>Overall Status:</strong> <span id="engine-overall-status">Pending</span></p>
 
+        <hr style="margin-top: 20px; margin-bottom: 20px;">
         <div class="columns">
 
             <!-- Engine.py Brute-Force Phase Progress Column -->
@@ -170,8 +194,7 @@
                 if (data.ticker_download) {
                     const t = data.ticker_download;
                     setText('ticker-completed', t.completed_tickers, '0');
-                    setText('ticker-total', t.total_tickers, '0');
-                    setText('ticker-percentage', t.progress !== undefined ? `${parseFloat(t.progress).toFixed(0)}` : '0');
+                    setText('ticker-total', t.total_tickers, '0');                    
                     setProgress('ticker-progress-bar', t.progress);
                     setText('ticker-current', t.current_ticker);
                     setText('ticker-date-range', t.date_range);
@@ -180,6 +203,7 @@
                 // These are likely for download.py script timing
                 setText('execution-start-time', data.download_execution_start); 
                 setText('execution-end-time', data.download_execution_end);
+                setText('download-overall-status', data.download_overall_status, 'Pending'); // Update download status
     
                 // --- Engine.py - Portfolio Optimization Progress Section ---
                 setText('engine-script-start-time', data.engine_script_start_time);
@@ -212,20 +236,34 @@
                 const currentPhase = data.current_engine_phase ? data.current_engine_phase.toLowerCase() : "";
                 if (data.engine_script_end_time && data.engine_script_end_time !== "N/A") {
                     overallEngineProgressValue = 100;
-                } else if (currentPhase.includes("initializing")) {
+                } else if (currentPhase.includes("initializing") || currentPhase.includes("data loading") || currentPhase.includes("wrangling")) {
                     overallEngineProgressValue = 5;
-                } else if (currentPhase.includes("data loading") || currentPhase.includes("wrangling")) {
-                    overallEngineProgressValue = 10;
                 } else if (currentPhase.includes("brute-force")) {
-                    overallEngineProgressValue = 15 + (parseFloat(document.getElementById('engine-bf-percentage').textContent || 0) * 0.45); // BF is 45% of 15-60
+                    const bfProgress = data.overall_progress ? (parseFloat(data.overall_progress.percentage_bf) || 0) : 0;
+                    overallEngineProgressValue = 10 + (bfProgress * 0.40); // BF contributes 40% (range 10-50)
                 } else if (currentPhase.includes("genetic algorithm")) {
-                    overallEngineProgressValue = 60 + (parseFloat(document.getElementById('engine-ga-progress-bar').style.width || 0) * 0.30); // GA is 30% of 60-90
+                    const gaProgress = data.ga_progress ? (parseFloat(data.ga_progress.percentage_ga) || 0) : 0;
+                    overallEngineProgressValue = 50 + (gaProgress * 0.40); // GA contributes 40% (range 50-90)
                 } else if (currentPhase.includes("refinement")) {
-                    overallEngineProgressValue = 90 + (parseFloat(document.getElementById('engine-refinement-progress-bar').style.width || 0) * 0.08); // Refinement is 8% of 90-98
+                    const refinementProgress = data.refinement_progress ? (parseFloat(data.refinement_progress.percentage_refinement) || 0) : 0;
+                    overallEngineProgressValue = 90 + (refinementProgress * 0.08); // Refinement is 8% (range 90-98)
                 } else if (engineStatus === "Running...") { // General running state if phase not specific
                     overallEngineProgressValue = Math.max(overallEngineProgressValue, 5); // At least some progress if running
                 }
                 setProgress('engine-overall-progress-bar', overallEngineProgressValue);
+
+                // Current Phase Progress Bar
+                let currentPhaseProgressValue = 0;
+                if (currentPhase.includes("brute-force") && data.overall_progress) {
+                    currentPhaseProgressValue = parseFloat(data.overall_progress.percentage_bf) || 0;
+                } else if (currentPhase.includes("genetic algorithm") && data.ga_progress) {
+                    currentPhaseProgressValue = parseFloat(data.ga_progress.percentage_ga) || 0;
+                } else if (currentPhase.includes("refinement") && data.refinement_progress) {
+                    currentPhaseProgressValue = parseFloat(data.refinement_progress.percentage_refinement) || 0;
+                } else if (currentPhase.includes("initializing") || currentPhase.includes("data loading") || currentPhase.includes("wrangling")) {
+                    currentPhaseProgressValue = 50; // Indicate activity for these quick phases
+                }
+                setProgress('engine-current-phase-progress-bar', currentPhaseProgressValue);
 
                 // Conditionally display Brute-Force, GA, and Refinement sections
                 const bfColumn = document.getElementById('bf-column');

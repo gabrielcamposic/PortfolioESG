@@ -849,12 +849,16 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     # Step 6: Save the updated StockDataDB.csv
     # Final update for ticker_download to show 100% completion if all tickers were processed
     if total_tickers_to_process > 0:
+        # Determine the overall date range the script considered for downloads
+        overall_start_date_str = global_start_date_for_yfinance.strftime('%Y-%m-%d')
+        overall_end_date_str = end_date.strftime('%Y-%m-%d') # end_date is already a datetime object
+
         final_ticker_progress = {
             "completed_tickers": total_tickers_to_process,
             "total_tickers": total_tickers_to_process,
             "progress": 100,
             "current_ticker": "All tickers processed",
-            "date_range": "N/A", # Not specific to one ticker anymore
+            "date_range": f"{overall_start_date_str} to {overall_end_date_str}", # Show overall processed range
             "rows": "N/A" # Could be a sum if tracked, else N/A
         }
         logger.update_web_log("ticker_download", final_ticker_progress)
@@ -937,8 +941,8 @@ initial_ticker_download_status = {
     "current_ticker": "Initializing...",
     "date_range": "N/A",
     "rows": 0
-}
-initial_web_log_data = {
+} # This was the end of ticker_download
+initial_web_log_data = { 
     "download_execution_start": start_time.strftime('%Y-%m-%d %H:%M:%S'),
     "ticker_download": initial_ticker_download_status,
     "download_execution_end": "N/A" # Explicitly set to N/A
@@ -946,6 +950,7 @@ initial_web_log_data = {
 logger.log("Download script initialized web progress.", web_data=initial_web_log_data)
 
 if DEBUG_MODE:
+    logger.update_web_log("download_overall_status", "Initializing (Debug Mode)...")
     logger.log("DEBUG: Attempting to initialize UserAgent.")
 # Fetch dynamic user agents or use the fallback list
 try:
@@ -956,6 +961,7 @@ try:
 except Exception as e:
     USER_AGENTS = FALLBACK_USER_AGENTS
     if DEBUG_MODE:
+        logger.update_web_log("download_overall_status", "Initializing (UserAgent Fallback)...")
         logger.log(f"DEBUG: Failed to init UserAgent or generate dynamic agents: {e}. Using fallback.")
     logger.log(f"⚠️ Failed to generate dynamic user agents. Using fallback list. Reason: {e}")
 
@@ -968,6 +974,7 @@ if not USER_AGENTS:
 FETCH_PROXIES_ENABLED = params.get("fetch_proxies_enabled", False) # Default to false
 PROXY_FETCH_LIMIT = params.get("proxy_fetch_limit", 10)
 if DEBUG_MODE:
+    logger.update_web_log("download_overall_status", "Initializing (Proxy Check)...")
     logger.log(f"DEBUG: FETCH_PROXIES_ENABLED = {FETCH_PROXIES_ENABLED}, PROXY_FETCH_LIMIT = {PROXY_FETCH_LIMIT}")
 
 if FETCH_PROXIES_ENABLED:
@@ -998,10 +1005,27 @@ session.mount("https://", adapter)
 if DEBUG_MODE:
     logger.log(f"DEBUG: Session created with retry strategy.")
 
+# --- Session Creation and Configuration ---
+# Moved here to be defined before download_and_append is called
+session = requests.Session()
+
+# Configure retries for the session
+retry_strategy = Retry(
+    total=3,  # Number of retries
+    backoff_factor=1,  # Wait time between retries (exponential backoff)
+    status_forcelist=[500, 502, 503, 504],  # Retry on these HTTP status codes
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+session.mount("http://", adapter)
+session.mount("https://", adapter)
+logger.log("✅ HTTP session created and configured with retry strategy.")
+
+logger.update_web_log("download_overall_status", "Reading Tickers List...")
 if DEBUG_MODE:
     logger.log(f"DEBUG: Reading tickers from: {TICKERS_FILE}")
 tickers_to_download = read_tickers_from_file(TICKERS_FILE)
 if not tickers_to_download:
+    logger.update_web_log("download_overall_status", "Failed (No Tickers)")
     logger.log("⚠️ No tickers found in the Tickers.txt file. Exiting.")
     # Update web log to indicate failure or no tickers
     failed_ticker_status = {
@@ -1022,13 +1046,16 @@ if not tickers_to_download:
 current_ticker_status = logger.web_data.get("ticker_download", initial_ticker_download_status).copy() 
 current_ticker_status["total_tickers"] = len(tickers_to_download)
 current_ticker_status["current_ticker"] = "Preparing to process findata..."
+logger.update_web_log("download_overall_status", "Processing Local Data...")
 logger.update_web_log("ticker_download", current_ticker_status)
 
 if DEBUG_MODE:
     logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
+logger.update_web_log("download_overall_status", "Downloading Data...")
 download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH)
 
 end_time = datetime.now()
 logger.log(f"✅ Execution completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')} in {end_time - start_time}")
+logger.update_web_log("download_overall_status", "Completed")
 logger.update_web_log("download_execution_end", end_time.strftime('%Y-%m-%d %H:%M:%S')) # Mark end time
 logger.flush() # Final flush
