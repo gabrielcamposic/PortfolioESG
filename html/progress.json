@@ -1,10 +1,10 @@
 {
-    "engine_script_start_time": "2025-06-01 07:52:03",
-    "data_wrangling_start": "2025-06-01 07:52:03",
-    "data_wrangling_end": "2025-06-01 07:52:03",
-    "data_wrangling_duration": "0:00:00.106043",
-    "stock_combination_search_start": "2025-06-01 07:52:03",
-    "estimated_completion_time": "2025-06-01 10:12:09",
+    "engine_script_start_time": "2025-06-01 08:41:15",
+    "data_wrangling_start": "2025-06-01 08:41:15",
+    "data_wrangling_end": "2025-06-01 08:41:15",
+    "data_wrangling_duration": "0:00:00.078611",
+    "stock_combination_search_start": "2025-06-01 08:41:15",
+    "estimated_completion_time": "2025-06-01 11:07:19",
     "best_portfolio_details": null,
     "stock_combination_search_end": "2025-05-31 21:11:36",
     "stock_combination_search_duration": "0:59:39.856825",
@@ -30,12 +30,12 @@
     "ga_progress": {
         "status": "Running",
         "current_k": 5,
-        "current_generation": 1,
-        "current_individual_ga": 7,
-        "percentage_ga": 3.3333333333333335,
+        "current_generation": 15,
+        "current_individual_ga": 16,
+        "percentage_ga": 50.0,
         "total_individuals_ga": 50,
         "total_generations_ga": 30,
-        "best_sharpe_this_k": 4.5772
+        "best_sharpe_this_k": 4.8042
     },
     "refinement_progress": {
         "status": "Pending/Inactive",
