@@ -40,6 +40,12 @@
             border-radius: 5px;
             margin-top: 20px;
         }
+        .engine-timing-info {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px; /* Adjust gap as needed */
+            margin-bottom: 15px; /* Space below this block */
+        }
     </style>
 </head>
 <body>
@@ -69,8 +75,16 @@
     <!-- Portfolio Simulation Progress Section -->
     <div class="section">
         <h2>Engine.py - Portfolio Optimization Progress</h2>
-        <p><strong>Engine Script Started:</strong> <span id="engine-script-start-time">N/A</span></p>
-        <p><strong>Initial Estimated Completion:</strong> <span id="engine-initial-est-completion">N/A</span></p>
+        <div class="engine-timing-info">
+            <div>
+                <p><strong>Engine Script Started:</strong> <span id="engine-script-start-time">N/A</span></p>
+                <p><strong>Initial Estimated Completion:</strong> <span id="engine-initial-est-completion">N/A</span></p>
+            </div>
+            <div>
+                <p><strong>Engine Script Ended:</strong> <span id="engine-script-end-time">N/A</span></p>
+                <p><strong>Total Engine Duration:</strong> <span id="engine-script-total-duration">N/A</span></p>
+            </div>
+        </div>
         <p><strong>Current Phase:</strong> <span id="engine-current-phase">N/A</span></p> <!-- This will be updated by Engine.py's specific logging -->
         <div>
             <strong>Overall Engine Progress:</strong>
@@ -111,9 +125,6 @@
                 </div>
             </div>
         </div>
-
-        <p><strong>Engine Script Ended:</strong> <span id="engine-script-end-time">N/A</span></p>
-        <p><strong>Total Engine Duration:</strong> <span id="engine-script-total-duration">N/A</span></p>
     </div>
 
     <!-- Best ESG Portfolio Chart Section -->
