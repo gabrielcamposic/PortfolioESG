@@ -5,11 +5,31 @@
     "data_wrangling_duration": "0:00:00.058050",
     "stock_combination_search_start": "2025-05-31 20:11:56",
     "estimated_completion_time": "2025-05-31 21:48:08",
-    "best_portfolio_details": null,
-    "stock_combination_search_end": "2025-05-29 22:03:00",
-    "stock_combination_search_duration": "0:48:53.348350",
-    "engine_script_end_time": "N/A",
-    "engine_script_total_duration": "N/A",
+    "best_portfolio_details": {
+        "stocks": [
+            "CEAB3.SA",
+            "ITSA4.SA",
+            "BBDC4.SA",
+            "ITUB3.SA",
+            "TOTS3.SA"
+        ],
+        "weights": [
+            0.2059,
+            0.0039,
+            0.0016,
+            0.4357,
+            0.3528
+        ],
+        "sharpe_ratio": 4.7837,
+        "final_value": 1693.78,
+        "roi_percent": 69.38,
+        "expected_return_annual_pct": 131.08,
+        "expected_volatility_annual_pct": 24.32
+    },
+    "stock_combination_search_end": "2025-05-31 21:11:36",
+    "stock_combination_search_duration": "0:59:39.856825",
+    "engine_script_end_time": "2025-05-31 21:11:36",
+    "engine_script_total_duration": "0:59:40.050941",
     "download_execution_start": "2025-05-31 19:01:27",
     "ticker_download": {
         "completed_tickers": 64,
@@ -28,11 +48,11 @@
         "estimated_completion_time_bf": "N/A"
     },
     "ga_progress": {
-        "status": "Running",
+        "status": "Finished (k=5)",
         "current_k": 5,
-        "current_generation": 2,
+        "current_generation": 14,
         "total_generations_ga": 30,
-        "best_sharpe_this_k": 4.7265
+        "best_sharpe_this_k": 4.7837
     },
     "refinement_progress": {
         "status": "Pending/Inactive",

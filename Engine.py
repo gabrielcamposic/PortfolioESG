@@ -1519,6 +1519,7 @@ def log_optimal_portfolio_results_to_csv(
     initial_investment_val,
     logger_instance 
 ):
+    logger_instance.log(f"DEBUG: Entered log_optimal_portfolio_results_to_csv. Filepath: {results_filepath}") 
     if not results_filepath:
         logger_instance.log("Warning: results_log_csv_path not defined in parameters. Skipping CSV results log.")
         return
@@ -1547,15 +1548,16 @@ def log_optimal_portfolio_results_to_csv(
         s_roi_pct = ensure_scalar_metric(roi_percent_val, "roi_percent")
         s_init_inv = ensure_scalar_metric(initial_investment_val, "initial_investment")
 
+        logger_instance.log(f"DEBUG: Preparing data for CSV logging.") 
         data = {
             'generation_timestamp': [generation_timestamp_dt.strftime('%Y-%m-%d %H:%M:%S')],
             'engine_version': [engine_version_str],
             'min_target_stocks': [min_target_stocks], 'max_target_stocks': [max_target_stocks],
             'data_start_date': [data_start_date_dt.strftime('%Y-%m-%d') if data_start_date_dt else 'N/A'],
             'data_end_date': [data_end_date_dt.strftime('%Y-%m-%d') if data_end_date_dt else 'N/A'],
-            'stock_pool_considered': [', '.join(sorted(stock_pool_considered_list)) if stock_pool_considered_list else 'N/A'],
-            'optimal_stocks': [', '.join(sorted(optimal_stocks_list)) if optimal_stocks_list else 'N/A'],
-            'optimal_weights': [', '.join(f'{w:.4f}' for w in optimal_weights_list) if optimal_weights_list else 'N/A'],
+            'stock_pool_considered': [', '.join(sorted(stock_pool_considered_list)) if stock_pool_considered_list is not None and len(stock_pool_considered_list) > 0 else 'N/A'], # Robust check for list
+            'optimal_stocks': [', '.join(sorted(optimal_stocks_list)) if optimal_stocks_list is not None and len(optimal_stocks_list) > 0 else 'N/A'], # Remains correct for list
+            'optimal_weights': [', '.join(f'{w:.4f}' for w in optimal_weights_list) if optimal_weights_list is not None and optimal_weights_list.size > 0 else 'N/A'], # Remains correct for numpy array
             'sharpe_ratio': [round(s_sharpe, 4) if pd.notna(s_sharpe) else np.nan],
             'expected_annual_return_pct': [round(s_exp_ret * 100, 2) if pd.notna(s_exp_ret) else np.nan],
             'expected_annual_volatility_pct': [round(s_exp_vol * 100, 2) if pd.notna(s_exp_vol) else np.nan],

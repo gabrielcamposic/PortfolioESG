@@ -69,7 +69,7 @@ sim_runs=1000
 stock_data_file=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
 portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
 charts_folder=~/Documents/Prog/PortfolioESG_public/html/Charts/
-log_file_path=~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log # Keep logs in _Prod
+log_file_path=~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log
 web_log_path=~/Documents/Prog/PortfolioESG_public/html/progress.json
 
 # --- Results Logging ---

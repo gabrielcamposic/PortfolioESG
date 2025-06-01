@@ -180,12 +180,19 @@
 
                 // Engine.py Overall Status Logic
                 let engineStatus = 'Pending'; // Default status
-                if (data.engine_script_start_time && !data.engine_script_end_time) {
-                    engineStatus = 'Running...';
-                } else if (data.engine_script_end_time) {
-                    engineStatus = 'Completed';
-                } else if (data.download_execution_start && !data.download_execution_end) {
-                    // If Download.py is running and Engine.py hasn't started/finished this current run
+                const engineStartTime = data.engine_script_start_time;
+                const engineEndTime = data.engine_script_end_time;
+                const downloadStartTime = data.download_execution_start;
+                const downloadEndTime = data.download_execution_end;
+
+                if (engineStartTime && engineStartTime !== "N/A") { // Engine has a valid start time
+                    if (!engineEndTime || engineEndTime === "N/A") { // Engine has not ended
+                        engineStatus = 'Running...';
+                    } else { // Engine has a valid end time (and it's not "N/A")
+                        engineStatus = 'Completed';
+                    }
+                } else if (downloadStartTime && downloadStartTime !== "N/A" && (!downloadEndTime || downloadEndTime === "N/A")) { 
+                    // Engine hasn't started, but Download.py is running
                     engineStatus = 'Waiting for Download.py';
                 }
                 setText('engine-overall-status', engineStatus);
