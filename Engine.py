@@ -16,7 +16,7 @@ import math
 import shutil # Add this import
 
 # --- Engine Version ---
-ENGINE_VERSION = "1.1.0" # Update this manually for significant changes
+ENGINE_VERSION = "1.2.0" # Updated for adaptive sims, GA structure, refinement, logging
 # ----------------------
 
 # ----------------------------------------------------------- #

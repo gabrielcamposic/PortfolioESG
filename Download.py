@@ -14,7 +14,12 @@ import time
 import json
 from fake_useragent import UserAgent
 from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry # Corrected import
+from urllib3.util.retry import Retry 
+
+# --- Script Version ---
+DOWNLOAD_PY_VERSION = "1.0.0" # Initial version
+# ----------------------
+
 # ----------------------------------------------------------- #
 #                       Global variables                      #
 # ----------------------------------------------------------- #
