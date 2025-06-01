@@ -793,6 +793,12 @@ def find_best_stock_combination(
         if num_to_refine == 0 and len(all_combination_results_for_refinement) > 0: # Ensure at least one if list is not empty
             num_to_refine = 1
         
+        logger_instance.update_web_log("refinement_progress", {
+            "status": "Initializing...",
+            "current_combo_refined": 0,
+            "total_combos_to_refine": num_to_refine,
+            "percentage_refinement": 0
+        })
         top_combinations_to_refine = all_combination_results_for_refinement[:num_to_refine] # SIM_RUNS is not used here
         logger_instance.log(f"    Refining {len(top_combinations_to_refine)} combinations with {SIM_RUNS} simulations each (using fixed SIM_RUNS from simpar.txt)...")
 
@@ -800,6 +806,13 @@ def find_best_stock_combination(
         for i, combo_data in enumerate(top_combinations_to_refine):
             logger_instance.log(f"    Refining combo {i+1}/{len(top_combinations_to_refine)}: {', '.join(combo_data['stocks'])} (Prev Sharpe: {combo_data['sharpe']:.4f} from {combo_data.get('sims_run', 'N/A')} sims)")
             
+            logger_instance.update_web_log("refinement_progress", {
+                "status": "Running",
+                "current_combo_refined": i + 1,
+                "total_combos_to_refine": len(top_combinations_to_refine),
+                "percentage_refinement": ((i + 1) / len(top_combinations_to_refine)) * 100 if len(top_combinations_to_refine) > 0 else 0
+            })
+
             # For refinement, run a fixed number of simulations (SIM_RUNS from params)
             # We need to simulate this combo again, num_simulation_runs times
             best_sharpe_refined = -float("inf")
@@ -838,6 +851,12 @@ def find_best_stock_combination(
         
         refinement_total_time = time.time() - refinement_timer_start
         logger_instance.log(f"    Refinement phase completed. Total time for refinement: {timedelta(seconds=refinement_total_time)}.")
+        logger_instance.update_web_log("refinement_progress", {
+            "status": "Completed",
+            "current_combo_refined": len(top_combinations_to_refine),
+            "total_combos_to_refine": len(top_combinations_to_refine),
+            "percentage_refinement": 100
+        })
 
     if best_overall_portfolio_combo:
         logger_instance.log(f"    🏆 Best Overall Portfolio Found:")
@@ -969,6 +988,7 @@ def run_genetic_algorithm(
             "current_k": num_stocks_in_combo,
             "current_generation": generation + 1,
             "current_individual_ga": 0, # Initializing for the generation
+            "percentage_ga": ((generation + 1) / NUM_GENERATIONS) * 100 if NUM_GENERATIONS > 0 else 0, # Percentage of generations
             "total_individuals_ga": len(population), # Total for this generation
             "total_generations_ga": NUM_GENERATIONS,
             "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A"
@@ -987,6 +1007,7 @@ def run_genetic_algorithm(
                 "current_k": num_stocks_in_combo, # Keep k
                 "current_generation": generation + 1, # Keep generation
                 "current_individual_ga": individual_idx + 1, # Update current individual
+                "percentage_ga": ((generation + 1) / NUM_GENERATIONS) * 100 if NUM_GENERATIONS > 0 else 0, # Keep percentage
                 "total_individuals_ga": len(population), # Keep total individuals
                 "total_generations_ga": NUM_GENERATIONS, # Keep total generations
                 "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A" # Keep best sharpe
@@ -1068,6 +1089,7 @@ def run_genetic_algorithm(
                     "status": f"Converged (k={num_stocks_in_combo})",
                     "current_k": num_stocks_in_combo,
                     "current_generation": generation + 1,
+                    "percentage_ga": ((generation + 1) / NUM_GENERATIONS) * 100 if NUM_GENERATIONS > 0 else 0,
                     "total_generations_ga": NUM_GENERATIONS,
                     "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A"
                 })
@@ -1079,6 +1101,7 @@ def run_genetic_algorithm(
                 "status": f"Completed (k={num_stocks_in_combo})",
                 "current_k": num_stocks_in_combo,
                 "current_generation": NUM_GENERATIONS,
+                "percentage_ga": 100,
                 "total_generations_ga": NUM_GENERATIONS,
                 "best_sharpe_this_k": round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else "N/A"
             })
@@ -1122,6 +1145,7 @@ def run_genetic_algorithm(
             "status": f"Finished (k={num_stocks_in_combo})",
             "current_k": num_stocks_in_combo,
             "current_generation": generation + 1, # Last completed generation
+            "percentage_ga": ((generation + 1) / NUM_GENERATIONS) * 100 if NUM_GENERATIONS > 0 else 0, # Reflect last completed
             "total_generations_ga": NUM_GENERATIONS,
             "best_sharpe_this_k": round(best_sharpe_overall_ga, 4)
         })
@@ -1134,6 +1158,7 @@ def run_genetic_algorithm(
             "status": f"No best found (k={num_stocks_in_combo})",
             "current_k": num_stocks_in_combo,
             "current_generation": generation + 1, # Last completed generation
+            "percentage_ga": ((generation + 1) / NUM_GENERATIONS) * 100 if NUM_GENERATIONS > 0 else 0,
             "total_generations_ga": NUM_GENERATIONS,
             "best_sharpe_this_k": "N/A"
         })
