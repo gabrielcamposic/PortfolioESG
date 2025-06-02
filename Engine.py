@@ -16,7 +16,7 @@ import math
 import shutil # Add this import
 
 # --- Engine Version ---
-ENGINE_VERSION = "1.2.0" # Updated for adaptive sims, GA structure, refinement, logging
+ENGINE_VERSION = "1.2.1" # Patched GA progress initialization for web log
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -930,7 +930,12 @@ def run_genetic_algorithm(
     logger_instance.update_web_log("ga_progress", {
         "status": f"Initializing for k={num_stocks_in_combo}",
         "current_k": num_stocks_in_combo,
-        "total_generations_ga": NUM_GENERATIONS # Add total generations
+        "current_generation": 0, # Start at 0 for "not yet started" or 1 if preferred
+        "total_generations_ga": NUM_GENERATIONS,
+        "current_individual_ga": 0, # Initialize
+        "total_individuals_ga": 0, # Initialize (will be set when population is created)
+        "percentage_ga": 0, # Initialize
+        "best_sharpe_this_k": "N/A" # Initialize
     })
 
     logger_instance.log(f"    GA Parameters: Pop. Size={POPULATION_SIZE}, Generations={NUM_GENERATIONS} for k={num_stocks_in_combo}")

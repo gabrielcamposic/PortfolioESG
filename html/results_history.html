@@ -102,12 +102,29 @@
                 }
                 const csvText = await response.text();
                 const rows = csvText.trim().split('\n');
-                const headers = rows[0].split(',');
+                const headersLine = rows[0];
+                // Headers are usually simple, so a basic split is often okay.
+                // If headers could also be complex/quoted, this would need the same regex logic.
+                const headers = headersLine.split(',').map(h => h.trim());
+
                 const data = rows.slice(1).map(rowString => {
-                    const values = rowString.split(',');
                     let rowObject = {};
+                    const regex = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g; // CSV field parsing regex
+                    let values = [];
+                    let match;
+
+                    // Use regex to extract values, respecting quotes
+                    while (match = regex.exec(rowString)) {
+                        let value = match[1]; // The captured group contains the field
+                        // Remove surrounding quotes if present and unescape double quotes "" to "
+                        if (value.startsWith('"') && value.endsWith('"')) {
+                            value = value.substring(1, value.length - 1).replace(/\"\"/g, '"');
+                        }
+                        values.push(value.trim());
+                    }
+
                     headers.forEach((header, index) => {
-                        rowObject[header.trim()] = values[index] ? values[index].trim() : 'N/A';
+                        rowObject[header] = values[index] !== undefined ? values[index] : 'N/A';
                     });
                     return rowObject;
                 });
@@ -149,6 +166,7 @@
 
             const timestamps = data.map(row => formatDate(row.generation_timestamp));
             const sharpeRatios = data.map(row => parseFloat(row.sharpe_ratio));
+            const finalValues = data.map(row => parseFloat(row.final_value)); // Extract final values
 
             const ctx = document.getElementById('sharpeRatioChart').getContext('2d');
             new Chart(ctx, {
@@ -160,13 +178,33 @@
                         data: sharpeRatios,
                         borderColor: 'rgb(75, 192, 192)',
                         tension: 0.1,
-                        fill: false
+                        fill: false,
+                        yAxisID: 'ySharpe' // Assign to the first y-axis
+                    }, {
+                        label: 'Final Portfolio Value', // New dataset
+                        data: finalValues,
+                        borderColor: 'rgb(255, 99, 132)', // Different color
+                        tension: 0.1,
+                        fill: false,
+                        yAxisID: 'yFinalValue' // Assign to the second y-axis
                     }]
                 },
                 options: {
                     scales: {
                         x: { title: { display: true, text: 'Generation Timestamp' } },
-                        y: { title: { display: true, text: 'Sharpe Ratio' } }
+                        ySharpe: { // Configuration for the primary y-axis (Sharpe Ratio)
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Sharpe Ratio' }
+                        },
+                        yFinalValue: { // Configuration for the secondary y-axis (Final Value)
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Final Value ($)' },
+                            grid: { drawOnChartArea: false } // Only draw grid for the primary axis
+                        }
                     },
                     responsive: true,
                     maintainAspectRatio: true

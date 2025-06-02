@@ -382,14 +382,22 @@
                     setText('engine-ga-status', ga.status || 'N/A');
                     let gaDetails = [];
                     if (ga.current_k) gaDetails.push(`k=${ga.current_k}`);
-                    if (ga.current_generation) {
-                        let genStr = `Gen: ${ga.current_generation}${ga.total_generations_ga ? '/' + ga.total_generations_ga : ''}`;
-                        if (ga.current_individual_ga && ga.total_individuals_ga) {
+                        
+                        // Check if current_generation is defined and a number (to include 0)
+                        if (typeof ga.current_generation === 'number' && typeof ga.total_generations_ga === 'number') {
+                            let genStr = `Gen: ${ga.current_generation}/${ga.total_generations_ga}`;
+                            
+                            // Only show individual progress if the generation is actually running (e.g., status contains "Running")
+                            if (ga.status && ga.status.toLowerCase().includes("running") && typeof ga.current_individual_ga === 'number' && typeof ga.total_individuals_ga === 'number' && ga.total_individuals_ga > 0) {
                             genStr += ` (Ind: ${ga.current_individual_ga}/${ga.total_individuals_ga})`;
                         }
                         gaDetails.push(genStr);
                     }
-                    if (ga.best_sharpe_this_k && ga.best_sharpe_this_k !== "N/A") gaDetails.push(`Best Sharpe (k): ${parseFloat(ga.best_sharpe_this_k).toFixed(4)}`);
+                        
+                        if (ga.best_sharpe_this_k && ga.best_sharpe_this_k !== "N/A") {
+                            gaDetails.push(`Best Sharpe (k): ${parseFloat(ga.best_sharpe_this_k).toFixed(4)}`);
+                        }
+                        
                     setText('engine-ga-details', gaDetails.length > 0 ? gaDetails.join(', ') : 'N/A');
                     setProgress('engine-ga-progress-bar', ga.percentage_ga);
                 } else if (data.current_engine_phase && data.current_engine_phase.toLowerCase().includes('ga')) {
