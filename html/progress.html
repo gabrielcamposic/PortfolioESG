@@ -113,40 +113,6 @@
                     <strong>Current Phase Progress:</strong>
                     <div class="progress-bar"><div class="progress-bar-inner" id="engine-current-phase-progress-bar"></div></div>
                 </div>
-
-                <!-- Container for phase-specific details -->
-                <div id="phase-details-container" style="margin-top: 15px;">
-                    <!-- Brute-Force details will be dynamically shown/hidden here -->
-                    <div id="bf-details-section" style="display: none;">
-                        <h4>Brute-Force Details (k &le; <span id="engine-bf-k-threshold">N/A</span>)</h4>
-                        <p>Completed Simulations (BF): <span id="engine-bf-completed-sims">0</span> / <span id="engine-bf-total-sims">0</span></p>
-                        <p>Progress (BF): <span id="engine-bf-percentage">0</span>%</p>
-                        <p>Est. BF Phase Completion: <span id="engine-bf-est-completion">N/A</span></p>
-                        <div class="progress-bar">
-                            <div class="progress-bar-inner" id="engine-bf-progress-bar"></div>
-                        </div>
-                    </div>
-
-                    <!-- GA details will be dynamically shown/hidden here -->
-                    <div id="ga-details-section" style="display: none;">
-                        <h4>Genetic Algorithm Details (k > <span id="engine-ga-k-threshold">N/A</span>)</h4>
-                        <p>Status: <span id="engine-ga-status">Pending/Inactive</span></p>
-                        <p><em>Details: <span id="engine-ga-details">N/A</span></em></p>
-                        <div class="progress-bar">
-                            <div class="progress-bar-inner" id="engine-ga-progress-bar"></div>
-                        </div>
-                    </div>
-
-                    <!-- Refinement details will be dynamically shown/hidden here -->
-                    <div id="refinement-details-section" style="display: none;">
-                        <h4>Refinement Phase Details</h4>
-                        <p>Status: <span id="engine-refinement-status">Pending/Inactive</span></p>
-                        <p><em>Details: <span id="engine-refinement-details">N/A</span></em></p>
-                        <div class="progress-bar">
-                            <div class="progress-bar-inner" id="engine-refinement-progress-bar"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -275,10 +241,49 @@
     
                 // --- Engine.py - Portfolio Optimization Progress Section ---
                 setText('engine-script-start-time', formatDate(data.engine_script_start_time));
-                setText('engine-initial-est-completion', formatDate(data.estimated_completion_time)); // Initial overall estimate
-                setText('engine-current-phase', data.current_engine_phase);
-                setText('engine-bf-k-threshold', data.heuristic_threshold_k_value); // Assumes Engine.py adds this
-                setText('engine-ga-k-threshold', data.heuristic_threshold_k_value); // Assumes Engine.py adds this
+                setText('engine-initial-est-completion', formatDate(data.estimated_completion_time)); 
+
+                // Construct the detailed "Current Phase" string
+                let basePhaseString = data.current_engine_phase || "N/A";
+                let detailsToAppend = [];
+                const currentPhase = data.current_engine_phase ? data.current_engine_phase.toLowerCase() : "";
+
+                if (currentPhase.includes("brute-force") && data.overall_progress) {
+                    const bf = data.overall_progress;
+                    if (bf.completed_actual_simulations_bf !== undefined && bf.total_expected_actual_simulations_bf !== undefined) {
+                        detailsToAppend.push(`Sims: ${bf.completed_actual_simulations_bf}/${bf.total_expected_actual_simulations_bf}`);
+                    }
+                    if (bf.percentage_bf !== undefined) {
+                        detailsToAppend.push(`Progress: ${parseFloat(bf.percentage_bf).toFixed(0)}%`);
+                    }
+                } else if (currentPhase.includes("genetic algorithm") && data.ga_progress) {
+                    const ga = data.ga_progress;
+                    if (typeof ga.current_generation === 'number' && typeof ga.total_generations_ga === 'number') {
+                        let genStr = `Gen: ${ga.current_generation}/${ga.total_generations_ga}`;
+                        if (ga.status && ga.status.toLowerCase().includes("running") && typeof ga.current_individual_ga === 'number' && typeof ga.total_individuals_ga === 'number' && ga.total_individuals_ga > 0) {
+                            genStr += ` (Ind: ${ga.current_individual_ga}/${ga.total_individuals_ga})`;
+                        }
+                        detailsToAppend.push(genStr);
+                    }
+                    if (ga.best_sharpe_this_k && ga.best_sharpe_this_k !== "N/A") {
+                        detailsToAppend.push(`Best Sharpe (k): ${parseFloat(ga.best_sharpe_this_k).toFixed(4)}`);
+                    }
+                } else if (currentPhase.includes("refinement") && data.refinement_progress) {
+                    const refine = data.refinement_progress;
+                    if (refine.current_combo_refined !== undefined && refine.total_combos_to_refine !== undefined) {
+                        detailsToAppend.push(`Combo: ${refine.current_combo_refined}/${refine.total_combos_to_refine}`);
+                    }
+                }
+
+                let finalPhaseDisplayString = basePhaseString;
+                if (detailsToAppend.length > 0) {
+                    if (basePhaseString.endsWith(")")) { // Assumes phases like "Brute-Force (k=X)"
+                        finalPhaseDisplayString = `${basePhaseString.slice(0, -1)}, ${detailsToAppend.join(', ')})`;
+                    } else { // For phases like "Refinement Phase"
+                        finalPhaseDisplayString = `${basePhaseString} (${detailsToAppend.join(', ')})`;
+                    }
+                }
+                setText('engine-current-phase', finalPhaseDisplayString);
 
                 // Engine.py Overall Status Logic
                 let engineStatus = 'Pending'; // Default status
@@ -300,8 +305,7 @@
                 setText('engine-overall-status', engineStatus);
 
                 // Overall Engine Progress Bar (qualitative based on phase)
-                let overallEngineProgressValue = 0;
-                const currentPhase = data.current_engine_phase ? data.current_engine_phase.toLowerCase() : "";
+                let overallEngineProgressValue = 0; // currentPhase already defined above
                 if (data.engine_script_end_time && data.engine_script_end_time !== "N/A") {
                     overallEngineProgressValue = 100;
                 } else if (currentPhase.includes("initializing") || currentPhase.includes("data loading") || currentPhase.includes("wrangling")) {
@@ -333,91 +337,10 @@
                 }
                 setProgress('engine-current-phase-progress-bar', currentPhaseProgressValue);
 
-                // --- Conditionally display phase-specific details ---
-                const bfDetailsSection = document.getElementById('bf-details-section');
-                const gaDetailsSection = document.getElementById('ga-details-section');
-                const refinementDetailsSection = document.getElementById('refinement-details-section');
-
-                // Hide all phase-specific detail sections by default
-                bfDetailsSection.style.display = 'none';
-                gaDetailsSection.style.display = 'none';
-                refinementDetailsSection.style.display = 'none';
-
-                // Show details for the current active phase if that mode is enabled
-                if (data.engine_search_modes) { // Check if search mode info is available
-                    if (currentPhase.includes("brute-force") && data.engine_search_modes.uses_brute_force) {
-                        bfDetailsSection.style.display = 'block';
-                    } else if (currentPhase.includes("genetic algorithm") && data.engine_search_modes.uses_ga) {
-                        gaDetailsSection.style.display = 'block';
-                    } else if (currentPhase.includes("refinement") && data.engine_search_modes.uses_refinement) {
-                        refinementDetailsSection.style.display = 'block';
-                    }
-                }
-                // --- End of conditional display for phase-specific details ---
-
-
-                // --- Populate data for each phase (these will only be visible if their parent section is displayed) ---
-                
-                // Brute-Force Phase (data is in overall_progress from Engine.py)
-                // The elements engine-bf-completed-sims, engine-bf-total-sims, etc.
-                // are now inside bf-details-section.
-                // The progress bar engine-bf-progress-bar is also inside.
-                // The setText and setProgress calls for these elements remain valid as their IDs haven't changed.
-
                 if (data.overall_progress) { // This key from Engine.py is for Brute-Force
                     const bf = data.overall_progress;
-                    setText('engine-bf-completed-sims', bf.completed_actual_simulations_bf, '0');
-                    setText('engine-bf-total-sims', bf.total_expected_actual_simulations_bf, '0');
-                    const bfPercentage = bf.percentage_bf !== undefined ? parseFloat(bf.percentage_bf).toFixed(0) : '0';
-                    setText('engine-bf-percentage', bfPercentage);
-                    setProgress('engine-bf-progress-bar', bfPercentage);
-                    setText('engine-bf-est-completion', formatDate(bf.estimated_completion_time_bf));
-                }
-
-                // GA Phase
-                // Elements engine-ga-status, engine-ga-details, and engine-ga-progress-bar
-                // are now inside ga-details-section.
-                if (data.ga_progress) {
-                    const ga = data.ga_progress;
-                    setText('engine-ga-status', ga.status || 'N/A');
-                    let gaDetails = [];
-                    if (ga.current_k) gaDetails.push(`k=${ga.current_k}`);
-                        
-                        // Check if current_generation is defined and a number (to include 0)
-                        if (typeof ga.current_generation === 'number' && typeof ga.total_generations_ga === 'number') {
-                            let genStr = `Gen: ${ga.current_generation}/${ga.total_generations_ga}`;
-                            
-                            // Only show individual progress if the generation is actually running (e.g., status contains "Running")
-                            if (ga.status && ga.status.toLowerCase().includes("running") && typeof ga.current_individual_ga === 'number' && typeof ga.total_individuals_ga === 'number' && ga.total_individuals_ga > 0) {
-                            genStr += ` (Ind: ${ga.current_individual_ga}/${ga.total_individuals_ga})`;
-                        }
-                        gaDetails.push(genStr);
-                    }
-                        
-                        if (ga.best_sharpe_this_k && ga.best_sharpe_this_k !== "N/A") {
-                            gaDetails.push(`Best Sharpe (k): ${parseFloat(ga.best_sharpe_this_k).toFixed(4)}`);
-                        }
-                        
-                    setText('engine-ga-details', gaDetails.length > 0 ? gaDetails.join(', ') : 'N/A');
-                    setProgress('engine-ga-progress-bar', ga.percentage_ga);
-                } else if (data.current_engine_phase && data.current_engine_phase.toLowerCase().includes('ga')) {
-                    setText('engine-ga-status', 'Active');
-                    // Potentially set GA progress bar to a low value if no specific percentage yet
-                }
-
-                // Refinement Phase
-                // Elements engine-refinement-status, engine-refinement-details, and engine-refinement-progress-bar
-                // are now inside refinement-details-section.
-                if (data.refinement_progress) {
-                    const refine = data.refinement_progress;
-                    setText('engine-refinement-status', refine.status || 'N/A');
-                    let refineDetails = [];
-                    if (refine.current_combo_refined && refine.total_combos_to_refine) refineDetails.push(`Combo: ${refine.current_combo_refined}/${refine.total_combos_to_refine}`);
-                    setText('engine-refinement-details', refineDetails.length > 0 ? refineDetails.join(', ') : (refine.details || 'N/A'));
-                    setProgress('engine-refinement-progress-bar', refine.percentage_refinement);
-                } else if (data.current_engine_phase && data.current_engine_phase.toLowerCase().includes('refinement')) {
-                    setText('engine-refinement-status', 'Active');
-                    // Potentially set Refinement progress bar to a low value
+                    // The data from bf (overall_progress) is used above in constructing finalPhaseDisplayString
+                    // No separate setText calls needed here for the removed bf-details-section elements
                 }
 
                 setText('engine-script-end-time', formatDate(data.engine_script_end_time));
