@@ -10,14 +10,15 @@ import requests
 from datetime import datetime, timedelta
 import holidays
 import random
-import time
+import time # Keep time for interval timing
 import json
+import shutil # For copying files
 from fake_useragent import UserAgent
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry 
 
 # --- Script Version ---
-DOWNLOAD_PY_VERSION = "1.1.0" # Removed unreliable public proxy fetching
+DOWNLOAD_PY_VERSION = "1.2.0" # Added performance logging
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -33,6 +34,8 @@ TICKERS_FILE = ""
 DB_FILEPATH = "" # Will be constructed
 DOWNLOAD_LOG_FILE = ""
 PROGRESS_JSON_FILE = ""
+DOWNLOAD_PERFORMANCE_LOG_PATH = "" # For performance logging
+WEB_ACCESSIBLE_DATA_FOLDER = "" # For copying logs
 
 # Fallback list of user agents (moved here, after parameter placeholders)
 FALLBACK_USER_AGENTS = [
@@ -151,7 +154,9 @@ def load_download_parameters(filepath, logger_instance=None):
         "download_log_file": str,
         "progress_json_file": str,
         # Optional user-agent params
-        "dynamic_user_agents_enabled": bool # Not used yet, but good to have
+        "dynamic_user_agents_enabled": bool,
+        "download_performance_log_path": str, # New performance log path
+        "web_accessible_data_folder": str # New web data folder path
     }
 
     try:
@@ -369,6 +374,17 @@ def get_missing_dates(ticker, current_findata_dir, start_date, end_date):
 
     return missing_dates
 
+def initialize_performance_data():
+    return {
+        "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "download_py_version": DOWNLOAD_PY_VERSION,
+        "param_load_duration_s": 0.0, "user_agent_setup_duration_s": 0.0,
+        "initial_db_load_duration_s": 0.0, "findata_processing_duration_s": 0.0,
+        "total_tickers_processed": 0, "tickers_with_new_data_downloaded": 0,
+        "new_data_download_loop_duration_s": 0.0, "final_db_save_duration_s": 0.0,
+        "overall_script_duration_s": 0.0
+    }
+
 def read_tickers_from_file(file_path):
     with open(file_path, 'r') as f:
         tickers = [line.strip() for line in f.readlines() if line.strip()]
@@ -438,7 +454,7 @@ def debug_check_dates_against_holidays(dates_to_check):
         else:
             print(f"❌ {d} is NOT marked as a holiday")
 
-def download_and_append(tickers_list, current_findata_dir, current_findb_dir, current_db_filepath):
+def download_and_append(tickers_list, current_findata_dir, current_findb_dir, current_db_filepath, perf_data_ref):
     """
     Download missing data for each ticker, compare with existing data in findata and StockDataDB.csv,
     and update StockDataDB.csv with only the missing rows.
@@ -459,6 +475,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         return logger.web_data.get("ticker_download", {"current_ticker": "Initializing...", "completed_tickers": 0, "total_tickers": 0, "progress": 0, "date_range": "N/A", "rows": 0}).copy()
 
     # Step 1: Load existing StockDataDB.csv
+    initial_db_load_start_time = time.time()
     # This DataFrame will be the base for accumulating all data.
     if os.path.exists(current_db_filepath):
         combined_data = pd.read_csv(current_db_filepath)
@@ -482,12 +499,15 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             logger.log(f"DEBUG: StockDataDB.csv not found at {current_db_filepath}. Initializing empty combined_data. Shape: {combined_data.shape}")
         logger.log(f"⚠️ {current_db_filepath} does not exist. Starting with an empty database.")
 
+    perf_data_ref["initial_db_load_duration_s"] = time.time() - initial_db_load_start_time
+
     # Step 2 & 3 (Merged): Process findata folder ticker by ticker and merge into combined_data
     logger.log(f"🔄 Processing existing data from findata directory: {current_findata_dir}")
     
     status_update = get_current_ticker_status()
     status_update["current_ticker"] = "Processing local findata directory..."
     logger.update_web_log("ticker_download", status_update)
+    findata_processing_start_time = time.time()
 
 
     for ticker_item in tickers_list: # Iterate using the passed tickers_list
@@ -576,15 +596,19 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
                 logger.log(f"DEBUG: No valid findata rows loaded for {ticker_item} from its folder. Skipping merge for this ticker.")
             logger.log(f"ℹ️ No new findata rows to merge for {ticker_item}.")
 
+    perf_data_ref["findata_processing_duration_s"] = time.time() - findata_processing_start_time
     logger.log(f"✅ Finished processing all findata. Current total unique rows in combined_data: {len(combined_data)}. Shape: {combined_data.shape}.")
     
     # Step 4: Download missing data for each ticker
     # all_downloaded_data list is removed; data will be merged immediately.
     logger.log("🔄 Starting download of new/missing data...")
     
+    new_data_download_loop_start_time = time.time()
+    local_tickers_with_new_data_count = 0
     status_update = get_current_ticker_status()
     status_update["current_ticker"] = "Preparing to download new/missing data..."
     logger.update_web_log("ticker_download", status_update)
+    perf_data_ref["total_tickers_processed"] = len(tickers_list)
 
     for i, ticker_to_process in enumerate(tickers_list): # Minor rename for clarity
         total_tickers_to_process = len(tickers_list)
@@ -734,6 +758,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         save_ticker_data_to_csv(ticker_to_process, data, current_findata_dir)
         
         # Directly merge the newly downloaded 'data' (for the current ticker) into 'combined_data'
+        new_data_merged_for_ticker = False
         if not data.empty:
             # Ensure columns match common_cols before concatenating
             # For the newly downloaded 'data':
@@ -760,6 +785,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             if DEBUG_MODE: 
                 logger.log(f"DEBUG: Deduplicated combined_data after new download for {ticker_to_process}. Shape after dedup: {combined_data.shape}")
             logger.log(f"✅ Merged {len(data)} newly downloaded rows for {ticker_to_process}. Total unique rows in combined_data: {len(combined_data)}")
+            new_data_merged_for_ticker = True # Mark that data was actually merged
             
             # Update web log with details after successful download and merge for this ticker
             current_ticker_progress_data["date_range"] = f"{downloaded_min_date_str} to {downloaded_max_date_str}"
@@ -769,6 +795,10 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             merged_status_for_web_success = get_current_ticker_status()
             merged_status_for_web_success.update(current_ticker_progress_data)
             logger.update_web_log("ticker_download", merged_status_for_web_success)
+        
+        if new_data_merged_for_ticker: # Increment if data was downloaded AND merged
+            local_tickers_with_new_data_count +=1
+    perf_data_ref["tickers_with_new_data_downloaded"] = local_tickers_with_new_data_count
 
     # Step 6: Save the updated StockDataDB.csv
     # Final update for ticker_download to show 100% completion if all tickers were processed
@@ -790,16 +820,48 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     status_update = get_current_ticker_status() # Get the latest before this final update
     status_update["current_ticker"] = "Saving final StockDataDB.csv..."
     logger.update_web_log("ticker_download", status_update)
+    perf_data_ref["new_data_download_loop_duration_s"] = time.time() - new_data_download_loop_start_time
 
     if DEBUG_MODE:
         logger.log(f"DEBUG: Saving final combined_data with {len(combined_data)} rows to {current_db_filepath}.")
+    
+    final_db_save_start_time = time.time()
     combined_data.to_csv(current_db_filepath, index=False)
+    perf_data_ref["final_db_save_duration_s"] = time.time() - final_db_save_start_time
+
     status_update["current_ticker"] = f"StockDataDB.csv saved ({len(combined_data)} rows)" # Update after save
     logger.update_web_log("ticker_download", status_update)
     logger.log(f"✅ Updated {current_db_filepath} with {len(combined_data)} total unique rows.")
     if DEBUG_MODE:
         logger.log("DEBUG: Finished download_and_append function.")
 
+def log_download_performance(perf_data, log_path, logger_instance):
+    if not log_path:
+        logger_instance.log("Warning: download_performance_log_path not defined. Skipping performance log.")
+        return
+    try:
+        df = pd.DataFrame([perf_data]) # Create DataFrame from the single dict
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        file_exists = os.path.isfile(log_path)
+        df.to_csv(log_path, mode='a', header=not file_exists, index=False)
+        logger_instance.log(f"✅ Download performance data logged to: {log_path}")
+    except Exception as e:
+        logger_instance.log(f"❌ Error logging download performance to {log_path}: {e}")
+
+def copy_log_to_web_accessible_location(source_csv_path, web_dest_folder, logger_instance, log_type="Performance"):
+    if not source_csv_path or not os.path.exists(source_csv_path):
+        logger_instance.log(f"Warning: Source {log_type} Log CSV not found at '{source_csv_path}'. Cannot copy.")
+        return
+    if not web_dest_folder:
+        logger_instance.log(f"Warning: web_accessible_data_folder not set. Cannot copy {log_type} Log.")
+        return
+    try:
+        os.makedirs(web_dest_folder, exist_ok=True)
+        destination_csv_path = os.path.join(web_dest_folder, os.path.basename(source_csv_path))
+        shutil.copy2(source_csv_path, destination_csv_path)
+        logger_instance.log(f"✅ Copied {log_type} Log to web-accessible location: {destination_csv_path}")
+    except Exception as e:
+        logger_instance.log(f"❌ Error copying {log_type} Log to web directory: {e}")
 # ----------------------------------------------------------- #
 #                     Execution Pipeline                      #
 # ----------------------------------------------------------- #
@@ -808,14 +870,19 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PARAMETERS_FILE_PATH = os.path.join(SCRIPT_DIR, "downpar.txt")
 
+overall_script_start_time_dt = datetime.now() # For overall script duration
+performance_metrics = initialize_performance_data() # Initialize performance data dict
+
 # Initialize preliminary logger
 prelim_log_path = os.path.join(SCRIPT_DIR, "download_bootstrap.log")
 logger = Logger(log_path=prelim_log_path, web_log_path=None) # No web log for bootstrap
 logger.log(f"Logger initialized with preliminary path: {prelim_log_path}")
 logger.log(f"Attempting to load parameters from: {PARAMETERS_FILE_PATH}")
 
+param_load_start_time = time.time()
 try:
     params = load_download_parameters(PARAMETERS_FILE_PATH, logger_instance=logger)
+    performance_metrics["param_load_duration_s"] = time.time() - param_load_start_time
     logger.log(f"Successfully loaded parameters from: {PARAMETERS_FILE_PATH}")
 except FileNotFoundError:
     logger.log(f"CRITICAL ERROR: Parameters file not found at '{PARAMETERS_FILE_PATH}'. Exiting.")
@@ -835,6 +902,8 @@ FINDB_DIR = params.get("findb_directory")     # Critical
 TICKERS_FILE = params.get("tickers_list_file") # Critical
 DOWNLOAD_LOG_FILE = params.get("download_log_file") # Critical
 PROGRESS_JSON_FILE = params.get("progress_json_file", os.path.join(SCRIPT_DIR, "progress.json")) # Default if not specified
+DOWNLOAD_PERFORMANCE_LOG_PATH = params.get("download_performance_log_path") # Load performance log path
+WEB_ACCESSIBLE_DATA_FOLDER = params.get("web_accessible_data_folder") # Load web data folder
 
 DB_FILENAME = "StockDataDB.csv" # Standard name for the database file
 DB_FILEPATH = os.path.join(FINDB_DIR, DB_FILENAME)
@@ -854,8 +923,8 @@ if DEBUG_MODE:
 
 # --- End Configuration Loading ---
 
-start_time = datetime.now()
-logger.log(f"🚀 Starting execution pipeline at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+logger.log(f"🚀 Starting execution pipeline at: {overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S')}")
+performance_metrics["run_start_timestamp"] = overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S') # Re-confirm start time
 
 # Initial web log update for download status
 initial_ticker_download_status = {
@@ -867,7 +936,7 @@ initial_ticker_download_status = {
     "rows": 0
 } # This was the end of ticker_download
 initial_web_log_data = { 
-    "download_execution_start": start_time.strftime('%Y-%m-%d %H:%M:%S'),
+    "download_execution_start": overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S'),
     "ticker_download": initial_ticker_download_status,
     "download_execution_end": "N/A" # Explicitly set to N/A
 }
@@ -876,6 +945,7 @@ logger.log("Download script initialized web progress.", web_data=initial_web_log
 if DEBUG_MODE:
     logger.update_web_log("download_overall_status", "Initializing (Debug Mode)...")
     logger.log("DEBUG: Attempting to initialize UserAgent.")
+user_agent_setup_start_time = time.time()
 # Fetch dynamic user agents or use the fallback list
 try:
     from fake_useragent import UserAgent
@@ -888,6 +958,7 @@ except Exception as e:
         logger.update_web_log("download_overall_status", "Initializing (UserAgent Fallback)...")
         logger.log(f"DEBUG: Failed to init UserAgent or generate dynamic agents: {e}. Using fallback.")
     logger.log(f"⚠️ Failed to generate dynamic user agents. Using fallback list. Reason: {e}")
+performance_metrics["user_agent_setup_duration_s"] = time.time() - user_agent_setup_start_time
 
 # Create a session
 session = requests.Session()
@@ -950,11 +1021,20 @@ logger.update_web_log("ticker_download", current_ticker_status)
 
 if DEBUG_MODE:
     logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
-logger.update_web_log("download_overall_status", "Downloading Data...")
-download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH)
 
-end_time = datetime.now()
-logger.log(f"✅ Execution completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')} in {end_time - start_time}")
+logger.update_web_log("download_overall_status", "Downloading Data...")
+download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics)
+
+overall_script_end_time_dt = datetime.now()
+total_script_duration = overall_script_end_time_dt - overall_script_start_time_dt
+performance_metrics["overall_script_duration_s"] = total_script_duration.total_seconds()
+
+logger.log(f"✅ Execution completed at: {overall_script_end_time_dt.strftime('%Y-%m-%d %H:%M:%S')} in {total_script_duration}")
 logger.update_web_log("download_overall_status", "Completed")
-logger.update_web_log("download_execution_end", end_time.strftime('%Y-%m-%d %H:%M:%S')) # Mark end time
+logger.update_web_log("download_execution_end", overall_script_end_time_dt.strftime('%Y-%m-%d %H:%M:%S')) # Mark end time
+
+# Log performance data to CSV and copy
+log_download_performance(performance_metrics, DOWNLOAD_PERFORMANCE_LOG_PATH, logger)
+copy_log_to_web_accessible_location(DOWNLOAD_PERFORMANCE_LOG_PATH, WEB_ACCESSIBLE_DATA_FOLDER, logger, "Download Performance")
+
 logger.flush() # Final flush

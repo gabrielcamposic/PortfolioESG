@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Script Performance History</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #333; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #007bff; }
+        nav a:hover { text-decoration: underline; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.8em; /* Smaller font for more columns */
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 5px; /* Smaller padding */
+            text-align: left;
+            white-space: nowrap; /* Prevent line breaks in cells */
+        }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .table-container {
+            overflow-x: auto; /* Allow horizontal scrolling for wide tables */
+        }
+    </style>
+</head>
+<body>
+    <h1>Download Script Performance History</h1>
+    <nav>
+        <a href="progress.html">View Live Progress</a>
+        <a href="results_history.html">View Engine Run History</a>
+        <a href="performance_history.html">View Engine Performance History</a>
+        <a href="ga_fitness_noise.html">View GA Fitness/Noise History</a>
+    </nav>
+
+    <h2>Logged Download Performance Metrics</h2>
+    <div class="table-container">
+        <table id="downloadPerformanceTable">
+            <thead>
+                <tr>
+                    <th>Run Start Timestamp</th>
+                    <th>Download.py Version</th>
+                    <th>Param Load (s)</th>
+                    <th>User Agent Setup (s)</th>
+                    <th>Initial DB Load (s)</th>
+                    <th>Findata Proc. (s)</th>
+                    <th>Total Tickers</th>
+                    <th>Tickers w/ New Data</th>
+                    <th>New Data DL Loop (s)</th>
+                    <th>Final DB Save (s)</th>
+                    <th>Overall Script (s)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be populated here by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const CSV_PATH = 'data/download_performance_log.csv';
+
+        function formatDate(dateString) {
+            if (!dateString || dateString === "N/A") return "N/A";
+            try {
+                const dateObj = new Date(dateString.includes(' ') ? dateString : dateString + 'T00:00:00Z');
+                if (isNaN(dateObj.getTime())) return dateString;
+                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                return `${days[dateObj.getUTCDay()]}, ${String(dateObj.getUTCDate()).padStart(2, '0')}/${months[dateObj.getUTCMonth()]}/${String(dateObj.getUTCFullYear()).slice(-2)} - ${String(dateObj.getUTCHours()).padStart(2, '0')}:${String(dateObj.getUTCMinutes()).padStart(2, '0')}`;
+            } catch (e) { return dateString; }
+        }
+
+        function formatSeconds(secondsStr) {
+            if (!secondsStr || secondsStr === "N/A" || isNaN(parseFloat(secondsStr))) return "N/A";
+            return parseFloat(secondsStr).toFixed(2); // Format to 2 decimal places
+        }
+
+        async function fetchAndDisplayPerformance() {
+            try {
+                const response = await fetch(CSV_PATH + '?t=' + new Date().getTime());
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const csvText = await response.text();
+                const rows = csvText.trim().split('\n');
+                if (rows.length <= 1) {
+                    populateTable([], []); return;
+                }
+
+                const headers = rows[0].split(',').map(h => h.trim());
+                const data = rows.slice(1).map(rowString => {
+                    let obj = {};
+                    const regex = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g;
+                    let values = []; let match;
+                    while (match = regex.exec(rowString)) {
+                        let value = match[1];
+                        if (value.startsWith('"') && value.endsWith('"')) value = value.substring(1, value.length - 1).replace(/\"\"/g, '"');
+                        values.push(value.trim());
+                    }
+                    headers.forEach((header, index) => obj[header] = values[index] !== undefined ? values[index] : 'N/A');
+                    return obj;
+                });
+                populateTable(data, headers);
+            } catch (error) {
+                console.error('Error fetching or parsing CSV:', error);
+                const tableBody = document.getElementById('downloadPerformanceTable').getElementsByTagName('tbody')[0];
+                const colspan = document.getElementById('downloadPerformanceTable').getElementsByTagName('thead')[0].rows[0].cells.length || 11;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:red;">Error loading data: ${error.message}.</td></tr>`;
+            }
+        }
+
+        function populateTable(data, headers) {
+            const tableBody = document.getElementById('downloadPerformanceTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            if (data.length === 0) {
+                const colspan = headers.length || 11;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No performance data found.</td></tr>`;
+                return;
+            }
+
+            const durationColumns = [
+                "param_load_duration_s", "user_agent_setup_duration_s",
+                "initial_db_load_duration_s", "findata_processing_duration_s",
+                "new_data_download_loop_duration_s", "final_db_save_duration_s",
+                "overall_script_duration_s"
+            ];
+
+            data.forEach(rowData => {
+                const tr = tableBody.insertRow();
+                headers.forEach(header => {
+                    const td = tr.insertCell();
+                    let cellValue = rowData[header.trim()] || 'N/A';
+                    if (header.trim().toLowerCase() === 'run_start_timestamp') {
+                        cellValue = formatDate(cellValue);
+                    } else if (durationColumns.includes(header.trim())) {
+                        cellValue = formatSeconds(cellValue);
+                    }
+                    td.textContent = cellValue;
+                });
+            });
+        }
+        fetchAndDisplayPerformance();
+    </script>
+</body>
+</html>
