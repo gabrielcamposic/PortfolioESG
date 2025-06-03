@@ -18,7 +18,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry 
 
 # --- Script Version ---
-DOWNLOAD_PY_VERSION = "1.2.0" # Added performance logging
+DOWNLOAD_PY_VERSION = "1.2.1" # Fixed "Rows Downloaded: N/A" on progress page
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -813,7 +813,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             "progress": 100,
             "current_ticker": "All tickers processed",
             "date_range": f"{overall_start_date_str} to {overall_end_date_str}", # Show overall processed range
-            "rows": "N/A" # Could be a sum if tracked, else N/A
+            "rows": 0 # Set to 0 when all tickers are processed
         }
         logger.update_web_log("ticker_download", final_ticker_progress)
     
