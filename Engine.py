@@ -569,6 +569,12 @@ def find_best_stock_combination(
     best_overall_roi_val = None
     best_overall_expected_return = None
     best_overall_volatility = None
+
+    # --- Durations Tracking for Performance Log ---
+    bf_total_time_seconds = 0
+    ga_total_time_seconds = 0
+    # refinement_total_time_seconds is already tracked by refinement_total_time
+
     # total_simulations_done = 0 # Replaced by total_actual_simulations_run_phase1
     
     all_combination_results_for_refinement = [] # Stores results for potential refinement
@@ -876,9 +882,16 @@ def find_best_stock_combination(
         logger_instance.update_web_log("best_portfolio_details", None)
 
     logger_instance.flush() # Ensure all logs are written
+
+    phase_durations = {
+        "bf_total_seconds": bf_total_time_seconds,
+        "ga_total_seconds": ga_total_time_seconds,
+        "refinement_total_seconds": refinement_total_time if ADAPTIVE_SIM_ENABLED and TOP_N_PERCENT_REFINEMENT > 0 and all_combination_results_for_refinement else 0
+    }
     return (best_overall_portfolio_combo, best_overall_weights_alloc, overall_best_sharpe,
             best_overall_final_val, best_overall_roi_val, best_overall_expected_return,
-            best_overall_volatility, avg_simulation_time_per_run, available_stocks_for_search)
+            best_overall_volatility, avg_simulation_time_per_run, available_stocks_for_search,
+            phase_durations) # Return phase durations
 
 # ----------------------------------------------------------- #
 #                  Heuristic Functions (Placeholder)          #
@@ -1694,6 +1707,19 @@ overall_script_end_time = datetime.now()
 total_script_duration = overall_script_end_time - overall_script_start_time
 logger.log(f"\n🏁 Engine Processing Finished at {overall_script_end_time.strftime('%Y-%m-%d %H:%M:%S')} 🏁")
 logger.log(f"⏳ Total script execution time: {total_script_duration} ⏳")
+
+# Log performance summary
+log_engine_performance_summary(
+    PERFORMANCE_LOG_CSV_PATH,
+    overall_script_start_time, # datetime object
+    ENGINE_VERSION,
+    sim_params, # Pass the whole dict
+    initial_estimated_duration_from_log, # This is actually the estimated *end time* string
+    str(total_script_duration),
+    data_wrangling_duration_from_log,
+    search_phase_durations, # Dict from find_best_stock_combination
+    logger
+)
 logger.update_web_log("engine_script_end_time", overall_script_end_time.strftime('%Y-%m-%d %H:%M:%S'))
 logger.update_web_log("engine_script_total_duration", str(total_script_duration))
 logger.flush() # Final flush

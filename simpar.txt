@@ -75,5 +75,5 @@ web_log_path=~/Documents/Prog/PortfolioESG_public/html/progress.json
 # --- Results Logging ---
 # Path to CSV file for logging optimal portfolio results from each run
 results_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_results_log.csv
-# Path to the folder where data for web display (like results_log.csv copy) should be placed
+performance_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_performance_log.csv
 web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/

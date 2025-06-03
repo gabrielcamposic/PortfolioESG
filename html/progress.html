@@ -60,6 +60,7 @@
     <h1>Simulation Progress</h1>
     <nav>
         <a href="results_history.html">View Run History</a>
+        <a href="performance_history.html">View Performance History</a>
     </nav>
 
 
@@ -112,40 +113,39 @@
                     <strong>Current Phase Progress:</strong>
                     <div class="progress-bar"><div class="progress-bar-inner" id="engine-current-phase-progress-bar"></div></div>
                 </div>
-            </div>
-        </div>
 
-        <hr style="margin-top: 20px; margin-bottom: 20px;">
-        <div class="columns">
+                <!-- Container for phase-specific details -->
+                <div id="phase-details-container" style="margin-top: 15px;">
+                    <!-- Brute-Force details will be dynamically shown/hidden here -->
+                    <div id="bf-details-section" style="display: none;">
+                        <h4>Brute-Force Details (k &le; <span id="engine-bf-k-threshold">N/A</span>)</h4>
+                        <p>Completed Simulations (BF): <span id="engine-bf-completed-sims">0</span> / <span id="engine-bf-total-sims">0</span></p>
+                        <p>Progress (BF): <span id="engine-bf-percentage">0</span>%</p>
+                        <p>Est. BF Phase Completion: <span id="engine-bf-est-completion">N/A</span></p>
+                        <div class="progress-bar">
+                            <div class="progress-bar-inner" id="engine-bf-progress-bar"></div>
+                        </div>
+                    </div>
 
-            <!-- Engine.py Brute-Force Phase Progress Column -->
-            <div class="column" id="bf-column" style="display: none;">
-                <h3>Brute-Force Phase Progress (k &le; <span id="engine-bf-k-threshold">N/A</span>)</h3>
-                <div id="engine-bf-phase-info">
-                    <p>Completed Simulations (BF): <span id="engine-bf-completed-sims">0</span> / <span id="engine-bf-total-sims">0</span></p>
-                    <p>Progress (BF): <span id="engine-bf-percentage">0</span>%</p>
-                    <p>Est. BF Phase Completion: <span id="engine-bf-est-completion">N/A</span></p>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-bar-inner" id="engine-bf-progress-bar"></div>
-                </div>
-            </div>
-        </div>
-        <div class="section" id="other-phases-column-container" style="display: none;"> <!-- ID added and default hidden -->
-            <h4 id="other-phases-heading">Other Phases Status</h4> <!-- Optional ID for heading if needed separately, but parent div controls all -->
-            <div id="ga-section-container" style="display: none;">
-                <p><strong>Genetic Algorithm (GA) (k > <span id="engine-ga-k-threshold">N/A</span>):</strong> <span id="engine-ga-status">Pending/Inactive</span></p>
-                <p><em>GA Details: <span id="engine-ga-details">N/A</span></em></p>
-                <div class="progress-bar">
-                    <div class="progress-bar-inner" id="engine-ga-progress-bar"></div>
-                </div>
-            </div>
-            <hr id="ga-refinement-hr" style="display: none;"> <!-- HR to be conditional too -->
-            <div id="refinement-section-container" style="display: none;">
-                <p><strong>Refinement Phase:</strong> <span id="engine-refinement-status">Pending/Inactive</span></p>
-                <p><em>Refinement Details: <span id="engine-refinement-details">N/A</span></em></p>
-                <div class="progress-bar">
-                    <div class="progress-bar-inner" id="engine-refinement-progress-bar"></div>
+                    <!-- GA details will be dynamically shown/hidden here -->
+                    <div id="ga-details-section" style="display: none;">
+                        <h4>Genetic Algorithm Details (k > <span id="engine-ga-k-threshold">N/A</span>)</h4>
+                        <p>Status: <span id="engine-ga-status">Pending/Inactive</span></p>
+                        <p><em>Details: <span id="engine-ga-details">N/A</span></em></p>
+                        <div class="progress-bar">
+                            <div class="progress-bar-inner" id="engine-ga-progress-bar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Refinement details will be dynamically shown/hidden here -->
+                    <div id="refinement-details-section" style="display: none;">
+                        <h4>Refinement Phase Details</h4>
+                        <p>Status: <span id="engine-refinement-status">Pending/Inactive</span></p>
+                        <p><em>Details: <span id="engine-refinement-details">N/A</span></em></p>
+                        <div class="progress-bar">
+                            <div class="progress-bar-inner" id="engine-refinement-progress-bar"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -333,39 +333,37 @@
                 }
                 setProgress('engine-current-phase-progress-bar', currentPhaseProgressValue);
 
-                // Conditionally display Brute-Force, GA, and Refinement sections
-                const bfColumn = document.getElementById('bf-column');
-                const gaSectionContainer = document.getElementById('ga-section-container');
-                const refinementSectionContainer = document.getElementById('refinement-section-container');
-                const otherPhasesColumnContainer = document.getElementById('other-phases-column-container'); // Get the new parent container
-                const gaRefinementHr = document.getElementById('ga-refinement-hr');
+                // --- Conditionally display phase-specific details ---
+                const bfDetailsSection = document.getElementById('bf-details-section');
+                const gaDetailsSection = document.getElementById('ga-details-section');
+                const refinementDetailsSection = document.getElementById('refinement-details-section');
 
-                if (data.engine_search_modes) {
-                    const usesBF = data.engine_search_modes.uses_brute_force;
-                    const usesGA = data.engine_search_modes.uses_ga;
-                    const usesRefinement = data.engine_search_modes.uses_refinement;
+                // Hide all phase-specific detail sections by default
+                bfDetailsSection.style.display = 'none';
+                gaDetailsSection.style.display = 'none';
+                refinementDetailsSection.style.display = 'none';
 
-                    bfColumn.style.display = usesBF ? 'block' : 'none';
-                    gaSectionContainer.style.display = usesGA ? 'block' : 'none';
-                    refinementSectionContainer.style.display = usesRefinement ? 'block' : 'none';
-                    
-                    // Control visibility of the "Other Phases" container and its HR
-                    if (usesGA || usesRefinement) {
-                        otherPhasesColumnContainer.style.display = 'block';
-                        gaRefinementHr.style.display = 'block';
-                        if (!usesGA || !usesRefinement) { // If only one of them is active, hide HR
-                            gaRefinementHr.style.display = 'none';
-                        }
-                    } else {
-                        otherPhasesColumnContainer.style.display = 'none';
-                        gaRefinementHr.style.display = 'none';
+                // Show details for the current active phase if that mode is enabled
+                if (data.engine_search_modes) { // Check if search mode info is available
+                    if (currentPhase.includes("brute-force") && data.engine_search_modes.uses_brute_force) {
+                        bfDetailsSection.style.display = 'block';
+                    } else if (currentPhase.includes("genetic algorithm") && data.engine_search_modes.uses_ga) {
+                        gaDetailsSection.style.display = 'block';
+                    } else if (currentPhase.includes("refinement") && data.engine_search_modes.uses_refinement) {
+                        refinementDetailsSection.style.display = 'block';
                     }
-                } else { // Default if flags not present yet
-                    bfColumn.style.display = 'none'; 
-                    otherPhasesColumnContainer.style.display = 'none'; // Hide the whole "Other Phases" section
                 }
+                // --- End of conditional display for phase-specific details ---
 
-                // Brute-Force Phase
+
+                // --- Populate data for each phase (these will only be visible if their parent section is displayed) ---
+                
+                // Brute-Force Phase (data is in overall_progress from Engine.py)
+                // The elements engine-bf-completed-sims, engine-bf-total-sims, etc.
+                // are now inside bf-details-section.
+                // The progress bar engine-bf-progress-bar is also inside.
+                // The setText and setProgress calls for these elements remain valid as their IDs haven't changed.
+
                 if (data.overall_progress) { // This key from Engine.py is for Brute-Force
                     const bf = data.overall_progress;
                     setText('engine-bf-completed-sims', bf.completed_actual_simulations_bf, '0');
@@ -376,7 +374,9 @@
                     setText('engine-bf-est-completion', formatDate(bf.estimated_completion_time_bf));
                 }
 
-                // GA Phase (Example: if Engine.py provides ga_progress object)
+                // GA Phase
+                // Elements engine-ga-status, engine-ga-details, and engine-ga-progress-bar
+                // are now inside ga-details-section.
                 if (data.ga_progress) {
                     const ga = data.ga_progress;
                     setText('engine-ga-status', ga.status || 'N/A');
@@ -405,7 +405,9 @@
                     // Potentially set GA progress bar to a low value if no specific percentage yet
                 }
 
-                // Refinement Phase (Example: if Engine.py provides refinement_progress object)
+                // Refinement Phase
+                // Elements engine-refinement-status, engine-refinement-details, and engine-refinement-progress-bar
+                // are now inside refinement-details-section.
                 if (data.refinement_progress) {
                     const refine = data.refinement_progress;
                     setText('engine-refinement-status', refine.status || 'N/A');

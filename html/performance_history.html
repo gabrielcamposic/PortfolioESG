@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine Performance History</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #333; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #007bff; }
+        nav a:hover { text-decoration: underline; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.85em; /* Slightly smaller font for more columns */
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px; /* Smaller padding */
+            text-align: left;
+            white-space: nowrap; /* Prevent line breaks in cells */
+        }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .table-container {
+            overflow-x: auto; /* Allow horizontal scrolling for wide tables */
+        }
+    </style>
+</head>
+<body>
+    <h1>Engine Performance History</h1>
+    <nav>
+        <a href="progress.html">View Live Progress</a>
+        <a href="results_history.html">View Run Results History</a>
+    </nav>
+
+    <h2>Logged Performance Metrics</h2>
+    <div class="table-container">
+        <table id="performanceTable">
+            <thead>
+                <tr>
+                    <th>Run Start Timestamp</th>
+                    <th>Engine Version</th>
+                    <th>Min Stocks</th>
+                    <th>Max Stocks</th>
+                    <th>Heuristic K</th>
+                    <th>Adaptive Enabled</th>
+                    <th>GA Pop Size</th>
+                    <th>GA Num Gens</th>
+                    <th>Sim Runs (Fixed)</th>
+                    <th>Initial Overall Est. End Time</th>
+                    <th>Actual Overall Duration</th>
+                    <th>Data Wrangling Duration</th>
+                    <th>BF Phase Duration (s)</th>
+                    <th>GA Phase Duration (s)</th>
+                    <th>Refinement Duration (s)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be populated here by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const CSV_PATH = 'data/engine_performance_log.csv'; // Path to the new performance log
+
+        function formatDate(dateString) {
+            if (!dateString || dateString === "N/A" || dateString.toLowerCase() === "calculating...") return dateString;
+            try {
+                const dateObj = new Date(dateString.includes(' ') ? dateString : dateString + 'T00:00:00Z');
+                if (isNaN(dateObj.getTime())) return dateString;
+
+                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+                const dayName = days[dateObj.getUTCDay()];
+                const dayOfMonth = String(dateObj.getUTCDate()).padStart(2, '0');
+                const monthName = months[dateObj.getUTCMonth()];
+                const year = String(dateObj.getUTCFullYear()).slice(-2);
+                const hours = String(dateObj.getUTCHours()).padStart(2, '0');
+                const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
+                return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        function formatDuration(durationString) {
+            if (!durationString || durationString === "N/A") return "N/A";
+            // Assuming durationString is already in "X days and HH:MM:SS" or "HH:MM:SS.micros"
+            // This function might need more robust parsing if formats vary widely
+            if (durationString.includes("day")) { // Already formatted with days
+                return durationString;
+            }
+            if (durationString.includes(':')) {
+                 const parts = durationString.split(':');
+                 if (parts.length === 3) {
+                    const secondsAndMs = parts[2].split('.');
+                    let totalSeconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(secondsAndMs[0]);
+                    const finalDays = Math.floor(totalSeconds / 86400);
+                    let remSec = totalSeconds % 86400;
+                    const finalHours = Math.floor(remSec / 3600); remSec %= 3600;
+                    const finalMinutes = Math.floor(remSec / 60); const finalSeconds = Math.floor(remSec % 60);
+                    return `${finalDays > 0 ? `${finalDays} day${finalDays > 1 ? 's' : ''} and ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
+                 }
+            }
+            return durationString; // Fallback
+        }
+        
+        function formatSecondsToHMS(secondsStr) {
+            if (!secondsStr || secondsStr === "N/A" || isNaN(parseFloat(secondsStr))) return "N/A";
+            let totalSeconds = parseFloat(secondsStr);
+            const finalDays = Math.floor(totalSeconds / 86400);
+            let remSec = totalSeconds % 86400;
+            const finalHours = Math.floor(remSec / 3600); remSec %= 3600;
+            const finalMinutes = Math.floor(remSec / 60); const finalSeconds = Math.floor(remSec % 60);
+            return `${finalDays > 0 ? `${finalDays}d ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
+        }
+
+
+        async function fetchAndDisplayPerformance() {
+            try {
+                const response = await fetch(CSV_PATH + '?t=' + new Date().getTime()); // Cache buster
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} while fetching ${CSV_PATH}`);
+                }
+                const csvText = await response.text();
+                const rows = csvText.trim().split('\n');
+                if (rows.length <= 1) { // Only header or empty
+                    populateTable([], []);
+                    return;
+                }
+
+                const headersLine = rows[0];
+                const headers = headersLine.split(',').map(h => h.trim());
+
+                const data = rows.slice(1).map(rowString => {
+                    let rowObject = {};
+                    const regex = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g;
+                    let values = [];
+                    let match;
+                    while (match = regex.exec(rowString)) {
+                        let value = match[1];
+                        if (value.startsWith('"') && value.endsWith('"')) {
+                            value = value.substring(1, value.length - 1).replace(/\"\"/g, '"');
+                        }
+                        values.push(value.trim());
+                    }
+                    headers.forEach((header, index) => {
+                        rowObject[header] = values[index] !== undefined ? values[index] : 'N/A';
+                    });
+                    return rowObject;
+                });
+
+                populateTable(data, headers);
+
+            } catch (error) {
+                console.error('Error fetching or parsing performance CSV:', error);
+                const tableBody = document.getElementById('performanceTable').getElementsByTagName('tbody')[0];
+                const colspan = document.getElementById('performanceTable').getElementsByTagName('thead')[0].rows[0].cells.length;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:red;">Error loading data: ${error.message}. Ensure '${CSV_PATH}' is accessible.</td></tr>`;
+            }
+        }
+
+        function populateTable(data, headers) {
+            const tableBody = document.getElementById('performanceTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            if (data.length === 0) {
+                const colspan = headers.length > 0 ? headers.length : 15;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No performance data found in CSV.</td></tr>`;
+                return;
+            }
+            
+            // Define which columns need special formatting
+            const dateColumns = ['run_start_timestamp', 'initial_overall_est_duration']; // initial_overall_est_duration is an end time
+            const durationColumns = ['actual_overall_duration', 'data_wrangling_duration'];
+            const secondsToHMSColumns = ['bf_phase_duration_seconds', 'ga_phase_duration_seconds', 'refinement_phase_duration_seconds'];
+
+
+            data.forEach(rowData => {
+                const tr = tableBody.insertRow();
+                headers.forEach(header => {
+                    const td = tr.insertCell();
+                    let cellValue = rowData[header.trim()] || 'N/A';
+                    
+                    if (dateColumns.includes(header.trim().toLowerCase())) {
+                        cellValue = formatDate(cellValue);
+                    } else if (durationColumns.includes(header.trim().toLowerCase())) {
+                        cellValue = formatDuration(cellValue);
+                    } else if (secondsToHMSColumns.includes(header.trim().toLowerCase())) {
+                        cellValue = formatSecondsToHMS(cellValue);
+                    }
+                    td.textContent = cellValue;
+                });
+            });
+        }
+
+        fetchAndDisplayPerformance();
+    </script>
+</body>
+</html>
