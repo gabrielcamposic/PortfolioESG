@@ -1405,6 +1405,19 @@ if missing_critical:
 
 overall_script_start_time = datetime.now()
 logger.log(f"🚀 Engine.py script started at: {overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+# Determine which search modes will be used based on parameters
+will_use_brute_force = any(k <= HEURISTIC_THRESHOLD_K for k in range(MIN_STOCKS, MAX_STOCKS + 1))
+will_use_ga = any(k > HEURISTIC_THRESHOLD_K for k in range(MIN_STOCKS, MAX_STOCKS + 1))
+# Refinement depends on BF results and adaptive settings
+will_use_refinement = ADAPTIVE_SIM_ENABLED and TOP_N_PERCENT_REFINEMENT > 0 and will_use_brute_force
+
+engine_search_modes_data = {
+    "uses_brute_force": will_use_brute_force,
+    "uses_ga": will_use_ga,
+    "uses_refinement": will_use_refinement
+}
+
 # Update web log with initial status for Engine.py
 engine_start_web_data = {
     "engine_script_start_time": overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -1412,6 +1425,7 @@ engine_start_web_data = {
     "engine_script_total_duration": "N/A", # Explicitly reset
     "estimated_completion_time": "Calculating...", # Initial overall estimate
     "current_engine_phase": "Initializing...", # Set initial phase
+    "engine_search_modes": engine_search_modes_data, # Add the search modes
     "overall_progress": { # Reset brute-force progress (BF phase)
         "completed_actual_simulations_bf": 0,
         "total_expected_actual_simulations_bf": 0,
