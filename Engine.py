@@ -16,7 +16,7 @@ import math
 import shutil # Add this import
 
 # --- Engine Version ---
-ENGINE_VERSION = "1.2.1" # Patched GA progress initialization for web log
+ENGINE_VERSION = "1.3.1" # Added more GA parameters to fitness/noise log
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -212,6 +212,8 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "heuristic_threshold_k": int, # Added: Threshold for switching to heuristic
         "results_log_csv_path": str, # Added: Path for results CSV log
         "web_accessible_data_folder": str, # Added: Path for web-accessible data
+        "performance_log_csv_path": str, # Added: Path for performance CSV log
+        "ga_fitness_noise_log_path": str, # Added: Path for GA fitness/noise CSV log
     }
 
     try:
@@ -1165,7 +1167,41 @@ def run_genetic_algorithm(
             "total_generations_ga": NUM_GENERATIONS,
             "best_sharpe_this_k": "N/A"
         })
-    return None, None, -float("inf"), None, None, None, None 
+    
+    # --- Log GA Fitness/Noise Data for this k ---
+    # This log happens *after* the GA finishes for a specific k
+    ga_fitness_noise_filepath = sim_params.get("ga_fitness_noise_log_path")
+    if ga_fitness_noise_filepath:
+        try:
+            data_to_log = {
+                'run_start_timestamp': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')], # Timestamp for this log entry
+                'engine_version': [ENGINE_VERSION],
+                'k_size': [num_stocks_in_combo],
+                'sim_runs_used_for_ga': [num_simulation_runs], # The SIM_RUNS value used for individuals
+                'ga_pop_size': [POPULATION_SIZE],
+                'ga_num_generations': [NUM_GENERATIONS],
+                'ga_mutation_rate': [sim_params.get("ga_mutation_rate", 0.01)], # Add mutation rate
+                'ga_crossover_rate': [sim_params.get("ga_crossover_rate", 0.7)], # Add crossover rate
+                'ga_elitism_count': [sim_params.get("ga_elitism_count", 2)], # Add elitism count
+                'ga_tournament_size': [sim_params.get("ga_tournament_size", 3)], # Add tournament size
+                'ga_convergence_generations': [sim_params.get("ga_convergence_generations", 10)], # Add convergence generations
+                'ga_convergence_tolerance': [sim_params.get("ga_convergence_tolerance", 0.0001)], # Add convergence tolerance
+                'best_sharpe_found_for_k': [round(best_sharpe_overall_ga, 4) if best_sharpe_overall_ga != -float("inf") else np.nan],
+                # Add other relevant GA params if needed for analysis
+            }
+            fitness_noise_df = pd.DataFrame(data_to_log)
+            os.makedirs(os.path.dirname(ga_fitness_noise_filepath), exist_ok=True)
+            file_exists = os.path.isfile(ga_fitness_noise_filepath)
+            fitness_noise_df.to_csv(ga_fitness_noise_filepath, mode='a', header=not file_exists, index=False)
+            logger_instance.log(f"✅ GA fitness/noise data logged for k={num_stocks_in_combo} to: {ga_fitness_noise_filepath}")
+
+        except Exception as e:
+            logger_instance.log(f"❌ Error logging GA fitness/noise data for k={num_stocks_in_combo} to {ga_fitness_noise_filepath}: {e}")
+
+    # Return the best found for this k (even if it was -inf)
+    return (best_combo_overall_ga, best_weights_overall_ga, best_sharpe_overall_ga,
+                best_final_val_overall_ga, best_roi_overall_ga, best_exp_ret_overall_ga,
+                best_vol_overall_ga)
 
 # --- GA Helper Functions (Stubs) ---
 
@@ -1358,6 +1394,7 @@ PORTFOLIO_FOLDER = sim_params.get("portfolio_folder") # Retain if benchmark port
 LOG_FILE_PATH_PARAM = sim_params.get("log_file_path")
 WEB_LOG_PATH_PARAM = sim_params.get("web_log_path")
 RESULTS_LOG_CSV_PATH = sim_params.get("results_log_csv_path") # Load the new path
+GA_FITNESS_NOISE_LOG_PATH = sim_params.get("ga_fitness_noise_log_path") # Load GA fitness/noise log path
 WEB_ACCESSIBLE_DATA_FOLDER = sim_params.get("web_accessible_data_folder") # Load web data folder path
 
 # Step 5: Update logger paths if they were defined in sim_params and are different
@@ -1716,6 +1753,27 @@ def log_engine_performance_summary(
     except Exception as e:
         logger_instance.log(f"❌ Error logging engine performance summary to {performance_filepath}: {e}")
 
+# --- Function to copy GA Fitness/Noise log to web accessible location ---
+def copy_ga_fitness_noise_log_to_web_accessible_location(source_csv_path, logger_instance):
+    if not source_csv_path or not os.path.exists(source_csv_path):
+        logger_instance.log(f"Warning: Source GA fitness/noise log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
+        return
+
+    try:
+        web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
+        if not web_data_dir:
+            logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy GA fitness/noise log to web directory.")
+            return
+
+        if not os.path.exists(web_data_dir): # Ensure the directory exists
+            os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
+            logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
+
+        destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
+        shutil.copy2(source_csv_path, destination_csv_path)
+        logger_instance.log(f"✅ Copied GA fitness/noise log to web-accessible location: {destination_csv_path}")
+    except Exception as e:
+        logger_instance.log(f"❌ Error copying GA fitness/noise log to web directory: {e}")
 
 # --- Function to copy results log to web accessible location ---
 def copy_results_log_to_web_accessible_location(source_csv_path, logger_instance):
@@ -1742,6 +1800,10 @@ def copy_results_log_to_web_accessible_location(source_csv_path, logger_instance
 # After logging to the primary CSV, copy it if the path was set
 if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
     copy_results_log_to_web_accessible_location(RESULTS_LOG_CSV_PATH, logger)
+
+# After logging GA fitness/noise data, copy it if the path was set
+if GA_FITNESS_NOISE_LOG_PATH:
+    copy_ga_fitness_noise_log_to_web_accessible_location(GA_FITNESS_NOISE_LOG_PATH, logger)
 
 overall_script_end_time = datetime.now()
 total_script_duration = overall_script_end_time - overall_script_start_time

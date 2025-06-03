@@ -17,7 +17,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry 
 
 # --- Script Version ---
-DOWNLOAD_PY_VERSION = "1.0.0" # Initial version
+DOWNLOAD_PY_VERSION = "1.1.0" # Removed unreliable public proxy fetching
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -49,7 +49,6 @@ FALLBACK_USER_AGENTS = [
 ]
 USER_AGENTS = FALLBACK_USER_AGENTS # Initialize with fallback
 ua = None # For fake_useragent instance
-PROXIES_LIST = [] # Initialize
 
 # ----------------------------------------------------------- #
 #                           Classes                           #
@@ -151,9 +150,7 @@ def load_download_parameters(filepath, logger_instance=None):
         "tickers_list_file": str,
         "download_log_file": str,
         "progress_json_file": str,
-        # Optional proxy/user-agent params
-        "fetch_proxies_enabled": bool,
-        "proxy_fetch_limit": int,
+        # Optional user-agent params
         "dynamic_user_agents_enabled": bool # Not used yet, but good to have
     }
 
@@ -261,80 +258,8 @@ def fetch_dynamic_user_agents():
         logger.log(f"⚠️ Failed to fetch dynamic user agents: {e}")
         return None
 
-# Function to fetch proxies using proxybroker
-# def fetch_proxies(limit=10):
-#     proxies = []
-#     for _ in range(limit):
-#         try:
-#             proxy = FreeProxy().get()
-#             proxies.append({
-#                 "http": proxy,
-#                 "https": proxy
-#             })
-#         except Exception as e:
-#             logger.log(f"⚠️ Failed to fetch proxy: {e}")
-#     logger.log(f"✅ Successfully fetched {len(proxies)} proxies using free-proxy.")
-#     return proxies
-
-def fetch_proxies_from_public_list(limit=10):
-    if DEBUG_MODE:
-        logger.log(f"DEBUG: Attempting to fetch proxies from public list (limit: {limit}).")
-    proxies = []
-    try:
-        response = requests.get("https://www.proxyscan.io/api/proxy?limit=20&type=http,https")
-        response.raise_for_status()
-        data = response.json()
-        for proxy in data[:limit]:
-            ip = proxy.get("Ip")
-            port = proxy.get("Port")
-            if ip and port:
-                proxies.append({
-                    "http": f"http://{ip}:{port}",
-                    "https": f"https://{ip}:{port}"
-                })
-        if DEBUG_MODE:
-            logger.log(f"DEBUG: Fetched {len(proxies)} proxies from public list.")
-    except Exception as e:
-        if DEBUG_MODE:
-            logger.log(f"DEBUG: Error fetching proxies from public list: {e}")
-        logger.log(f"⚠️ Failed to fetch proxies from public list: {e}")
-    return proxies  # Return an empty list if fetching fails
-def fetch_combined_proxy_list(limit=20):
-    proxies = []
-    try:
-        # Source 1: proxyscrape.com
-        response1 = requests.get("https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=1000&country=all&ssl=all&anonymity=all")
-        if response1.ok:
-            for line in response1.text.strip().split("\n"):
-                if ":" in line:
-                    proxies.append({
-                        "http": f"http://{line}",
-                        "https": f"https://{line}"
-                    })
-
-        # Source 2: proxyscan.io
-        response2 = requests.get("https://www.proxyscan.io/api/proxy?limit=20&type=http,https")
-        if response2.ok:
-            for proxy in response2.json():
-                ip = proxy.get("Ip")
-                port = proxy.get("Port")
-                if ip and port:
-                    proxies.append({
-                        "http": f"http://{ip}:{port}",
-                        "https": f"https://{ip}:{port}"
-                    })
-
-        if DEBUG_MODE:
-            logger.log(f"DEBUG: Fetched a total of {len(proxies)} proxies from combined sources before limit.")
-    except Exception as e:
-        if DEBUG_MODE:
-            logger.log(f"DEBUG: Error fetching combined proxy list: {e}")
-        logger.log(f"⚠️ Error fetching proxies from one or more sources: {e}")
-
-    return proxies[:limit] # Apply limit after fetching
-
 # Function to rotate User-Agent and Proxy
-def rotate_user_agent_and_proxy(session, user_agents, proxies):
+def rotate_user_agent(session, user_agents):
     if user_agents:
         random_user_agent = random.choice(user_agents)
         session.headers.update({"User-Agent": random_user_agent})
@@ -343,12 +268,6 @@ def rotate_user_agent_and_proxy(session, user_agents, proxies):
     else:
         if DEBUG_MODE:
             logger.log("DEBUG: No user agents available for rotation.")
-
-    if proxies:
-        random_proxy = random.choice(proxies)
-        session.proxies.update(random_proxy)
-        if DEBUG_MODE:
-            logger.log(f"DEBUG: Rotated Proxy: {random_proxy}")
 
 def get_previous_business_day():
     today = datetime.today()
@@ -734,8 +653,8 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
 
         # Step 2: Fetch missing data
         if DEBUG_MODE:
-            logger.log(f"DEBUG: Rotating user agent and proxy for {ticker_to_process}.")
-        rotate_user_agent_and_proxy(session, USER_AGENTS, PROXIES_LIST)
+            logger.log(f"DEBUG: Rotating user agent for {ticker_to_process}.")
+        rotate_user_agent(session, USER_AGENTS) # Only rotate user agent now
         end_date_for_download = max(confirmed_missing_dates) + timedelta(days=1)
         download_start_date_str = min(confirmed_missing_dates).strftime('%Y-%m-%d')
         download_end_date_str = end_date_for_download.strftime('%Y-%m-%d')
@@ -969,31 +888,6 @@ except Exception as e:
         logger.update_web_log("download_overall_status", "Initializing (UserAgent Fallback)...")
         logger.log(f"DEBUG: Failed to init UserAgent or generate dynamic agents: {e}. Using fallback.")
     logger.log(f"⚠️ Failed to generate dynamic user agents. Using fallback list. Reason: {e}")
-
-if not USER_AGENTS:
-    if DEBUG_MODE:
-        logger.log("DEBUG: USER_AGENTS list is empty even after fallback. This should not happen if FALLBACK_USER_AGENTS is populated.")
-    logger.log("⚠️ No user agents available. Falling back to default behavior.")
-
-# Fetch proxies if enabled in parameters
-FETCH_PROXIES_ENABLED = params.get("fetch_proxies_enabled", False) # Default to false
-PROXY_FETCH_LIMIT = params.get("proxy_fetch_limit", 10)
-if DEBUG_MODE:
-    logger.update_web_log("download_overall_status", "Initializing (Proxy Check)...")
-    logger.log(f"DEBUG: FETCH_PROXIES_ENABLED = {FETCH_PROXIES_ENABLED}, PROXY_FETCH_LIMIT = {PROXY_FETCH_LIMIT}")
-
-if FETCH_PROXIES_ENABLED:
-    if DEBUG_MODE:
-        logger.log("DEBUG: Fetching proxies as FETCH_PROXIES_ENABLED is True.")
-    PROXIES_LIST = fetch_combined_proxy_list(limit=PROXY_FETCH_LIMIT)
-    if PROXIES_LIST:
-        logger.log(f"✅ Loaded {len(PROXIES_LIST)} proxies from multiple sources.")
-    else:
-        logger.log("⚠️ Proxy fetching enabled, but no proxies were loaded. Proceeding without proxies.")
-else:
-    if DEBUG_MODE:
-        logger.log("DEBUG: FETCH_PROXIES_ENABLED is False. Skipping proxy fetching.")
-    logger.log("⚠️ No proxies available. Proceeding without proxies.")
 
 # Create a session
 session = requests.Session()

@@ -18,7 +18,6 @@ download_log_file = ~/Documents/Prog/PortfolioESG_Prod/Logs/Ticker_download.log
 # Full path for the web-accessible progress JSON file (can be same as Engine's or different)
 progress_json_file = ~/Documents/Prog/PortfolioESG_public/html/progress.json
 
-# --- Optional: Proxy and User-Agent settings (if you want to configure them here) ---
-# fetch_proxies_enabled = true
-# proxy_fetch_limit = 10
-# dynamic_user_agents_enabled = true
+# --- Optional User-Agent Settings ---
+# Enable dynamic user agent generation (true/false) - Currently uses fake-useragent library
+dynamic_user_agents_enabled = true
