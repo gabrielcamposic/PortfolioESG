@@ -1,4 +1,4 @@
-your# Download Script Parameters for PortfolioESG
+# Download Script Parameters for PortfolioESG
 
 # --- General Settings ---
 # Enable extensive debug logging (true/false)
