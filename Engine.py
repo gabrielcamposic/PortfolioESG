@@ -16,7 +16,7 @@ import math
 import shutil # Add this import
 
 # --- Engine Version ---
-ENGINE_VERSION = "1.3.1" # Added more GA parameters to fitness/noise log
+ENGINE_VERSION = "1.4.0" # Added portfolio value history logging & run_id
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -215,6 +215,9 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "performance_log_csv_path": str, # Added: Path for performance CSV log
         "ga_fitness_noise_log_path": str, # Added: Path for GA fitness/noise CSV log
     }
+
+    # Add the new parameter for portfolio value history
+    expected_types["portfolio_value_history_csv_path"] = str
 
     try:
         with open(filepath, 'r') as f:
@@ -1396,6 +1399,7 @@ WEB_LOG_PATH_PARAM = sim_params.get("web_log_path")
 RESULTS_LOG_CSV_PATH = sim_params.get("results_log_csv_path") # Load the new path
 GA_FITNESS_NOISE_LOG_PATH = sim_params.get("ga_fitness_noise_log_path") # Load GA fitness/noise log path
 WEB_ACCESSIBLE_DATA_FOLDER = sim_params.get("web_accessible_data_folder") # Load web data folder path
+PORTFOLIO_VALUE_HISTORY_CSV_PATH = sim_params.get("portfolio_value_history_csv_path") # Load the new path
 
 # Step 5: Update logger paths if they were defined in sim_params and are different
 if LOG_FILE_PATH_PARAM and LOG_FILE_PATH_PARAM != logger.log_path:
@@ -1432,7 +1436,8 @@ critical_params_to_check = {
     "RF_RATE": RF_RATE,
     "HEURISTIC_THRESHOLD_K": HEURISTIC_THRESHOLD_K, # Add to critical check
     "ESG_STOCKS_LIST": ESG_STOCKS_LIST # Add if this list must not be empty
-}
+    # PORTFOLIO_VALUE_HISTORY_CSV_PATH is not strictly critical for the engine to run,
+} # but it is critical for the new feature. We'll check its presence before using it.
 missing_critical = [name for name, val in critical_params_to_check.items() if val is None]
 if missing_critical:
     logger.log(f"CRITICAL ERROR: Missing critical parameters from '{PARAMETERS_FILE_PATH}': {', '.join(missing_critical)}. Exiting.")
@@ -1442,6 +1447,7 @@ if missing_critical:
 
 overall_script_start_time = datetime.now()
 logger.log(f"🚀 Engine.py script started at: {overall_script_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+run_id = overall_script_start_time.strftime('%Y%m%d_%H%M%S') # Generate unique run ID
 
 # Determine which search modes will be used based on parameters
 will_use_brute_force = any(k <= HEURISTIC_THRESHOLD_K for k in range(MIN_STOCKS, MAX_STOCKS + 1))
@@ -1461,6 +1467,7 @@ engine_start_web_data = {
     "engine_script_end_time": "N/A",  # Explicitly reset
     "engine_script_total_duration": "N/A", # Explicitly reset
     "estimated_completion_time": "Calculating...", # Initial overall estimate
+    "current_run_id": run_id, # Add current run ID
     "current_engine_phase": "Initializing...", # Set initial phase
     "engine_search_modes": engine_search_modes_data, # Add the search modes
     "overall_progress": { # Reset brute-force progress (BF phase)
@@ -1606,7 +1613,8 @@ def log_optimal_portfolio_results_to_csv(
     expected_annual_volatility_decimal_val,
     final_portfolio_value,
     roi_percent_val,
-    engine_version_str, 
+    engine_version_str,
+    run_id_str, # Add run_id_str parameter
     initial_investment_val,
     logger_instance 
 ):
@@ -1642,6 +1650,7 @@ def log_optimal_portfolio_results_to_csv(
         logger_instance.log(f"DEBUG: Preparing data for CSV logging.") 
         data = {
             'generation_timestamp': [generation_timestamp_dt.strftime('%Y-%m-%d %H:%M:%S')],
+            'run_id': [run_id_str], # Add the run_id here
             'engine_version': [engine_version_str],
             'min_target_stocks': [min_target_stocks], 'max_target_stocks': [max_target_stocks],
             'data_start_date': [data_start_date_dt.strftime('%Y-%m-%d') if data_start_date_dt else 'N/A'],
@@ -1687,6 +1696,7 @@ if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
         best_final_value,
         best_roi,
         ENGINE_VERSION, # Pass the global engine version
+        run_id,         # Pass the run_id here
         INITIAL_INVESTMENT,
         logger
     )
@@ -1700,6 +1710,40 @@ section_duration = section_end_time - section_start_time
 logger.log(f"--- Search for Best Stock Combination finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
 logger.update_web_log("stock_combination_search_end", section_end_time.strftime('%Y-%m-%d %H:%M:%S'))
 logger.update_web_log("stock_combination_search_duration", str(section_duration))
+
+# --- Log Portfolio Value History ---
+if PORTFOLIO_VALUE_HISTORY_CSV_PATH and best_portfolio_stocks and best_weights is not None:
+    logger.log(f"\n--- Logging Portfolio Value History for Run {run_id} ---")
+    logger.update_web_log("current_engine_phase", "Logging Portfolio History") # Update phase
+    try:
+        # Get the relevant price data for the best portfolio stocks
+        # StockClose_df is already filtered to the universe of stocks considered
+        # Ensure it's a copy to avoid SettingWithCopyWarning if portfolio_price_df is modified later
+        portfolio_price_df = StockClose_df[['Date'] + best_portfolio_stocks].copy()
+
+        # Calculate historical portfolio value using the best weights
+        # The asset_allocation function expects weights as a list or 1D numpy array
+        portfolio_value_df = asset_allocation(portfolio_price_df, best_weights, INITIAL_INVESTMENT, logger)
+
+        if not portfolio_value_df.empty:
+            # Prepare data for the new CSV
+            history_data = portfolio_value_df[['Date', 'Portfolio Value [$]']].copy()
+            history_data.rename(columns={'Portfolio Value [$]': 'PortfolioValue'}, inplace=True)
+            history_data['RunID'] = run_id # Add the unique run ID
+            # Reorder columns for clarity
+            history_data = history_data[['RunID', 'Date', 'PortfolioValue']]
+
+            # Append to the new CSV
+            os.makedirs(os.path.dirname(PORTFOLIO_VALUE_HISTORY_CSV_PATH), exist_ok=True)
+            file_exists = os.path.isfile(PORTFOLIO_VALUE_HISTORY_CSV_PATH)
+            history_data.to_csv(PORTFOLIO_VALUE_HISTORY_CSV_PATH, mode='a', header=not file_exists, index=False)
+            logger.log(f"✅ Portfolio value history logged for run {run_id} to: {PORTFOLIO_VALUE_HISTORY_CSV_PATH}")
+
+            # The copy_log_to_web_accessible_location function will be called later for this file
+        else:
+            logger.log(f"Warning: Could not calculate portfolio value history for run {run_id}. Portfolio value DataFrame is empty.")
+    except Exception as e:
+        logger.log(f"❌ Error logging portfolio value history for run {run_id}: {e}")
 
 # --- Define these variables in the global scope before calling the summary function ---
 initial_estimated_duration_from_log = logger.web_data.get("estimated_completion_time", "N/A") # This is a timestamp
@@ -1721,6 +1765,7 @@ def log_engine_performance_summary(
     try:
         data_to_log = {
             'run_start_timestamp': [run_start_dt.strftime('%Y-%m-%d %H:%M:%S')],
+            'run_id': [run_id], # Add run_id to performance log
             'engine_version': [engine_ver],
             'min_stocks': [params_dict.get("min_stocks")],
             'max_stocks': [params_dict.get("max_stocks")],
@@ -1775,6 +1820,29 @@ def copy_ga_fitness_noise_log_to_web_accessible_location(source_csv_path, logger
     except Exception as e:
         logger_instance.log(f"❌ Error copying GA fitness/noise log to web directory: {e}")
 
+# --- Function to copy Portfolio Value History log to web accessible location ---
+def copy_portfolio_value_history_log_to_web_accessible_location(source_csv_path, logger_instance):
+    if not source_csv_path or not os.path.exists(source_csv_path):
+        logger_instance.log(f"Warning: Source Portfolio Value History log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
+        return
+
+    try:
+        web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
+        if not web_data_dir:
+            logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy Portfolio Value History log to web directory.")
+            return
+
+        if not os.path.exists(web_data_dir): # Ensure the directory exists
+            os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
+            logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
+
+        destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
+        shutil.copy2(source_csv_path, destination_csv_path)
+        logger_instance.log(f"✅ Copied Portfolio Value History log to web-accessible location: {destination_csv_path}")
+    except Exception as e:
+        logger_instance.log(f"❌ Error copying Portfolio Value History log to web directory: {e}")
+
+
 # --- Function to copy results log to web accessible location ---
 def copy_results_log_to_web_accessible_location(source_csv_path, logger_instance):
     if not source_csv_path or not os.path.exists(source_csv_path):
@@ -1804,6 +1872,11 @@ if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
 # After logging GA fitness/noise data, copy it if the path was set
 if GA_FITNESS_NOISE_LOG_PATH:
     copy_ga_fitness_noise_log_to_web_accessible_location(GA_FITNESS_NOISE_LOG_PATH, logger)
+
+overall_script_end_time = datetime.now()
+# After logging portfolio value history, copy it if the path was set
+if PORTFOLIO_VALUE_HISTORY_CSV_PATH and os.path.exists(PORTFOLIO_VALUE_HISTORY_CSV_PATH): # Check if file was created
+    copy_portfolio_value_history_log_to_web_accessible_location(PORTFOLIO_VALUE_HISTORY_CSV_PATH, logger)
 
 overall_script_end_time = datetime.now()
 total_script_duration = overall_script_end_time - overall_script_start_time

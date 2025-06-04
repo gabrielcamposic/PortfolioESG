@@ -77,4 +77,5 @@ web_log_path=~/Documents/Prog/PortfolioESG_public/html/progress.json
 results_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_results_log.csv
 performance_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_performance_log.csv
 ga_fitness_noise_log_path = ~/Documents/Prog/PortfolioESG_Data/Results/ga_fitness_noise_log.csv
+portfolio_value_history_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/portfolio_value_history.csv
 web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/

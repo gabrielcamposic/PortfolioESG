@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Engine Run History</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script> <!-- Added PapaParse for easier CSV parsing -->
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1, h2 { color: #333; }
@@ -40,15 +41,26 @@
         <a href="download_performance_history.html">View Download Performance</a>
     </nav>
 
+    <h2>Best Portfolio Details (Last 12 Months)</h2>
+    <div id="bestPortfolioDetails" style="margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9;">
+        <p>Loading best portfolio details...</p>
+    </div>
+
     <div class="chart-container">
-        <h2>Sharpe Ratio Over Time</h2>
+        <h2>Sharpe Ratio & Final Value (Last 12 Months)</h2>
         <canvas id="sharpeRatioChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>Portfolio Historical Values (Last 12 Months)</h2>
+        <canvas id="multiPortfolioHistoryChart"></canvas>
     </div>
 
     <h2>Logged Portfolio Results</h2>
     <table id="resultsTable">
         <thead>
             <tr>
+                <th>Run ID</th> 
                 <th>Timestamp</th>
                 <th>Engine Version</th>
                 <th>Min Stocks</th>
@@ -67,12 +79,16 @@
             </tr>
         </thead>
         <tbody>
-            <!-- Data will be populated here by JavaScript -->
+            <tr><td colspan="16" style="text-align: center;">Loading results...</td></tr>
         </tbody>
     </table>
 
     <script>
-        const CSV_PATH = 'data/engine_results_log.csv'; // Adjust if your CSV is elsewhere
+        const SUMMARY_CSV_PATH = 'data/engine_results_log.csv';
+        const HISTORY_CSV_PATH = 'data/portfolio_value_history.csv';
+
+        let sharpeRatioChartInstance = null;
+        let multiPortfolioHistoryChartInstance = null;
 
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A") return "N/A";
@@ -97,61 +113,112 @@
             }
         }
 
-        async function fetchAndDisplayResults() {
-            try {
-                const response = await fetch(CSV_PATH + '?t=' + new Date().getTime()); // Cache buster
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status} while fetching ${CSV_PATH}`);
-                }
-                const csvText = await response.text();
-                const rows = csvText.trim().split('\n');
-                const headersLine = rows[0];
-                // Headers are usually simple, so a basic split is often okay.
-                // If headers could also be complex/quoted, this would need the same regex logic.
-                const headers = headersLine.split(',').map(h => h.trim());
-
-                const data = rows.slice(1).map(rowString => {
-                    let rowObject = {};
-                    const regex = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g; // CSV field parsing regex
-                    let values = [];
-                    let match;
-
-                    // Use regex to extract values, respecting quotes
-                    while (match = regex.exec(rowString)) {
-                        let value = match[1]; // The captured group contains the field
-                        // Remove surrounding quotes if present and unescape double quotes "" to "
-                        if (value.startsWith('"') && value.endsWith('"')) {
-                            value = value.substring(1, value.length - 1).replace(/\"\"/g, '"');
+        // Helper to parse CSV text using PapaParse
+        function parseCsvWithPapaParse(csvText) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    dynamicTyping: false, // Keep as string initially, parse numbers explicitly later
+                    complete: (results) => {
+                        if (results.errors.length) {
+                            reject(results.errors);
+                        } else {
+                            resolve(results.data);
                         }
-                        values.push(value.trim());
-                    }
-
-                    headers.forEach((header, index) => {
-                        rowObject[header] = values[index] !== undefined ? values[index] : 'N/A';
-                    });
-                    return rowObject;
+                    },
+                    error: (error) => reject(error)
                 });
+            });
+        }
 
-                populateTable(data, headers);
-                renderChart(data);
+        // Parses a flexible date string into a Date object
+        function parseFlexibleDate(dateString) {
+            if (!dateString || dateString === "N/A") return null;
+            // Attempt direct parsing (handles ISO formats and some others)
+            let date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+            // Add more specific parsers if needed for formats like 'DD/MM/YYYY HH:MM:SS'
+            console.warn(`Could not parse date: ${dateString}`);
+            return null;
+        }
+
+
+        async function main() {
+            try {
+                const [summaryResponse, historyResponse] = await Promise.all([
+                    fetch(SUMMARY_CSV_PATH + '?t=' + new Date().getTime()),
+                    fetch(HISTORY_CSV_PATH + '?t=' + new Date().getTime())
+                ]);
+
+                if (!summaryResponse.ok) throw new Error(`HTTP error! status: ${summaryResponse.status} while fetching ${SUMMARY_CSV_PATH}`);
+                if (!historyResponse.ok) throw new Error(`HTTP error! status: ${historyResponse.status} while fetching ${HISTORY_CSV_PATH}`);
+
+                const summaryCsvText = await summaryResponse.text();
+                const historyCsvText = await historyResponse.text();
+
+                const allSummaryData = await parseCsvWithPapaParse(summaryCsvText);
+                const allPortfolioHistoryData = await parseCsvWithPapaParse(historyCsvText);
+
+                // Filter summary data for the last 12 months
+                const twelveMonthsAgo = new Date();
+                twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1);
+                twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+                const filteredSummaryData = allSummaryData.filter(row => {
+                    const timestamp = parseFlexibleDate(row.generation_timestamp);
+                    return timestamp && timestamp >= twelveMonthsAgo;
+                }).sort((a,b) => parseFlexibleDate(a.generation_timestamp) - parseFlexibleDate(b.generation_timestamp)); // Sort by date
+
+                // Populate table with filtered summary data
+                // Assuming headers are consistent, get them from the first row if data exists
+                const summaryHeaders = filteredSummaryData.length > 0 ? Object.keys(filteredSummaryData[0]) : [
+                    "run_id", "generation_timestamp", "engine_version", "min_target_stocks", "max_target_stocks",
+                    "data_start_date", "data_end_date", "stock_pool_considered", "optimal_stocks",
+                    "optimal_weights", "sharpe_ratio", "expected_annual_return_pct",
+                    "expected_annual_volatility_pct", "final_value", "roi_pct", "initial_investment"
+                ]; // Provide default headers if no data
+                populateTable(filteredSummaryData, summaryHeaders);
+
+                // Render existing Sharpe/Final Value chart with filtered summary data
+                renderSharpeAndFinalValueChart(filteredSummaryData);
+
+                // Identify and display best portfolio details
+                const bestPortfolio = findBestPortfolio(filteredSummaryData);
+                displayBestPortfolioDetails(bestPortfolio);
+
+                // Render new multi-portfolio history chart
+                renderMultiPortfolioHistoryChart(filteredSummaryData, allPortfolioHistoryData);
 
             } catch (error) {
                 console.error('Error fetching or parsing CSV:', error);
                 const tableBody = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
-                tableBody.innerHTML = `<tr><td colspan="${(headers && headers.length > 0) ? headers.length : 15}" style="text-align:center; color:red;">Error loading data: ${error.message}. Ensure '${CSV_PATH}' is accessible.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="16" style="text-align:center; color:red;">Error loading data: ${error.message}.</td></tr>`;
+                document.getElementById('bestPortfolioDetails').innerHTML = `<p style="color:red;">Error loading best portfolio details: ${error.message}</p>`;
             }
         }
 
-        function populateTable(data, headers) {
+        function findBestPortfolio(summaryData) {
+            if (!summaryData || summaryData.length === 0) return null;
+            return summaryData.reduce((best, current) => {
+                const currentSharpe = parseFloat(current.sharpe_ratio);
+                const bestSharpe = best ? parseFloat(best.sharpe_ratio) : -Infinity;
+                return (!isNaN(currentSharpe) && currentSharpe > bestSharpe) ? current : best;
+            }, null);
+        }
+
+        function populateTable(summaryData, headers) {
             const tableBody = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
             tableBody.innerHTML = ''; // Clear existing rows
 
-            if (data.length === 0) {
+            if (summaryData.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No data found in CSV.</td></tr>`;
                 return;
             }
 
-            data.forEach(rowData => {
+            summaryData.forEach(rowData => {
                 const tr = tableBody.insertRow();
                 headers.forEach(header => {
                     const td = tr.insertCell();
@@ -164,15 +231,38 @@
             });
         }
 
-        function renderChart(data) {
-            if (data.length === 0) return;
+        function displayBestPortfolioDetails(portfolio) {
+            const detailsDiv = document.getElementById('bestPortfolioDetails');
+            if (!portfolio) {
+                detailsDiv.innerHTML = '<p>No portfolio data available for the last 12 months to determine the best.</p>';
+                return;
+            }
+            detailsDiv.innerHTML = `
+                <p><strong>Run ID:</strong> ${portfolio.run_id || 'N/A'}</p>
+                <p><strong>Generated:</strong> ${formatDate(portfolio.generation_timestamp)}</p>
+                <p><strong>Sharpe Ratio:</strong> ${parseFloat(portfolio.sharpe_ratio).toFixed(4) || 'N/A'}</p>
+                <p><strong>Optimal Stocks:</strong> ${portfolio.optimal_stocks || 'N/A'}</p>
+                <p><strong>Optimal Weights:</strong> ${portfolio.optimal_weights || 'N/A'}</p>
+                <p><strong>Expected Annual Return:</strong> ${parseFloat(portfolio.expected_annual_return_pct).toFixed(2) || 'N/A'}%</p>
+                <p><strong>Expected Annual Volatility:</strong> ${parseFloat(portfolio.expected_annual_volatility_pct).toFixed(2) || 'N/A'}%</p>
+                <p><strong>Final Value:</strong> $${parseFloat(portfolio.final_value).toFixed(2) || 'N/A'}</p>
+                <p><strong>ROI:</strong> ${parseFloat(portfolio.roi_pct).toFixed(2) || 'N/A'}%</p>
+                <p><strong>Initial Investment:</strong> $${parseFloat(portfolio.initial_investment).toFixed(2) || 'N/A'}</p>
+            `;
+        }
 
-            const timestamps = data.map(row => formatDate(row.generation_timestamp));
-            const sharpeRatios = data.map(row => parseFloat(row.sharpe_ratio));
-            const finalValues = data.map(row => parseFloat(row.final_value)); // Extract final values
+        function renderSharpeAndFinalValueChart(summaryData) {
+            if (sharpeRatioChartInstance) {
+                sharpeRatioChartInstance.destroy();
+            }
+            if (summaryData.length === 0) return;
 
+            const timestamps = summaryData.map(row => parseFlexibleDate(row.generation_timestamp)); // Use actual Date objects
+            const sharpeRatios = summaryData.map(row => parseFloat(row.sharpe_ratio));
+            const finalValues = summaryData.map(row => parseFloat(row.final_value));
+            
             const ctx = document.getElementById('sharpeRatioChart').getContext('2d');
-            new Chart(ctx, {
+            sharpeRatioChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: timestamps,
@@ -194,7 +284,15 @@
                 },
                 options: {
                     scales: {
-                        x: { title: { display: true, text: 'Generation Timestamp' } },
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                tooltipFormat: 'MMM dd, yyyy HH:mm',
+                                displayFormats: { day: 'MMM dd, yy' }
+                            },
+                            title: { display: true, text: 'Generation Timestamp' }
+                        },
                         ySharpe: { // Configuration for the primary y-axis (Sharpe Ratio)
                             type: 'linear',
                             display: true,
@@ -215,7 +313,74 @@
             });
         }
 
-        fetchAndDisplayResults();
+        function renderMultiPortfolioHistoryChart(filteredSummaryData, allPortfolioHistoryData) {
+            if (multiPortfolioHistoryChartInstance) {
+                multiPortfolioHistoryChartInstance.destroy();
+            }
+            if (!filteredSummaryData.length || !allPortfolioHistoryData.length) {
+                document.getElementById('multiPortfolioHistoryChart').style.display = 'none'; // Hide if no data
+                return;
+            }
+            document.getElementById('multiPortfolioHistoryChart').style.display = 'block';
+
+            const recentRunIds = new Set(filteredSummaryData.map(row => row.run_id));
+            const relevantHistory = allPortfolioHistoryData.filter(histRow => recentRunIds.has(histRow.RunID));
+
+            if (relevantHistory.length === 0) return;
+
+            const historyByRunId = relevantHistory.reduce((acc, row) => {
+                if (!acc[row.RunID]) acc[row.RunID] = [];
+                const date = parseFlexibleDate(row.Date);
+                const value = parseFloat(row.PortfolioValue);
+                if (date && !isNaN(value)) {
+                    acc[row.RunID].push({ x: date, y: value });
+                }
+                return acc;
+            }, {});
+
+            const datasets = [];
+            Object.keys(historyByRunId).forEach(runId => {
+                const dataPoints = historyByRunId[runId].sort((a,b) => a.x - b.x); // Sort by date
+                if (dataPoints.length > 0) {
+                    datasets.push({
+                        label: `Run ${runId}`,
+                        data: dataPoints,
+                        borderColor: getRandomColor(),
+                        tension: 0.1,
+                        fill: false
+                    });
+                }
+            });
+
+            if (datasets.length === 0) return;
+
+            const ctx = document.getElementById('multiPortfolioHistoryChart').getContext('2d');
+            multiPortfolioHistoryChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: datasets },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day', tooltipFormat: 'MMM dd, yyyy', displayFormats: { day: 'MMM dd, yy'}},
+                            title: { display: true, text: 'Date' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Portfolio Value ($)' },
+                            beginAtZero: false
+                        }
+                    },
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+        }
+
+        function getRandomColor() {
+            return `rgb(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)})`;
+        }
+
+        main();
     </script>
 </body>
 </html>

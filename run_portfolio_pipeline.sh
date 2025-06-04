@@ -1,5 +1,6 @@
 #!/bin/bash
 # --- Configuration ---
+PIPELINE_SCRIPT_VERSION="1.1.0" # Added explicit script versioning
 PROJECT_DIR="/home/gabrielcampos/PortfolioESG_Prod"
 LOG_DIR="$PROJECT_DIR/Logs"
 PIPELINE_LOG_FILE="$LOG_DIR/pipeline_execution.log"
@@ -16,11 +17,21 @@ log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$PIPELINE_LOG_FILE"
 }
 
-# --- Main Execution ---
-log_message "--------------------------------------"
-log_message "Portfolio Pipeline Started"
-log_message "--------------------------------------"
+# --- Duration Formatting Function ---
+format_duration() {
+    local T_SECONDS=$1
+    local DAYS=$((T_SECONDS/60/60/24))
+    local HOURS=$((T_SECONDS/60/60%24))
+    local MINUTES=$((T_SECONDS/60%60))
+    local SECONDS=$((T_SECONDS%60))
+    local DURATION_STR=""
+    if [ "$DAYS" -gt 0 ]; then
+        DURATION_STR="${DAYS}d "
+    fi
+    printf "%s%02d:%02d:%02d" "$DURATION_STR" "$HOURS" "$MINUTES" "$SECONDS"
+}
 
+# --- Main Execution ---
 # Define the Python interpreter from the pyenv environment
 # This matches the shebang in your Python scripts.
 PYTHON_EXEC="/home/gabrielcampos/.pyenv/versions/env-fa/bin/python"
@@ -31,6 +42,12 @@ if [ ! -x "$PYTHON_EXEC" ]; then
     PYTHON_EXEC="python3"
 fi
 
+PIPELINE_START_TIME_S=$(date +%s)
+log_message "--------------------------------------"
+log_message "Portfolio Pipeline Started"
+log_message "--------------------------------------"
+log_message "Pipeline Script Version: $PIPELINE_SCRIPT_VERSION"
+
 log_message "Using Python interpreter: $($PYTHON_EXEC --version 2>&1)"
 
 # Define paths to your Python scripts (relative to PROJECT_DIR)
@@ -39,30 +56,42 @@ ENGINE_SCRIPT="./Engine.py"     # Note: Case-sensitive on Linux
 
 # --- Step 1: Run download.py ---
 log_message "Starting Download.py..."
+DOWNLOAD_START_TIME_S=$(date +%s)
 # The output of Download.py (stdout and stderr) will be appended to $PIPELINE_LOG_FILE
 # which, in your cron setup, is pipeline_cron.log.
 # This ensures Python tracebacks are captured here.
 "$PYTHON_EXEC" "$DOWNLOAD_SCRIPT"
 DOWNLOAD_EXIT_CODE=$?
+DOWNLOAD_END_TIME_S=$(date +%s)
+DOWNLOAD_DURATION_S=$((DOWNLOAD_END_TIME_S - DOWNLOAD_START_TIME_S))
+DOWNLOAD_DURATION_FMT=$(format_duration $DOWNLOAD_DURATION_S)
 
 if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
-    log_message "Download.py completed successfully."
+    log_message "Download.py completed successfully in $DOWNLOAD_DURATION_FMT."
 
     # --- Step 2: Run Engine.py ---
     log_message "Starting Engine.py..."
+    ENGINE_START_TIME_S=$(date +%s)
     "$PYTHON_EXEC" "$ENGINE_SCRIPT"
     ENGINE_EXIT_CODE=$?
+    ENGINE_END_TIME_S=$(date +%s)
+    ENGINE_DURATION_S=$((ENGINE_END_TIME_S - ENGINE_START_TIME_S))
+    ENGINE_DURATION_FMT=$(format_duration $ENGINE_DURATION_S)
 
     if [ $ENGINE_EXIT_CODE -eq 0 ]; then
-        log_message "Engine.py completed successfully."
+        log_message "Engine.py completed successfully in $ENGINE_DURATION_FMT."
     else
-        log_message "Error: Engine.py failed with exit code $ENGINE_EXIT_CODE."
+        log_message "Error: Engine.py failed with exit code $ENGINE_EXIT_CODE after $ENGINE_DURATION_FMT."
     fi
 else
-    log_message "Error: Download.py failed with exit code $DOWNLOAD_EXIT_CODE. Engine.py will not run."
+    log_message "Error: Download.py failed with exit code $DOWNLOAD_EXIT_CODE after $DOWNLOAD_DURATION_FMT. Engine.py will not run."
 fi
 
-log_message "Portfolio Pipeline Finished"
+PIPELINE_END_TIME_S=$(date +%s)
+PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
+PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
+
+log_message "Portfolio Pipeline Finished in $PIPELINE_DURATION_FMT."
 log_message "======================================"
 echo "" >> "$PIPELINE_LOG_FILE"
 
