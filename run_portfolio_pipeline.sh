@@ -4,6 +4,7 @@ PIPELINE_SCRIPT_VERSION="1.1.0" # Added explicit script versioning
 PROJECT_DIR="/home/gabrielcampos/PortfolioESG_Prod"
 LOG_DIR="$PROJECT_DIR/Logs"
 PIPELINE_LOG_FILE="$LOG_DIR/pipeline_execution.log"
+PROGRESS_JSON_FULL_PATH="/home/gabrielcampos/PortfolioESG_Prod/html/progress.json"
 
 # --- Ensure Project and Log Directories Exist ---
 cd "$PROJECT_DIR" || {
@@ -32,6 +33,68 @@ format_duration() {
 }
 
 # --- Main Execution ---
+
+# Current timestamp
+CURRENT_TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+
+# Create/overwrite progress.json with initial status for all sections
+jq -n \
+  --arg startTime "$CURRENT_TIMESTAMP" \
+  '{
+     # New section for overall pipeline status
+     "pipeline_run_status": {
+       "status_message": "Pipeline execution started.",
+       "start_time": $startTime,
+       "current_stage": "Initializing pipeline..."
+     },
+
+     # Initial state for Stock Database Update (download.py)
+     # Matches keys expected by progress.html for this section
+     "download_execution_start": $startTime, # Indicates pipeline start, download.py will overwrite
+     "download_execution_end": "N/A",
+     "download_overall_status": "Pipeline Initialized - Awaiting Download",
+     "ticker_download": {
+       "completed_tickers": 0,
+       "total_tickers": 0,
+       "progress": 0,
+       "current_ticker": "Waiting for download.py to start...",
+       "date_range": "N/A",
+       "rows": 0
+     },
+
+     # Initial state for Portfolio Optimization Progress (Engine.py)
+     # Matches keys expected by progress.html for this section
+     "engine_script_start_time": "N/A",
+     "estimated_completion_time": "N/A",
+     "engine_script_end_time": "N/A",
+     "engine_script_total_duration": "N/A",
+     "current_engine_phase": "Pipeline Initialized - Awaiting Optimization",
+     "overall_progress": { # For Brute-Force
+        "completed_actual_simulations_bf": 0,
+        "total_expected_actual_simulations_bf": 0,
+        "percentage_bf": 0,
+        "estimated_completion_time_bf": "N/A"
+     },
+     "ga_progress": { # For GA
+        "status": "Pending",
+        "current_k": 0,
+        "current_generation": 0,
+        "current_individual_ga": 0,
+        "percentage_ga": 0,
+        "total_individuals_ga": 0,
+        "total_generations_ga": 0,
+        "best_sharpe_this_k": "N/A"
+     },
+     "refinement_progress": { # For Refinement
+        "status": "Pending",
+        "details": "N/A",
+        "current_combo_refined": 0, "total_combos_to_refine": 0, "percentage_refinement": 0
+     }
+     # "best_portfolio_details" (for Best Overall Portfolio section) is intentionally omitted
+   }' > "$PROGRESS_JSON_FULL_PATH"
+
+echo "Initial progress.json written to $PROGRESS_JSON_FULL_PATH"
+
 # Define the Python interpreter from the pyenv environment
 # This matches the shebang in your Python scripts.
 PYTHON_EXEC="/home/gabrielcampos/.pyenv/versions/env-fa/bin/python"

@@ -4,56 +4,173 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portfolio Simulation</title>
-    <style>
+    <style id="progress-styles"> /* Updated CSS */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            background-color: #f8f9fa; /* Lighter background */
+            color: #343a40; /* Dark grey for body text - good readability */
+            font-size: 1rem; /* Base font size (16px by default) */
+            line-height: 1.6; /* Improved line spacing */
         }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.4em; /* Slightly larger main title */
+            font-weight: 600; /* Semi-bold */
+        }
+        nav {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        nav a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #007bff; /* Standard link blue */
+            font-weight: bold;
+            font-size: 1.05em;
+            padding: 5px 8px; /* Add some padding */
+            border-radius: 4px; /* Rounded corners */
+            transition: background-color 0.3s ease; /* Smooth hover effect */
+        }
+        nav a:hover {
+            text-decoration: underline;
+            background-color: #e9ecef; /* Lighter grey on hover */
+        }
+
+        .stage-block {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            margin-bottom: 25px; /* Space between blocks */
+            border-radius: 6px; /* Slightly less rounded */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Add a subtle hover effect to stage blocks */
+        .stage-block:hover {
+             border-color: #bdc3c7;
+             box-shadow: 0 3px 6px rgba(0,0,0,0.07);
+        }
+
+        .stage-block h2 {
+            margin-top: 0;
+            color: #34495e;
+            border-bottom: 1px solid #dee2e6; /* Lighter border */
+            padding-bottom: 10px;
+            margin-bottom: 15px; /* Space below heading */
+            font-size: 1.75em; /* Stage title size */
+            font-weight: 600;
+        }
+
+        /* Style for the "Current Phase" heading */
+        .stage-details h3 {
+             margin-top: 10px;
+             margin-bottom: 8px;
+             color: #495057; /* Slightly lighter than h2 */
+             font-size: 1.4em; /* Phase title size */
+             padding-bottom: 5px; /* Small space below */
+             border-bottom: 1px dotted #ced4da; /* Subtle separator */
+             font-weight: 600;
+        }
+
+         /* Style for sub-phase headings */
+         .phase-details h4, .phase-details h5 {
+             margin-top: 10px;
+             margin-bottom: 8px;
+             color: #6c757d; /* Even lighter for sub-phases */
+             border-bottom: 1px dotted #e9ecef;
+             padding-bottom: 5px;
+             font-size: 1.15em; /* Sub-phase title size */
+             font-weight: 500; /* Normal weight for less emphasis */
+        }
+
+        .stage-block p {
+            margin-bottom: 8px;
+            font-size: 0.95em; /* Slightly smaller for details within blocks */
+            color: #495057; /* Consistent paragraph color */
+        }
+
+        .stage-block strong {
+            color: #343a40; /* Standard dark label color */
+            font-weight: bold;
+        }
+
+        .stage-details, .phase-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #dee2e6; /* Lighter dashed border */
+         }
+
         .progress-bar {
             width: 100%;
-            background-color: #f3f3f3;
-            border: 1px solid #ccc;
+            background-color: #e0e0e0;
             border-radius: 5px;
+            margin-top: 5px; /* Space above bar */
+            margin-bottom: 12px; /* Slightly more space below */
             overflow: hidden;
-            margin: 10px 0;
+            height: 20px; /* Ensure height is set */
         }
         .progress-bar-inner {
-            height: 20px;
-            background-color: #4caf50;
+            height: 100%; /* Fill parent height */
+            background-color: #27ae60; /* Green */
             width: 0%;
+            /* Removed animation: transition: width 0.5s ease-in-out; */
+            text-align: center; /* Center text inside bar */
+            line-height: 20px; /* Vertically center text */
+            color: #ffffff; /* Explicit white */
+            font-size: 0.8em; /* Smaller text */
         }
-        .section {
-            margin-bottom: 40px;
+
+        /* Status Indicators */
+        .stage-block.status-pending { border-left: 5px solid #f39c12; /* Orange */ }
+        .stage-block.status-running {
+            border-left: 5px solid #3498db; /* Blue */ /* Keep blue for running stages */
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15); /* Softer glow */
         }
-        .columns {
+        .stage-block.status-completed { border-left: 5px solid #27ae60; /* Green */ }
+        .stage-block.status-error {
+            border-left: 5px solid #e74c3c; /* Red */
+            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.15); /* Softer glow */
+        }
+
+        .stage-block.status-inactive { border-left: 5px solid #bdc3c7; /* Light Grey for inactive/pending stages */ }
+
+        /* Status Text Colors */
+        .status-text.status-pending { color: #f39c12; font-weight: 600; } /* Semi-bold */
+        .status-text.status-running { color: #3498db; font-weight: 600; }
+        .status-text.status-completed { color: #27ae60; font-weight: 600; }
+        .status-text.status-error { color: #e74c3c; font-weight: 600; }
+        .status-text.status-inactive { color: #6c757d; font-weight: normal; } /* Consistent with h4/h5 color */
+
+        /* Ensure non-status span values have consistent color and normal weight */
+        .stage-block p span:not(.status-text) {
+            color: #495057; /* Consistent with paragraph text color */
+            font-weight: normal; /* Ensure values are not bold unless they are status */
+        }
+
+        /* Ensure status text within h5 inherits h5's font-weight for consistency */
+        .phase-details h5 .status-text {
+            font-weight: normal; /* Make status text normal weight */
+            color: #6c757d;      /* Explicitly use the h5 color */
+            font-size: 0.9em;    /* Slightly smaller than the h5 text */
+            margin-left: 5px;    /* Add a little space before the status */
+        }
+
+        /* Layout for columns within a stage */
+        .stage-columns {
             display: flex;
             justify-content: space-between;
-            gap: 20px;
+            gap: 20px; /* Space between columns */
         }
+
         .column {
             flex: 1;
+            text-align: left; /* Ensure content is left-aligned within the column */
         }
-        img {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .engine-timing-info {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px; /* Adjust gap as needed */
-            margin-bottom: 15px; /* Space below this block */
-        }
-        .status-columns { /* New class for the status section */
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-        }
-        .engine-timing-info > div { /* Target direct div children of .engine-timing-info */
-            flex: 1; /* Make them share space equally, like .column */
-        }
+
     </style>
 </head>
 <body>
@@ -66,77 +183,111 @@
     </nav>
 
 
-    <!-- Stock Database Update Section -->
-    <div class="section">
+    <!-- Stage 1: Overall Pipeline Status -->
+    <div class="stage-block" id="pipeline-status-stage">
+        <h2>Overall Pipeline Status</h2>
+        <p><strong>Status:</strong> <span id="pipeline-status-message">Loading...</span></p>
+        <p><strong>Started At:</strong> <span id="pipeline-start-time">N/A</span></p>
+        <p><strong>Current Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
+    </div>
+
+        <!-- Stage 2: Stock Data Download -->
+    <div class="stage-block" id="download-stage">
         <h2>Stock database update</h2>
-        <div class="status-columns"> <!-- Reusing status-columns for flex layout -->
+        <p><strong>Status:</strong> <span id="download-overall-status" class="status-text">Pending</span></p>
+        <div class="stage-columns">
             <div class="column"> <!-- Left Column -->
-                <p>Execution Started At: <span id="execution-start-time">N/A</span></p>
-                <p>Execution Ended At: <span id="execution-end-time">N/A</span></p>                
-                <p>Overall Status: <span id="download-overall-status">Pending</span></p>
-                <div class="progress-bar">
-                    <div class="progress-bar-inner" id="ticker-progress-bar"></div>
-                </div>
+                <p><strong>Started:</strong> <span id="download-start-time">N/A</span></p>
+                <p><strong>Ended:</strong> <span id="download-end-time">N/A</span></p>
+                <p><strong>Duration:</strong> <span id="download-duration">N/A</span></p>
             </div>
             <div class="column"> <!-- Right Column -->
-                <p>Date Range: <span id="ticker-date-range">N/A</span></p>
-                <p>Current Ticker: <span id="ticker-current">N/A</span></p>
-                <p>Completed Tickers: <span id="ticker-completed">0</span> / <span id="ticker-total">0</span></p>
-                <p>Rows Downloaded: <span id="ticker-rows">0</span></p>
+                <p><strong>Date Range:</strong> <span id="ticker-date-range">N/A</span></p>
+                <p><strong>Current Ticker:</strong> <span id="ticker-current">N/A</span></p>
+                <p><strong>Completed Tickers:</strong> <span id="ticker-completed">0</span> / <span id="ticker-total">0</span></p>
+                <p><strong>Rows Downloaded:</strong> <span id="ticker-rows">0</span></p>
+                <p><strong>Progress:</strong> <span id="ticker-progress-percent">0</span>%</p>
+                <div class="progress-bar"><div class="progress-bar-inner" id="ticker-progress-bar"></div></div>
             </div>
         </div>
-    </div>
+    </div>    
 
-    <!-- Portfolio Simulation Progress Section -->
-    <div class="section">
+    <!-- Stage 3-6: Portfolio Optimization Engine -->
+    <div class="stage-block" id="engine-stage">
 
         <h2>Portfolio Optimization Progress</h2>
-        <div class="engine-timing-info">
-            <div>
-                <p><strong>Engine Script Started:</strong> <span id="engine-script-start-time">N/A</span></p>
+        <p><strong>Status:</strong> <span id="engine-overall-status" class="status-text">Pending</span></p>
+        <div class="stage-columns">
+            <div class="column"> <!-- Left Column -->
+                <p><strong>Started:</strong> <span id="engine-start-time">N/A</span></p>
+                <p><strong>Ended:</strong> <span id="engine-end-time">N/A</span></p>
+                <p><strong>Total Duration:</strong> <span id="engine-total-duration">N/A</span></p>
+            </div>
+            <div class="column"> <!-- Right Column -->
                 <p><strong>Initial Estimated Completion:</strong> <span id="engine-initial-est-completion">N/A</span></p>
-            </div>
-            <div>
-                <p><strong>Engine Script Ended:</strong> <span id="engine-script-end-time">N/A</span></p>
-                <p><strong>Total Engine Duration:</strong> <span id="engine-script-total-duration">N/A</span></p>
+                <p><strong>Overall Engine Progress:</strong></p>
+                <div class="progress-bar"><div class="progress-bar-inner" id="engine-overall-progress-bar"></div></div>
             </div>
         </div>
-        <div class="status-columns"> <!-- New parent container for two columns -->
-            <div class="column"> <!-- First column -->
-                <p><strong>Overall Status:</strong> <span id="engine-overall-status">Pending</span></p>
-                <div>
-                    <strong>Overall Engine Progress:</strong>
-                    <div class="progress-bar"><div class="progress-bar-inner" id="engine-overall-progress-bar"></div></div>
-                </div>
+
+        <div class="stage-details">
+            <h3>Current Phase: <span id="engine-current-phase-display">N/A</span></h3>
+            <p><strong>Phase Progress:</strong> <span id="engine-current-phase-progress-percent">0</span>%</p>
+            <div class="progress-bar"><div class="progress-bar-inner" id="engine-current-phase-progress-bar"></div></div>
+
+            <!-- Phase-specific details -->
+            <div id="data-wrangling-details" class="phase-details" style="display: none;">
+                 <h4>Data Wrangling</h4>
+                 <p><strong>Started:</strong> <span id="data-wrangling-start">N/A</span></p>
+                 <p><strong>Ended:</strong> <span id="data-wrangling-end">N/A</span></p>
+                 <p><strong>Duration:</strong> <span id="data-wrangling-duration">N/A</span></p>
             </div>
-            <div class="column"> <!-- Second column -->
-                <p><strong>Current Phase:</strong> <span id="engine-current-phase">N/A</span></p>
-                <div>
-                    <strong>Current Phase Progress:</strong>
-                    <div class="progress-bar"><div class="progress-bar-inner" id="engine-current-phase-progress-bar"></div></div>
-                </div>
+            <div id="optimization-search-details" class="phase-details" style="display: none;">
+                 <h4>Optimization Search (Brute-Force / GA)</h4>
+                 <p><strong>Started:</strong> <span id="optimization-search-start">N/A</span></p>
+                 <!-- BF Specific -->
+                 <div id="bf-progress-details" class="phase-progress-details" style="display: none;">
+                     <h5>Brute-Force</h5>
+                     <p><strong>Simulations:</strong> <span id="bf-completed-sims">0</span> / <span id="bf-total-sims">0</span> (<span id="bf-progress-percent">0</span>%)</p>
+                     <div class="progress-bar"><div class="progress-bar-inner" id="bf-progress-bar"></div></div>
+                     <p><strong>Estimated Completion:</strong> <span id="bf-est-completion">N/A</span></p>
+                 </div>
+                 <!-- GA Specific -->
+                 <div id="ga-progress-details" class="phase-progress-details" style="display: none;">
+                     <h5>Genetic Algorithm (k=<span id="ga-current-k">N/A</span>) <span id="ga-status" class="status-text">Pending</span></h5>
+                     <p><strong>Generation:</strong> <span id="ga-current-gen">0</span> / <span id="ga-total-gens">0</span></p>
+                     <p><strong>Individual:</strong> <span id="ga-current-individual">0</span> / <span id="ga-total-individuals">0</span></p>
+                     <p><strong>GA Progress:</strong> (<span id="ga-progress-percent">0</span>%)</p>
+                     <div class="progress-bar"><div class="progress-bar-inner" id="ga-progress-bar"></div></div>
+                     <p><strong>Best Sharpe (k):</strong> <span id="ga-best-sharpe-k">N/A</span></p>
+                 </div>
             </div>
+             <div id="refinement-details" class="phase-details" style="display: none;">
+                 <h4>Refinement</h4>
+                 <p><strong>Status:</strong> <span id="refinement-status" class="status-text">Pending</span></p>
+                 <p><strong>Combo:</strong> <span id="refinement-current-combo">0</span> / <span id="refinement-total-combos">0</span> (<span id="refinement-progress-percent">0</span>%)</p>
+                 <div class="progress-bar"><div class="progress-bar-inner" id="refinement-progress-bar"></div></div>
+                 <p><strong>Details:</strong> <span id="refinement-details-msg">N/A</span></p>
+            </div>
+             <div id="finalization-details" class="phase-details" style="display: none;">
+                 <h4>Finalization</h4>
+                 <p><strong>Status:</strong> <span id="finalization-status" class="status-text">Pending</span></p>
+             </div>
         </div>
     </div>
 
-    <!-- Best ESG Portfolio Chart Section -->
-    <div class="section">
-        <h2>Best Overall Portfolio</h2>
-        <div id="best-esg-portfolio-info">
-            <p>Stocks: <span id="best-esg-stocks">N/A</span></p>
-            <p>Weights: <span id="best-esg-weights">N/A</span></p>
-            <p>Sharpe Ratio: <span id="best-esg-sharpe">N/A</span></p>
-            <p>Initial Investment: <span id="best-esg-initial">N/A</span></p>
-            <p>Final Value: <span id="best-esg-final">N/A</span></p>
-            <p>ROI: <span id="best-esg-roi">N/A</span></p>
-            <p>Expected Annual Return: <span id="best-esg-exp-ret">N/A</span></p>
-            <p>Expected Annual Volatility: <span id="best-esg-exp-vol">N/A</span></p>
-        </div>
-    </div>
+    <script id="progress-script">
+        let fetchInterval; // This is the correct, single declaration
 
-    <script>
-        let fetchInterval;
-    
+        // Helper function for safe text update
+        function setText(id, value, defaultValue = 'N/A') {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = (value !== undefined && value !== null) ? String(value) : defaultValue;
+            }
+        }
+        
+        // Function to format date strings into a more readable format
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A") return "N/A";
             try {
@@ -161,6 +312,84 @@
             }
         }
 
+        // Helper function for safe text update AND status class
+        function setStatusText(id, value, status, defaultValue = 'N/A') {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = (value !== undefined && value !== null) ? String(value) : defaultValue;
+                element.classList.remove('status-pending', 'status-running', 'status-completed', 'status-error', 'status-inactive'); // Remove old status classes
+                if (status) {
+                     // Clean status string for class name
+                    let className = 'status-' + status.toLowerCase().replace(/[^a-z]/g, '');
+                    // Map common statuses to class names
+                    if (status.toLowerCase().includes("running") || status.toLowerCase().includes("progress") || status.toLowerCase().includes("started")) {
+                        className = 'status-running';
+                    } else if (status.toLowerCase().includes("completed") || status.toLowerCase().includes("finished")) {
+                        className = 'status-completed';
+                    } else if (status.toLowerCase().includes("error") || status.toLowerCase().includes("failed")) {
+                        className = 'status-error';
+                    } else if (status.toLowerCase().includes("pending") || status.toLowerCase().includes("awaiting") || status.toLowerCase().includes("initializing")) {
+                        className = 'status-pending';
+                    } else if (status.toLowerCase().includes("inactive") || status.toLowerCase().includes("none")) {
+                        className = 'status-inactive'; // New class for inactive state
+                    }
+                    element.classList.add(className);
+                }
+            }
+        }
+
+        // Function to calculate duration from two timestamp strings (YYYY-MM-DD HH:MM:SS)
+        function getDurationBetweenTimestamps(startTimeStr, endTimeStr) {
+            if (!startTimeStr || startTimeStr === "N/A" || !endTimeStr || endTimeStr === "N/A") {
+                return "N/A";
+            }
+            try {
+                const start = new Date(startTimeStr);
+                const end = new Date(endTimeStr);
+                if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                    return "Invalid Dates";
+                }
+                const diffMs = end.getTime() - start.getTime();
+                if (diffMs < 0) return "Invalid Duration";
+
+                const seconds = Math.floor(diffMs / 1000);
+                const days = Math.floor(seconds / 86400);
+                const hours = Math.floor((seconds % 86400) / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const remainingSeconds = seconds % 60;
+
+                let durationParts = [];
+                if (days > 0) durationParts.push(`${days}d`);
+                durationParts.push(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`);
+
+                return durationParts.join(' ');
+            } catch (e) { return "Error"; }
+        }
+
+        // Function to set status class on a stage block
+        function setStageStatus(stageId, status) {
+            const stageElement = document.getElementById(stageId);
+            if (stageElement) {
+                stageElement.classList.remove('status-pending', 'status-running', 'status-completed', 'status-error');
+                if (status) {
+                    // Clean status string for class name: toLowerCase, remove non-alpha, then prefix with 'status-'
+                    let className = 'status-' + status.toLowerCase().replace(/[^a-z]/g, '');
+                    // Handle common variations for "running" or "in progress"
+                    if (status.toLowerCase().includes("running") || status.toLowerCase().includes("progress") || status.toLowerCase().includes("started")) {
+                        className = 'status-running';
+                    } else if (status.toLowerCase().includes("completed") || status.toLowerCase().includes("finished")) {
+                        className = 'status-completed';
+                    } else if (status.toLowerCase().includes("error") || status.toLowerCase().includes("failed")) {
+                        className = 'status-error';
+                    } else if (status.toLowerCase().includes("pending") || status.toLowerCase().includes("awaiting") || status.toLowerCase().includes("initializing")) {
+                        className = 'status-pending';
+                    }
+                    stageElement.classList.add(className);
+                }
+            }
+        }
+
+        // Function to format duration strings into a more readable format
         function formatDuration(durationString) {
             if (!durationString || durationString === "N/A") return "N/A";
             let totalSeconds = 0;
@@ -190,6 +419,7 @@
             return `${finalDays > 0 ? `${finalDays} day${finalDays > 1 ? 's' : ''} and ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
         }
 
+        // Function to format ticker date ranges
         function formatTickerDateRange(rangeString) {
             if (!rangeString || rangeString === "N/A" || !rangeString.includes(" to ")) {
                  // If it's a single date or N/A, format it fully.
@@ -205,19 +435,12 @@
             return rangeString; // Fallback
         }
 
+        // Fetch progress data from the server
         async function fetchProgress() {
             try {
                 const response = await fetch('progress.json?t=' + new Date().getTime());
                 const data = await response.json();
-    
-                // Helper function for safe text update
-                function setText(id, value, defaultValue = 'N/A') {
-                    const element = document.getElementById(id);
-                    if (element) {
-                        element.textContent = (value !== undefined && value !== null) ? String(value) : defaultValue;
-                    }
-                }
-    
+        
                 // Helper function for safe progress bar update
                 function setProgress(id, value) {
                     const element = document.getElementById(id);
@@ -226,118 +449,227 @@
                     }
                 }
 
+                // --- Overall Pipeline Status ---
+                if (data.pipeline_run_status) {
+                    const pipeline = data.pipeline_run_status;
+                    setText('pipeline-status-message', pipeline.status_message);
+                    setText('pipeline-start-time', formatDate(pipeline.start_time));
+                    setText('pipeline-current-stage', pipeline.current_stage);
+                }
+                // Determine pipeline status for CSS class
+                let pipelineStatusCss = 'pending'; // Default to pending
+                if (data.pipeline_run_status && data.pipeline_run_status.status_message) {
+                    const msg = data.pipeline_run_status.status_message.toLowerCase();
+                    if (msg.includes('started') || msg.includes('running') || msg.includes('initializing')) pipelineStatusCss = 'running';
+                    if (msg.includes('completed') || msg.includes('finished')) pipelineStatusCss = 'completed';
+                    if (msg.includes('error') || msg.includes('failed')) pipelineStatusCss = 'error';
+                }
+                setStageStatus('pipeline-status-stage', pipelineStatusCss);
+
                 // --- Stock Database Update Section (for download.py) ---
+                const download = data; // Download data is at the root level in your progress.json
+                setText('download-start-time', formatDate(download.download_execution_start));
+                setText('download-end-time', formatDate(download.download_execution_end));
+                setText('download-overall-status', download.download_overall_status, 'Pending');
+                setText('download-duration', getDurationBetweenTimestamps(download.download_execution_start, download.download_execution_end));
+
                 if (data.ticker_download) {
-                    const t = data.ticker_download;
+                    const t = data.ticker_download || {}; // Ensure t is an object
                     setText('ticker-completed', t.completed_tickers, '0');
-                    setText('ticker-total', t.total_tickers, '0');                    
-                    setProgress('ticker-progress-bar', t.progress);
-                    setText('ticker-current', t.current_ticker); // No date format
+                    setText('ticker-total', t.total_tickers, '0');
+                    const progressPercent = (t.progress !== undefined && t.progress !== null) ? parseFloat(t.progress) : 0;
+                    setProgress('ticker-progress-bar', progressPercent);
+                    setText('ticker-progress-percent', progressPercent.toFixed(0)); // Update the percentage text
+                    setText('ticker-current', t.current_ticker);
                     setText('ticker-date-range', formatTickerDateRange(t.date_range));
                     setText('ticker-rows', t.rows, '0');
+                } else { // If ticker_download object is missing
+                    setText('ticker-completed', '0');
+                    setText('ticker-total', '0');
+                    setProgress('ticker-progress-bar', 0);
+                    setText('ticker-progress-percent', '0');
+                    setText('ticker-current', 'N/A');
+                    setText('ticker-date-range', 'N/A');
+                    setText('ticker-rows', '0');
                 }
-                // These are likely for download.py script timing
-                setText('execution-start-time', formatDate(data.download_execution_start)); 
-                setText('execution-end-time', formatDate(data.download_execution_end));
-                setText('download-overall-status', data.download_overall_status, 'Pending'); // Update download status
+
+                // Determine download status for CSS class
+                let downloadStageStatusCss = 'pending';
+                if (download.download_execution_start && download.download_execution_start !== "N/A") {
+                    if (download.download_execution_end && download.download_execution_end !== "N/A") {
+                         downloadStageStatusCss = 'completed';
+                    } else {
+                         downloadStageStatusCss = 'running';
+                    }
+                }
+                if (download.download_overall_status && download.download_overall_status.toLowerCase().includes('failed')) {
+                     downloadStageStatusCss = 'error';
+                }
+                setStageStatus('download-stage', downloadStageStatusCss);
+
     
-                // --- Engine.py - Portfolio Optimization Progress Section ---
-                setText('engine-script-start-time', formatDate(data.engine_script_start_time));
-                setText('engine-initial-est-completion', formatDate(data.estimated_completion_time)); 
+                                // --- Engine.py - Portfolio Optimization Progress Section ---
+                const engine = data; // Engine data is also at the root level in your progress.json
 
-                // Construct the detailed "Current Phase" string
-                let basePhaseString = data.current_engine_phase || "N/A";
-                let detailsToAppend = [];
-                const currentPhase = data.current_engine_phase ? data.current_engine_phase.toLowerCase() : "";
+                setText('engine-start-time', formatDate(engine.engine_script_start_time));
+                setText('engine-initial-est-completion', formatDate(engine.estimated_completion_time));
+                setText('engine-end-time', formatDate(engine.engine_script_end_time));
+                setText('engine-total-duration', formatDuration(engine.engine_script_total_duration));
 
-                if (currentPhase.includes("brute-force") && data.overall_progress) {
-                    const bf = data.overall_progress;
+                // Detailed "Current Phase" string
+                let basePhaseString = engine.current_engine_phase || "N/A";
+                let detailsToAppendForPhase = [];
+                const currentPhaseLower = engine.current_engine_phase ? engine.current_engine_phase.toLowerCase() : "";
+
+                if (currentPhaseLower.includes("brute-force") && engine.overall_progress) {
+                    const bf = engine.overall_progress;
                     if (bf.completed_actual_simulations_bf !== undefined && bf.total_expected_actual_simulations_bf !== undefined) {
-                        detailsToAppend.push(`Sims: ${bf.completed_actual_simulations_bf}/${bf.total_expected_actual_simulations_bf}`);
+                        detailsToAppendForPhase.push(`Sims: ${bf.completed_actual_simulations_bf}/${bf.total_expected_actual_simulations_bf}`);
                     }
                     if (bf.percentage_bf !== undefined) {
-                        detailsToAppend.push(`Progress: ${parseFloat(bf.percentage_bf).toFixed(0)}%`);
+                        detailsToAppendForPhase.push(`Progress: ${parseFloat(bf.percentage_bf).toFixed(0)}%`);
                     }
-                } else if (currentPhase.includes("genetic algorithm") && data.ga_progress) {
-                    const ga = data.ga_progress;
+                } else if (currentPhaseLower.includes("genetic algorithm") && engine.ga_progress) {
+                    const ga = engine.ga_progress;
                     if (typeof ga.current_generation === 'number' && typeof ga.total_generations_ga === 'number') {
                         let genStr = `Gen: ${ga.current_generation}/${ga.total_generations_ga}`;
                         if (ga.status && ga.status.toLowerCase().includes("running") && typeof ga.current_individual_ga === 'number' && typeof ga.total_individuals_ga === 'number' && ga.total_individuals_ga > 0) {
                             genStr += ` (Ind: ${ga.current_individual_ga}/${ga.total_individuals_ga})`;
                         }
-                        detailsToAppend.push(genStr);
+                        detailsToAppendForPhase.push(genStr);
                     }
-                    if (ga.best_sharpe_this_k && ga.best_sharpe_this_k !== "N/A") {
-                        detailsToAppend.push(`Best Sharpe (k): ${parseFloat(ga.best_sharpe_this_k).toFixed(4)}`);
-                    }
-                } else if (currentPhase.includes("refinement") && data.refinement_progress) {
-                    const refine = data.refinement_progress;
+                } else if (currentPhaseLower.includes("refinement") && engine.refinement_progress) {
+                    const refine = engine.refinement_progress;
                     if (refine.current_combo_refined !== undefined && refine.total_combos_to_refine !== undefined) {
-                        detailsToAppend.push(`Combo: ${refine.current_combo_refined}/${refine.total_combos_to_refine}`);
+                        detailsToAppendForPhase.push(`Combo: ${refine.current_combo_refined}/${refine.total_combos_to_refine}`);
                     }
                 }
 
                 let finalPhaseDisplayString = basePhaseString;
-                if (detailsToAppend.length > 0) {
-                    if (basePhaseString.endsWith(")")) { // Assumes phases like "Brute-Force (k=X)"
-                        finalPhaseDisplayString = `${basePhaseString.slice(0, -1)}, ${detailsToAppend.join(', ')})`;
-                    } else { // For phases like "Refinement Phase"
-                        finalPhaseDisplayString = `${basePhaseString} (${detailsToAppend.join(', ')})`;
+                // Display only the base phase string for the main phase display
+                setText('engine-current-phase-display', basePhaseString);
+
+                // Engine Overall Status Logic
+                let engineOverallStatusText = 'Pending';
+                const engineStartTime = engine.engine_script_start_time;
+                const engineEndTime = engine.engine_script_end_time;
+
+                if (engineStartTime && engineStartTime !== "N/A") {
+                    if (!engineEndTime || engineEndTime === "N/A") {
+                        engineOverallStatusText = 'Running...';
+                    } else {
+                        engineOverallStatusText = 'Completed';
                     }
+                } else if (data.download_execution_start && data.download_execution_start !== "N/A" && (!data.download_execution_end || data.download_execution_end === "N/A")) {
+                    engineOverallStatusText = 'Waiting for Download.py';
                 }
-                setText('engine-current-phase', finalPhaseDisplayString);
+                // Use setText for the overall engine status to ensure it uses default paragraph span styling
+                setText('engine-overall-status', engineOverallStatusText);
+                // Determine Engine stage CSS status
+                let engineStageStatusCss = 'pending';
+                if (engineOverallStatusText.toLowerCase().includes('running')) engineStageStatusCss = 'running';
+                if (engineOverallStatusText.toLowerCase().includes('completed')) engineStageStatusCss = 'completed';
+                if (engineOverallStatusText.toLowerCase().includes('error') || (engine.current_engine_phase && engine.current_engine_phase.toLowerCase().includes('error'))) engineStageStatusCss = 'error';
+                setStageStatus('engine-stage', engineStageStatusCss);
 
-                // Engine.py Overall Status Logic
-                let engineStatus = 'Pending'; // Default status
-                const engineStartTime = data.engine_script_start_time;
-                const engineEndTime = data.engine_script_end_time;
-                const downloadStartTime = data.download_execution_start;
-                const downloadEndTime = data.download_execution_end;
 
-                if (engineStartTime && engineStartTime !== "N/A") { // Engine has a valid start time
-                    if (!engineEndTime || engineEndTime === "N/A") { // Engine has not ended
-                        engineStatus = 'Running...';
-                    } else { // Engine has a valid end time (and it's not "N/A")
-                        engineStatus = 'Completed';
-                    }
-                } else if (downloadStartTime && downloadStartTime !== "N/A" && (!downloadEndTime || downloadEndTime === "N/A")) { 
-                    // Engine hasn't started, but Download.py is running
-                    engineStatus = 'Waiting for Download.py';
-                }
-                setText('engine-overall-status', engineStatus);
-
-                // Overall Engine Progress Bar (qualitative based on phase)
-                let overallEngineProgressValue = 0; // currentPhase already defined above
-                if (data.engine_script_end_time && data.engine_script_end_time !== "N/A") {
+                // Overall Engine Progress Bar
+                let overallEngineProgressValue = 0;
+                if (engineEndTime && engineEndTime !== "N/A") {
                     overallEngineProgressValue = 100;
-                } else if (currentPhase.includes("initializing") || currentPhase.includes("data loading") || currentPhase.includes("wrangling")) {
+                } else if (currentPhaseLower.includes("initializing") || currentPhaseLower.includes("data loading") || currentPhaseLower.includes("wrangling")) {
                     overallEngineProgressValue = 5;
-                } else if (currentPhase.includes("brute-force")) {
-                    const bfProgress = data.overall_progress ? (parseFloat(data.overall_progress.percentage_bf) || 0) : 0;
-                    overallEngineProgressValue = 10 + (bfProgress * 0.40); // BF contributes 40% (range 10-50)
-                } else if (currentPhase.includes("genetic algorithm")) {
-                    const gaProgress = data.ga_progress ? (parseFloat(data.ga_progress.percentage_ga) || 0) : 0;
-                    overallEngineProgressValue = 50 + (gaProgress * 0.40); // GA contributes 40% (range 50-90)
-                } else if (currentPhase.includes("refinement")) {
-                    const refinementProgress = data.refinement_progress ? (parseFloat(data.refinement_progress.percentage_refinement) || 0) : 0;
-                    overallEngineProgressValue = 90 + (refinementProgress * 0.08); // Refinement is 8% (range 90-98)
-                } else if (engineStatus === "Running...") { // General running state if phase not specific
-                    overallEngineProgressValue = Math.max(overallEngineProgressValue, 5); // At least some progress if running
+                } else if (currentPhaseLower.includes("brute-force") && engine.overall_progress) {
+                    const bfProgress = parseFloat(engine.overall_progress.percentage_bf) || 0;
+                    overallEngineProgressValue = 10 + (bfProgress * 0.40); // BF: 10-50%
+                } else if (currentPhaseLower.includes("genetic algorithm") && engine.ga_progress) {
+                    const gaProgress = parseFloat(engine.ga_progress.percentage_ga) || 0;
+                    overallEngineProgressValue = 50 + (gaProgress * 0.40); // GA: 50-90%
+                } else if (currentPhaseLower.includes("refinement") && engine.refinement_progress) {
+                    const refinementProgress = parseFloat(engine.refinement_progress.percentage_refinement) || 0;
+                    overallEngineProgressValue = 90 + (refinementProgress * 0.08); // Refinement: 90-98%
+                } else if (currentPhaseLower.includes("finalization") || currentPhaseLower.includes("logging")) {
+                    overallEngineProgressValue = 98;
+                } else if (engineOverallStatusText === "Running...") {
+                    overallEngineProgressValue = Math.max(overallEngineProgressValue, 2); // Minimal progress if generally running
                 }
                 setProgress('engine-overall-progress-bar', overallEngineProgressValue);
 
-                // Current Phase Progress Bar
+                // Current Phase Progress Bar & Text
                 let currentPhaseProgressValue = 0;
-                if (currentPhase.includes("brute-force") && data.overall_progress) {
-                    currentPhaseProgressValue = parseFloat(data.overall_progress.percentage_bf) || 0;
-                } else if (currentPhase.includes("genetic algorithm") && data.ga_progress) {
-                    currentPhaseProgressValue = parseFloat(data.ga_progress.percentage_ga) || 0;
-                } else if (currentPhase.includes("refinement") && data.refinement_progress) {
-                    currentPhaseProgressValue = parseFloat(data.refinement_progress.percentage_refinement) || 0;
-                } else if (currentPhase.includes("initializing") || currentPhase.includes("data loading") || currentPhase.includes("wrangling")) {
-                    currentPhaseProgressValue = 50; // Indicate activity for these quick phases
+                if (currentPhaseLower.includes("brute-force") && engine.overall_progress) {
+                    currentPhaseProgressValue = parseFloat(engine.overall_progress.percentage_bf) || 0;
+                } else if (currentPhaseLower.includes("genetic algorithm") && engine.ga_progress) {
+                    currentPhaseProgressValue = parseFloat(engine.ga_progress.percentage_ga) || 0;
+                } else if (currentPhaseLower.includes("refinement") && engine.refinement_progress) {
+                    currentPhaseProgressValue = parseFloat(engine.refinement_progress.percentage_refinement) || 0;
+                } else if (currentPhaseLower.includes("initializing") || currentPhaseLower.includes("data loading") || currentPhaseLower.includes("wrangling") || currentPhaseLower.includes("finalization")) {
+                    currentPhaseProgressValue = (engineEndTime && engineEndTime !== "N/A" && (currentPhaseLower.includes("finalization") || currentPhaseLower.includes("logging"))) ? 100 : 50; // Show activity
                 }
+                setText('engine-current-phase-progress-percent', parseFloat(currentPhaseProgressValue).toFixed(0));
                 setProgress('engine-current-phase-progress-bar', currentPhaseProgressValue);
+
+                // --- Engine Phase Details Visibility and Data ---
+                document.querySelectorAll('.phase-details').forEach(el => el.style.display = 'none'); // Hide all
+
+                if (currentPhaseLower.includes("wrangling") || currentPhaseLower.includes("data loading")) {
+                    document.getElementById('data-wrangling-details').style.display = 'block';
+                    setText('data-wrangling-start', formatDate(engine.data_wrangling_start));
+                    setText('data-wrangling-end', formatDate(engine.data_wrangling_end));
+                    setText('data-wrangling-duration', engine.data_wrangling_duration || getDurationBetweenTimestamps(engine.data_wrangling_start, engine.data_wrangling_end));
+                }
+
+                if (currentPhaseLower.includes("brute-force") || currentPhaseLower.includes("genetic algorithm") || currentPhaseLower.includes("search")) {
+                    document.getElementById('optimization-search-details').style.display = 'block';
+                    setText('optimization-search-start', formatDate(engine.stock_combination_search_start)); // Assuming this is the start of search
+
+                    if (currentPhaseLower.includes("brute-force") && engine.overall_progress) {
+                        document.getElementById('bf-progress-details').style.display = 'block';
+                        const bf = engine.overall_progress;
+                        setText('bf-completed-sims', bf.completed_actual_simulations_bf, '0');
+                        setText('bf-total-sims', bf.total_expected_actual_simulations_bf, '0');
+                        const bfPercent = parseFloat(bf.percentage_bf) || 0;
+                        setText('bf-progress-percent', bfPercent.toFixed(0));
+                        setProgress('bf-progress-bar', bfPercent);
+                        setText('bf-est-completion', formatDate(bf.estimated_completion_time_bf));
+                    } else {
+                        document.getElementById('bf-progress-details').style.display = 'none';
+                    }
+
+                    if (currentPhaseLower.includes("genetic algorithm") && engine.ga_progress) {
+                        document.getElementById('ga-progress-details').style.display = 'block';
+                        const ga = engine.ga_progress;
+                        setText('ga-current-k', ga.current_k, 'N/A'); // Ensure default
+                        setText('ga-status', ga.status);
+                        setText('ga-current-gen', ga.current_generation, '0');
+                        setText('ga-total-gens', ga.total_generations_ga, '0');
+                        setText('ga-current-individual', ga.current_individual_ga, '0');
+                        setText('ga-total-individuals', ga.total_individuals_ga, '0');
+                        const gaPercent = parseFloat(ga.percentage_ga) || 0;
+                        setText('ga-progress-percent', gaPercent.toFixed(0));
+                        setStatusText('ga-status', ga.status, ga.status); // Use setStatusText for GA status
+                        setProgress('ga-progress-bar', gaPercent);
+                        setText('ga-best-sharpe-k', ga.best_sharpe_this_k !== "N/A" ? parseFloat(ga.best_sharpe_this_k).toFixed(4) : "N/A");
+                    } else {
+                        document.getElementById('ga-progress-details').style.display = 'none';
+                    }
+                }
+
+                if (currentPhaseLower.includes("refinement") && engine.refinement_progress) {
+                    document.getElementById('refinement-details').style.display = 'block';
+                    const refine = engine.refinement_progress;
+                    setStatusText('refinement-status', refine.status, refine.status); // Use setStatusText for Refinement status
+                    setText('refinement-current-combo', refine.current_combo_refined, '0');
+                    setText('refinement-total-combos', refine.total_combos_to_refine, '0');
+                    const refinePercent = parseFloat(refine.percentage_refinement) || 0;
+                    setText('refinement-progress-percent', refinePercent.toFixed(0));
+                    setProgress('refinement-progress-bar', refinePercent);
+                    setText('refinement-details-msg', refine.details);
+                }
+                if (currentPhaseLower.includes("finalization") || currentPhaseLower.includes("logging portfolio history")) {
+                     document.getElementById('finalization-details').style.display = 'block';
+                     setStatusText('finalization-status', (engineEndTime && engineEndTime !== "N/A") ? "Completed" : "In Progress...", (engineEndTime && engineEndTime !== "N/A") ? "Completed" : "Running"); // Use setStatusText for Finalization status
+                }
 
                 if (data.overall_progress) { // This key from Engine.py is for Brute-Force
                     const bf = data.overall_progress;
@@ -349,34 +681,32 @@
                 setText('engine-script-total-duration', formatDuration(data.engine_script_total_duration));
 
                 // Check for overall completion to stop fetching (can be refined)
-                if (data.engine_script_end_time && data.execution_end) { // If both main scripts seem done
+                // Stop if pipeline_run_status indicates completion OR if both download and engine are completed.
+                const pipelineDone = data.pipeline_run_status && ((data.pipeline_run_status.current_stage || "").toLowerCase().includes("completed") || (data.pipeline_run_status.status_message || "").toLowerCase().includes("completed")); // Check both stage and message
+                const engineDone = data.engine_script_end_time && data.engine_script_end_time !== "N/A";
+                const downloadDone = data.download_execution_end && data.download_execution_end !== "N/A";
+
+                if (pipelineDone || (engineDone && downloadDone)) {
                     if (fetchInterval) {
                         clearInterval(fetchInterval);
                         console.log('Progress complete. Stopping updates.');
+                        // Ensure final state of progress bars if pipeline is truly done
+                        if (pipelineDone) {
+                            setProgress('engine-overall-progress-bar', 100);
+                            setProgress('engine-current-phase-progress-bar', 100);
+                            // Potentially set other stages to 100% if not already
+                            if (downloadDone) setProgress('ticker-progress-bar', 100);
+                        }
+
                     }
                 }
-    
-                // --- Best Overall Portfolio Section (from Engine.py) ---
-                if (data.best_portfolio_details) {
-                    const best = data.best_portfolio_details;
-                    setText('best-esg-stocks', best.stocks ? best.stocks.join(', ') : 'N/A');
-                    setText('best-esg-weights', best.weights ? best.weights.map(w => parseFloat(w).toFixed(4)).join(', ') : 'N/A');
-                    setText('best-esg-sharpe', best.sharpe_ratio !== undefined ? parseFloat(best.sharpe_ratio).toFixed(4) : 'N/A');
-                    setText('best-esg-initial', best.initial_investment !== undefined ? `$${parseFloat(best.initial_investment).toFixed(2)}` : 'N/A'); // Assumes Engine.py adds this
-                    setText('best-esg-final', best.final_value !== undefined ? `$${parseFloat(best.final_value).toFixed(2)}` : 'N/A');
-                    setText('best-esg-roi', best.roi_percent !== undefined ? `${parseFloat(best.roi_percent).toFixed(2)}%` : 'N/A');
-                    setText('best-esg-exp-ret', best.expected_return_annual_pct !== undefined ? `${parseFloat(best.expected_return_annual_pct).toFixed(2)}%` : 'N/A');
-                    setText('best-esg-exp-vol', best.expected_volatility_annual_pct !== undefined ? `${parseFloat(best.expected_volatility_annual_pct).toFixed(2)}%` : 'N/A');
-                    
-                }
-    
             } catch (error) {
                 console.error('Error fetching progress:', error);
             }
         }
-    
-        fetchInterval = setInterval(fetchProgress, 10000);
-        fetchProgress();
+
+        fetchInterval = setInterval(fetchProgress, 10000); // This is the correct, single interval setup
+        fetchProgress(); // Initial fetch
     </script>
 
 </body>
