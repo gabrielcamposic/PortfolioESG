@@ -18,7 +18,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry 
 
 # --- Script Version ---
-DOWNLOAD_PY_VERSION = "1.2.1" # Fixed "Rows Downloaded: N/A" on progress page
+DOWNLOAD_PY_VERSION = "1.3.0" # Added comprehensive error handling, improved web logging
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -869,6 +869,7 @@ def copy_log_to_web_accessible_location(source_csv_path, web_dest_folder, logger
 # --- Configuration Loading ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PARAMETERS_FILE_PATH = os.path.join(SCRIPT_DIR, "downpar.txt")
+overall_script_start_time_dt = datetime.now() # For overall script duration
 
 overall_script_start_time_dt = datetime.now() # For overall script duration
 performance_metrics = initialize_performance_data() # Initialize performance data dict
@@ -892,6 +893,7 @@ except ValueError as ve: # Catch specific ValueError from load_download_paramete
     exit(1)
 except Exception as e:
     logger.log(f"CRITICAL ERROR: Failed to load parameters from '{PARAMETERS_FILE_PATH}'. Error: {e}. Exiting.")
+    logger.flush() # Ensure error is written before exiting
     exit(1)
 
 # Assign global variables from loaded parameters
@@ -921,6 +923,11 @@ if DEBUG_MODE:
     logger.log(f"DEBUG:   HISTORY_YEARS = {HISTORY_YEARS}")
     logger.log(f"DEBUG:   DB_FILEPATH = {DB_FILEPATH}")
 
+# --- Main Execution Block with Error Handling ---
+try:
+    # --- End Configuration Loading ---
+
+    logger.log(f"🚀 Starting execution pipeline at: {overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S')}")
 # --- End Configuration Loading ---
 
 logger.log(f"🚀 Starting execution pipeline at: {overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -932,7 +939,8 @@ initial_ticker_download_status = {
     "total_tickers": 0, # Will be updated once tickers_list is read
     "progress": 0,
     "current_ticker": "Initializing...",
-    "date_range": "N/A",
+    "overall_status": "Running", # Indicate download.py is now running
+    "date_range": "N/A", # download.py will update this
     "rows": 0
 } # This was the end of ticker_download
 initial_web_log_data = { 
@@ -1015,6 +1023,7 @@ if not tickers_to_download:
 # Ensure "ticker_download" key exists from initial_web_log_data merge
 current_ticker_status = logger.web_data.get("ticker_download", initial_ticker_download_status).copy() 
 current_ticker_status["total_tickers"] = len(tickers_to_download)
+current_ticker_status["overall_status"] = "Running" # Confirm running status
 current_ticker_status["current_ticker"] = "Preparing to process findata..."
 logger.update_web_log("download_overall_status", "Processing Local Data...")
 logger.update_web_log("ticker_download", current_ticker_status)
@@ -1023,7 +1032,7 @@ if DEBUG_MODE:
     logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
 
 logger.update_web_log("download_overall_status", "Downloading Data...")
-download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics)
+    download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics)
 
 overall_script_end_time_dt = datetime.now()
 total_script_duration = overall_script_end_time_dt - overall_script_start_time_dt
@@ -1031,10 +1040,26 @@ performance_metrics["overall_script_duration_s"] = total_script_duration.total_s
 
 logger.log(f"✅ Execution completed at: {overall_script_end_time_dt.strftime('%Y-%m-%d %H:%M:%S')} in {total_script_duration}")
 logger.update_web_log("download_overall_status", "Completed")
+
+# Final update for ticker_download status upon successful completion
+final_ticker_download_status = logger.web_data.get("ticker_download", {}).copy() # Get current state
+final_ticker_download_status["overall_status"] = "Completed"
+final_ticker_download_status["current_ticker"] = "Download completed"
+final_ticker_download_status["completed_tickers"] = len(tickers_to_download)
+final_ticker_download_status["total_tickers"] = len(tickers_to_download)
+final_ticker_download_status["progress"] = 100
+logger.update_web_log("ticker_download", final_ticker_download_status)
+
 logger.update_web_log("download_execution_end", overall_script_end_time_dt.strftime('%Y-%m-%d %H:%M:%S')) # Mark end time
 
 # Log performance data to CSV and copy
 log_download_performance(performance_metrics, DOWNLOAD_PERFORMANCE_LOG_PATH, logger)
 copy_log_to_web_accessible_location(DOWNLOAD_PERFORMANCE_LOG_PATH, WEB_ACCESSIBLE_DATA_FOLDER, logger, "Download Performance")
 
+except Exception as e:
+    # Catch any unhandled exceptions in the main execution block
+    logger.log(f"CRITICAL ERROR: Unhandled exception during Download.py execution: {e}", web_data={"download_overall_status": "Failed"})
+    import traceback
+    logger.log(f"Traceback:\n{traceback.format_exc()}")
+    # The script will now exit with a non-zero status due to the unhandled exception
 logger.flush() # Final flush

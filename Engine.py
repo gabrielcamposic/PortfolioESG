@@ -16,7 +16,7 @@ import math
 import shutil # Add this import
 
 # --- Engine Version ---
-ENGINE_VERSION = "1.4.0" # Added portfolio value history logging & run_id
+ENGINE_VERSION = "1.5.0" # Added comprehensive error handling, improved web logging, GA stubs, adaptive logic framework
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -1467,6 +1467,7 @@ engine_start_web_data = {
     "engine_script_end_time": "N/A",  # Explicitly reset
     "engine_script_total_duration": "N/A", # Explicitly reset
     "estimated_completion_time": "Calculating...", # Initial overall estimate
+    "engine_overall_status": "Running", # Indicate Engine.py is now running
     "current_run_id": run_id, # Add current run ID
     "current_engine_phase": "Initializing...", # Set initial phase
     "engine_search_modes": engine_search_modes_data, # Add the search modes
@@ -1501,6 +1502,10 @@ if DEBUG_MODE:
 # ----------------------------------------------------------- #
 #                     Execution Pipeline                      #
 # ----------------------------------------------------------- #
+
+# --- Main Execution Block with Error Handling ---
+try:
+
 
 # --- Read & Wrangle Stock Data ---
 StockDataDB_df = pd.read_csv(STOCK_DATA_FILE)
@@ -1878,6 +1883,19 @@ overall_script_end_time = datetime.now()
 if PORTFOLIO_VALUE_HISTORY_CSV_PATH and os.path.exists(PORTFOLIO_VALUE_HISTORY_CSV_PATH): # Check if file was created
     copy_portfolio_value_history_log_to_web_accessible_location(PORTFOLIO_VALUE_HISTORY_CSV_PATH, logger)
 
+except Exception as e:
+    # Catch any unhandled exceptions in the main execution block
+    logger.log(f"CRITICAL ERROR: Unhandled exception during Engine.py execution: {e}", web_data={"engine_overall_status": "Failed"})
+    import traceback
+    logger.log(f"Traceback:\n{traceback.format_exc()}")
+    # Update web log with failure status
+    logger.update_web_log("engine_overall_status", "Failed")
+    logger.update_web_log("current_engine_phase", "Engine Failed")
+    logger.update_web_log("engine_script_end_time", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    # The script will now exit with a non-zero status due to the unhandled exception
+
+
+# --- Finalization ---
 overall_script_end_time = datetime.now()
 total_script_duration = overall_script_end_time - overall_script_start_time
 logger.log(f"\n🏁 Engine Processing Finished at {overall_script_end_time.strftime('%Y-%m-%d %H:%M:%S')} 🏁")

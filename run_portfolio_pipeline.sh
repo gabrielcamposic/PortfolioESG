@@ -1,6 +1,6 @@
 #!/bin/bash
 # --- Configuration ---
-PIPELINE_SCRIPT_VERSION="1.1.0" # Added explicit script versioning
+PIPELINE_SCRIPT_VERSION="1.2.0" # Added error handling, detailed logging, JSON updates
 PROJECT_DIR="/home/gabrielcampos/PortfolioESG_Prod"
 LOG_DIR="$PROJECT_DIR/Logs"
 PIPELINE_LOG_FILE="$LOG_DIR/pipeline_execution.log"
@@ -45,7 +45,8 @@ jq -n \
      "pipeline_run_status": {
        "status_message": "Pipeline execution started.",
        "start_time": $startTime,
-       "current_stage": "Initializing pipeline..."
+       "current_stage": "Initializing pipeline...",
+       "end_time": "N/A" # Add end time for pipeline status
      },
 
      # Initial state for Stock Database Update (download.py)
@@ -57,7 +58,8 @@ jq -n \
        "completed_tickers": 0,
        "total_tickers": 0,
        "progress": 0,
-       "current_ticker": "Waiting for download.py to start...",
+       "current_ticker": "Waiting for download.py to start...", # download.py will overwrite this
+       "overall_status": "Pending", # Add status for download step
        "date_range": "N/A",
        "rows": 0
      },
@@ -68,6 +70,7 @@ jq -n \
      "estimated_completion_time": "N/A",
      "engine_script_end_time": "N/A",
      "engine_script_total_duration": "N/A",
+     "engine_overall_status": "Pending", # Add status for engine step
      "current_engine_phase": "Pipeline Initialized - Awaiting Optimization",
      "overall_progress": { # For Brute-Force
         "completed_actual_simulations_bf": 0,
@@ -95,6 +98,18 @@ jq -n \
 
 echo "Initial progress.json written to $PROGRESS_JSON_FULL_PATH"
 
+# Function to update progress.json using jq
+update_progress_json() {
+    local KEY="$1"
+    local VALUE="$2"
+    # Use a temporary file to avoid issues with jq modifying the file it's reading
+    jq --arg key "$KEY" --argjson value "$VALUE" '.[$key] = $value' "$PROGRESS_JSON_FULL_PATH" > "$PROGRESS_JSON_FULL_PATH.tmp" && mv "$PROGRESS_JSON_FULL_PATH.tmp" "$PROGRESS_JSON_FULL_PATH"
+}
+
+# Update pipeline status in JSON
+update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Download.py..." }'
+
+
 # Define the Python interpreter from the pyenv environment
 # This matches the shebang in your Python scripts.
 PYTHON_EXEC="/home/gabrielcampos/.pyenv/versions/env-fa/bin/python"
@@ -121,10 +136,14 @@ ENGINE_SCRIPT="./Engine.py"     # Note: Case-sensitive on Linux
 log_message "Starting Download.py..."
 DOWNLOAD_START_TIME_S=$(date +%s)
 # The output of Download.py (stdout and stderr) will be appended to $PIPELINE_LOG_FILE
-# which, in your cron setup, is pipeline_cron.log.
-# This ensures Python tracebacks are captured here.
-"$PYTHON_EXEC" "$DOWNLOAD_SCRIPT"
+# Redirect stdout and stderr to the pipeline log file
+"$PYTHON_EXEC" "$DOWNLOAD_SCRIPT" >> "$PIPELINE_LOG_FILE" 2>&1
 DOWNLOAD_EXIT_CODE=$?
+
+# Update download status in JSON based on exit code
+if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
+    update_progress_json "download_overall_status" '"Completed Successfully"'
+else
 DOWNLOAD_END_TIME_S=$(date +%s)
 DOWNLOAD_DURATION_S=$((DOWNLOAD_END_TIME_S - DOWNLOAD_START_TIME_S))
 DOWNLOAD_DURATION_FMT=$(format_duration $DOWNLOAD_DURATION_S)
@@ -133,10 +152,14 @@ if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
     log_message "Download.py completed successfully in $DOWNLOAD_DURATION_FMT."
 
     # --- Step 2: Run Engine.py ---
+    update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Engine.py..." }'
     log_message "Starting Engine.py..."
     ENGINE_START_TIME_S=$(date +%s)
-    "$PYTHON_EXEC" "$ENGINE_SCRIPT"
+    # Redirect stdout and stderr to the pipeline log file
+    "$PYTHON_EXEC" "$ENGINE_SCRIPT" >> "$PIPELINE_LOG_FILE" 2>&1
     ENGINE_EXIT_CODE=$?
+
+    # Update engine status in JSON based on exit code
     ENGINE_END_TIME_S=$(date +%s)
     ENGINE_DURATION_S=$((ENGINE_END_TIME_S - ENGINE_START_TIME_S))
     ENGINE_DURATION_FMT=$(format_duration $ENGINE_DURATION_S)
@@ -144,10 +167,14 @@ if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
     if [ $ENGINE_EXIT_CODE -eq 0 ]; then
         log_message "Engine.py completed successfully in $ENGINE_DURATION_FMT."
     else
+        update_progress_json "engine_overall_status" '"Failed"'
         log_message "Error: Engine.py failed with exit code $ENGINE_EXIT_CODE after $ENGINE_DURATION_FMT."
     fi
 else
+    update_progress_json "download_overall_status" '"Failed"'
     log_message "Error: Download.py failed with exit code $DOWNLOAD_EXIT_CODE after $DOWNLOAD_DURATION_FMT. Engine.py will not run."
+    # Update pipeline status to failed if download failed
+    update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline failed during Download.py.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Download Failed" }'
 fi
 
 PIPELINE_END_TIME_S=$(date +%s)
@@ -159,3 +186,10 @@ log_message "======================================"
 echo "" >> "$PIPELINE_LOG_FILE"
 
 exit 0
+
+# Final pipeline status update in JSON (only if it didn't fail earlier)
+# Check if pipeline_run_status is still "Pipeline is running."
+CURRENT_PIPELINE_STATUS=$(jq -r '.pipeline_run_status.status_message' "$PROGRESS_JSON_FULL_PATH")
+if [ "$CURRENT_PIPELINE_STATUS" == "Pipeline is running." ]; then
+    update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline completed successfully.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Pipeline Completed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
+fi
