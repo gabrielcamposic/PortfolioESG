@@ -1508,380 +1508,379 @@ try:
 
 
 # --- Read & Wrangle Stock Data ---
-StockDataDB_df = pd.read_csv(STOCK_DATA_FILE)
-StockDataDB_df['Date'] = pd.to_datetime(StockDataDB_df['Date'], format='mixed', errors='coerce').dt.date # Convert to date format, handle mixed formats
+    StockDataDB_df = pd.read_csv(STOCK_DATA_FILE)
+    StockDataDB_df['Date'] = pd.to_datetime(StockDataDB_df['Date'], format='mixed', errors='coerce').dt.date # Convert to date format, handle mixed formats
 
-logger.log("\n--- Starting Data Loading and Wrangling ---")
-logger.update_web_log("current_engine_phase", "Data Loading & Wrangling") # Update phase
-section_start_time = datetime.now()
-logger.update_web_log("data_wrangling_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
+    logger.log("\n--- Starting Data Loading and Wrangling ---")
+    logger.update_web_log("current_engine_phase", "Data Loading & Wrangling") # Update phase
+    section_start_time = datetime.now()
+    logger.update_web_log("data_wrangling_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
 
-StockDataDB_df.fillna({'Close': 0}, inplace=True) # Replace NaN with 0 for closing prices
-StockDataDB_df.sort_values(by=['Date', 'Stock'], inplace=True)
+    StockDataDB_df.fillna({'Close': 0}, inplace=True) # Replace NaN with 0 for closing prices
+    StockDataDB_df.sort_values(by=['Date', 'Stock'], inplace=True)
 
-# Filter data based on the start_date
-if START_DATE:
-    StockDataDB_df = StockDataDB_df[StockDataDB_df['Date'] >= START_DATE]
-    logger.log(f"    Data filtered from {START_DATE} to {StockDataDB_df['Date'].max()}.")
+    # Filter data based on the start_date
+    if START_DATE:
+        StockDataDB_df = StockDataDB_df[StockDataDB_df['Date'] >= START_DATE]
+        logger.log(f"    Data filtered from {START_DATE} to {StockDataDB_df['Date'].max()}.")
 
-# Pivot to get closing prices structured by stock
-StockClose_df = StockDataDB_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
-StockClose_df.dropna(inplace=True)  # Keep only complete data
-StockClose_df.reset_index(inplace=True)
+    # Pivot to get closing prices structured by stock
+    StockClose_df = StockDataDB_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
+    StockClose_df.dropna(inplace=True)  # Keep only complete data
+    StockClose_df.reset_index(inplace=True)
 
-# Calculate daily returns
-StockDailyReturn_df = StockClose_df.copy()
-StockDailyReturn_df.iloc[:, 1:] = StockClose_df.iloc[:, 1:].pct_change() * 100 # Calculate daily returns skipping the date column
-StockDailyReturn_df.replace(np.nan, 0, inplace=True)
+    # Calculate daily returns
+    StockDailyReturn_df = StockClose_df.copy()
+    StockDailyReturn_df.iloc[:, 1:] = StockClose_df.iloc[:, 1:].pct_change() * 100 # Calculate daily returns skipping the date column
+    StockDailyReturn_df.replace(np.nan, 0, inplace=True)
 
-# Calculate Individual Sharpe Ratios
-# We use .iloc[:, 1:] to exclude the 'Date' column from calculations.
-# The daily returns in StockDailyReturn_df are already percentages, so we divide by 100.
-IndividualSharpeRatios_sr = calculate_individual_sharpe_ratios(StockDailyReturn_df.iloc[:, 1:] / 100, RF_RATE)
+    # Calculate Individual Sharpe Ratios
+    # We use .iloc[:, 1:] to exclude the 'Date' column from calculations.
+    # The daily returns in StockDailyReturn_df are already percentages, so we divide by 100.
+    IndividualSharpeRatios_sr = calculate_individual_sharpe_ratios(StockDailyReturn_df.iloc[:, 1:] / 100, RF_RATE)
 
-# --- Filter DataFrames for Top Stocks by Sharpe Ratio based on MAX_STOCKS ---
+    # --- Filter DataFrames for Top Stocks by Sharpe Ratio based on MAX_STOCKS ---
 
-# Determine the number of top stocks for the initial broader filter based on MAX_STOCKS from simpar.txt
-# This num_top_stocks_for_filtering will be used to select from the global stock universe
-# before intersecting with the ESG_STOCKS_LIST.
-if 3 <= MAX_STOCKS <= 5: # If target portfolio size is small
-    num_top_stocks_for_filtering = 25 # Consider a pool of top 25 global stocks
-elif 6 <= MAX_STOCKS <= 10: # If target portfolio size is medium
-    num_top_stocks_for_filtering = 30 # Consider a pool of top 30 global stocks
-elif 11 <= MAX_STOCKS <= 20: # If target portfolio size is large
-    num_top_stocks_for_filtering = 40 # Consider a pool of top 40 global stocks
-else:
-    logger.log(f"    Warning: MAX_STOCKS ({MAX_STOCKS}) is outside the defined tier ranges (3-5, 6-10, 11-20). Defaulting to a pool size of 40 for initial Sharpe Ratio filtering.")
-    num_top_stocks_for_filtering = 40
-top_n_stocks_by_sharpe = IndividualSharpeRatios_sr.nlargest(num_top_stocks_for_filtering).index.tolist() # Use the dynamically determined number
+    # Determine the number of top stocks for the initial broader filter based on MAX_STOCKS from simpar.txt
+    # This num_top_stocks_for_filtering will be used to select from the global stock universe
+    # before intersecting with the ESG_STOCKS_LIST.
+    if 3 <= MAX_STOCKS <= 5: # If target portfolio size is small
+        num_top_stocks_for_filtering = 25 # Consider a pool of top 25 global stocks
+    elif 6 <= MAX_STOCKS <= 10: # If target portfolio size is medium
+        num_top_stocks_for_filtering = 30 # Consider a pool of top 30 global stocks
+    elif 11 <= MAX_STOCKS <= 20: # If target portfolio size is large
+        num_top_stocks_for_filtering = 40 # Consider a pool of top 40 global stocks
+    else:
+        logger.log(f"    Warning: MAX_STOCKS ({MAX_STOCKS}) is outside the defined tier ranges (3-5, 6-10, 11-20). Defaulting to a pool size of 40 for initial Sharpe Ratio filtering.")
+        num_top_stocks_for_filtering = 40
+    top_n_stocks_by_sharpe = IndividualSharpeRatios_sr.nlargest(num_top_stocks_for_filtering).index.tolist() # Use the dynamically determined number
 
-# Check if the number of stocks found is less than num_top_stocks_for_filtering,
-# which can happen if the total number of stocks in IndividualSharpeRatios_sr is small.
-actual_stocks_found_count = len(top_n_stocks_by_sharpe)
-if actual_stocks_found_count < num_top_stocks_for_filtering:
-    logger.log(f"    Note: Requested top {num_top_stocks_for_filtering} stocks, but only {actual_stocks_found_count} unique stocks available in the data after date filtering.")
-    num_top_stocks_for_filtering = actual_stocks_found_count # Adjust to actual count
+    # Check if the number of stocks found is less than num_top_stocks_for_filtering,
+    # which can happen if the total number of stocks in IndividualSharpeRatios_sr is small.
+    actual_stocks_found_count = len(top_n_stocks_by_sharpe)
+    if actual_stocks_found_count < num_top_stocks_for_filtering:
+        logger.log(f"    Note: Requested top {num_top_stocks_for_filtering} stocks, but only {actual_stocks_found_count} unique stocks available in the data after date filtering.")
+        num_top_stocks_for_filtering = actual_stocks_found_count # Adjust to actual count
 
-logger.log(f"    Global top {len(top_n_stocks_by_sharpe)} stocks by Sharpe Ratio selected for initial pool: {', '.join(top_n_stocks_by_sharpe)}")
+    logger.log(f"    Global top {len(top_n_stocks_by_sharpe)} stocks by Sharpe Ratio selected for initial pool: {', '.join(top_n_stocks_by_sharpe)}")
 
-# Ensure 'Date' column is included, then add the top n stocks
-StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_n_stocks_by_sharpe]
+    # Ensure 'Date' column is included, then add the top n stocks
+    StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_n_stocks_by_sharpe]
 
-# Filter StockClose_df as well, as it's used by find_best_stock_combination
-StockClose_df = StockClose_df[['Date'] + top_n_stocks_by_sharpe]
+    # Filter StockClose_df as well, as it's used by find_best_stock_combination
+    StockClose_df = StockClose_df[['Date'] + top_n_stocks_by_sharpe]
 
-section_end_time = datetime.now()
-section_duration = section_end_time - section_start_time
-logger.log(f"--- Data Loading and Wrangling finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
-logger.update_web_log("data_wrangling_end", section_end_time.strftime('%Y-%m-%d %H:%M:%S'))
-logger.update_web_log("data_wrangling_duration", str(section_duration))
+    section_end_time = datetime.now()
+    section_duration = section_end_time - section_start_time
+    logger.log(f"--- Data Loading and Wrangling finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logger.update_web_log("data_wrangling_end", section_end_time.strftime('%Y-%m-%d %H:%M:%S'))
+    logger.update_web_log("data_wrangling_duration", str(section_duration))
 
-# --- Initialize Execution Timer ---
-sim_timer = ExecutionTimer(rolling_window=max(10, SIM_RUNS // 100)) # Adjust rolling window based on sim_runs
+    # --- Initialize Execution Timer ---
+    sim_timer = ExecutionTimer(rolling_window=max(10, SIM_RUNS // 100)) # Adjust rolling window based on sim_runs
 
-# --- Find Best Stock Combination (e.g., from ESG list within Top N) ---
-logger.log("\n--- Starting Search for Best Stock Combination ---")
-logger.update_web_log("current_engine_phase", "Stock Combination Search (Brute-Force/GA)") # General phase
-section_start_time = datetime.now()
-logger.update_web_log("stock_combination_search_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
+    # --- Find Best Stock Combination (e.g., from ESG list within Top N) ---
+    logger.log("\n--- Starting Search for Best Stock Combination ---")
+    logger.update_web_log("current_engine_phase", "Stock Combination Search (Brute-Force/GA)") # General phase
+    section_start_time = datetime.now()
+    logger.update_web_log("stock_combination_search_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
 
-# StockClose_df here is already filtered to top 20 stocks by Sharpe.
-# ESG_STOCKS_LIST is the list of target tickers from simpar.txt.
-# The find_best_stock_combination will find the best combo from ESG_STOCKS_LIST (target list)
-# that are also present in the (already filtered) StockClose_df.
-(best_portfolio_stocks, best_weights, best_sharpe,
- best_final_value, best_roi, best_exp_return, best_volatility,
- avg_sim_time, stock_pool_used_in_search) = find_best_stock_combination(
-    StockClose_df,              # Price data for the universe of stocks to select from (e.g., top 20)
-    ESG_STOCKS_LIST,            # List of specific stocks to consider for combinations (e.g., ESG list)
-    INITIAL_INVESTMENT,
-    MIN_STOCKS,                 # Min stocks in a portfolio combination
-    MAX_STOCKS,                 # Max stocks in a portfolio combination
-    # SIM_RUNS,                 # This is now handled by global SIM_RUNS or adaptive logic
-    RF_RATE,
-    logger,                     # Pass the logger instance
-    sim_timer                   # Pass the timer instance
-)
-
-def log_optimal_portfolio_results_to_csv(
-    results_filepath,
-    generation_timestamp_dt, # Expecting datetime object
-    min_target_stocks,
-    max_target_stocks,
-    data_start_date_dt, # Expecting date object or None
-    data_end_date_dt,   # Expecting date object or None
-    stock_pool_considered_list,
-    optimal_stocks_list,
-    optimal_weights_list,
-    sharpe_ratio_val,
-    expected_annual_return_decimal_val,
-    expected_annual_volatility_decimal_val,
-    final_portfolio_value,
-    roi_percent_val,
-    engine_version_str,
-    run_id_str, # Add run_id_str parameter
-    initial_investment_val,
-    logger_instance 
-):
-    logger_instance.log(f"DEBUG: Entered log_optimal_portfolio_results_to_csv. Filepath: {results_filepath}") 
-    if not results_filepath:
-        logger_instance.log("Warning: results_log_csv_path not defined in parameters. Skipping CSV results log.")
-        return
-
-    def ensure_scalar_metric(metric_val, metric_name_for_log):
-        if not np.isscalar(metric_val):
-            # Log detailed warning if a metric that should be scalar is not.
-            logger_instance.log(f"CRITICAL WARNING in log_optimal_portfolio_results_to_csv: Metric '{metric_name_for_log}' expected to be scalar but received type {type(metric_val)} with value: {metric_val}. Using np.nan as fallback.")
-            # Attempt to extract a scalar if it's a 0-d array or single-element list/array
-            if hasattr(metric_val, 'item') and isinstance(metric_val, np.ndarray) and metric_val.ndim == 0: # 0-d numpy array
-                return metric_val.item()
-            if isinstance(metric_val, (list, np.ndarray, pd.Series)) and len(metric_val) == 1:
-                try:
-                    return metric_val[0] if not isinstance(metric_val[0], (list, np.ndarray, pd.Series)) else np.nan # Avoid nested structures
-                except: # Catch any error during extraction
-                    return np.nan
-            return np.nan # Fallback for multi-element arrays or other non-scalar types
-        return metric_val
-
-    try:
-        # Ensure all metric values are scalar before using them
-        s_sharpe = ensure_scalar_metric(sharpe_ratio_val, "sharpe_ratio")
-        s_exp_ret = ensure_scalar_metric(expected_annual_return_decimal_val, "expected_annual_return_decimal")
-        s_exp_vol = ensure_scalar_metric(expected_annual_volatility_decimal_val, "expected_annual_volatility_decimal")
-        s_final_val = ensure_scalar_metric(final_portfolio_value, "final_portfolio_value")
-        s_roi_pct = ensure_scalar_metric(roi_percent_val, "roi_percent")
-        s_init_inv = ensure_scalar_metric(initial_investment_val, "initial_investment")
-
-        logger_instance.log(f"DEBUG: Preparing data for CSV logging.") 
-        data = {
-            'generation_timestamp': [generation_timestamp_dt.strftime('%Y-%m-%d %H:%M:%S')],
-            'run_id': [run_id_str], # Add the run_id here
-            'engine_version': [engine_version_str],
-            'min_target_stocks': [min_target_stocks], 'max_target_stocks': [max_target_stocks],
-            'data_start_date': [data_start_date_dt.strftime('%Y-%m-%d') if data_start_date_dt else 'N/A'],
-            'data_end_date': [data_end_date_dt.strftime('%Y-%m-%d') if data_end_date_dt else 'N/A'],
-            'stock_pool_considered': [', '.join(sorted(stock_pool_considered_list)) if stock_pool_considered_list is not None and len(stock_pool_considered_list) > 0 else 'N/A'], # Robust check for list
-            'optimal_stocks': [', '.join(sorted(optimal_stocks_list)) if optimal_stocks_list is not None and len(optimal_stocks_list) > 0 else 'N/A'], # Remains correct for list
-            'optimal_weights': [', '.join(f'{w:.4f}' for w in optimal_weights_list) if optimal_weights_list is not None and optimal_weights_list.size > 0 else 'N/A'], # Remains correct for numpy array
-            'sharpe_ratio': [round(s_sharpe, 4) if pd.notna(s_sharpe) else np.nan],
-            'expected_annual_return_pct': [round(s_exp_ret * 100, 2) if pd.notna(s_exp_ret) else np.nan],
-            'expected_annual_volatility_pct': [round(s_exp_vol * 100, 2) if pd.notna(s_exp_vol) else np.nan],
-            'final_value': [round(s_final_val, 2) if pd.notna(s_final_val) else np.nan],
-            'roi_pct': [round(s_roi_pct, 2) if pd.notna(s_roi_pct) else np.nan],
-            'initial_investment': [round(s_init_inv, 2) if pd.notna(s_init_inv) else np.nan]
-        }
-        results_df = pd.DataFrame(data)
-        os.makedirs(os.path.dirname(results_filepath), exist_ok=True)
-        file_exists = os.path.isfile(results_filepath)
-        results_df.to_csv(results_filepath, mode='a', header=not file_exists, index=False)
-        logger_instance.log(f"✅ Optimal portfolio results logged to: {results_filepath}")
-    except Exception as e:
-        logger_instance.log(f"❌ Error logging optimal portfolio results to CSV {results_filepath}: {e}")
-
-
-
-# Log results to CSV
-if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
-    data_min_date_for_log = StockClose_df['Date'].min() if not StockClose_df.empty else None
-    data_max_date_for_log = StockClose_df['Date'].max() if not StockClose_df.empty else None
-    
-    log_optimal_portfolio_results_to_csv(
-        RESULTS_LOG_CSV_PATH,
-        datetime.now(), # Timestamp for this specific log entry
-        MIN_STOCKS,
-        MAX_STOCKS,
-        data_min_date_for_log,
-        data_max_date_for_log,
-        stock_pool_used_in_search,
-        best_portfolio_stocks,
-        best_weights,
-        best_sharpe,
-        best_exp_return,
-        best_volatility,
-        best_final_value,
-        best_roi,
-        ENGINE_VERSION, # Pass the global engine version
-        run_id,         # Pass the run_id here
+    # StockClose_df here is already filtered to top 20 stocks by Sharpe.
+    # ESG_STOCKS_LIST is the list of target tickers from simpar.txt.
+    # The find_best_stock_combination will find the best combo from ESG_STOCKS_LIST (target list)
+    # that are also present in the (already filtered) StockClose_df.
+    (best_portfolio_stocks, best_weights, best_sharpe,
+     best_final_value, best_roi, best_exp_return, best_volatility,
+     avg_sim_time, stock_pool_used_in_search) = find_best_stock_combination(
+        StockClose_df,              # Price data for the universe of stocks to select from (e.g., top 20)
+        ESG_STOCKS_LIST,            # List of specific stocks to consider for combinations (e.g., ESG list)
         INITIAL_INVESTMENT,
-        logger
+        MIN_STOCKS,                 # Min stocks in a portfolio combination
+        MAX_STOCKS,                 # Max stocks in a portfolio combination
+        # SIM_RUNS,                 # This is now handled by global SIM_RUNS or adaptive logic
+        RF_RATE,
+        logger,                     # Pass the logger instance
+        sim_timer                   # Pass the timer instance
     )
-elif not RESULTS_LOG_CSV_PATH:
-    logger.log("Info: results_log_csv_path not set in simpar.txt. Skipping CSV results log.")
-elif not best_portfolio_stocks:
-    logger.log("Info: No optimal portfolio found by Engine.py. Skipping CSV results log.")
 
-section_end_time = datetime.now()
-section_duration = section_end_time - section_start_time
-logger.log(f"--- Search for Best Stock Combination finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
-logger.update_web_log("stock_combination_search_end", section_end_time.strftime('%Y-%m-%d %H:%M:%S'))
-logger.update_web_log("stock_combination_search_duration", str(section_duration))
-
-# --- Log Portfolio Value History ---
-if PORTFOLIO_VALUE_HISTORY_CSV_PATH and best_portfolio_stocks and best_weights is not None:
-    logger.log(f"\n--- Logging Portfolio Value History for Run {run_id} ---")
-    logger.update_web_log("current_engine_phase", "Logging Portfolio History") # Update phase
-    try:
-        # Get the relevant price data for the best portfolio stocks
-        # StockClose_df is already filtered to the universe of stocks considered
-        # Ensure it's a copy to avoid SettingWithCopyWarning if portfolio_price_df is modified later
-        portfolio_price_df = StockClose_df[['Date'] + best_portfolio_stocks].copy()
-
-        # Calculate historical portfolio value using the best weights
-        # The asset_allocation function expects weights as a list or 1D numpy array
-        portfolio_value_df = asset_allocation(portfolio_price_df, best_weights, INITIAL_INVESTMENT, logger)
-
-        if not portfolio_value_df.empty:
-            # Prepare data for the new CSV
-            history_data = portfolio_value_df[['Date', 'Portfolio Value [$]']].copy()
-            history_data.rename(columns={'Portfolio Value [$]': 'PortfolioValue'}, inplace=True)
-            history_data['RunID'] = run_id # Add the unique run ID
-            # Reorder columns for clarity
-            history_data = history_data[['RunID', 'Date', 'PortfolioValue']]
-
-            # Append to the new CSV
-            os.makedirs(os.path.dirname(PORTFOLIO_VALUE_HISTORY_CSV_PATH), exist_ok=True)
-            file_exists = os.path.isfile(PORTFOLIO_VALUE_HISTORY_CSV_PATH)
-            history_data.to_csv(PORTFOLIO_VALUE_HISTORY_CSV_PATH, mode='a', header=not file_exists, index=False)
-            logger.log(f"✅ Portfolio value history logged for run {run_id} to: {PORTFOLIO_VALUE_HISTORY_CSV_PATH}")
-
-            # The copy_log_to_web_accessible_location function will be called later for this file
-        else:
-            logger.log(f"Warning: Could not calculate portfolio value history for run {run_id}. Portfolio value DataFrame is empty.")
-    except Exception as e:
-        logger.log(f"❌ Error logging portfolio value history for run {run_id}: {e}")
-
-# --- Define these variables in the global scope before calling the summary function ---
-initial_estimated_duration_from_log = logger.web_data.get("estimated_completion_time", "N/A") # This is a timestamp
-# We need the duration string if available, or calculate from start/est_end
-# For simplicity, we'll log the estimated *completion timestamp* as a proxy for now,
-# or "Calculating..." if it was never updated.
-data_wrangling_duration_from_log = logger.web_data.get("data_wrangling_duration", "0:00:00")
-
-# --- Log Performance Summary ---
-def log_engine_performance_summary(
-    performance_filepath, run_start_dt, engine_ver, params_dict,
-    initial_est_duration_str, actual_total_duration_str,
-    data_wrangling_duration_str, search_phases_durations_dict, logger_instance
-):
-    if not performance_filepath:
-        logger_instance.log("Warning: performance_log_csv_path not defined. Skipping performance summary log.")
-        return
-
-    try:
-        data_to_log = {
-            'run_start_timestamp': [run_start_dt.strftime('%Y-%m-%d %H:%M:%S')],
-            'run_id': [run_id], # Add run_id to performance log
-            'engine_version': [engine_ver],
-            'min_stocks': [params_dict.get("min_stocks")],
-            'max_stocks': [params_dict.get("max_stocks")],
-            'heuristic_k': [params_dict.get("heuristic_threshold_k")],
-            'adaptive_enabled': [params_dict.get("adaptive_sim_enabled")],
-            'ga_pop_size': [params_dict.get("ga_population_size")],
-            'ga_num_generations': [params_dict.get("ga_num_generations")],
-            'sim_runs_fixed': [params_dict.get("sim_runs")], # For refinement or non-adaptive parts
-            'initial_overall_est_duration': [initial_est_duration_str],
-            'actual_overall_duration': [actual_total_duration_str],
-            'data_wrangling_duration': [data_wrangling_duration_str],
-            'bf_phase_duration_seconds': [search_phases_durations_dict.get("bf_total_seconds", 0)],
-            'ga_phase_duration_seconds': [search_phases_durations_dict.get("ga_total_seconds", 0)],
-            'refinement_phase_duration_seconds': [search_phases_durations_dict.get("refinement_total_seconds", 0)]
-        }
-        perf_df = pd.DataFrame(data_to_log)
-        os.makedirs(os.path.dirname(performance_filepath), exist_ok=True)
-        file_exists = os.path.isfile(performance_filepath)
-        perf_df.to_csv(performance_filepath, mode='a', header=not file_exists, index=False)
-        logger_instance.log(f"✅ Engine performance summary logged to: {performance_filepath}")
-
-        # Also copy this performance log to the web-accessible data folder
-        if WEB_ACCESSIBLE_DATA_FOLDER:
-            web_perf_log_dir = os.path.join(WEB_ACCESSIBLE_DATA_FOLDER) # Base data folder
-            os.makedirs(web_perf_log_dir, exist_ok=True)
-            web_perf_log_path = os.path.join(web_perf_log_dir, os.path.basename(performance_filepath))
-            shutil.copy2(performance_filepath, web_perf_log_path)
-            logger_instance.log(f"✅ Copied performance log to web-accessible location: {web_perf_log_path}")
-
-    except Exception as e:
-        logger_instance.log(f"❌ Error logging engine performance summary to {performance_filepath}: {e}")
-
-# --- Function to copy GA Fitness/Noise log to web accessible location ---
-def copy_ga_fitness_noise_log_to_web_accessible_location(source_csv_path, logger_instance):
-    if not source_csv_path or not os.path.exists(source_csv_path):
-        logger_instance.log(f"Warning: Source GA fitness/noise log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
-        return
-
-    try:
-        web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
-        if not web_data_dir:
-            logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy GA fitness/noise log to web directory.")
+    def log_optimal_portfolio_results_to_csv(
+        results_filepath,
+        generation_timestamp_dt, # Expecting datetime object
+        min_target_stocks,
+        max_target_stocks,
+        data_start_date_dt, # Expecting date object or None
+        data_end_date_dt,   # Expecting date object or None
+        stock_pool_considered_list,
+        optimal_stocks_list,
+        optimal_weights_list,
+        sharpe_ratio_val,
+        expected_annual_return_decimal_val,
+        expected_annual_volatility_decimal_val,
+        final_portfolio_value,
+        roi_percent_val,
+        engine_version_str,
+        run_id_str, # Add run_id_str parameter
+        initial_investment_val,
+        logger_instance
+    ):
+        logger_instance.log(f"DEBUG: Entered log_optimal_portfolio_results_to_csv. Filepath: {results_filepath}")
+        if not results_filepath:
+            logger_instance.log("Warning: results_log_csv_path not defined in parameters. Skipping CSV results log.")
             return
 
-        if not os.path.exists(web_data_dir): # Ensure the directory exists
-            os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
-            logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
+        def ensure_scalar_metric(metric_val, metric_name_for_log):
+            if not np.isscalar(metric_val):
+                # Log detailed warning if a metric that should be scalar is not.
+                logger_instance.log(f"CRITICAL WARNING in log_optimal_portfolio_results_to_csv: Metric '{metric_name_for_log}' expected to be scalar but received type {type(metric_val)} with value: {metric_val}. Using np.nan as fallback.")
+                # Attempt to extract a scalar if it's a 0-d array or single-element list/array
+                if hasattr(metric_val, 'item') and isinstance(metric_val, np.ndarray) and metric_val.ndim == 0: # 0-d numpy array
+                    return metric_val.item()
+                if isinstance(metric_val, (list, np.ndarray, pd.Series)) and len(metric_val) == 1:
+                    try:
+                        return metric_val[0] if not isinstance(metric_val[0], (list, np.ndarray, pd.Series)) else np.nan # Avoid nested structures
+                    except: # Catch any error during extraction
+                        return np.nan
+                return np.nan # Fallback for multi-element arrays or other non-scalar types
+            return metric_val
 
-        destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
-        shutil.copy2(source_csv_path, destination_csv_path)
-        logger_instance.log(f"✅ Copied GA fitness/noise log to web-accessible location: {destination_csv_path}")
-    except Exception as e:
-        logger_instance.log(f"❌ Error copying GA fitness/noise log to web directory: {e}")
+        try:
+            # Ensure all metric values are scalar before using them
+            s_sharpe = ensure_scalar_metric(sharpe_ratio_val, "sharpe_ratio")
+            s_exp_ret = ensure_scalar_metric(expected_annual_return_decimal_val, "expected_annual_return_decimal")
+            s_exp_vol = ensure_scalar_metric(expected_annual_volatility_decimal_val, "expected_annual_volatility_decimal")
+            s_final_val = ensure_scalar_metric(final_portfolio_value, "final_portfolio_value")
+            s_roi_pct = ensure_scalar_metric(roi_percent_val, "roi_percent")
+            s_init_inv = ensure_scalar_metric(initial_investment_val, "initial_investment")
 
-# --- Function to copy Portfolio Value History log to web accessible location ---
-def copy_portfolio_value_history_log_to_web_accessible_location(source_csv_path, logger_instance):
-    if not source_csv_path or not os.path.exists(source_csv_path):
-        logger_instance.log(f"Warning: Source Portfolio Value History log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
-        return
+            logger_instance.log(f"DEBUG: Preparing data for CSV logging.")
+            data = {
+                'generation_timestamp': [generation_timestamp_dt.strftime('%Y-%m-%d %H:%M:%S')],
+                'run_id': [run_id_str], # Add the run_id here
+                'engine_version': [engine_version_str],
+                'min_target_stocks': [min_target_stocks], 'max_target_stocks': [max_target_stocks],
+                'data_start_date': [data_start_date_dt.strftime('%Y-%m-%d') if data_start_date_dt else 'N/A'],
+                'data_end_date': [data_end_date_dt.strftime('%Y-%m-%d') if data_end_date_dt else 'N/A'],
+                'stock_pool_considered': [', '.join(sorted(stock_pool_considered_list)) if stock_pool_considered_list is not None and len(stock_pool_considered_list) > 0 else 'N/A'], # Robust check for list
+                'optimal_stocks': [', '.join(sorted(optimal_stocks_list)) if optimal_stocks_list is not None and len(optimal_stocks_list) > 0 else 'N/A'], # Remains correct for list
+                'optimal_weights': [', '.join(f'{w:.4f}' for w in optimal_weights_list) if optimal_weights_list is not None and optimal_weights_list.size > 0 else 'N/A'], # Remains correct for numpy array
+                'sharpe_ratio': [round(s_sharpe, 4) if pd.notna(s_sharpe) else np.nan],
+                'expected_annual_return_pct': [round(s_exp_ret * 100, 2) if pd.notna(s_exp_ret) else np.nan],
+                'expected_annual_volatility_pct': [round(s_exp_vol * 100, 2) if pd.notna(s_exp_vol) else np.nan],
+                'final_value': [round(s_final_val, 2) if pd.notna(s_final_val) else np.nan],
+                'roi_pct': [round(s_roi_pct, 2) if pd.notna(s_roi_pct) else np.nan],
+                'initial_investment': [round(s_init_inv, 2) if pd.notna(s_init_inv) else np.nan]
+            }
+            results_df = pd.DataFrame(data)
+            os.makedirs(os.path.dirname(results_filepath), exist_ok=True)
+            file_exists = os.path.isfile(results_filepath)
+            results_df.to_csv(results_filepath, mode='a', header=not file_exists, index=False)
+            logger_instance.log(f"✅ Optimal portfolio results logged to: {results_filepath}")
+        except Exception as e:
+            logger_instance.log(f"❌ Error logging optimal portfolio results to CSV {results_filepath}: {e}")
 
-    try:
-        web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
-        if not web_data_dir:
-            logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy Portfolio Value History log to web directory.")
+
+
+    # Log results to CSV
+    if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
+        data_min_date_for_log = StockClose_df['Date'].min() if not StockClose_df.empty else None
+        data_max_date_for_log = StockClose_df['Date'].max() if not StockClose_df.empty else None
+
+        log_optimal_portfolio_results_to_csv(
+            RESULTS_LOG_CSV_PATH,
+            datetime.now(), # Timestamp for this specific log entry
+            MIN_STOCKS,
+            MAX_STOCKS,
+            data_min_date_for_log,
+            data_max_date_for_log,
+            stock_pool_used_in_search,
+            best_portfolio_stocks,
+            best_weights,
+            best_sharpe,
+            best_exp_return,
+            best_volatility,
+            best_final_value,
+            best_roi,
+            ENGINE_VERSION, # Pass the global engine version
+            run_id,         # Pass the run_id here
+            INITIAL_INVESTMENT,
+            logger
+        )
+    elif not RESULTS_LOG_CSV_PATH:
+        logger.log("Info: results_log_csv_path not set in simpar.txt. Skipping CSV results log.")
+    elif not best_portfolio_stocks:
+        logger.log("Info: No optimal portfolio found by Engine.py. Skipping CSV results log.")
+
+    section_end_time = datetime.now()
+    section_duration = section_end_time - section_start_time
+    logger.log(f"--- Search for Best Stock Combination finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
+    logger.update_web_log("stock_combination_search_end", section_end_time.strftime('%Y-%m-%d %H:%M:%S'))
+    logger.update_web_log("stock_combination_search_duration", str(section_duration))
+
+    # --- Log Portfolio Value History ---
+    if PORTFOLIO_VALUE_HISTORY_CSV_PATH and best_portfolio_stocks and best_weights is not None:
+        logger.log(f"\n--- Logging Portfolio Value History for Run {run_id} ---")
+        logger.update_web_log("current_engine_phase", "Logging Portfolio History") # Update phase
+        try:
+            # Get the relevant price data for the best portfolio stocks
+            # StockClose_df is already filtered to the universe of stocks considered
+            # Ensure it's a copy to avoid SettingWithCopyWarning if portfolio_price_df is modified later
+            portfolio_price_df = StockClose_df[['Date'] + best_portfolio_stocks].copy()
+
+            # Calculate historical portfolio value using the best weights
+            # The asset_allocation function expects weights as a list or 1D numpy array
+            portfolio_value_df = asset_allocation(portfolio_price_df, best_weights, INITIAL_INVESTMENT, logger)
+
+            if not portfolio_value_df.empty:
+                # Prepare data for the new CSV
+                history_data = portfolio_value_df[['Date', 'Portfolio Value [$]']].copy()
+                history_data.rename(columns={'Portfolio Value [$]': 'PortfolioValue'}, inplace=True)
+                history_data['RunID'] = run_id # Add the unique run ID
+                # Reorder columns for clarity
+                history_data = history_data[['RunID', 'Date', 'PortfolioValue']]
+
+                # Append to the new CSV
+                os.makedirs(os.path.dirname(PORTFOLIO_VALUE_HISTORY_CSV_PATH), exist_ok=True)
+                file_exists = os.path.isfile(PORTFOLIO_VALUE_HISTORY_CSV_PATH)
+                history_data.to_csv(PORTFOLIO_VALUE_HISTORY_CSV_PATH, mode='a', header=not file_exists, index=False)
+                logger.log(f"✅ Portfolio value history logged for run {run_id} to: {PORTFOLIO_VALUE_HISTORY_CSV_PATH}")
+
+                # The copy_log_to_web_accessible_location function will be called later for this file
+            else:
+                logger.log(f"Warning: Could not calculate portfolio value history for run {run_id}. Portfolio value DataFrame is empty.")
+        except Exception as e:
+            logger.log(f"❌ Error logging portfolio value history for run {run_id}: {e}")
+
+    # --- Define these variables in the global scope before calling the summary function ---
+    initial_estimated_duration_from_log = logger.web_data.get("estimated_completion_time", "N/A") # This is a timestamp
+    # We need the duration string if available, or calculate from start/est_end
+    # For simplicity, we'll log the estimated *completion timestamp* as a proxy for now,
+    # or "Calculating..." if it was never updated.
+    data_wrangling_duration_from_log = logger.web_data.get("data_wrangling_duration", "0:00:00")
+
+    # --- Log Performance Summary ---
+    def log_engine_performance_summary(
+        performance_filepath, run_start_dt, engine_ver, params_dict,
+        initial_est_duration_str, actual_total_duration_str,
+        data_wrangling_duration_str, search_phases_durations_dict, logger_instance
+    ):
+        if not performance_filepath:
+            logger_instance.log("Warning: performance_log_csv_path not defined. Skipping performance summary log.")
             return
 
-        if not os.path.exists(web_data_dir): # Ensure the directory exists
-            os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
-            logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
+        try:
+            data_to_log = {
+                'run_start_timestamp': [run_start_dt.strftime('%Y-%m-%d %H:%M:%S')],
+                'run_id': [run_id], # Add run_id to performance log
+                'engine_version': [engine_ver],
+                'min_stocks': [params_dict.get("min_stocks")],
+                'max_stocks': [params_dict.get("max_stocks")],
+                'heuristic_k': [params_dict.get("heuristic_threshold_k")],
+                'adaptive_enabled': [params_dict.get("adaptive_sim_enabled")],
+                'ga_pop_size': [params_dict.get("ga_population_size")],
+                'ga_num_generations': [params_dict.get("ga_num_generations")],
+                'sim_runs_fixed': [params_dict.get("sim_runs")], # For refinement or non-adaptive parts
+                'initial_overall_est_duration': [initial_est_duration_str],
+                'actual_overall_duration': [actual_total_duration_str],
+                'data_wrangling_duration': [data_wrangling_duration_str],
+                'bf_phase_duration_seconds': [search_phases_durations_dict.get("bf_total_seconds", 0)],
+                'ga_phase_duration_seconds': [search_phases_durations_dict.get("ga_total_seconds", 0)],
+                'refinement_phase_duration_seconds': [search_phases_durations_dict.get("refinement_total_seconds", 0)]
+            }
+            perf_df = pd.DataFrame(data_to_log)
+            os.makedirs(os.path.dirname(performance_filepath), exist_ok=True)
+            file_exists = os.path.isfile(performance_filepath)
+            perf_df.to_csv(performance_filepath, mode='a', header=not file_exists, index=False)
+            logger_instance.log(f"✅ Engine performance summary logged to: {performance_filepath}")
 
-        destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
-        shutil.copy2(source_csv_path, destination_csv_path)
-        logger_instance.log(f"✅ Copied Portfolio Value History log to web-accessible location: {destination_csv_path}")
-    except Exception as e:
-        logger_instance.log(f"❌ Error copying Portfolio Value History log to web directory: {e}")
+            # Also copy this performance log to the web-accessible data folder
+            if WEB_ACCESSIBLE_DATA_FOLDER:
+                web_perf_log_dir = os.path.join(WEB_ACCESSIBLE_DATA_FOLDER) # Base data folder
+                os.makedirs(web_perf_log_dir, exist_ok=True)
+                web_perf_log_path = os.path.join(web_perf_log_dir, os.path.basename(performance_filepath))
+                shutil.copy2(performance_filepath, web_perf_log_path)
+                logger_instance.log(f"✅ Copied performance log to web-accessible location: {web_perf_log_path}")
 
+        except Exception as e:
+            logger_instance.log(f"❌ Error logging engine performance summary to {performance_filepath}: {e}")
 
-# --- Function to copy results log to web accessible location ---
-def copy_results_log_to_web_accessible_location(source_csv_path, logger_instance):
-    if not source_csv_path or not os.path.exists(source_csv_path):
-        logger_instance.log(f"Warning: Source results log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
-        return
-
-    try:
-        web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
-        if not web_data_dir:
-            logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy results log to web directory.")
+    # --- Function to copy GA Fitness/Noise log to web accessible location ---
+    def copy_ga_fitness_noise_log_to_web_accessible_location(source_csv_path, logger_instance):
+        if not source_csv_path or not os.path.exists(source_csv_path):
+            logger_instance.log(f"Warning: Source GA fitness/noise log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
             return
 
-        if not os.path.exists(web_data_dir): # Ensure the directory exists
-            os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
-            logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
+        try:
+            web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
+            if not web_data_dir:
+                logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy GA fitness/noise log to web directory.")
+                return
 
-        destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
-        shutil.copy2(source_csv_path, destination_csv_path)
-        logger_instance.log(f"✅ Copied results log to web-accessible location: {destination_csv_path}")
-    except Exception as e:
-        logger_instance.log(f"❌ Error copying results log to web directory: {e}")
+            if not os.path.exists(web_data_dir): # Ensure the directory exists
+                os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
+                logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
 
-# After logging to the primary CSV, copy it if the path was set
-if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
-    copy_results_log_to_web_accessible_location(RESULTS_LOG_CSV_PATH, logger)
+            destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
+            shutil.copy2(source_csv_path, destination_csv_path)
+            logger_instance.log(f"✅ Copied GA fitness/noise log to web-accessible location: {destination_csv_path}")
+        except Exception as e:
+            logger_instance.log(f"❌ Error copying GA fitness/noise log to web directory: {e}")
 
-# After logging GA fitness/noise data, copy it if the path was set
-if GA_FITNESS_NOISE_LOG_PATH:
-    copy_ga_fitness_noise_log_to_web_accessible_location(GA_FITNESS_NOISE_LOG_PATH, logger)
+    # --- Function to copy Portfolio Value History log to web accessible location ---
+    def copy_portfolio_value_history_log_to_web_accessible_location(source_csv_path, logger_instance):
+        if not source_csv_path or not os.path.exists(source_csv_path):
+            logger_instance.log(f"Warning: Source Portfolio Value History log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
+            return
 
-overall_script_end_time = datetime.now()
-# After logging portfolio value history, copy it if the path was set
-if PORTFOLIO_VALUE_HISTORY_CSV_PATH and os.path.exists(PORTFOLIO_VALUE_HISTORY_CSV_PATH): # Check if file was created
-    copy_portfolio_value_history_log_to_web_accessible_location(PORTFOLIO_VALUE_HISTORY_CSV_PATH, logger)
+        try:
+            web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
+            if not web_data_dir:
+                logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy Portfolio Value History log to web directory.")
+                return
+
+            if not os.path.exists(web_data_dir): # Ensure the directory exists
+                os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
+                logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
+
+            destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
+            shutil.copy2(source_csv_path, destination_csv_path)
+            logger_instance.log(f"✅ Copied Portfolio Value History log to web-accessible location: {destination_csv_path}")
+        except Exception as e:
+            logger_instance.log(f"❌ Error copying Portfolio Value History log to web directory: {e}")
+
+
+    # --- Function to copy results log to web accessible location ---
+    def copy_results_log_to_web_accessible_location(source_csv_path, logger_instance):
+        if not source_csv_path or not os.path.exists(source_csv_path):
+            logger_instance.log(f"Warning: Source results log CSV not found at '{source_csv_path}'. Cannot copy to web directory.")
+            return
+
+        try:
+            web_data_dir = WEB_ACCESSIBLE_DATA_FOLDER # Use the loaded parameter
+            if not web_data_dir:
+                logger_instance.log("Warning: web_accessible_data_folder not set in simpar.txt. Cannot copy results log to web directory.")
+                return
+
+            if not os.path.exists(web_data_dir): # Ensure the directory exists
+                os.makedirs(web_data_dir, exist_ok=True) # Create if it doesn't
+                logger_instance.log(f"Info: Created web data directory: {web_data_dir}") # Log creation
+
+            destination_csv_path = os.path.join(web_data_dir, os.path.basename(source_csv_path))
+            shutil.copy2(source_csv_path, destination_csv_path)
+            logger_instance.log(f"✅ Copied results log to web-accessible location: {destination_csv_path}")
+        except Exception as e:
+            logger_instance.log(f"❌ Error copying results log to web directory: {e}")
+
+    # After logging to the primary CSV, copy it if the path was set
+    if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
+        copy_results_log_to_web_accessible_location(RESULTS_LOG_CSV_PATH, logger)
+
+    # After logging GA fitness/noise data, copy it if the path was set
+    if GA_FITNESS_NOISE_LOG_PATH:
+        copy_ga_fitness_noise_log_to_web_accessible_location(GA_FITNESS_NOISE_LOG_PATH, logger)
+
+    # After logging portfolio value history, copy it if the path was set
+    if PORTFOLIO_VALUE_HISTORY_CSV_PATH and os.path.exists(PORTFOLIO_VALUE_HISTORY_CSV_PATH): # Check if file was created
+        copy_portfolio_value_history_log_to_web_accessible_location(PORTFOLIO_VALUE_HISTORY_CSV_PATH, logger)
 
 except Exception as e:
     # Catch any unhandled exceptions in the main execution block

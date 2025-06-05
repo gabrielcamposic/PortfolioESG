@@ -136,60 +136,73 @@ ENGINE_SCRIPT="./Engine.py"     # Note: Case-sensitive on Linux
 log_message "Starting Download.py..."
 DOWNLOAD_START_TIME_S=$(date +%s)
 # The output of Download.py (stdout and stderr) will be appended to $PIPELINE_LOG_FILE
-# Redirect stdout and stderr to the pipeline log file
 "$PYTHON_EXEC" "$DOWNLOAD_SCRIPT" >> "$PIPELINE_LOG_FILE" 2>&1
 DOWNLOAD_EXIT_CODE=$?
-
-# Update download status in JSON based on exit code
-if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
-    update_progress_json "download_overall_status" '"Completed Successfully"'
-else
 DOWNLOAD_END_TIME_S=$(date +%s)
 DOWNLOAD_DURATION_S=$((DOWNLOAD_END_TIME_S - DOWNLOAD_START_TIME_S))
 DOWNLOAD_DURATION_FMT=$(format_duration $DOWNLOAD_DURATION_S)
 
 if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
+    # Download was successful
+    update_progress_json "download_overall_status" '"Completed Successfully"'
     log_message "Download.py completed successfully in $DOWNLOAD_DURATION_FMT."
 
     # --- Step 2: Run Engine.py ---
-    update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Engine.py..." }'
+    # Update pipeline status to indicate starting Engine.py
+    update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Engine.py...", "end_time": "N/A" }'
     log_message "Starting Engine.py..."
     ENGINE_START_TIME_S=$(date +%s)
     # Redirect stdout and stderr to the pipeline log file
     "$PYTHON_EXEC" "$ENGINE_SCRIPT" >> "$PIPELINE_LOG_FILE" 2>&1
     ENGINE_EXIT_CODE=$?
-
-    # Update engine status in JSON based on exit code
     ENGINE_END_TIME_S=$(date +%s)
     ENGINE_DURATION_S=$((ENGINE_END_TIME_S - ENGINE_START_TIME_S))
     ENGINE_DURATION_FMT=$(format_duration $ENGINE_DURATION_S)
 
     if [ $ENGINE_EXIT_CODE -eq 0 ]; then
+        # Engine was successful
+        update_progress_json "engine_overall_status" '"Completed Successfully"'
         log_message "Engine.py completed successfully in $ENGINE_DURATION_FMT."
+        # Pipeline successful completion
+        PIPELINE_END_TIME_S=$(date +%s)
+        PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
+        PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
+        log_message "Portfolio Pipeline Finished successfully in $PIPELINE_DURATION_FMT."
+        log_message "======================================"
+        echo "" >> "$PIPELINE_LOG_FILE"
+        # Final pipeline status update in JSON
+        update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline completed successfully.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Pipeline Completed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
+        exit 0 # Exit with success code
     else
+        # Engine failed
         update_progress_json "engine_overall_status" '"Failed"'
         log_message "Error: Engine.py failed with exit code $ENGINE_EXIT_CODE after $ENGINE_DURATION_FMT."
+        # Pipeline failed during Engine step
+        PIPELINE_END_TIME_S=$(date +%s)
+        PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
+        PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
+        log_message "Portfolio Pipeline Finished with errors in Engine.py after $PIPELINE_DURATION_FMT."
+        log_message "======================================"
+        echo "" >> "$PIPELINE_LOG_FILE"
+        update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline failed during Engine.py.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Engine Failed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
+        exit 1 # Exit with failure code
     fi
 else
+    # Download failed
     update_progress_json "download_overall_status" '"Failed"'
     log_message "Error: Download.py failed with exit code $DOWNLOAD_EXIT_CODE after $DOWNLOAD_DURATION_FMT. Engine.py will not run."
-    # Update pipeline status to failed if download failed
+    # Pipeline failed during Download step
     update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline failed during Download.py.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Download Failed" }'
+    # Pipeline failed completion
+    PIPELINE_END_TIME_S=$(date +%s)
+    PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
+    PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
+    log_message "Portfolio Pipeline Finished with errors in Download.py after $PIPELINE_DURATION_FMT."
+    log_message "======================================"
+    echo "" >> "$PIPELINE_LOG_FILE"
+    exit 1 # Exit with failure code
 fi
 
-PIPELINE_END_TIME_S=$(date +%s)
-PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
-PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
-
-log_message "Portfolio Pipeline Finished in $PIPELINE_DURATION_FMT."
-log_message "======================================"
-echo "" >> "$PIPELINE_LOG_FILE"
-
-exit 0
-
-# Final pipeline status update in JSON (only if it didn't fail earlier)
-# Check if pipeline_run_status is still "Pipeline is running."
-CURRENT_PIPELINE_STATUS=$(jq -r '.pipeline_run_status.status_message' "$PROGRESS_JSON_FULL_PATH")
-if [ "$CURRENT_PIPELINE_STATUS" == "Pipeline is running." ]; then
-    update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline completed successfully.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Pipeline Completed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
-fi
+# The lines from 161 to 172 in the original script (calculating final pipeline duration and exiting)
+# are now handled within the respective success/failure branches of the if/else logic above.
+# This ensures the script exits with the correct status code and logs the final state accurately.

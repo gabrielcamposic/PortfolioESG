@@ -927,134 +927,131 @@ if DEBUG_MODE:
 try:
     # --- End Configuration Loading ---
 
-    logger.log(f"🚀 Starting execution pipeline at: {overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S')}")
-# --- End Configuration Loading ---
+    logger.log(f"🚀 Starting execution pipeline at: {overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S')}") # This is the primary log call for start
+    performance_metrics["run_start_timestamp"] = overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S') # Re-confirm start time
 
-logger.log(f"🚀 Starting execution pipeline at: {overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S')}")
-performance_metrics["run_start_timestamp"] = overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S') # Re-confirm start time
-
-# Initial web log update for download status
-initial_ticker_download_status = {
-    "completed_tickers": 0,
-    "total_tickers": 0, # Will be updated once tickers_list is read
-    "progress": 0,
-    "current_ticker": "Initializing...",
-    "overall_status": "Running", # Indicate download.py is now running
-    "date_range": "N/A", # download.py will update this
-    "rows": 0
-} # This was the end of ticker_download
-initial_web_log_data = { 
-    "download_execution_start": overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S'),
-    "ticker_download": initial_ticker_download_status,
-    "download_execution_end": "N/A" # Explicitly set to N/A
-}
-logger.log("Download script initialized web progress.", web_data=initial_web_log_data)
-
-if DEBUG_MODE:
-    logger.update_web_log("download_overall_status", "Initializing (Debug Mode)...")
-    logger.log("DEBUG: Attempting to initialize UserAgent.")
-user_agent_setup_start_time = time.time()
-# Fetch dynamic user agents or use the fallback list
-try:
-    from fake_useragent import UserAgent
-    ua = UserAgent()
-    USER_AGENTS = [ua.random for _ in range(50)]  # Generate 50 real agents
-    logger.log(f"✅ Generated {len(USER_AGENTS)} dynamic user agents using fake-useragent.")
-except Exception as e:
-    USER_AGENTS = FALLBACK_USER_AGENTS
-    if DEBUG_MODE:
-        logger.update_web_log("download_overall_status", "Initializing (UserAgent Fallback)...")
-        logger.log(f"DEBUG: Failed to init UserAgent or generate dynamic agents: {e}. Using fallback.")
-    logger.log(f"⚠️ Failed to generate dynamic user agents. Using fallback list. Reason: {e}")
-performance_metrics["user_agent_setup_duration_s"] = time.time() - user_agent_setup_start_time
-
-# Create a session
-session = requests.Session()
-
-# Configure retries for the session
-retry_strategy = Retry(
-    total=3,  # Number of retries
-    backoff_factor=1,  # Wait time between retries (exponential backoff)
-    status_forcelist=[500, 502, 503, 504],  # Retry on these HTTP status codes
-)
-adapter = HTTPAdapter(max_retries=retry_strategy)
-session.mount("http://", adapter)
-session.mount("https://", adapter)
-if DEBUG_MODE:
-    logger.log(f"DEBUG: Session created with retry strategy.")
-
-# --- Session Creation and Configuration ---
-# Moved here to be defined before download_and_append is called
-session = requests.Session()
-
-# Configure retries for the session
-retry_strategy = Retry(
-    total=3,  # Number of retries
-    backoff_factor=1,  # Wait time between retries (exponential backoff)
-    status_forcelist=[500, 502, 503, 504],  # Retry on these HTTP status codes
-)
-adapter = HTTPAdapter(max_retries=retry_strategy)
-session.mount("http://", adapter)
-session.mount("https://", adapter)
-logger.log("✅ HTTP session created and configured with retry strategy.")
-
-logger.update_web_log("download_overall_status", "Reading Tickers List...")
-if DEBUG_MODE:
-    logger.log(f"DEBUG: Reading tickers from: {TICKERS_FILE}")
-tickers_to_download = read_tickers_from_file(TICKERS_FILE)
-if not tickers_to_download:
-    logger.update_web_log("download_overall_status", "Failed (No Tickers)")
-    logger.log("⚠️ No tickers found in the Tickers.txt file. Exiting.")
-    # Update web log to indicate failure or no tickers
-    failed_ticker_status = {
+    # Initial web log update for download status
+    initial_ticker_download_status = {
         "completed_tickers": 0,
         "total_tickers": 0,
         "progress": 0,
-        "current_ticker": "No tickers found in file",
+        "current_ticker": "Initializing...",
+        "overall_status": "Running", # Indicate download.py is now running
         "date_range": "N/A",
         "rows": 0
+    } # This was the end of ticker_download
+    initial_web_log_data = {
+        "download_execution_start": overall_script_start_time_dt.strftime('%Y-%m-%d %H:%M:%S'),
+        "ticker_download": initial_ticker_download_status,
+        "download_execution_end": "N/A" # Explicitly set to N/A
     }
-    logger.update_web_log("ticker_download", failed_ticker_status)
-    logger.update_web_log("download_execution_end", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    logger.flush()
-    exit(1) 
+    logger.log("Download script initialized web progress.", web_data=initial_web_log_data)
 
-# Update total_tickers in web log now that we have the list
-# Ensure "ticker_download" key exists from initial_web_log_data merge
-current_ticker_status = logger.web_data.get("ticker_download", initial_ticker_download_status).copy() 
-current_ticker_status["total_tickers"] = len(tickers_to_download)
-current_ticker_status["overall_status"] = "Running" # Confirm running status
-current_ticker_status["current_ticker"] = "Preparing to process findata..."
-logger.update_web_log("download_overall_status", "Processing Local Data...")
-logger.update_web_log("ticker_download", current_ticker_status)
+    if DEBUG_MODE:
+        logger.update_web_log("download_overall_status", "Initializing (Debug Mode)...")
+        logger.log("DEBUG: Attempting to initialize UserAgent.")
+    user_agent_setup_start_time = time.time()
+    # Fetch dynamic user agents or use the fallback list
+    try:
+        from fake_useragent import UserAgent
+        ua = UserAgent()
+        USER_AGENTS = [ua.random for _ in range(50)]  # Generate 50 real agents
+        logger.log(f"✅ Generated {len(USER_AGENTS)} dynamic user agents using fake-useragent.")
+    except Exception as e:
+        USER_AGENTS = FALLBACK_USER_AGENTS
+        if DEBUG_MODE:
+            logger.update_web_log("download_overall_status", "Initializing (UserAgent Fallback)...")
+            logger.log(f"DEBUG: Failed to init UserAgent or generate dynamic agents: {e}. Using fallback.")
+        logger.log(f"⚠️ Failed to generate dynamic user agents. Using fallback list. Reason: {e}")
+    performance_metrics["user_agent_setup_duration_s"] = time.time() - user_agent_setup_start_time
 
-if DEBUG_MODE:
-    logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
+    # Create a session
+    session = requests.Session()
 
-logger.update_web_log("download_overall_status", "Downloading Data...")
-    download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics)
+    # Configure retries for the session
+    retry_strategy = Retry(
+        total=3,  # Number of retries
+        backoff_factor=1,  # Wait time between retries (exponential backoff)
+        status_forcelist=[500, 502, 503, 504],  # Retry on these HTTP status codes
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Session created with retry strategy.")
 
-overall_script_end_time_dt = datetime.now()
-total_script_duration = overall_script_end_time_dt - overall_script_start_time_dt
-performance_metrics["overall_script_duration_s"] = total_script_duration.total_seconds()
+    # --- Session Creation and Configuration ---
+    # Moved here to be defined before download_and_append is called
+    session = requests.Session()
 
-logger.log(f"✅ Execution completed at: {overall_script_end_time_dt.strftime('%Y-%m-%d %H:%M:%S')} in {total_script_duration}")
-logger.update_web_log("download_overall_status", "Completed")
+    # Configure retries for the session
+    retry_strategy = Retry(
+        total=3,  # Number of retries
+        backoff_factor=1,  # Wait time between retries (exponential backoff)
+        status_forcelist=[500, 502, 503, 504],  # Retry on these HTTP status codes
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    logger.log("✅ HTTP session created and configured with retry strategy.")
 
-# Final update for ticker_download status upon successful completion
-final_ticker_download_status = logger.web_data.get("ticker_download", {}).copy() # Get current state
-final_ticker_download_status["overall_status"] = "Completed"
-final_ticker_download_status["current_ticker"] = "Download completed"
-final_ticker_download_status["completed_tickers"] = len(tickers_to_download)
-final_ticker_download_status["total_tickers"] = len(tickers_to_download)
-final_ticker_download_status["progress"] = 100
-logger.update_web_log("ticker_download", final_ticker_download_status)
+    logger.update_web_log("download_overall_status", "Reading Tickers List...")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Reading tickers from: {TICKERS_FILE}")
+    tickers_to_download = read_tickers_from_file(TICKERS_FILE)
+    if not tickers_to_download:
+        logger.update_web_log("download_overall_status", "Failed (No Tickers)")
+        logger.log("⚠️ No tickers found in the Tickers.txt file. Exiting.")
+        # Update web log to indicate failure or no tickers
+        failed_ticker_status = {
+            "completed_tickers": 0,
+            "total_tickers": 0,
+            "progress": 0,
+            "current_ticker": "No tickers found in file",
+            "date_range": "N/A",
+            "rows": 0
+        }
+        logger.update_web_log("ticker_download", failed_ticker_status)
+        logger.update_web_log("download_execution_end", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        logger.flush()
+        exit(1)
 
-logger.update_web_log("download_execution_end", overall_script_end_time_dt.strftime('%Y-%m-%d %H:%M:%S')) # Mark end time
+    # Update total_tickers in web log now that we have the list
+    # Ensure "ticker_download" key exists from initial_web_log_data merge
+    current_ticker_status = logger.web_data.get("ticker_download", initial_ticker_download_status).copy()
+    current_ticker_status["total_tickers"] = len(tickers_to_download)
+    current_ticker_status["overall_status"] = "Running" # Confirm running status
+    current_ticker_status["current_ticker"] = "Preparing to process findata..."
+    logger.update_web_log("download_overall_status", "Processing Local Data...")
+    logger.update_web_log("ticker_download", current_ticker_status)
 
-# Log performance data to CSV and copy
-log_download_performance(performance_metrics, DOWNLOAD_PERFORMANCE_LOG_PATH, logger)
-copy_log_to_web_accessible_location(DOWNLOAD_PERFORMANCE_LOG_PATH, WEB_ACCESSIBLE_DATA_FOLDER, logger, "Download Performance")
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
+
+    logger.update_web_log("download_overall_status", "Downloading Data...")
+    download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics) # Corrected indentation
+
+    overall_script_end_time_dt = datetime.now()
+    total_script_duration = overall_script_end_time_dt - overall_script_start_time_dt
+    performance_metrics["overall_script_duration_s"] = total_script_duration.total_seconds()
+
+    logger.log(f"✅ Execution completed at: {overall_script_end_time_dt.strftime('%Y-%m-%d %H:%M:%S')} in {total_script_duration}")
+    logger.update_web_log("download_overall_status", "Completed")
+
+    # Final update for ticker_download status upon successful completion
+    final_ticker_download_status = logger.web_data.get("ticker_download", {}).copy() # Get current state
+    final_ticker_download_status["overall_status"] = "Completed"
+    final_ticker_download_status["current_ticker"] = "Download completed"
+    final_ticker_download_status["completed_tickers"] = len(tickers_to_download)
+    final_ticker_download_status["total_tickers"] = len(tickers_to_download)
+    final_ticker_download_status["progress"] = 100
+    logger.update_web_log("ticker_download", final_ticker_download_status)
+
+    logger.update_web_log("download_execution_end", overall_script_end_time_dt.strftime('%Y-%m-%d %H:%M:%S')) # Mark end time
+
+    # Log performance data to CSV and copy
+    log_download_performance(performance_metrics, DOWNLOAD_PERFORMANCE_LOG_PATH, logger)
+    copy_log_to_web_accessible_location(DOWNLOAD_PERFORMANCE_LOG_PATH, WEB_ACCESSIBLE_DATA_FOLDER, logger, "Download Performance")
 
 except Exception as e:
     # Catch any unhandled exceptions in the main execution block
