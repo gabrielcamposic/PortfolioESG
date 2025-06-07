@@ -4,17 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Engine Performance History</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1, h2 { color: #333; }
-        nav { margin-bottom: 20px; }
-        nav a { margin-right: 15px; text-decoration: none; color: #007bff; }
-        nav a:hover { text-decoration: underline; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding-left: 240px; /* Match progress.html */
+            padding-top: 20px;
+            padding-right: 20px;
+            padding-bottom: 20px;
+            background-color: #f8f9fa;
+            color: #343a40;
+            font-size: 1rem;
+            line-height: 1; /* Match progress.html */
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: left;
+            margin-bottom: 30px;
+            margin-top: 0;
+            font-size: 2.4em;
+            font-weight: 600;
+        }
+        nav {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px; /* Match progress.html */
+            height: 100%;
+            background-color: #343a40;
+            padding-top: 20px;
+            overflow-y: auto;
+            color: #f8f9fa;
+        }
+        .nav-section-title, nav h2 {
+            color: #f8f9fa;
+            font-size: 0.9em;
+            text-align: left;
+            padding-left: 20px;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        nav h2 { margin-top: 10px; }
+        nav a {
+            display: block;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #dee2e6;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        nav a:hover {
+            background-color: #495057;
+            color: #ffffff;
+        }
+        .stage-block {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stage-block:hover {
+             border-color: #bdc3c7;
+             box-shadow: 0 3px 6px rgba(0,0,0,0.07);
+        }
+        .stage-block h2 {
+            margin-top: 0;
+            color: #34495e;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.75em;
+            font-weight: 600;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            font-size: 0.85em; /* Slightly smaller font for more columns */
+            font-size: 0.9em; /* Consistent with other pages */
         }
         th, td {
             border: 1px solid #ddd;
@@ -27,65 +98,164 @@
         .table-container {
             overflow-x: auto; /* Allow horizontal scrolling for wide tables */
         }
+        .chart-container {
+            width: 80%;
+            max-width: 900px;
+            margin: 30px auto;
+        }
+        #nav-pipeline-status-details {
+            padding: 0px 0px 10px 0px;
+            margin-bottom: 0;
+        }
+        #nav-pipeline-status-details p {
+            color: #adb5bd;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            padding-left: 20px;
+            text-align: left;
+        }
+        #nav-pipeline-status-details p strong {
+            color: #dee2e6;
+            font-weight: 500;
+        }
+        #nav-pipeline-status-details .status-text {
+            font-weight: 500;
+        }
+        .nav-divider {
+            margin: 0px 20px 10px 20px;
+            border-color: #495057;
+            margin-bottom: 10px;
+        }
+        .nav-footer {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding-bottom: 10px;
+        }
+        .nav-footer p {
+            font-size: 0.75em;
+            color: #adb5bd;
+            margin: 0;
+            padding: 5px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>Engine Performance History</h1>
     <nav>
-        <a href="progress.html">View Live Progress</a>
-        <a href="results_history.html">View Run Results History</a>
-        <a href="ga_fitness_noise.html">View GA Fitness/Noise</a>
-        <a href="download_performance_history.html">View Download Performance</a>
+        <div id="nav-pipeline-status-details">
+            <h4 class="nav-section-title">Pipeline Status</h4>
+            <p><strong>Status:</strong> <span id="pipeline-status-message" class="status-text">N/A</span></p>
+            <p><strong>Started:</strong> <span id="pipeline-start-time">N/A</span></p>
+            <p><strong>Ended:</strong> <span id="pipeline-end-time-nav">N/A</span></p>
+            <p><strong>Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
+        </div>
+        <hr class="nav-divider">
+        <h2>Navigation</h2>
+        <a href="progress.html">Pipeline Status</a>
+        <a href="results_history.html">Portfolio History</a>
+        <a href="performance_history.html">Engine Performance</a>
+        <a href="download_performance_history.html">Script Performance</a>
+        <!-- GA Fitness/Noise link removed as it's merged here -->
+        <div class="nav-footer">
+            <p>HTML v1.0.1</p> <!-- Update version -->
+        </div>
     </nav>
+    <div class="main-content">
+        <h1>Engine Performance History</h1>
 
-    <h2>Logged Performance Metrics</h2>
-    <div class="table-container">
-        <table id="performanceTable">
-            <thead>
-                <tr>
-                    <th>Run Start Timestamp</th>
-                    <th>Engine Version</th>
-                    <th>Min Stocks</th>
-                    <th>Max Stocks</th>
-                    <th>Heuristic K</th>
-                    <th>Adaptive Enabled</th>
-                    <th>GA Pop Size</th>
-                    <th>GA Num Gens</th>
-                    <th>Sim Runs (Fixed)</th>
-                    <th>Initial Overall Est. End Time</th>
-                    <th>Actual Overall Duration</th>
-                    <th>Data Wrangling Duration</th>
-                    <th>BF Phase Duration (s)</th>
-                    <th>GA Phase Duration (s)</th>
-                    <th>Refinement Duration (s)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Data will be populated here by JavaScript -->
-            </tbody>
-        </table>
+        <div class="stage-block">
+            <h2>Logged Performance Metrics</h2>
+            <div class="table-container">
+                <table id="performanceTable">
+                    <thead>
+                        <tr>
+                            <th>Run Start Timestamp</th>
+                            <th>Engine Version</th>
+                            <th>Min Stocks</th>
+                            <th>Max Stocks</th>
+                            <th>Heuristic K</th>
+                            <th>Adaptive Enabled</th>
+                            <th>GA Pop Size</th>
+                            <th>GA Num Gens</th>
+                            <th>Sim Runs (Fixed)</th>
+                            <th>Initial Overall Est. End Time</th>
+                            <th>Actual Overall Duration</th>
+                            <th>Data Wrangling Duration</th>
+                            <th>BF Phase Duration (s)</th>
+                            <th>GA Phase Duration (s)</th>
+                            <th>Refinement Duration (s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="stage-block">
+            <h2>GA Fitness & Noise History</h2>
+            <div class="chart-container">
+                <h2>Best Sharpe Ratio by k and Sim Runs</h2>
+                <canvas id="gaFitnessNoiseChart"></canvas>
+            </div>
+            <h2>Logged GA Fitness & Noise Data</h2>
+            <div class="table-container">
+                <table id="gaFitnessNoiseTable">
+                    <thead>
+                        <tr>
+                            <th>Run Timestamp</th>
+                            <th>Engine Version</th>
+                            <th>k Size</th>
+                            <th>Sim Runs (GA)</th>
+                            <th>GA Pop Size</th>
+                            <th>GA Num Gens</th>
+                            <th>GA Mut Rate</th>
+                            <th>GA Xover Rate</th>
+                            <th>GA Elitism</th>
+                            <th>GA Tournament</th>
+                            <th>GA Conv Gens</th>
+                            <th>GA Conv Tol</th>
+                            <th>Best Sharpe Found (k)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
         const CSV_PATH = 'data/engine_performance_log.csv'; // Path to the new performance log
+        const GA_CSV_PATH = 'data/ga_fitness_noise_log.csv'; // Path for GA data
+
+        let gaFitnessNoiseChartInstance = null; // For GA chart
 
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A" || dateString.toLowerCase() === "calculating...") return dateString;
             try {
-                const dateObj = new Date(dateString.includes(' ') ? dateString : dateString + 'T00:00:00Z');
+                const dateObj = new Date(dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString + 'T00:00:00Z'); // Assume UTC if only date
                 if (isNaN(dateObj.getTime())) return dateString;
 
                 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
                 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-                const dayName = days[dateObj.getUTCDay()];
-                const dayOfMonth = String(dateObj.getUTCDate()).padStart(2, '0');
-                const monthName = months[dateObj.getUTCMonth()];
-                const year = String(dateObj.getUTCFullYear()).slice(-2);
-                const hours = String(dateObj.getUTCHours()).padStart(2, '0');
-                const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
+                const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !(typeof dateString === 'string' && dateString.match(/[+-]\d{2}:\d{2}$/));
+
+                const dayName = useLocalGetters ? days[dateObj.getDay()] : days[dateObj.getUTCDay()];
+                const dayOfMonth = String(useLocalGetters ? dateObj.getDate() : dateObj.getUTCDate()).padStart(2, '0');
+                const monthName = useLocalGetters ? months[dateObj.getMonth()] : months[dateObj.getUTCMonth()];
+                const year = useLocalGetters ? dateObj.getFullYear() : dateObj.getUTCFullYear(); // Display full year
+                const hours = String(useLocalGetters ? dateObj.getHours() : dateObj.getUTCHours()).padStart(2, '0');
+                const minutes = String(useLocalGetters ? dateObj.getMinutes() : dateObj.getUTCMinutes()).padStart(2, '0');
                 return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
             } catch (e) {
+                console.warn("Could not format date:", dateString, e);
                 return dateString;
             }
         }
@@ -201,7 +371,141 @@
             });
         }
 
+        // --- Functions for GA Fitness/Noise Data ---
+        async function fetchAndDisplayGAFitnessNoise() {
+            try {
+                const response = await fetch(GA_CSV_PATH + '?t=' + new Date().getTime()); // Cache buster
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} while fetching ${GA_CSV_PATH}`);
+                }
+                const csvText = await response.text();
+                const rows = csvText.trim().split('\n');
+                if (rows.length <= 1) { // Only header or empty
+                    populateGATable([], []);
+                    renderGAChart([]); // Render empty chart
+                    return;
+                }
+
+                const headersLine = rows[0];
+                const headers = headersLine.split(',').map(h => h.trim());
+
+                const data = rows.slice(1).map(rowString => {
+                    let rowObject = {};
+                    const regex = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g;
+                    let values = [];
+                    let match;
+                    while (match = regex.exec(rowString)) {
+                        let value = match[1];
+                        if (value.startsWith('"') && value.endsWith('"')) {
+                            value = value.substring(1, value.length - 1).replace(/\"\"/g, '"');
+                        }
+                        values.push(value.trim());
+                    }
+                    headers.forEach((header, index) => {
+                        rowObject[header] = values[index] !== undefined ? values[index] : 'N/A';
+                    });
+                    return rowObject;
+                });
+
+                populateGATable(data, headers);
+                renderGAChart(data);
+
+            } catch (error) {
+                console.error('Error fetching or parsing GA Fitness/Noise CSV:', error);
+                const tableBody = document.getElementById('gaFitnessNoiseTable').getElementsByTagName('tbody')[0];
+                const colspan = document.getElementById('gaFitnessNoiseTable').getElementsByTagName('thead')[0].rows[0].cells.length;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:red;">Error loading GA data: ${error.message}. Ensure '${GA_CSV_PATH}' is accessible.</td></tr>`;
+                renderGAChart([]); // Render empty chart on error
+            }
+        }
+
+        function populateGATable(data, headers) {
+            const tableBody = document.getElementById('gaFitnessNoiseTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            const expectedHeaders = ["run_start_timestamp", "engine_version", "k_size", "sim_runs_used_for_ga", "ga_pop_size", "ga_num_generations", "ga_mutation_rate", "ga_crossover_rate", "ga_elitism_count", "ga_tournament_size", "ga_convergence_generations", "ga_convergence_tolerance", "best_sharpe_found_for_k"];
+
+            if (data.length === 0) {
+                const colspan = headers.length > 0 ? headers.length : expectedHeaders.length;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No GA fitness or noise data found in CSV.</td></tr>`;
+                return;
+            }
+            
+            data.forEach(rowData => {
+                const tr = tableBody.insertRow();
+                headers.forEach(header => { 
+                    const td = tr.insertCell(); 
+                    let cellValue = rowData[header.trim()] || 'N/A';
+
+                    if (header.trim().toLowerCase() === 'run_start_timestamp') {
+                        cellValue = formatDate(cellValue);
+                    } else if (header.trim().toLowerCase() === 'best_sharpe_found_for_k' && cellValue !== 'N/A') {
+                         cellValue = parseFloat(cellValue).toFixed(4);
+                    } else if (header.trim().toLowerCase() === 'ga_mutation_rate' && cellValue !== 'N/A') {
+                         cellValue = parseFloat(cellValue).toFixed(3);
+                    } else if (header.trim().toLowerCase() === 'ga_crossover_rate' && cellValue !== 'N/A') {
+                         cellValue = parseFloat(cellValue).toFixed(3); 
+                    } else if (header.trim().toLowerCase() === 'ga_convergence_tolerance' && cellValue !== 'N/A') {
+                         cellValue = parseFloat(cellValue).toFixed(5);
+                    }
+                    td.textContent = cellValue;
+                });
+            });
+        }
+
+        function renderGAChart(data) {
+            const ctx = document.getElementById('gaFitnessNoiseChart').getContext('2d');
+            
+            if (gaFitnessNoiseChartInstance) {
+                gaFitnessNoiseChartInstance.destroy();
+            }
+
+            if (data.length === 0) return;
+
+            const dataByK = data.reduce((acc, row) => {
+                const k = row.k_size;
+                if (!acc[k]) acc[k] = [];
+                acc[k].push(row);
+                return acc;
+            }, {});
+
+            const datasets = Object.keys(dataByK).sort((a, b) => parseInt(a) - parseInt(b)).map(k => {
+                const kData = dataByK[k];
+                return {
+                    label: `k=${k}`,
+                    data: kData.map(row => ({
+                        x: parseInt(row.sim_runs_used_for_ga),
+                        y: parseFloat(row.best_sharpe_found_for_k)
+                    })).filter(point => !isNaN(point.x) && !isNaN(point.y)),
+                    borderColor: getRandomColor(),
+                    backgroundColor: getRandomColor(0.5),
+                    showLine: false,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    type: 'scatter'
+                };
+            });
+
+            gaFitnessNoiseChartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets: datasets },
+                options: {
+                    scales: {
+                        x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Sim Runs Used for GA Individual Evaluation' }, ticks: { callback: value => Number.isInteger(value) ? value : '' }},
+                        y: { type: 'linear', title: { display: true, text: 'Best Sharpe Ratio Found for k' }}
+                    },
+                    plugins: { tooltip: { callbacks: { label: context => { /* Simplified for brevity, can be expanded */ return `${context.dataset.label}, Sim Runs: ${context.parsed.x}, Sharpe: ${context.parsed.y.toFixed(4)}`; }}}},
+                    responsive: true, maintainAspectRatio: true
+                }
+            });
+        }
+
+        function getRandomColor(alpha = 1) {
+            return `rgba(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${alpha})`;
+        }
+
         fetchAndDisplayPerformance();
+        fetchAndDisplayGAFitnessNoise(); // Call the new function
     </script>
 </body>
 </html>

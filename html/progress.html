@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio Simulation</title>
+    <title>Pipeline Status</title>
     <style id="progress-styles"> /* Updated CSS */
         body { /* Updated */
             font-family: Arial, sans-serif;
@@ -254,7 +254,7 @@
         <hr class="nav-divider">
         <h2>Navigation</h2>
         <a href="progress.html">Pipeline Status</a>
-        <a href="results_history.html">Portfolio History</a>
+        <a href="results_history.html">ESG Portfolio</a>
         <a href="performance_history.html">Engine Performance</a>
         <a href="download_performance_history.html">Script Performance</a>
         <!-- Add other navigation links here if needed -->
@@ -366,7 +366,7 @@
             if (!dateString || dateString === "N/A") return "N/A";
             try {
                 // Handle cases where only date is provided or if it's already a full datetime string
-                const dateObj = new Date(dateString.includes(' ') ? dateString : dateString + 'T00:00:00Z'); // Assume UTC if only date
+                const dateObj = new Date(dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString + 'T00:00:00Z'); // Assume UTC if only date
                 if (isNaN(dateObj.getTime())) return dateString; // Return original if invalid
 
                 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
