@@ -1,35 +1,15 @@
 {
-    "engine_script_start_time": "2025-06-07 09:59:27",
-    "data_wrangling_start": "2025-06-07 09:59:27",
-    "data_wrangling_end": "2025-06-07 09:59:27",
-    "data_wrangling_duration": "0:00:00.038433",
-    "stock_combination_search_start": "2025-06-07 09:59:27",
-    "estimated_completion_time": "2025-06-07 12:17:13",
-    "best_portfolio_details": {
-        "stocks": [
-            "PSSA3.SA",
-            "CEAB3.SA",
-            "ITUB3.SA",
-            "TOTS3.SA",
-            "JHSF3.SA"
-        ],
-        "weights": [
-            0.1759,
-            0.1712,
-            0.2418,
-            0.3563,
-            0.0548
-        ],
-        "sharpe_ratio": 4.854,
-        "final_value": 1667.23,
-        "roi_percent": 66.72,
-        "expected_return_annual_pct": 127.88,
-        "expected_volatility_annual_pct": 23.31
-    },
+    "engine_script_start_time": "2025-06-07 12:16:43",
+    "data_wrangling_start": "2025-06-07 12:16:43",
+    "data_wrangling_end": "2025-06-07 12:16:43",
+    "data_wrangling_duration": "0:00:00.037627",
+    "stock_combination_search_start": "2025-06-07 12:16:43",
+    "estimated_completion_time": "2025-06-07 14:56:30",
+    "best_portfolio_details": null,
     "stock_combination_search_end": "2025-06-07 11:31:32",
     "stock_combination_search_duration": "1:32:04.567323",
-    "engine_script_end_time": "2025-06-07 11:31:32",
-    "engine_script_total_duration": "1:32:04.750285",
+    "engine_script_end_time": "N/A",
+    "engine_script_total_duration": "N/A",
     "download_execution_start": "2025-06-07 06:12:57",
     "ticker_download": {
         "completed_tickers": 64,
@@ -41,12 +21,12 @@
         "overall_status": "Completed"
     },
     "download_execution_end": "2025-06-07 06:16:43",
-    "current_engine_phase": "Logging Portfolio History",
+    "current_engine_phase": "Brute-Force (k=5)",
     "overall_progress": {
-        "completed_actual_simulations_bf": 1250475,
+        "completed_actual_simulations_bf": 834380,
         "total_expected_actual_simulations_bf": 1666665,
-        "percentage_bf": 75.02857502857503,
-        "estimated_completion_time_bf": "2025-06-07 11:25:59"
+        "percentage_bf": 50.06285006285006,
+        "estimated_completion_time_bf": "2025-06-07 13:51:31"
     },
     "ga_progress": {
         "status": "Pending/Inactive",
@@ -57,14 +37,12 @@
         "best_sharpe_this_k": "N/A"
     },
     "refinement_progress": {
-        "status": "Completed",
-        "current_combo_refined": 128,
-        "total_combos_to_refine": 128,
-        "percentage_refinement": 100
+        "status": "Pending/Inactive",
+        "details": "N/A"
     },
     "download_overall_status": "Completed",
     "engine_overall_status": "Running",
-    "current_run_id": "20250607_095927",
+    "current_run_id": "20250607_121643",
     "engine_search_modes": {
         "uses_brute_force": true,
         "uses_ga": false,
