@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Engine Performance History</title>
+    <title>Engine Performance</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -80,6 +80,17 @@
             margin-bottom: 15px;
             font-size: 1.75em;
             font-weight: 600;
+            text-align: left; /* Ensure left alignment for main section titles */
+        }
+        .stage-block h3 { /* Style for sub-headings within a stage block */
+            margin-top: 20px; /* Add some space above sub-headings */
+            margin-bottom: 10px;
+            color: #495057; /* Slightly lighter than main h2 */
+            font-size: 1.4em; /* Smaller than main h2 */
+            font-weight: 600;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee; /* Lighter separator for sub-headings */
+            text-align: left; /* Ensure left alignment */
         }
         table {
             width: 100%;
@@ -154,18 +165,28 @@
         </div>
         <hr class="nav-divider">
         <h2>Navigation</h2>
-        <a href="progress.html">Pipeline Status</a>
-        <a href="results_history.html">Portfolio History</a>
-        <a href="performance_history.html">Engine Performance</a>
-        <a href="download_performance_history.html">Script Performance</a>
+        <a href="pipeline.html">Pipeline Status</a>
+        <a href="esgportfolio.html">ESG Portfolio</a>
+        <a href="engine.html">Engine Performance</a>
+        <a href="script.html">Script Performance</a>
         <!-- GA Fitness/Noise link removed as it's merged here -->
         <div class="nav-footer">
-            <p>HTML v1.0.1</p> <!-- Update version -->
+            <p>HTML v1.0.1</p> <!-- Or your current version for this page -->
         </div>
     </nav>
     <div class="main-content">
-        <h1>Engine Performance History</h1>
+        <h1>Engine Performance</h1>
 
+        <!-- Section 1: Best Sharpe Ratio by k and Sim Runs (Placeholder for new chart) -->
+        <div class="stage-block">
+            <h2>Best Sharpe Ratio by k and Sim Runs</h2>
+            <div class="chart-container">
+                <canvas id="enginePerformanceSharpeChart"></canvas> <!-- New Canvas ID -->
+                <p id="enginePerformanceSharpeChartMessage" style="text-align:center; padding:20px;">Chart data source to be defined. This chart is intended to use engine_performance_log.csv.</p>
+            </div>
+        </div>
+
+        <!-- Section 2: Logged Performance Metrics (Existing Table) -->
         <div class="stage-block">
             <h2>Logged Performance Metrics</h2>
             <div class="table-container">
@@ -196,12 +217,16 @@
             </div>
         </div>
 
+        <!-- Section 3: GA Fitness & Noise History (Existing Chart, Retitled) -->
         <div class="stage-block">
             <h2>GA Fitness & Noise History</h2>
             <div class="chart-container">
-                <h2>Best Sharpe Ratio by k and Sim Runs</h2>
-                <canvas id="gaFitnessNoiseChart"></canvas>
+                <canvas id="gaFitnessNoiseChart"></canvas> <!-- Existing Canvas ID -->
             </div>
+        </div>
+
+        <!-- Section 4: Logged GA Fitness & Noise Data (Existing Table, Retitled) -->
+        <div class="stage-block">
             <h2>Logged GA Fitness & Noise Data</h2>
             <div class="table-container">
                 <table id="gaFitnessNoiseTable">
@@ -228,12 +253,13 @@
                 </table>
             </div>
         </div>
-    </div>
+    </div> <!-- End of main-content -->
 
     <script>
         const CSV_PATH = 'data/engine_performance_log.csv'; // Path to the new performance log
         const GA_CSV_PATH = 'data/ga_fitness_noise_log.csv'; // Path for GA data
 
+        let enginePerformanceSharpeChartInstance = null; // For the new chart
         let gaFitnessNoiseChartInstance = null; // For GA chart
 
         function formatDate(dateString) {
@@ -504,8 +530,27 @@
             return `rgba(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${alpha})`;
         }
 
+        // Stub function for the new chart (Section 1)
+        async function renderEnginePerformanceSharpeChart() {
+            const messageP = document.getElementById('enginePerformanceSharpeChartMessage');
+            const canvas = document.getElementById('enginePerformanceSharpeChart');
+            if (enginePerformanceSharpeChartInstance) {
+                enginePerformanceSharpeChartInstance.destroy();
+            }
+            // Currently, engine_performance_log.csv does not contain Sharpe Ratio data.
+            // To implement this chart as "Best Sharpe Ratio by k and Sim Runs",
+            // data would need to be fetched from engine_results_log.csv and merged
+            // with engine_performance_log.csv based on run_id.
+            // For now, we'll just ensure the placeholder message is visible.
+            if (canvas) canvas.style.display = 'none'; // Hide canvas if no data
+            if (messageP) messageP.style.display = 'block';
+            console.log("renderEnginePerformanceSharpeChart: Placeholder function. Data merging from multiple CSVs would be required.");
+        }
+
         fetchAndDisplayPerformance();
         fetchAndDisplayGAFitnessNoise(); // Call the new function
+        renderEnginePerformanceSharpeChart(); // Call the stub for the new chart
     </script>
 </body>
+
 </html>
