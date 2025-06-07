@@ -1,45 +1,73 @@
 {
-    "engine_script_start_time": "2025-06-01 08:41:15",
-    "data_wrangling_start": "2025-06-01 08:41:15",
-    "data_wrangling_end": "2025-06-01 08:41:15",
-    "data_wrangling_duration": "0:00:00.078611",
-    "stock_combination_search_start": "2025-06-01 08:41:15",
-    "estimated_completion_time": "2025-06-01 11:07:19",
-    "best_portfolio_details": null,
-    "stock_combination_search_end": "2025-05-31 21:11:36",
-    "stock_combination_search_duration": "0:59:39.856825",
-    "engine_script_end_time": "N/A",
-    "engine_script_total_duration": "N/A",
-    "download_execution_start": "2025-06-01 08:35:41",
+    "engine_script_start_time": "2025-06-07 06:39:04",
+    "data_wrangling_start": "2025-06-07 06:39:04",
+    "data_wrangling_end": "2025-06-07 06:39:04",
+    "data_wrangling_duration": "0:00:00.074827",
+    "stock_combination_search_start": "2025-06-07 06:39:04",
+    "estimated_completion_time": "2025-06-07 09:05:26",
+    "best_portfolio_details": {
+        "stocks": [
+            "PSSA3.SA",
+            "CEAB3.SA",
+            "ITUB3.SA",
+            "TOTS3.SA",
+            "JHSF3.SA"
+        ],
+        "weights": [
+            0.1731,
+            0.1961,
+            0.246,
+            0.3285,
+            0.0563
+        ],
+        "sharpe_ratio": 4.8498,
+        "final_value": 1686.2,
+        "roi_percent": 68.62,
+        "expected_return_annual_pct": 130.53,
+        "expected_volatility_annual_pct": 23.87
+    },
+    "stock_combination_search_end": "2025-06-07 08:44:56",
+    "stock_combination_search_duration": "2:05:52.699254",
+    "engine_script_end_time": "2025-06-07 08:44:56",
+    "engine_script_total_duration": "2:05:52.969735",
+    "download_execution_start": "2025-06-07 06:12:57",
     "ticker_download": {
         "completed_tickers": 64,
         "total_tickers": 64,
         "progress": 100,
-        "current_ticker": "StockDataDB.csv saved (138951 rows)",
-        "date_range": "2015-06-04 to 2025-05-30",
-        "rows": "N/A"
+        "current_ticker": "Download completed",
+        "date_range": "2015-06-10 to 2025-06-06",
+        "rows": 0,
+        "overall_status": "Completed"
     },
-    "download_execution_end": "2025-06-01 08:38:54",
-    "current_engine_phase": "Genetic Algorithm (k=5)",
+    "download_execution_end": "2025-06-07 06:16:43",
+    "current_engine_phase": "Logging Portfolio History",
     "overall_progress": {
-        "completed_actual_simulations_bf": 0,
-        "total_expected_actual_simulations_bf": 0,
-        "percentage_bf": 0,
-        "estimated_completion_time_bf": "N/A"
+        "completed_actual_simulations_bf": 1250675,
+        "total_expected_actual_simulations_bf": 1666665,
+        "percentage_bf": 75.04057504057504,
+        "estimated_completion_time_bf": "2025-06-07 08:33:54"
     },
     "ga_progress": {
-        "status": "Running",
-        "current_k": 5,
-        "current_generation": 15,
-        "current_individual_ga": 16,
-        "percentage_ga": 50.0,
-        "total_individuals_ga": 50,
-        "total_generations_ga": 30,
-        "best_sharpe_this_k": 4.8042
+        "status": "Pending/Inactive",
+        "current_k": "N/A",
+        "heuristic_threshold_k_value": 9,
+        "current_generation": "N/A",
+        "total_generations_ga": "N/A",
+        "best_sharpe_this_k": "N/A"
     },
     "refinement_progress": {
-        "status": "Pending/Inactive",
-        "details": "N/A"
+        "status": "Completed",
+        "current_combo_refined": 128,
+        "total_combos_to_refine": 128,
+        "percentage_refinement": 100
     },
-    "download_overall_status": "Completed"
+    "download_overall_status": "Completed",
+    "engine_overall_status": "Running",
+    "current_run_id": "20250607_063904",
+    "engine_search_modes": {
+        "uses_brute_force": true,
+        "uses_ga": false,
+        "uses_refinement": true
+    }
 }

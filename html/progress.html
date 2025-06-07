@@ -5,38 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portfolio Simulation</title>
     <style id="progress-styles"> /* Updated CSS */
-        body {
+        body { /* Updated */
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0; /* Remove default margin */
+            padding-left: 240px; /* Space for the fixed left nav */
+            padding-top: 20px; /* Top padding for content */
+            padding-right: 20px; /* Right padding for content */
+            padding-bottom: 20px; /* Bottom padding for content */
             background-color: #f8f9fa; /* Lighter background */
             color: #343a40; /* Dark grey for body text - good readability */
             font-size: 1rem; /* Base font size (16px by default) */
-            line-height: 1.6; /* Improved line spacing */
+            line-height: 1 ; /* Improved line spacing */
         }
         h1 {
             color: #2c3e50;
-            text-align: center;
+            text-align: left; /* Align with content */
             margin-bottom: 30px;
+            margin-top: 0px; /* Remove default top margin if body has padding-top */
             font-size: 2.4em; /* Slightly larger main title */
             font-weight: 600; /* Semi-bold */
         }
-        nav {
-            text-align: center;
-            margin-bottom: 30px;
+        nav { /* Updated for left column */
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px; /* Width of the nav bar */
+            height: 100%;
+            background-color: #343a40; /* Dark background for nav */
+            padding-top: 20px;
+            overflow-y: auto; /* Scroll if content is too long */
+            color: #f8f9fa; /* Light text color for nav */
         }
-        nav a {
-            margin: 0 10px;
+        .nav-section-title { /* Title for "Pipeline Status" (h4) */
+            color: #f8f9fa;
+            font-size: 0.9em;
+            text-align: left;
+            padding-left: 20px; /* Align with p tags below it */
+            margin-top: 0; 
+            margin-bottom: 10px; /* Space before the p tags */
+            font-weight: 600;
+        }
+        nav h2 { /* Title for "Navigation" section */
+            color: #f8f9fa;
+            font-size: 0.9em; /* Match Pipeline Status title */
+            text-align: left; /* Ensure left alignment */
+            padding-left: 20px; /* Align with nav links and other titles */
+            margin-top: 10px; /* Space after the hr */
+            margin-bottom: 10px; /* Space before links */
+            font-weight: 600; /* Match Pipeline Status title */
+        }
+        nav a { /* Updated for vertical links */
+            display: block; /* Make links take full width */
+            padding: 10px 20px; /* Adjust padding */
             text-decoration: none;
-            color: #007bff; /* Standard link blue */
-            font-weight: bold;
-            font-size: 1.05em;
-            padding: 5px 8px; /* Add some padding */
-            border-radius: 4px; /* Rounded corners */
-            transition: background-color 0.3s ease; /* Smooth hover effect */
+            color: #dee2e6; /* Lighter link color */
+            font-size: 0.9em; /* Standardized font size */
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         nav a:hover {
-            text-decoration: underline;
-            background-color: #e9ecef; /* Lighter grey on hover */
+            background-color: #495057; /* Darker grey on hover */
+            color: #ffffff; /* White text on hover */
         }
 
         .stage-block {
@@ -67,21 +95,21 @@
 
         /* Style for the "Current Phase" heading */
         .stage-details h3 {
-             margin-top: 10px;
-             margin-bottom: 8px;
+             margin-top: 0px;
+             margin-bottom: 0px;
              color: #495057; /* Slightly lighter than h2 */
              font-size: 1.4em; /* Phase title size */
-             padding-bottom: 5px; /* Small space below */
-             border-bottom: 1px dotted #ced4da; /* Subtle separator */
+             padding-bottom: 0px; /* Small space below */
+             /* border-bottom: 1px dotted #ced4da; */ /* Dotted line removed */
              font-weight: 600;
         }
 
          /* Style for sub-phase headings */
          .phase-details h4, .phase-details h5 {
-             margin-top: 10px;
-             margin-bottom: 8px;
+             margin-top: 0px;
+             margin-bottom: 0px;
              color: #6c757d; /* Even lighter for sub-phases */
-             border-bottom: 1px dotted #e9ecef;
+             /* border-bottom: 1px dotted #e9ecef; */ /* Dotted line removed */
              padding-bottom: 5px;
              font-size: 1.15em; /* Sub-phase title size */
              font-weight: 500; /* Normal weight for less emphasis */
@@ -101,7 +129,7 @@
         .stage-details, .phase-details {
             margin-top: 15px;
             padding-top: 15px;
-            border-top: 1px dashed #dee2e6; /* Lighter dashed border */
+            /* border-top: 1px dashed #dee2e6; */ /* Lighter dashed border - REMOVED */
          }
 
         .progress-bar {
@@ -170,115 +198,161 @@
             flex: 1;
             text-align: left; /* Ensure content is left-aligned within the column */
         }
+        /* Styles for pipeline status details within the nav bar */
+        #nav-pipeline-status-details {
+            padding: 0px 0px 10px 0px; /* Remove side padding, will be on children */
+            margin-bottom: 0; /* Let the divider handle spacing */
+        }
+        #nav-pipeline-status-details p {
+            color: #adb5bd; /* Lighter text for nav status */
+            font-size: 0.9em; /* Standardized font size */
+            margin-bottom: 4px; /* Tighter spacing */
+            line-height: 1.3; /* Slightly tighter line height */
+            padding-left: 20px; /* Indent to match links */
+            text-align: left; /* Ensure left alignment */
+        }
+        #nav-pipeline-status-details p strong {
+            color: #dee2e6; /* Brighter labels */
+            font-weight: 500; /* Slightly less bold */
+        }
+        /* Styling for the status text itself within the nav status */
+        #nav-pipeline-status-details .status-text {
+            font-weight: 500; /* Match strong or adjust as needed */
+            /* Color will be handled by .status-text.status-pending etc. if applied */
+        }
+        .nav-divider {
+            margin: 0px 20px 10px 20px; /* Top, LR, Bottom */
+            border-color: #495057; /* Darker divider in nav */
+            margin-bottom: 10px;
+        }
+        .nav-footer {
+            position: absolute; /* Position relative to the nav bar */
+            bottom: 10px; /* Space from the bottom */
+            left: 0;
+            width: 100%; /* Take full width of the nav bar */
+            text-align: center; /* Center the text */
+            padding-bottom: 10px; /* Added padding at the bottom of the footer */
+        }
+        .nav-footer p {
+            font-size: 0.75em; /* Smaller font for the version */
+            color: #adb5bd; /* Lighter text, similar to status details */
+            margin: 0; /* Remove default paragraph margin */
+            padding: 5px 0; /* Some padding */
+        }
 
     </style>
 </head>
 <body>
-    <h1>Simulation Progress</h1>
     <nav>
-        <a href="results_history.html">View Run History</a>
-        <a href="performance_history.html">View Performance History</a>
-        <a href="ga_fitness_noise.html">View GA Fitness/Noise</a>
-        <a href="download_performance_history.html">View Download Performance</a>
+        <div id="nav-pipeline-status-details">
+            <h4 class="nav-section-title">Pipeline Status</h4>
+            <p><strong>Status:</strong> <span id="pipeline-status-message" class="status-text">Loading...</span></p>
+            <p><strong>Started:</strong> <span id="pipeline-start-time">N/A</span></p>
+            <p><strong>Ended:</strong> <span id="pipeline-end-time-nav">N/A</span></p>
+            <p><strong>Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
+        </div>
+        <hr class="nav-divider">
+        <h2>Navigation</h2>
+        <a href="progress.html">Pipeline Status</a>
+        <a href="results_history.html">Portfolio History</a>
+        <a href="performance_history.html">Engine Performance</a>
+        <a href="download_performance_history.html">Script Performance</a>
+        <!-- Add other navigation links here if needed -->
+
+        <div class="nav-footer">
+            <p>HTML v1.0.0</p> <!-- Initial version, update as needed -->
+        </div>
     </nav>
 
-
-    <!-- Stage 1: Overall Pipeline Status -->
-    <div class="stage-block" id="pipeline-status-stage">
-        <h2>Overall Pipeline Status</h2>
-        <p><strong>Status:</strong> <span id="pipeline-status-message">Loading...</span></p>
-        <p><strong>Started At:</strong> <span id="pipeline-start-time">N/A</span></p>
-        <p><strong>Current Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
-    </div>
+    <div class="main-content"> <!-- Wrapper for content to the right of nav -->
+        <h1>Simulation Progress</h1>
 
         <!-- Stage 2: Stock Data Download -->
-    <div class="stage-block" id="download-stage">
-        <h2>Stock database update</h2>
-        <p><strong>Status:</strong> <span id="download-overall-status" class="status-text">Pending</span></p>
-        <div class="stage-columns">
-            <div class="column"> <!-- Left Column -->
-                <p><strong>Started:</strong> <span id="download-start-time">N/A</span></p>
-                <p><strong>Ended:</strong> <span id="download-end-time">N/A</span></p>
-                <p><strong>Duration:</strong> <span id="download-duration">N/A</span></p>
+        <div class="stage-block" id="download-stage">
+            <h2>Stock database update</h2>
+            <div class="stage-columns">
+                <div class="column stage-details"> <!-- Left Column - Added stage-details class -->
+                <h3>Overall Details</h3>
+                    <p><strong>Status:</strong> <span id="download-overall-status" class="status-text">Pending</span></p>
+                    <p><strong>Started:</strong> <span id="download-start-time">N/A</span></p>
+                    <p><strong>Ended:</strong> <span id="download-end-time">N/A</span></p>
+                    <p><strong>Duration:</strong> <span id="download-duration">N/A</span></p>
+                </div>
+                <div class="column"> <!-- Right Column -->
+                    <p><strong>Date Range:</strong> <span id="ticker-date-range">N/A</span></p>
+                    <p><strong>Ticker:</strong> <span id="ticker-current">N/A</span></p>
+                    <p><strong>Completed Tickers:</strong> <span id="ticker-completed">0</span> / <span id="ticker-total">0</span></p>
+                    <p><strong>Rows Downloaded:</strong> <span id="ticker-rows">0</span></p>
+                    <p><strong>Progress:</strong> <span id="ticker-progress-percent">0</span>%</p>
+                    <div class="progress-bar"><div class="progress-bar-inner" id="ticker-progress-bar"></div></div>
+                </div>
             </div>
-            <div class="column"> <!-- Right Column -->
-                <p><strong>Date Range:</strong> <span id="ticker-date-range">N/A</span></p>
-                <p><strong>Current Ticker:</strong> <span id="ticker-current">N/A</span></p>
-                <p><strong>Completed Tickers:</strong> <span id="ticker-completed">0</span> / <span id="ticker-total">0</span></p>
-                <p><strong>Rows Downloaded:</strong> <span id="ticker-rows">0</span></p>
-                <p><strong>Progress:</strong> <span id="ticker-progress-percent">0</span>%</p>
-                <div class="progress-bar"><div class="progress-bar-inner" id="ticker-progress-bar"></div></div>
-            </div>
-        </div>
-    </div>    
+        </div>    
 
     <!-- Stage 3-6: Portfolio Optimization Engine -->
     <div class="stage-block" id="engine-stage">
 
         <h2>Portfolio Optimization Progress</h2>
-        <p><strong>Status:</strong> <span id="engine-overall-status" class="status-text">Pending</span></p>
         <div class="stage-columns">
-            <div class="column"> <!-- Left Column -->
+            <div class="column stage-details"> <!-- Left Column - Added stage-details class -->
+                <h3>Overall Details</h3>
+                <p><strong>Status:</strong> <span id="engine-overall-status" class="status-text">Pending</span></p>
                 <p><strong>Started:</strong> <span id="engine-start-time">N/A</span></p>
+                <p><strong>Initial Estimated Completion:</strong> <span id="engine-initial-est-completion">N/A</span></p>
                 <p><strong>Ended:</strong> <span id="engine-end-time">N/A</span></p>
                 <p><strong>Total Duration:</strong> <span id="engine-total-duration">N/A</span></p>
-            </div>
-            <div class="column"> <!-- Right Column -->
-                <p><strong>Initial Estimated Completion:</strong> <span id="engine-initial-est-completion">N/A</span></p>
                 <p><strong>Overall Engine Progress:</strong></p>
                 <div class="progress-bar"><div class="progress-bar-inner" id="engine-overall-progress-bar"></div></div>
             </div>
-        </div>
+            <div class="column stage-details" id="engine-right-column"> <!-- Right Column - Added stage-details class to maintain styling for h3 and .phase-details children -->
+                <!-- Status: Overall engine status is in the left column. -->
+                <!-- Current Phase and its progress -->
+                <h3>Current Phase Details</h3>
+                <p><strong>Phase:</strong> <span id="engine-current-phase-display">N/A</span></p>
+                <p><strong>Phase Started:</strong> <span id="engine-phase-start-time">N/A</span></p>
+                <p><strong>Phase Est. Completion:</strong> <span id="engine-phase-est-completion">N/A</span></p>
+                
+                <!-- Generic Active Phase Progress (for GA, Refinement, etc.) -->
+                <div id="engine-generic-phase-progress-details" style="display: none;">
+                    <p><strong>Active Phase Progress:</strong> <span id="engine-active-phase-progress-percent">0</span>%</p>
+                    <div class="progress-bar"><div class="progress-bar-inner" id="engine-active-phase-progress-bar"></div></div>
+                </div>
+                
+                <!-- Brute-Force Specific Simulation Details -->
+                <div id="engine-bf-simulation-details" style="display: none;">
+                    <p><strong>Simulations:</strong> <span id="bf-completed-sims">0</span> / <span id="bf-total-sims">0</span> (<span id="bf-progress-percent">0</span>%)</p>
+                    <div class="progress-bar"><div class="progress-bar-inner" id="bf-progress-bar"></div></div>
+                </div>
 
-        <div class="stage-details">
-            <h3>Current Phase: <span id="engine-current-phase-display">N/A</span></h3>
-            <p><strong>Phase Progress:</strong> <span id="engine-current-phase-progress-percent">0</span>%</p>
-            <div class="progress-bar"><div class="progress-bar-inner" id="engine-current-phase-progress-bar"></div></div>
-
-            <!-- Phase-specific details -->
-            <div id="data-wrangling-details" class="phase-details" style="display: none;">
-                 <h4>Data Wrangling</h4>
-                 <p><strong>Started:</strong> <span id="data-wrangling-start">N/A</span></p>
-                 <p><strong>Ended:</strong> <span id="data-wrangling-end">N/A</span></p>
-                 <p><strong>Duration:</strong> <span id="data-wrangling-duration">N/A</span></p>
+                <!-- Other detailed phase blocks (data-wrangling, ga-progress, refinement) remain hidden by default by JS -->
+                <div id="data-wrangling-details" class="phase-details" style="display: none;">
+                    <h4>Data Wrangling</h4>
+                    <p><strong>Started:</strong> <span id="data-wrangling-start">N/A</span></p>
+                </div>
+                <div id="optimization-search-details" class="phase-details" style="display: none;"> <!-- Container for GA/Refinement if shown -->
+                    <div id="ga-progress-details" class="phase-progress-details" style="display: none;">
+                        <h5>Genetic Algorithm (k=<span id="ga-current-k">N/A</span>) <span id="ga-status" class="status-text">Pending</span></h5>
+                        <p><strong>Generation:</strong> <span id="ga-current-gen">0</span> / <span id="ga-total-gens">0</span></p>
+                        <p><strong>Individual:</strong> <span id="ga-current-individual">0</span> / <span id="ga-total-individuals">0</span></p>
+                        <p><strong>GA Progress:</strong> (<span id="ga-progress-percent">0</span>%)</p>
+                        <div class="progress-bar"><div class="progress-bar-inner" id="ga-progress-bar"></div></div>
+                        <p><strong>Best Sharpe (k):</strong> <span id="ga-best-sharpe-k">N/A</span></p>
+                    </div>
+                    <div id="refinement-details" class="phase-details" style="display: none;"> <!-- Moved inside optimization-search-details for grouping -->
+                        <h4>Refinement</h4>
+                        <p><strong>Status:</strong> <span id="refinement-status" class="status-text">Pending</span></p>
+                        <p><strong>Combo:</strong> <span id="refinement-current-combo">0</span> / <span id="refinement-total-combos">0</span> (<span id="refinement-progress-percent">0</span>%)</p>
+                        <div class="progress-bar"><div class="progress-bar-inner" id="refinement-progress-bar"></div></div>
+                        <p><strong>Details:</strong> <span id="refinement-details-msg">N/A</span></p>
+                    </div>
+                </div>
             </div>
-            <div id="optimization-search-details" class="phase-details" style="display: none;">
-                 <h4>Optimization Search (Brute-Force / GA)</h4>
-                 <p><strong>Started:</strong> <span id="optimization-search-start">N/A</span></p>
-                 <!-- BF Specific -->
-                 <div id="bf-progress-details" class="phase-progress-details" style="display: none;">
-                     <h5>Brute-Force</h5>
-                     <p><strong>Simulations:</strong> <span id="bf-completed-sims">0</span> / <span id="bf-total-sims">0</span> (<span id="bf-progress-percent">0</span>%)</p>
-                     <div class="progress-bar"><div class="progress-bar-inner" id="bf-progress-bar"></div></div>
-                     <p><strong>Estimated Completion:</strong> <span id="bf-est-completion">N/A</span></p>
-                 </div>
-                 <!-- GA Specific -->
-                 <div id="ga-progress-details" class="phase-progress-details" style="display: none;">
-                     <h5>Genetic Algorithm (k=<span id="ga-current-k">N/A</span>) <span id="ga-status" class="status-text">Pending</span></h5>
-                     <p><strong>Generation:</strong> <span id="ga-current-gen">0</span> / <span id="ga-total-gens">0</span></p>
-                     <p><strong>Individual:</strong> <span id="ga-current-individual">0</span> / <span id="ga-total-individuals">0</span></p>
-                     <p><strong>GA Progress:</strong> (<span id="ga-progress-percent">0</span>%)</p>
-                     <div class="progress-bar"><div class="progress-bar-inner" id="ga-progress-bar"></div></div>
-                     <p><strong>Best Sharpe (k):</strong> <span id="ga-best-sharpe-k">N/A</span></p>
-                 </div>
-            </div>
-             <div id="refinement-details" class="phase-details" style="display: none;">
-                 <h4>Refinement</h4>
-                 <p><strong>Status:</strong> <span id="refinement-status" class="status-text">Pending</span></p>
-                 <p><strong>Combo:</strong> <span id="refinement-current-combo">0</span> / <span id="refinement-total-combos">0</span> (<span id="refinement-progress-percent">0</span>%)</p>
-                 <div class="progress-bar"><div class="progress-bar-inner" id="refinement-progress-bar"></div></div>
-                 <p><strong>Details:</strong> <span id="refinement-details-msg">N/A</span></p>
-            </div>
-             <div id="finalization-details" class="phase-details" style="display: none;">
-                 <h4>Finalization</h4>
-                 <p><strong>Status:</strong> <span id="finalization-status" class="status-text">Pending</span></p>
-             </div>
         </div>
     </div>
+    </div> <!-- End of main-content wrapper -->
 
     <script id="progress-script">
         let fetchInterval; // This is the correct, single declaration
-
         // Helper function for safe text update
         function setText(id, value, defaultValue = 'N/A') {
             const element = document.getElementById(id);
@@ -286,7 +360,7 @@
                 element.textContent = (value !== undefined && value !== null) ? String(value) : defaultValue;
             }
         }
-        
+
         // Function to format date strings into a more readable format
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A") return "N/A";
@@ -298,12 +372,17 @@
                 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
                 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-                const dayName = days[dateObj.getUTCDay()];
-                const dayOfMonth = String(dateObj.getUTCDate()).padStart(2, '0');
-                const monthName = months[dateObj.getUTCMonth()];
-                const year = String(dateObj.getUTCFullYear()).slice(-2);
-                const hours = String(dateObj.getUTCHours()).padStart(2, '0');
-                const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
+                // For "YYYY-MM-DD HH:MM:SS" (local time string), use local getters.
+                // For "YYYY-MM-DD" (parsed as UTC date), use UTC getters.
+                // For other ISO strings (e.g., with Z or offset), UTC getters are generally appropriate after parsing.
+                const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !(typeof dateString === 'string' && dateString.match(/[+-]\d{2}:\d{2}$/));
+
+                const dayName = useLocalGetters ? days[dateObj.getDay()] : days[dateObj.getUTCDay()];
+                const dayOfMonth = String(useLocalGetters ? dateObj.getDate() : dateObj.getUTCDate()).padStart(2, '0');
+                const monthName = useLocalGetters ? months[dateObj.getMonth()] : months[dateObj.getUTCMonth()];
+                const year = useLocalGetters ? dateObj.getFullYear() : dateObj.getUTCFullYear(); // Display full year
+                const hours = String(useLocalGetters ? dateObj.getHours() : dateObj.getUTCHours()).padStart(2, '0');
+                const minutes = String(useLocalGetters ? dateObj.getMinutes() : dateObj.getUTCMinutes()).padStart(2, '0');
 
                 return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
             } catch (e) {
@@ -454,17 +533,23 @@
                     const pipeline = data.pipeline_run_status;
                     setText('pipeline-status-message', pipeline.status_message);
                     setText('pipeline-start-time', formatDate(pipeline.start_time));
+                    setText('pipeline-end-time-nav', formatDate(pipeline.end_time)); // Correctly use pipeline.end_time
                     setText('pipeline-current-stage', pipeline.current_stage);
                 }
                 // Determine pipeline status for CSS class
                 let pipelineStatusCss = 'pending'; // Default to pending
                 if (data.pipeline_run_status && data.pipeline_run_status.status_message) {
                     const msg = data.pipeline_run_status.status_message.toLowerCase();
-                    if (msg.includes('started') || msg.includes('running') || msg.includes('initializing')) pipelineStatusCss = 'running';
-                    if (msg.includes('completed') || msg.includes('finished')) pipelineStatusCss = 'completed';
-                    if (msg.includes('error') || msg.includes('failed')) pipelineStatusCss = 'error';
+                    if (msg.includes('running') || msg.includes('started') || msg.includes('initializing')) {
+                        pipelineStatusCss = 'running';
+                    } else if (msg.includes('completed') || msg.includes('finished')) {
+                        pipelineStatusCss = 'completed';
+                    } else if (msg.includes('failed') || msg.includes('error')) {
+                        pipelineStatusCss = 'error';
+                    }
                 }
-                setStageStatus('pipeline-status-stage', pipelineStatusCss);
+                
+                setStageStatus('nav-pipeline-status-details', pipelineStatusCss); // Target the correct div ID
 
                 // --- Stock Database Update Section (for download.py) ---
                 const download = data; // Download data is at the root level in your progress.json
@@ -594,82 +679,128 @@
                     overallEngineProgressValue = Math.max(overallEngineProgressValue, 2); // Minimal progress if generally running
                 }
                 setProgress('engine-overall-progress-bar', overallEngineProgressValue);
+                setText('engine-overall-progress-percent', overallEngineProgressValue.toFixed(0));
 
-                // Current Phase Progress Bar & Text
-                let currentPhaseProgressValue = 0;
-                if (currentPhaseLower.includes("brute-force") && engine.overall_progress) {
-                    currentPhaseProgressValue = parseFloat(engine.overall_progress.percentage_bf) || 0;
-                } else if (currentPhaseLower.includes("genetic algorithm") && engine.ga_progress) {
-                    currentPhaseProgressValue = parseFloat(engine.ga_progress.percentage_ga) || 0;
-                } else if (currentPhaseLower.includes("refinement") && engine.refinement_progress) {
-                    currentPhaseProgressValue = parseFloat(engine.refinement_progress.percentage_refinement) || 0;
-                } else if (currentPhaseLower.includes("initializing") || currentPhaseLower.includes("data loading") || currentPhaseLower.includes("wrangling") || currentPhaseLower.includes("finalization")) {
-                    currentPhaseProgressValue = (engineEndTime && engineEndTime !== "N/A" && (currentPhaseLower.includes("finalization") || currentPhaseLower.includes("logging"))) ? 100 : 50; // Show activity
-                }
-                setText('engine-current-phase-progress-percent', parseFloat(currentPhaseProgressValue).toFixed(0));
-                setProgress('engine-current-phase-progress-bar', currentPhaseProgressValue);
+                                // --- Engine Phase Details Visibility and Data ---
+                // Hide all dynamic sections in the right column initially
+                const bfSimDetailsDiv = document.getElementById('engine-bf-simulation-details');
+                const genericPhaseProgressDiv = document.getElementById('engine-generic-phase-progress-details');
+                if (bfSimDetailsDiv) bfSimDetailsDiv.style.display = 'none';
+                if (genericPhaseProgressDiv) genericPhaseProgressDiv.style.display = 'none';
+                // Also hide all specific phase detail blocks initially
+                document.querySelectorAll('#engine-right-column .phase-details').forEach(el => el.style.display = 'none');
 
-                // --- Engine Phase Details Visibility and Data ---
-                document.querySelectorAll('.phase-details').forEach(el => el.style.display = 'none'); // Hide all
 
-                if (currentPhaseLower.includes("wrangling") || currentPhaseLower.includes("data loading")) {
-                    document.getElementById('data-wrangling-details').style.display = 'block';
-                    setText('data-wrangling-start', formatDate(engine.data_wrangling_start));
-                    setText('data-wrangling-end', formatDate(engine.data_wrangling_end));
-                    setText('data-wrangling-duration', engine.data_wrangling_duration || getDurationBetweenTimestamps(engine.data_wrangling_start, engine.data_wrangling_end));
-                }
+                // Populate Phase Started & Est. Completion
+                let phaseStartTime = "N/A";
+                let phaseEstCompletion = "N/A";
 
-                if (currentPhaseLower.includes("brute-force") || currentPhaseLower.includes("genetic algorithm") || currentPhaseLower.includes("search")) {
-                    document.getElementById('optimization-search-details').style.display = 'block';
-                    setText('optimization-search-start', formatDate(engine.stock_combination_search_start)); // Assuming this is the start of search
-
-                    if (currentPhaseLower.includes("brute-force") && engine.overall_progress) {
-                        document.getElementById('bf-progress-details').style.display = 'block';
-                        const bf = engine.overall_progress;
-                        setText('bf-completed-sims', bf.completed_actual_simulations_bf, '0');
-                        setText('bf-total-sims', bf.total_expected_actual_simulations_bf, '0');
-                        const bfPercent = parseFloat(bf.percentage_bf) || 0;
-                        setText('bf-progress-percent', bfPercent.toFixed(0));
-                        setProgress('bf-progress-bar', bfPercent);
-                        setText('bf-est-completion', formatDate(bf.estimated_completion_time_bf));
-                    } else {
-                        document.getElementById('bf-progress-details').style.display = 'none';
+                if (currentPhaseLower.includes("data wrangling") || currentPhaseLower.includes("data loading")) {
+                    phaseStartTime = engine.data_wrangling_start || "N/A";
+                    // No specific ETA for wrangling
+                } else if (currentPhaseLower.includes("brute-force") || currentPhaseLower.includes("genetic algorithm")) { // GA also uses stock_combination_search_start
+                    phaseStartTime = engine.stock_combination_search_start || "N/A";
+                    if (currentPhaseLower.includes("brute-force") && engine.overall_progress && engine.overall_progress.estimated_completion_time_bf) { // ETA specific to BF
+                        phaseEstCompletion = engine.overall_progress.estimated_completion_time_bf;
                     }
+                } else if (currentPhaseLower.includes("refinement")) {
+                    // Refinement start could be end of search, or a dedicated field if added to JSON
+                    // No specific ETA for refinement in current JSON
+                } // Finalization also has no specific start/ETA in current JSON
+
+                setText('engine-phase-start-time', formatDate(phaseStartTime));
+                setText('engine-phase-est-completion', formatDate(phaseEstCompletion));
+
+                // Conditional display of Brute-Force details OR Generic Phase Progress
+                if (currentPhaseLower.includes("brute-force") && engine.overall_progress && bfSimDetailsDiv) {
+                    const bf = engine.overall_progress;
+                    setText('bf-completed-sims', bf.completed_actual_simulations_bf, '0');
+                    setText('bf-total-sims', bf.total_expected_actual_simulations_bf, '0');
+                    const bfPercent = parseFloat(bf.percentage_bf) || 0;
+                    setText('bf-progress-percent', bfPercent.toFixed(0));
+                    setProgress('bf-progress-bar', bfPercent);
+                    bfSimDetailsDiv.style.display = 'block';
+                    if (genericPhaseProgressDiv) genericPhaseProgressDiv.style.display = 'none'; // Hide generic if BF is active
+                } else if (genericPhaseProgressDiv) {  // For GA, Refinement, or other phases with a simple percentage
+                    let activePhaseProgressValue = 0;
+                    let showGenericProgress = false;
 
                     if (currentPhaseLower.includes("genetic algorithm") && engine.ga_progress) {
-                        document.getElementById('ga-progress-details').style.display = 'block';
-                        const ga = engine.ga_progress;
-                        setText('ga-current-k', ga.current_k, 'N/A'); // Ensure default
-                        setText('ga-status', ga.status);
-                        setText('ga-current-gen', ga.current_generation, '0');
-                        setText('ga-total-gens', ga.total_generations_ga, '0');
-                        setText('ga-current-individual', ga.current_individual_ga, '0');
-                        setText('ga-total-individuals', ga.total_individuals_ga, '0');
-                        const gaPercent = parseFloat(ga.percentage_ga) || 0;
-                        setText('ga-progress-percent', gaPercent.toFixed(0));
-                        setStatusText('ga-status', ga.status, ga.status); // Use setStatusText for GA status
-                        setProgress('ga-progress-bar', gaPercent);
-                        setText('ga-best-sharpe-k', ga.best_sharpe_this_k !== "N/A" ? parseFloat(ga.best_sharpe_this_k).toFixed(4) : "N/A");
+                        activePhaseProgressValue = parseFloat(engine.ga_progress.percentage_ga) || 0;
+                        showGenericProgress = true;
+                    } else if (currentPhaseLower.includes("refinement") && engine.refinement_progress) {
+                        activePhaseProgressValue = parseFloat(engine.refinement_progress.percentage_refinement) || 0;
+                        showGenericProgress = true;
+                    } else if (currentPhaseLower.includes("initializing") || currentPhaseLower.includes("data loading") || currentPhaseLower.includes("wrangling") || currentPhaseLower.includes("finalization")) {
+                        activePhaseProgressValue = (engineEndTime && engineEndTime !== "N/A" && (currentPhaseLower.includes("finalization") || currentPhaseLower.includes("logging"))) ? 100 : 50;
+                        showGenericProgress = true;
+                    }
+
+                    if (showGenericProgress) {
+                        setText('engine-active-phase-progress-percent', activePhaseProgressValue.toFixed(0));
+                        setProgress('engine-active-phase-progress-bar', activePhaseProgressValue);
+                        genericPhaseProgressDiv.style.display = 'block';
+                        if (bfSimDetailsDiv) bfSimDetailsDiv.style.display = 'none'; // Hide BF if generic is active
                     } else {
-                        document.getElementById('ga-progress-details').style.display = 'none';
+                        genericPhaseProgressDiv.style.display = 'none'; // Hide if no relevant generic phase
                     }
                 }
 
+                // Show specific detailed blocks if needed (Data Wrangling, GA, Refinement, Finalization)
+                // These are separate from the main phase progress bars handled above.
+                if (currentPhaseLower.includes("wrangling") || currentPhaseLower.includes("data loading")) {
+                    const wranglingDetailsDiv = document.getElementById('data-wrangling-details');
+                    if (wranglingDetailsDiv) {
+                        wranglingDetailsDiv.style.display = 'block';
+                        // Populate spans within data-wrangling-details if they exist and are not covered by general phase start/end
+                        // setText('data-wrangling-start', formatDate(engine.data_wrangling_start)); // Already covered by phaseStartTime
+                        // setText('data-wrangling-end', formatDate(engine.data_wrangling_end));
+                        // setText('data-wrangling-duration', engine.data_wrangling_duration || getDurationBetweenTimestamps(engine.data_wrangling_start, engine.data_wrangling_end));
+                    }
+                }
+
+                const gaProgressDetailsDiv = document.getElementById('ga-progress-details');
+                const optSearchDetailsDiv = document.getElementById('optimization-search-details');
+
+                if (currentPhaseLower.includes("genetic algorithm") && engine.ga_progress && gaProgressDetailsDiv && optSearchDetailsDiv) {
+                    const ga = engine.ga_progress;
+                    setText('ga-current-k', ga.current_k, 'N/A');
+                    setText('ga-status', ga.status);
+                    setText('ga-current-gen', ga.current_generation, '0');
+                    setText('ga-total-gens', ga.total_generations_ga, '0');
+                    setText('ga-current-individual', ga.current_individual_ga, '0');
+                    setText('ga-total-individuals', ga.total_individuals_ga, '0');
+                    const gaPercent = parseFloat(ga.percentage_ga) || 0;
+                    setText('ga-progress-percent', gaPercent.toFixed(0)); // This is for the text inside ga-progress-details
+                    setStatusText('ga-status', ga.status, ga.status);
+                    setProgress('ga-progress-bar', gaPercent); // This is for the progress bar inside ga-progress-details
+                    setText('ga-best-sharpe-k', ga.best_sharpe_this_k !== "N/A" ? parseFloat(ga.best_sharpe_this_k).toFixed(4) : "N/A");
+                    gaProgressDetailsDiv.style.display = 'block';
+                    optSearchDetailsDiv.style.display = 'block'; // Ensure parent is visible
+                }
+
+                // Prevent the separate "refinement-details" block from showing.
+                // The "Active Phase Progress" in "engine-generic-phase-progress-details" will show the percentage.
                 if (currentPhaseLower.includes("refinement") && engine.refinement_progress) {
-                    document.getElementById('refinement-details').style.display = 'block';
+                    const refinementDetailsDiv = document.getElementById('refinement-details');
+                    // if (refinementDetailsDiv && optSearchDetailsDiv) {
+                        // refinementDetailsDiv.style.display = 'block'; // Keep this hidden
+                        // optSearchDetailsDiv.style.display = 'block'; // Only show if GA is also active
+                    // }
                     const refine = engine.refinement_progress;
-                    setStatusText('refinement-status', refine.status, refine.status); // Use setStatusText for Refinement status
-                    setText('refinement-current-combo', refine.current_combo_refined, '0');
-                    setText('refinement-total-combos', refine.total_combos_to_refine, '0');
+                    // The following lines populate elements within the hidden refinementDetailsDiv.
+                    // If this info (like combo count) is desired in the main "Current Phase Details",
+                    // new spans would need to be added there and populated.
+                    setStatusText('refinement-status', refine.status, refine.status); // Populates hidden element
+                    setText('refinement-current-combo', refine.current_combo_refined, '0'); // Populates hidden element
+                    setText('refinement-total-combos', refine.total_combos_to_refine, '0'); // Populates hidden element
                     const refinePercent = parseFloat(refine.percentage_refinement) || 0;
-                    setText('refinement-progress-percent', refinePercent.toFixed(0));
-                    setProgress('refinement-progress-bar', refinePercent);
-                    setText('refinement-details-msg', refine.details);
+                    setText('refinement-progress-percent', refinePercent.toFixed(0)); // Populates hidden element
+                    setProgress('refinement-progress-bar', refinePercent); // Populates hidden element
+                    setText('refinement-details-msg', refine.details); // Populates hidden element
                 }
-                if (currentPhaseLower.includes("finalization") || currentPhaseLower.includes("logging portfolio history")) {
-                     document.getElementById('finalization-details').style.display = 'block';
-                     setStatusText('finalization-status', (engineEndTime && engineEndTime !== "N/A") ? "Completed" : "In Progress...", (engineEndTime && engineEndTime !== "N/A") ? "Completed" : "Running"); // Use setStatusText for Finalization status
-                }
+                // Note: The finalization-details div is not explicitly handled here for visibility,
+                // it would rely on the general .phase-details hiding unless specific logic is added for it.
 
                 if (data.overall_progress) { // This key from Engine.py is for Brute-Force
                     const bf = data.overall_progress;

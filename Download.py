@@ -606,6 +606,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     new_data_download_loop_start_time = time.time()
     local_tickers_with_new_data_count = 0
     status_update = get_current_ticker_status()
+    cumulative_rows_downloaded_this_run = 0 # Initialize cumulative row counter
     status_update["current_ticker"] = "Preparing to download new/missing data..."
     logger.update_web_log("ticker_download", status_update)
     perf_data_ref["total_tickers_processed"] = len(tickers_list)
@@ -755,6 +756,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         if DEBUG_MODE:
             logger.log(f"DEBUG: Downloaded {len(data)} rows for {ticker_to_process}. Calling save_ticker_data_to_csv.")
 
+        cumulative_rows_downloaded_this_run += len(data) # Add to cumulative count
         save_ticker_data_to_csv(ticker_to_process, data, current_findata_dir)
         
         # Directly merge the newly downloaded 'data' (for the current ticker) into 'combined_data'
@@ -813,7 +815,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             "progress": 100,
             "current_ticker": "All tickers processed",
             "date_range": f"{overall_start_date_str} to {overall_end_date_str}", # Show overall processed range
-            "rows": 0 # Set to 0 when all tickers are processed
+            "rows": cumulative_rows_downloaded_this_run # Use the cumulative count
         }
         logger.update_web_log("ticker_download", final_ticker_progress)
     
