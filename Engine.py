@@ -584,6 +584,7 @@ def find_best_stock_combination(
     # handled by brute force. This is used for the in-loop progress bar.
     grand_total_expected_simulations_phase1_bf = prelim_grand_total_expected_simulations_phase1 # Use the pre-calculated value
 
+    refinement_total_time = 0.0 # Initialize refinement_total_time
     logged_thresholds = set() # Initialize once for the entire function call
     # The timer_instance will track the cumulative time of individual simulations.
 
@@ -883,7 +884,7 @@ def find_best_stock_combination(
     logger_instance.flush() # Ensure all logs are written
     return (best_overall_portfolio_combo, best_overall_weights_alloc, overall_best_sharpe,
             best_overall_final_val, best_overall_roi_val, best_overall_expected_return,
-            best_overall_volatility, avg_simulation_time_per_run, available_stocks_for_search)
+            best_overall_volatility, avg_simulation_time_per_run, available_stocks_for_search, refinement_total_time)
 
 # ----------------------------------------------------------- #
 #                  Heuristic Functions (Placeholder)          #
@@ -1591,7 +1592,7 @@ try:
     # that are also present in the (already filtered) StockClose_df.
     (best_portfolio_stocks, best_weights, best_sharpe,
      best_final_value, best_roi, best_exp_return, best_volatility,
-     avg_sim_time, stock_pool_used_in_search) = find_best_stock_combination(
+     avg_sim_time, stock_pool_used_in_search, refinement_duration_seconds) = find_best_stock_combination(
         StockClose_df,              # Price data for the universe of stocks to select from (e.g., top 20)
         ESG_STOCKS_LIST,            # List of specific stocks to consider for combinations (e.g., ESG list)
         INITIAL_INVESTMENT,
@@ -1881,6 +1882,42 @@ try:
     # After logging portfolio value history, copy it if the path was set
     if PORTFOLIO_VALUE_HISTORY_CSV_PATH and os.path.exists(PORTFOLIO_VALUE_HISTORY_CSV_PATH): # Check if file was created
         copy_portfolio_value_history_log_to_web_accessible_location(PORTFOLIO_VALUE_HISTORY_CSV_PATH, logger)
+
+    # --- Calculate final total duration before logging performance ---
+    overall_script_end_time_for_log = datetime.now() # Capture end time for duration calculation
+    actual_total_duration_for_log = overall_script_end_time_for_log - overall_script_start_time
+
+    # --- Log Performance Summary ---
+    performance_log_filepath = sim_params.get("performance_log_csv_path")
+    initial_est_end_time_str = logger.web_data.get("estimated_completion_time", "N/A")
+    data_wrangling_duration_str_from_log = logger.web_data.get("data_wrangling_duration", "0:00:00")
+
+    # bf_ga_combined_sim_duration_seconds is sim_timer.total_time from the main search phase
+    bf_ga_combined_sim_duration_seconds = sim_timer.total_time
+
+    bf_time_component = 0
+    ga_time_component = 0
+
+    if will_use_brute_force and not will_use_ga: # Only BF ran
+        bf_time_component = bf_ga_combined_sim_duration_seconds
+    elif not will_use_brute_force and will_use_ga: # Only GA ran
+        ga_time_component = bf_ga_combined_sim_duration_seconds
+    elif will_use_brute_force and will_use_ga: # Both BF (for some k) and GA (for other k) ran
+        # sim_timer.total_time is the sum. For simplicity, attribute to BF.
+        bf_time_component = bf_ga_combined_sim_duration_seconds
+        ga_time_component = 0 # GA time is included in bf_time_component here.
+
+    search_durations = {
+        "bf_total_seconds": bf_time_component,
+        "ga_total_seconds": ga_time_component,
+        "refinement_total_seconds": refinement_duration_seconds # This is from find_best_stock_combination return
+    }
+
+    log_engine_performance_summary(
+        performance_log_filepath, overall_script_start_time, ENGINE_VERSION, sim_params,
+        initial_est_end_time_str, str(actual_total_duration_for_log),
+        data_wrangling_duration_str_from_log, search_durations, logger
+    )
 
 except Exception as e:
     # Catch any unhandled exceptions in the main execution block

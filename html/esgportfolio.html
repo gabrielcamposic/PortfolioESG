@@ -7,192 +7,47 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns@^2/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^2/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script> <!-- Added PapaParse for easier CSV parsing -->
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding-left: 240px; /* Match progress.html */
-            padding-top: 20px;
-            padding-right: 20px;
-            padding-bottom: 20px;
-            background-color: #f8f9fa;
-            color: #343a40;
-            font-size: 1rem;
-            line-height: 1; /* Match progress.html (Note: this is very tight) */
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: left;
-            margin-bottom: 30px;
-            margin-top: 0;
-            font-size: 2.4em;
-            font-weight: 600;
-        }
-        nav {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 220px; /* Match progress.html */
-            height: 100%;
-            background-color: #343a40;
-            padding-top: 20px;
-            overflow-y: auto;
-            color: #f8f9fa;
-        }
-        .nav-section-title, nav h2 {
-            color: #f8f9fa;
-            font-size: 0.9em;
-            text-align: left;
-            padding-left: 20px;
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        nav h2 { margin-top: 10px; } /* Specific margin for "Navigation" title */
-        nav a {
-            display: block;
-            padding: 10px 20px; /* Match progress.html */
-            text-decoration: none;
-            color: #dee2e6;
-            font-size: 0.9em; /* Standardized font size */
-            transition: background-color 0.3s ease, color 0.3s ease;
-            /* text-align: left; removed to match progress.html (block elements default to left) */
-        }
-        
-        nav a:hover { /* Match progress.html hover effect */
-            background-color: #495057;
-            color: #ffffff;
-        }
-
-        .stage-block {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 20px;
-            margin-bottom: 25px; /* Space between blocks */
-            border-radius: 6px; /* Slightly less rounded */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        .stage-block:hover {
-             border-color: #bdc3c7;
-             box-shadow: 0 3px 6px rgba(0,0,0,0.07);
-        }
-        .stage-block h2 {
-            margin-top: 0;
-            color: #34495e;
-            border-bottom: 1px solid #dee2e6; /* Lighter border */
-            padding-bottom: 10px;
-            margin-bottom: 15px; /* Space below heading */
-            font-size: 1.75em; /* Stage title size */
-            font-weight: 600;
-        }
-        /* Ensure paragraphs within stage-blocks have consistent styling */
-        .stage-block p { margin-bottom: 8px; font-size: 0.95em; color: #495057; }
-        .stage-block strong { color: #343a40; font-weight: bold; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 0.9em;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .chart-container {
-            width: 80%;
-            max-width: 900px;
-            margin: 30px auto;
-        }
-        /* Styles for pipeline status details within the nav bar (will show N/A) */
-        #nav-pipeline-status-details {
-            padding: 0px 0px 10px 0px;
-            margin-bottom: 0;
-        }
-        #nav-pipeline-status-details p {
-            color: #adb5bd;
-            font-size: 0.9em;
-            margin-bottom: 4px;
-            line-height: 1.3;
-            padding-left: 20px;
-            text-align: left;
-        }
-        #nav-pipeline-status-details p strong {
-            color: #dee2e6;
-            font-weight: 500;
-        }
-        #nav-pipeline-status-details .status-text {
-            font-weight: 500;
-        }
-        .nav-divider {
-            margin: 0px 20px 10px 20px;
-            border-color: #495057;
-            margin-bottom: 10px;
-        }
-        .nav-footer {
-            position: absolute;
-            bottom: 10px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            padding-bottom: 10px;
-        }
-        .nav-footer p {
-            font-size: 0.75em;
-            color: #adb5bd;
-            margin: 0;
-            padding: 5px 0;
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css"> <!-- Link to the common stylesheet -->
 </head>
 <body>
-    <nav>
-        <div id="nav-pipeline-status-details">
-            <h4 class="nav-section-title">Pipeline Status</h4>
-            <p><strong>Status:</strong> <span id="pipeline-status-message" class="status-text">N/A</span></p>
-            <p><strong>Started:</strong> <span id="pipeline-start-time">N/A</span></p>
-            <p><strong>Ended:</strong> <span id="pipeline-end-time-nav">N/A</span></p>
-            <p><strong>Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
-        </div>
-        <hr class="nav-divider">
-        <h2>Navigation</h2>
-        <a href="pipeline.html">Pipeline Status</a>
-        <a href="esgportfolio.html">ESG Portfolio</a>
-        <a href="engine.html">Engine Performance</a>
-        <a href="script.html">Script Performance</a>
-        <div class="nav-footer">
-            <p>HTML v1.0.0</p> <!-- Version for results_history.html -->
-        </div>
-    </nav>
+    <div id="navbar-placeholder"></div> <!-- Placeholder for the common navigation bar -->
+
     <div class="main-content">
         <h1>ESG Portfolio</h1>
 
-    <!-- Section 1: Best Portfolio Details -->
-    <div class="stage-block">
-        <h2>Best Portfolio Details (Last 12 Months)</h2>
-        <div id="bestPortfolioDetails">
-            <p>Loading best portfolio details...</p>
-        </div>
-    </div>
-
-    <!-- Section 2: Portfolio Historical Values -->
+    <!-- Section 1 (Formerly Section 2): Portfolio Historical Values -->
     <div class="stage-block">
         <h2>Portfolio Historical Values (Last 12 Months)</h2>
         <div class="chart-container">
             <canvas id="multiPortfolioHistoryChart"></canvas>
         </div>
     </div>
-
-    <!-- Section 3: Sharpe Ratio & Final Value -->
+    
+    <!-- Section 2 (Formerly Section 3): Sharpe Ratio & Final Value -->
     <div class="stage-block">
         <h2>Sharpe Ratio & Final Value (Last 12 Months)</h2>
         <div class="chart-container">
             <canvas id="sharpeRatioChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Section 3 (Formerly Section 1): Best Portfolio Details -->
+    <div class="stage-block">
+        <h2>Best Portfolio Details (Last 12 Months)</h2>
+        <div id="bestPortfolioDetails" class="table-container"> <!-- Added table-container for consistency -->
+            <table id="bestPortfolioTable"> <!-- Added ID for easier targeting -->
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JavaScript will populate this or show 'Loading...' -->
+                    <tr><td colspan="2" style="text-align: center;">Loading best portfolio details...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -234,29 +89,7 @@
         let sharpeRatioChartInstance = null;
         let multiPortfolioHistoryChartInstance = null;
 
-        function formatDate(dateString) {
-            if (!dateString || dateString === "N/A") return "N/A";
-            try {
-                // Handle cases where only date is provided or if it's already a full datetime string
-                const dateObj = new Date(dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString + 'T00:00:00Z'); // Assume UTC if only date
-                if (isNaN(dateObj.getTime())) return dateString; // Return original if invalid
-
-                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !(typeof dateString === 'string' && dateString.match(/[+-]\d{2}:\d{2}$/));
-
-                const dayName = useLocalGetters ? days[dateObj.getDay()] : days[dateObj.getUTCDay()];
-                const dayOfMonth = String(useLocalGetters ? dateObj.getDate() : dateObj.getUTCDate()).padStart(2, '0');
-                const monthName = useLocalGetters ? months[dateObj.getMonth()] : months[dateObj.getUTCMonth()];
-                const year = useLocalGetters ? dateObj.getFullYear() : dateObj.getUTCFullYear(); // Display full year
-                const hours = String(useLocalGetters ? dateObj.getHours() : dateObj.getUTCHours()).padStart(2, '0');
-                const minutes = String(useLocalGetters ? dateObj.getMinutes() : dateObj.getUTCMinutes()).padStart(2, '0');
-
-                return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
-            } catch (e) {
-                return dateString; // Return original if error
-            }
-        }
+        // formatDate and getRandomColor are now in common_utils.js
 
         // Helper to parse CSV text using PapaParse
         function parseCsvWithPapaParse(csvText) {
@@ -390,23 +223,45 @@
         }
 
         function displayBestPortfolioDetails(portfolio) {
-            const detailsDiv = document.getElementById('bestPortfolioDetails');
-            if (!portfolio) {
-                detailsDiv.innerHTML = '<p>No portfolio data available for the last 12 months to determine the best.</p>';
+            const tableBody = document.getElementById('bestPortfolioTable')?.getElementsByTagName('tbody')[0];
+            const detailsContainer = document.getElementById('bestPortfolioDetails');
+
+            if (!tableBody) {
+                if(detailsContainer) detailsContainer.innerHTML = '<p style="color:red;">Error: Best portfolio table structure not found.</p>';
+                console.error("Element with ID 'bestPortfolioTable' or its tbody not found.");
                 return;
             }
-            detailsDiv.innerHTML = `
-                <p><strong>Run ID:</strong> ${portfolio.run_id || 'N/A'}</p>
-                <p><strong>Generated:</strong> ${formatDate(portfolio.generation_timestamp)}</p>
-                <p><strong>Sharpe Ratio:</strong> ${parseFloat(portfolio.sharpe_ratio).toFixed(4) || 'N/A'}</p>
-                <p><strong>Optimal Stocks:</strong> ${portfolio.optimal_stocks || 'N/A'}</p>
-                <p><strong>Optimal Weights:</strong> ${portfolio.optimal_weights || 'N/A'}</p>
-                <p><strong>Expected Annual Return:</strong> ${parseFloat(portfolio.expected_annual_return_pct).toFixed(2) || 'N/A'}%</p>
-                <p><strong>Expected Annual Volatility:</strong> ${parseFloat(portfolio.expected_annual_volatility_pct).toFixed(2) || 'N/A'}%</p>
-                <p><strong>Final Value:</strong> $${parseFloat(portfolio.final_value).toFixed(2) || 'N/A'}</p>
-                <p><strong>ROI:</strong> ${parseFloat(portfolio.roi_pct).toFixed(2) || 'N/A'}%</p>
-                <p><strong>Initial Investment:</strong> $${parseFloat(portfolio.initial_investment).toFixed(2) || 'N/A'}</p>
-            `;
+            tableBody.innerHTML = ''; // Clear previous content
+
+            if (!portfolio) {
+                const tr = tableBody.insertRow();
+                const td = tr.insertCell();
+                td.colSpan = 2;
+                td.style.textAlign = "center";
+                td.textContent = 'No portfolio data available for the last 12 months to determine the best.';
+                return;
+            }
+
+            const detailsMap = {
+                "Run ID": portfolio.run_id || 'N/A',
+                "Generated": formatDate(portfolio.generation_timestamp),
+                "Sharpe Ratio": parseFloat(portfolio.sharpe_ratio).toFixed(4) || 'N/A',
+                "Optimal Stocks": portfolio.optimal_stocks || 'N/A',
+                "Optimal Weights": portfolio.optimal_weights || 'N/A',
+                "Expected Annual Return": `${parseFloat(portfolio.expected_annual_return_pct).toFixed(2) || 'N/A'}%`,
+                "Expected Annual Volatility": `${parseFloat(portfolio.expected_annual_volatility_pct).toFixed(2) || 'N/A'}%`,
+                "Final Value": `$${parseFloat(portfolio.final_value).toFixed(2) || 'N/A'}`,
+                "ROI": `${parseFloat(portfolio.roi_pct).toFixed(2) || 'N/A'}%`,
+                "Initial Investment": `$${parseFloat(portfolio.initial_investment).toFixed(2) || 'N/A'}`
+            };
+
+            for (const metric in detailsMap) {
+                const tr = tableBody.insertRow();
+                const metricTd = tr.insertCell();
+                metricTd.textContent = metric;
+                const valueTd = tr.insertCell();
+                valueTd.textContent = detailsMap[metric];
+            }
         }
 
         function renderSharpeAndFinalValueChart(summaryData) {
@@ -534,11 +389,10 @@
             });
         }
 
-        function getRandomColor() {
-            return `rgb(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)})`;
-        }
-
         main();
+        // Removed the old navbar update script; common_nav.js handles it.
     </script>
+    <script src="js/common_utils.js"></script> <!-- Load common utility functions -->
+    <script src="js/common_nav.js"></script> <!-- Load the common navigation script -->
 </body>
 </html>

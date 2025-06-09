@@ -7,14 +7,6 @@
 .vscode/
 *.code-workspace
 
-# JetBrains IDEs (like PyCharm, IntelliJ)
-.idea/
-
-# Node.js and npm (if applicable)
-node_modules/
-package-lock.json
-yarn.lock
-
 # Python (if applicable)
 __pycache__/
 *.pyc
@@ -24,12 +16,6 @@ env/
 
 # macOS specific files
 .localized
-
-# Build output (if applicable - adjust based on your project)
-build/
-dist/
-out/
-target/
 
 # Log files
 *.log
@@ -43,3 +29,6 @@ temp/
 Old.py
 PortfolioESG_Data/
 PortfolioESG_Prod/
+
+# Ignore CSV files copied to the web-accessible data folder
+*.csv

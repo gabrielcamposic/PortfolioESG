@@ -4,153 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Script Performance</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding-left: 240px; /* Match progress.html */
-            padding-top: 20px;
-            padding-right: 20px;
-            padding-bottom: 20px;
-            background-color: #f8f9fa;
-            color: #343a40;
-            font-size: 1rem;
-            line-height: 1; /* Match progress.html */
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: left;
-            margin-bottom: 30px;
-            margin-top: 0;
-            font-size: 2.4em;
-            font-weight: 600;
-        }
-        nav {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 220px; /* Match progress.html */
-            height: 100%;
-            background-color: #343a40;
-            padding-top: 20px;
-            overflow-y: auto;
-            color: #f8f9fa;
-        }
-        .nav-section-title, nav h2 {
-            color: #f8f9fa;
-            font-size: 0.9em;
-            text-align: left;
-            padding-left: 20px;
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        nav h2 { margin-top: 10px; }
-        nav a {
-            display: block;
-            padding: 10px 20px;
-            text-decoration: none;
-            color: #dee2e6;
-            font-size: 0.9em;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        nav a:hover {
-            background-color: #495057;
-            color: #ffffff;
-        }
-        .stage-block {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 20px;
-            margin-bottom: 25px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .stage-block h2 {
-            margin-top: 0;
-            color: #34495e;
-            border-bottom: 1px solid #dee2e6;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-            font-size: 1.75em;
-            font-weight: 600;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 0.8em; /* Smaller font for more columns */
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 5px; /* Smaller padding */
-            text-align: left;
-            white-space: nowrap; /* Prevent line breaks in cells */
-        }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .table-container {
-            overflow-x: auto; /* Allow horizontal scrolling for wide tables */
-        }
-        #nav-pipeline-status-details {
-            padding: 0px 0px 10px 0px;
-            margin-bottom: 0;
-        }
-        #nav-pipeline-status-details p {
-            color: #adb5bd;
-            font-size: 0.9em;
-            margin-bottom: 4px;
-            line-height: 1.3;
-            padding-left: 20px;
-            text-align: left;
-        }
-        #nav-pipeline-status-details p strong {
-            color: #dee2e6;
-            font-weight: 500;
-        }
-        #nav-pipeline-status-details .status-text {
-            font-weight: 500;
-        }
-        .nav-divider {
-            margin: 0px 20px 10px 20px;
-            border-color: #495057;
-            margin-bottom: 10px;
-        }
-        .nav-footer {
-            position: absolute;
-            bottom: 10px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            padding-bottom: 10px;
-        }
-        .nav-footer p {
-            font-size: 0.75em;
-            color: #adb5bd;
-            margin: 0;
-            padding: 5px 0;
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css"> <!-- Link to the common stylesheet -->
 </head>
 <body>
-    <nav>
-        <div id="nav-pipeline-status-details">
-            <h4 class="nav-section-title">Pipeline Status</h4>
-            <p><strong>Status:</strong> <span id="pipeline-status-message" class="status-text">N/A</span></p>
-            <p><strong>Started:</strong> <span id="pipeline-start-time">N/A</span></p>
-            <p><strong>Ended:</strong> <span id="pipeline-end-time-nav">N/A</span></p>
-            <p><strong>Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
-        </div>
-        <hr class="nav-divider">
-        <h2>Navigation</h2>
-        <a href="pipeline.html">Pipeline Status</a>
-        <a href="esgportfolio.html">ESG Portfolio</a>
-        <a href="engine.html">Engine Performance</a>
-        <a href="script.html">Script Performance</a>
-        <div class="nav-footer">
-            <p>HTML v1.0.1</p> <!-- Update version -->
-        </div>
-    </nav>
+    <div id="navbar-placeholder"></div> <!-- Placeholder for the common navigation bar -->
     <div class="main-content">
         <h1>Script Performance</h1>
 
@@ -179,38 +36,46 @@
                 </table>
             </div>
         </div>
+
+        <div class="stage-block">
+            <h2>Logged Engine Performance Metrics</h2>
+            <div class="table-container">
+                <table id="enginePerformanceTable">
+                    <thead>
+                        <tr>
+                            <th>Run Start Timestamp</th>
+                            <th>Run ID</th>
+                            <th>Engine Version</th>
+                            <th>Min Stocks</th>
+                            <th>Max Stocks</th>
+                            <th>Heuristic K</th>
+                            <th>Adaptive Enabled</th>
+                            <th>GA Pop Size</th>
+                            <th>GA Num Gens</th>
+                            <th>Sim Runs (Fixed)</th>
+                            <th>Initial Overall Est. End Time</th>
+                            <th>Actual Overall Duration</th>
+                            <th>Data Wrangling Duration</th>
+                            <th>BF Phase (s)</th>
+                            <th>GA Phase (s)</th>
+                            <th>Refinement (s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
-        const CSV_PATH = 'data/download_performance_log.csv';
-
-        function formatDate(dateString) {
-            if (!dateString || dateString === "N/A") return "N/A";
-            try {
-                const dateObj = new Date(dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString + 'T00:00:00Z'); // Assume UTC if only date
-                if (isNaN(dateObj.getTime())) return dateString;
-                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !(typeof dateString === 'string' && dateString.match(/[+-]\d{2}:\d{2}$/));
-
-                const dayName = useLocalGetters ? days[dateObj.getDay()] : days[dateObj.getUTCDay()];
-                const dayOfMonth = String(useLocalGetters ? dateObj.getDate() : dateObj.getUTCDate()).padStart(2, '0');
-                const monthName = useLocalGetters ? months[dateObj.getMonth()] : months[dateObj.getUTCMonth()];
-                const year = useLocalGetters ? dateObj.getFullYear() : dateObj.getUTCFullYear(); // Display full year
-                const hours = String(useLocalGetters ? dateObj.getHours() : dateObj.getUTCHours()).padStart(2, '0');
-                const minutes = String(useLocalGetters ? dateObj.getMinutes() : dateObj.getUTCMinutes()).padStart(2, '0');
-                return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
-            } catch (e) { console.warn("Could not format date:", dateString, e); return dateString; }
-        }
-
-        function formatSeconds(secondsStr) {
-            if (!secondsStr || secondsStr === "N/A" || isNaN(parseFloat(secondsStr))) return "N/A";
-            return parseFloat(secondsStr).toFixed(2); // Format to 2 decimal places
-        }
+        const DOWNLOAD_CSV_PATH = 'data/download_performance_log.csv';
+        const ENGINE_CSV_PATH = 'data/engine_performance_log.csv';
 
         async function fetchAndDisplayPerformance() {
             try {
-                const response = await fetch(CSV_PATH + '?t=' + new Date().getTime());
+                const response = await fetch(DOWNLOAD_CSV_PATH + '?t=' + new Date().getTime());
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const csvText = await response.text();
                 const rows = csvText.trim().split('\n');
@@ -232,7 +97,7 @@
                     return obj;
                 });
                 populateTable(data, headers);
-            } catch (error) {
+            } catch (error) { // Specifically for download performance
                 console.error('Error fetching or parsing CSV:', error);
                 const tableBody = document.getElementById('downloadPerformanceTable').getElementsByTagName('tbody')[0];
                 const colspan = document.getElementById('downloadPerformanceTable').getElementsByTagName('thead')[0].rows[0].cells.length || 11;
@@ -270,7 +135,76 @@
                 });
             });
         }
+
+        async function fetchAndDisplayEnginePerformance() {
+            try {
+                const response = await fetch(ENGINE_CSV_PATH + '?t=' + new Date().getTime());
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status} while fetching ${ENGINE_CSV_PATH}`);
+                const csvText = await response.text();
+                const rows = csvText.trim().split('\n');
+                if (rows.length <= 1) {
+                    populateEngineTable([], []); return;
+                }
+
+                const headers = rows[0].split(',').map(h => h.trim());
+                const data = rows.slice(1).map(rowString => {
+                    let obj = {};
+                    const regex = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g;
+                    let values = []; let match;
+                    while (match = regex.exec(rowString)) {
+                        let value = match[1];
+                        if (value.startsWith('"') && value.endsWith('"')) value = value.substring(1, value.length - 1).replace(/\"\"/g, '"');
+                        values.push(value.trim());
+                    }
+                    headers.forEach((header, index) => obj[header] = values[index] !== undefined ? values[index] : 'N/A');
+                    return obj;
+                });
+                populateEngineTable(data, headers);
+            } catch (error) { // Specifically for engine performance
+                console.error('Error fetching or parsing Engine Performance CSV:', error);
+                const tableBody = document.getElementById('enginePerformanceTable').getElementsByTagName('tbody')[0];
+                const colspan = document.getElementById('enginePerformanceTable').getElementsByTagName('thead')[0].rows[0].cells.length || 16;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:red;">Error loading engine performance data: ${error.message}.</td></tr>`;
+            }
+        }
+
+        function populateEngineTable(data, headers) {
+            const tableBody = document.getElementById('enginePerformanceTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            if (data.length === 0) {
+                const colspan = headers.length || 16;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;">No engine performance data found.</td></tr>`;
+                return;
+            }
+
+            const dateColumns = ['run_start_timestamp', 'initial_overall_est_duration'];
+            const durationColumns = ['actual_overall_duration', 'data_wrangling_duration'];
+            const secondsToHMSColumns = ['bf_phase_duration_seconds', 'ga_phase_duration_seconds', 'refinement_phase_duration_seconds'];
+
+            data.forEach(rowData => {
+                const tr = tableBody.insertRow();
+                headers.forEach(header => {
+                    const td = tr.insertCell();
+                    let cellValue = rowData[header.trim()] || 'N/A';
+                    if (dateColumns.includes(header.trim().toLowerCase())) {
+                        cellValue = formatDate(cellValue);
+                    } else if (durationColumns.includes(header.trim().toLowerCase())) {
+                        cellValue = formatDuration(cellValue);
+                    } else if (secondsToHMSColumns.includes(header.trim().toLowerCase())) {
+                        cellValue = formatSecondsToHMS(cellValue);
+                    }
+                    td.textContent = cellValue;
+                });
+            });
+        }
+
+        // Fetch and display data for both tables
         fetchAndDisplayPerformance();
+        fetchAndDisplayEnginePerformance();
+
+        // Navbar update script removed; common_nav.js handles it.
     </script>
+    <script src="js/common_utils.js"></script> <!-- Load common utility functions -->
+    <script src="js/common_nav.js"></script> <!-- Load the common navigation script -->
 </body>
 </html>

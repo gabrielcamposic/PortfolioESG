@@ -3,267 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pipeline Status</title> <!-- Browser tab title is already correct -->
-    <style id="progress-styles"> /* Updated CSS */
-        body { /* Updated */
-            font-family: Arial, sans-serif;
-            margin: 0; /* Remove default margin */
-            padding-left: 240px; /* Space for the fixed left nav */
-            padding-top: 20px; /* Top padding for content */
-            padding-right: 20px; /* Right padding for content */
-            padding-bottom: 20px; /* Bottom padding for content */
-            background-color: #f8f9fa; /* Lighter background */
-            color: #343a40; /* Dark grey for body text - good readability */
-            font-size: 1rem; /* Base font size (16px by default) */
-            line-height: 1 ; /* Improved line spacing */
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: left; /* Align with content */
-            margin-bottom: 30px;
-            margin-top: 0px; /* Remove default top margin if body has padding-top */
-            font-size: 2.4em; /* Slightly larger main title */
-            font-weight: 600; /* Semi-bold */
-        }
-        nav { /* Updated for left column */
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 220px; /* Width of the nav bar */
-            height: 100%;
-            background-color: #343a40; /* Dark background for nav */
-            padding-top: 20px;
-            overflow-y: auto; /* Scroll if content is too long */
-            color: #f8f9fa; /* Light text color for nav */
-        }
-        .nav-section-title { /* Title for "Pipeline Status" (h4) */
-            color: #f8f9fa;
-            font-size: 0.9em;
-            text-align: left;
-            padding-left: 20px; /* Align with p tags below it */
-            margin-top: 0; 
-            margin-bottom: 10px; /* Space before the p tags */
-            font-weight: 600;
-        }
-        nav h2 { /* Title for "Navigation" section */
-            color: #f8f9fa;
-            font-size: 0.9em; /* Match Pipeline Status title */
-            text-align: left; /* Ensure left alignment */
-            padding-left: 20px; /* Align with nav links and other titles */
-            margin-top: 10px; /* Space after the hr */
-            margin-bottom: 10px; /* Space before links */
-            font-weight: 600; /* Match Pipeline Status title */
-        }
-        nav a { /* Updated for vertical links */
-            display: block; /* Make links take full width */
-            padding: 10px 20px; /* Adjust padding */
-            text-decoration: none;
-            color: #dee2e6; /* Lighter link color */
-            font-size: 0.9em; /* Standardized font size */
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        nav a:hover {
-            background-color: #495057; /* Darker grey on hover */
-            color: #ffffff; /* White text on hover */
-        }
-
-        .stage-block {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 20px;
-            margin-bottom: 25px; /* Space between blocks */
-            border-radius: 6px; /* Slightly less rounded */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        /* Add a subtle hover effect to stage blocks */
-        .stage-block:hover {
-             border-color: #bdc3c7;
-             box-shadow: 0 3px 6px rgba(0,0,0,0.07);
-        }
-
-        .stage-block h2 {
-            margin-top: 0;
-            color: #34495e;
-            border-bottom: 1px solid #dee2e6; /* Lighter border */
-            padding-bottom: 10px;
-            margin-bottom: 15px; /* Space below heading */
-            font-size: 1.75em; /* Stage title size */
-            font-weight: 600;
-        }
-
-        /* Style for the "Current Phase" heading */
-        .stage-details h3 {
-             margin-top: 0px;
-             margin-bottom: 0px;
-             color: #495057; /* Slightly lighter than h2 */
-             font-size: 1.4em; /* Phase title size */
-             padding-bottom: 0px; /* Small space below */
-             /* border-bottom: 1px dotted #ced4da; */ /* Dotted line removed */
-             font-weight: 600;
-        }
-
-         /* Style for sub-phase headings */
-         .phase-details h4, .phase-details h5 {
-             margin-top: 0px;
-             margin-bottom: 0px;
-             color: #6c757d; /* Even lighter for sub-phases */
-             /* border-bottom: 1px dotted #e9ecef; */ /* Dotted line removed */
-             padding-bottom: 5px;
-             font-size: 1.15em; /* Sub-phase title size */
-             font-weight: 500; /* Normal weight for less emphasis */
-        }
-
-        .stage-block p {
-            margin-bottom: 8px;
-            font-size: 0.95em; /* Slightly smaller for details within blocks */
-            color: #495057; /* Consistent paragraph color */
-        }
-
-        .stage-block strong {
-            color: #343a40; /* Standard dark label color */
-            font-weight: bold;
-        }
-
-        .stage-details, .phase-details {
-            margin-top: 15px;
-            padding-top: 15px;
-            /* border-top: 1px dashed #dee2e6; */ /* Lighter dashed border - REMOVED */
-         }
-
-        .progress-bar {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            margin-top: 5px; /* Space above bar */
-            margin-bottom: 12px; /* Slightly more space below */
-            overflow: hidden;
-            height: 20px; /* Ensure height is set */
-        }
-        .progress-bar-inner {
-            height: 100%; /* Fill parent height */
-            background-color: #27ae60; /* Green */
-            width: 0%;
-            /* Removed animation: transition: width 0.5s ease-in-out; */
-            text-align: center; /* Center text inside bar */
-            line-height: 20px; /* Vertically center text */
-            color: #ffffff; /* Explicit white */
-            font-size: 0.8em; /* Smaller text */
-        }
-
-        /* Status Indicators */
-        .stage-block.status-pending { border-left: 5px solid #f39c12; /* Orange */ }
-        .stage-block.status-running {
-            border-left: 5px solid #3498db; /* Blue */ /* Keep blue for running stages */
-            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15); /* Softer glow */
-        }
-        .stage-block.status-completed { border-left: 5px solid #27ae60; /* Green */ }
-        .stage-block.status-error {
-            border-left: 5px solid #e74c3c; /* Red */
-            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.15); /* Softer glow */
-        }
-
-        .stage-block.status-inactive { border-left: 5px solid #bdc3c7; /* Light Grey for inactive/pending stages */ }
-
-        /* Status Text Colors */
-        .status-text.status-pending { color: #f39c12; font-weight: 600; } /* Semi-bold */
-        .status-text.status-running { color: #3498db; font-weight: 600; }
-        .status-text.status-completed { color: #27ae60; font-weight: 600; }
-        .status-text.status-error { color: #e74c3c; font-weight: 600; }
-        .status-text.status-inactive { color: #6c757d; font-weight: normal; } /* Consistent with h4/h5 color */
-
-        /* Ensure non-status span values have consistent color and normal weight */
-        .stage-block p span:not(.status-text) {
-            color: #495057; /* Consistent with paragraph text color */
-            font-weight: normal; /* Ensure values are not bold unless they are status */
-        }
-
-        /* Ensure status text within h5 inherits h5's font-weight for consistency */
-        .phase-details h5 .status-text {
-            font-weight: normal; /* Make status text normal weight */
-            color: #6c757d;      /* Explicitly use the h5 color */
-            font-size: 0.9em;    /* Slightly smaller than the h5 text */
-            margin-left: 5px;    /* Add a little space before the status */
-        }
-
-        /* Layout for columns within a stage */
-        .stage-columns {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px; /* Space between columns */
-        }
-
-        .column {
-            flex: 1;
-            text-align: left; /* Ensure content is left-aligned within the column */
-        }
-        /* Styles for pipeline status details within the nav bar */
-        #nav-pipeline-status-details {
-            padding: 0px 0px 10px 0px; /* Remove side padding, will be on children */
-            margin-bottom: 0; /* Let the divider handle spacing */
-        }
-        #nav-pipeline-status-details p {
-            color: #adb5bd; /* Lighter text for nav status */
-            font-size: 0.9em; /* Standardized font size */
-            margin-bottom: 4px; /* Tighter spacing */
-            line-height: 1.3; /* Slightly tighter line height */
-            padding-left: 20px; /* Indent to match links */
-            text-align: left; /* Ensure left alignment */
-        }
-        #nav-pipeline-status-details p strong {
-            color: #dee2e6; /* Brighter labels */
-            font-weight: 500; /* Slightly less bold */
-        }
-        /* Styling for the status text itself within the nav status */
-        #nav-pipeline-status-details .status-text {
-            font-weight: 500; /* Match strong or adjust as needed */
-            /* Color will be handled by .status-text.status-pending etc. if applied */
-        }
-        .nav-divider {
-            margin: 0px 20px 10px 20px; /* Top, LR, Bottom */
-            border-color: #495057; /* Darker divider in nav */
-            margin-bottom: 10px;
-        }
-        .nav-footer {
-            position: absolute; /* Position relative to the nav bar */
-            bottom: 10px; /* Space from the bottom */
-            left: 0;
-            width: 100%; /* Take full width of the nav bar */
-            text-align: center; /* Center the text */
-            padding-bottom: 10px; /* Added padding at the bottom of the footer */
-        }
-        .nav-footer p {
-            font-size: 0.75em; /* Smaller font for the version */
-            color: #adb5bd; /* Lighter text, similar to status details */
-            margin: 0; /* Remove default paragraph margin */
-            padding: 5px 0; /* Some padding */
-        }
-
-    </style>
+    <title>Pipeline Status</title>
+    <link rel="stylesheet" href="css/styles.css"> <!-- Link to the common stylesheet -->
 </head>
 <body>
-    <nav>
-        <div id="nav-pipeline-status-details">
-            <h4 class="nav-section-title">Pipeline Status</h4>
-            <p><strong>Status:</strong> <span id="pipeline-status-message" class="status-text">Loading...</span></p>
-            <p><strong>Started:</strong> <span id="pipeline-start-time">N/A</span></p>
-            <p><strong>Ended:</strong> <span id="pipeline-end-time-nav">N/A</span></p>
-            <p><strong>Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
-        </div>
-        <hr class="nav-divider">
-        <h2>Navigation</h2>
-        <a href="pipeline.html">Pipeline Status</a>
-        <a href="esgportfolio.html">ESG Portfolio</a>
-        <a href="engine.html">Engine Performance</a>
-        <a href="script.html">Script Performance</a>
-        <!-- Add other navigation links here if needed -->
-
-        <div class="nav-footer">
-            <p>HTML v1.0.0</p> <!-- Initial version, update as needed -->
-        </div>
-    </nav>
-
+    <div id="navbar-placeholder"></div> <!-- Placeholder for the common navigation bar -->
+    
     <div class="main-content"> <!-- Wrapper for content to the right of nav -->
         <h1>Pipeline Status</h1>
 
@@ -352,6 +97,7 @@
     </div> <!-- End of main-content wrapper -->
 
     <script id="progress-script">
+        // This script now only handles the main content updates for pipeline.html
         let fetchInterval; // This is the correct, single declaration
         // Helper function for safe text update
         function setText(id, value, defaultValue = 'N/A') {
@@ -361,36 +107,7 @@
             }
         }
 
-        // Function to format date strings into a more readable format
-        function formatDate(dateString) {
-            if (!dateString || dateString === "N/A") return "N/A";
-            try {
-                // Handle cases where only date is provided or if it's already a full datetime string
-                const dateObj = new Date(dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString + 'T00:00:00Z'); // Assume UTC if only date
-                if (isNaN(dateObj.getTime())) return dateString; // Return original if invalid
-
-                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-                // For "YYYY-MM-DD HH:MM:SS" (local time string), use local getters.
-                // For "YYYY-MM-DD" (parsed as UTC date), use UTC getters.
-                // For other ISO strings (e.g., with Z or offset), UTC getters are generally appropriate after parsing.
-                const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !(typeof dateString === 'string' && dateString.match(/[+-]\d{2}:\d{2}$/));
-
-                const dayName = useLocalGetters ? days[dateObj.getDay()] : days[dateObj.getUTCDay()];
-                const dayOfMonth = String(useLocalGetters ? dateObj.getDate() : dateObj.getUTCDate()).padStart(2, '0');
-                const monthName = useLocalGetters ? months[dateObj.getMonth()] : months[dateObj.getUTCMonth()];
-                const year = useLocalGetters ? dateObj.getFullYear() : dateObj.getUTCFullYear(); // Display full year
-                const hours = String(useLocalGetters ? dateObj.getHours() : dateObj.getUTCHours()).padStart(2, '0');
-                const minutes = String(useLocalGetters ? dateObj.getMinutes() : dateObj.getUTCMinutes()).padStart(2, '0');
-
-                return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
-            } catch (e) {
-                console.warn("Could not format date:", dateString, e);
-                return dateString; // Return original if error
-            }
-        }
-
+        // formatDate is now in common_utils.js
         // Helper function for safe text update AND status class
         function setStatusText(id, value, status, defaultValue = 'N/A') {
             const element = document.getElementById(id);
@@ -467,37 +184,7 @@
                 }
             }
         }
-
-        // Function to format duration strings into a more readable format
-        function formatDuration(durationString) {
-            if (!durationString || durationString === "N/A") return "N/A";
-            let totalSeconds = 0;
-            let days = 0;
-
-            const dayMatch = durationString.match(/(\d+)\s*day[s]?,\s*/);
-            if (dayMatch) {
-                days = parseInt(dayMatch[1]);
-                durationString = durationString.substring(dayMatch[0].length);
-            }
-
-            if (durationString.includes(':')) {
-                const parts = durationString.split(':');
-                if (parts.length === 3) {
-                    const secondsAndMs = parts[2].split('.');
-                    totalSeconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(secondsAndMs[0]);
-                } else { return durationString; }
-            } else if (!isNaN(parseFloat(durationString))) {
-                totalSeconds = parseFloat(durationString);
-            } else { return durationString; }
-            if (isNaN(totalSeconds)) return durationString;
-            totalSeconds += days * 86400;
-            const finalDays = Math.floor(totalSeconds / 86400);
-            let remSec = totalSeconds % 86400;
-            const finalHours = Math.floor(remSec / 3600); remSec %= 3600;
-            const finalMinutes = Math.floor(remSec / 60); const finalSeconds = Math.floor(remSec % 60);
-            return `${finalDays > 0 ? `${finalDays} day${finalDays > 1 ? 's' : ''} and ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
-        }
-
+        // formatDuration is now in common_utils.js
         // Function to format ticker date ranges
         function formatTickerDateRange(rangeString) {
             if (!rangeString || rangeString === "N/A" || !rangeString.includes(" to ")) {
@@ -528,28 +215,8 @@
                     }
                 }
 
-                // --- Overall Pipeline Status ---
-                if (data.pipeline_run_status) {
-                    const pipeline = data.pipeline_run_status;
-                    setText('pipeline-status-message', pipeline.status_message);
-                    setText('pipeline-start-time', formatDate(pipeline.start_time));
-                    setText('pipeline-end-time-nav', formatDate(pipeline.end_time)); // Correctly use pipeline.end_time
-                    setText('pipeline-current-stage', pipeline.current_stage);
-                }
-                // Determine pipeline status for CSS class
-                let pipelineStatusCss = 'pending'; // Default to pending
-                if (data.pipeline_run_status && data.pipeline_run_status.status_message) {
-                    const msg = data.pipeline_run_status.status_message.toLowerCase();
-                    if (msg.includes('running') || msg.includes('started') || msg.includes('initializing')) {
-                        pipelineStatusCss = 'running';
-                    } else if (msg.includes('completed') || msg.includes('finished')) {
-                        pipelineStatusCss = 'completed';
-                    } else if (msg.includes('failed') || msg.includes('error')) {
-                        pipelineStatusCss = 'error';
-                    }
-                }
-                
-                setStageStatus('nav-pipeline-status-details', pipelineStatusCss); // Target the correct div ID
+                // Navbar status updates are now handled by js/common_nav.js
+                // This script will focus on updating the main content of pipeline.html
 
                 // --- Stock Database Update Section (for download.py) ---
                 const download = data; // Download data is at the root level in your progress.json
@@ -836,9 +503,10 @@
             }
         }
 
-        fetchInterval = setInterval(fetchProgress, 10000); // This is the correct, single interval setup
+        fetchInterval = setInterval(fetchProgress, 10000); // Interval for pipeline.html main content
         fetchProgress(); // Initial fetch
     </script>
-
+    <script src="js/common_utils.js"></script> <!-- Load common utility functions -->
+    <script src="js/common_nav.js"></script> <!-- Load the common navigation script -->
 </body>
 </html>

@@ -5,175 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Engine Performance</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding-left: 240px; /* Match progress.html */
-            padding-top: 20px;
-            padding-right: 20px;
-            padding-bottom: 20px;
-            background-color: #f8f9fa;
-            color: #343a40;
-            font-size: 1rem;
-            line-height: 1; /* Match progress.html */
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: left;
-            margin-bottom: 30px;
-            margin-top: 0;
-            font-size: 2.4em;
-            font-weight: 600;
-        }
-        nav {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 220px; /* Match progress.html */
-            height: 100%;
-            background-color: #343a40;
-            padding-top: 20px;
-            overflow-y: auto;
-            color: #f8f9fa;
-        }
-        .nav-section-title, nav h2 {
-            color: #f8f9fa;
-            font-size: 0.9em;
-            text-align: left;
-            padding-left: 20px;
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        nav h2 { margin-top: 10px; }
-        nav a {
-            display: block;
-            padding: 10px 20px;
-            text-decoration: none;
-            color: #dee2e6;
-            font-size: 0.9em;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        nav a:hover {
-            background-color: #495057;
-            color: #ffffff;
-        }
-        .stage-block {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 20px;
-            margin-bottom: 25px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        .stage-block:hover {
-             border-color: #bdc3c7;
-             box-shadow: 0 3px 6px rgba(0,0,0,0.07);
-        }
-        .stage-block h2 {
-            margin-top: 0;
-            color: #34495e;
-            border-bottom: 1px solid #dee2e6;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-            font-size: 1.75em;
-            font-weight: 600;
-            text-align: left; /* Ensure left alignment for main section titles */
-        }
-        .stage-block h3 { /* Style for sub-headings within a stage block */
-            margin-top: 20px; /* Add some space above sub-headings */
-            margin-bottom: 10px;
-            color: #495057; /* Slightly lighter than main h2 */
-            font-size: 1.4em; /* Smaller than main h2 */
-            font-weight: 600;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #eee; /* Lighter separator for sub-headings */
-            text-align: left; /* Ensure left alignment */
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 0.9em; /* Consistent with other pages */
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 6px; /* Smaller padding */
-            text-align: left;
-            white-space: nowrap; /* Prevent line breaks in cells */
-        }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .table-container {
-            overflow-x: auto; /* Allow horizontal scrolling for wide tables */
-        }
-        .chart-container {
-            width: 80%;
-            max-width: 900px;
-            margin: 30px auto;
-        }
-        #nav-pipeline-status-details {
-            padding: 0px 0px 10px 0px;
-            margin-bottom: 0;
-        }
-        #nav-pipeline-status-details p {
-            color: #adb5bd;
-            font-size: 0.9em;
-            margin-bottom: 4px;
-            line-height: 1.3;
-            padding-left: 20px;
-            text-align: left;
-        }
-        #nav-pipeline-status-details p strong {
-            color: #dee2e6;
-            font-weight: 500;
-        }
-        #nav-pipeline-status-details .status-text {
-            font-weight: 500;
-        }
-        .nav-divider {
-            margin: 0px 20px 10px 20px;
-            border-color: #495057;
-            margin-bottom: 10px;
-        }
-        .nav-footer {
-            position: absolute;
-            bottom: 10px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            padding-bottom: 10px;
-        }
-        .nav-footer p {
-            font-size: 0.75em;
-            color: #adb5bd;
-            margin: 0;
-            padding: 5px 0;
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css"> <!-- Link to the common stylesheet -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script> <!-- Added PapaParse -->
+
 </head>
-<body>
-    <nav>
-        <div id="nav-pipeline-status-details">
-            <h4 class="nav-section-title">Pipeline Status</h4>
-            <p><strong>Status:</strong> <span id="pipeline-status-message" class="status-text">N/A</span></p>
-            <p><strong>Started:</strong> <span id="pipeline-start-time">N/A</span></p>
-            <p><strong>Ended:</strong> <span id="pipeline-end-time-nav">N/A</span></p>
-            <p><strong>Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
-        </div>
-        <hr class="nav-divider">
-        <h2>Navigation</h2>
-        <a href="pipeline.html">Pipeline Status</a>
-        <a href="esgportfolio.html">ESG Portfolio</a>
-        <a href="engine.html">Engine Performance</a>
-        <a href="script.html">Script Performance</a>
-        <!-- GA Fitness/Noise link removed as it's merged here -->
-        <div class="nav-footer">
-            <p>HTML v1.0.1</p> <!-- Or your current version for this page -->
-        </div>
-    </nav>
+<body>    
+    <div id="navbar-placeholder"></div> <!-- Placeholder for the common navigation bar -->
+
     <div class="main-content">
         <h1>Engine Performance</h1>
 
@@ -257,67 +95,38 @@
 
     <script>
         const CSV_PATH = 'data/engine_performance_log.csv'; // Path to the new performance log
+        const RESULTS_CSV_PATH = 'data/engine_results_log.csv'; // Path for engine results (contains Sharpe)
+
         const GA_CSV_PATH = 'data/ga_fitness_noise_log.csv'; // Path for GA data
 
         let enginePerformanceSharpeChartInstance = null; // For the new chart
         let gaFitnessNoiseChartInstance = null; // For GA chart
 
-        function formatDate(dateString) {
-            if (!dateString || dateString === "N/A" || dateString.toLowerCase() === "calculating...") return dateString;
-            try {
-                const dateObj = new Date(dateString.includes(' ') ? dateString.replace(' ', 'T') : dateString + 'T00:00:00Z'); // Assume UTC if only date
-                if (isNaN(dateObj.getTime())) return dateString;
+        // formatDate, formatDuration, formatSecondsToHMS, and getRandomColor are now in common_utils.js
 
-                const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-                const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !(typeof dateString === 'string' && dateString.match(/[+-]\d{2}:\d{2}$/));
-
-                const dayName = useLocalGetters ? days[dateObj.getDay()] : days[dateObj.getUTCDay()];
-                const dayOfMonth = String(useLocalGetters ? dateObj.getDate() : dateObj.getUTCDate()).padStart(2, '0');
-                const monthName = useLocalGetters ? months[dateObj.getMonth()] : months[dateObj.getUTCMonth()];
-                const year = useLocalGetters ? dateObj.getFullYear() : dateObj.getUTCFullYear(); // Display full year
-                const hours = String(useLocalGetters ? dateObj.getHours() : dateObj.getUTCHours()).padStart(2, '0');
-                const minutes = String(useLocalGetters ? dateObj.getMinutes() : dateObj.getUTCMinutes()).padStart(2, '0');
-                return `${dayName}, ${dayOfMonth}/${monthName}/${year} - ${hours}:${minutes}`;
-            } catch (e) {
-                console.warn("Could not format date:", dateString, e);
-                return dateString;
-            }
+        // Helper to parse CSV text using PapaParse (can be shared if used elsewhere)
+        function parseCsvWithPapaParse(csvText) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    dynamicTyping: false, // Keep as string initially, parse numbers explicitly later
+                    complete: (results) => {
+                        if (results.errors && results.errors.length > 0) {
+                            // Log PapaParse errors but try to resolve with data if possible
+                            console.warn("PapaParse errors encountered:", results.errors);
+                            // Decide if errors are critical enough to reject
+                            // For now, let's resolve with data if data exists, otherwise reject with first error
+                            if (results.data && results.data.length > 0) resolve(results.data);
+                            else reject(new Error(results.errors[0].message || "CSV parsing error"));
+                        } else {
+                            resolve(results.data);
+                        }
+                    },
+                    error: (error) => reject(error)
+                });
+            });
         }
-
-        function formatDuration(durationString) {
-            if (!durationString || durationString === "N/A") return "N/A";
-            // Assuming durationString is already in "X days and HH:MM:SS" or "HH:MM:SS.micros"
-            // This function might need more robust parsing if formats vary widely
-            if (durationString.includes("day")) { // Already formatted with days
-                return durationString;
-            }
-            if (durationString.includes(':')) {
-                 const parts = durationString.split(':');
-                 if (parts.length === 3) {
-                    const secondsAndMs = parts[2].split('.');
-                    let totalSeconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(secondsAndMs[0]);
-                    const finalDays = Math.floor(totalSeconds / 86400);
-                    let remSec = totalSeconds % 86400;
-                    const finalHours = Math.floor(remSec / 3600); remSec %= 3600;
-                    const finalMinutes = Math.floor(remSec / 60); const finalSeconds = Math.floor(remSec % 60);
-                    return `${finalDays > 0 ? `${finalDays} day${finalDays > 1 ? 's' : ''} and ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
-                 }
-            }
-            return durationString; // Fallback
-        }
-        
-        function formatSecondsToHMS(secondsStr) {
-            if (!secondsStr || secondsStr === "N/A" || isNaN(parseFloat(secondsStr))) return "N/A";
-            let totalSeconds = parseFloat(secondsStr);
-            const finalDays = Math.floor(totalSeconds / 86400);
-            let remSec = totalSeconds % 86400;
-            const finalHours = Math.floor(remSec / 3600); remSec %= 3600;
-            const finalMinutes = Math.floor(remSec / 60); const finalSeconds = Math.floor(remSec % 60);
-            return `${finalDays > 0 ? `${finalDays}d ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
-        }
-
 
         async function fetchAndDisplayPerformance() {
             try {
@@ -526,31 +335,125 @@
             });
         }
 
-        function getRandomColor(alpha = 1) {
-            return `rgba(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${alpha})`;
-        }
-
         // Stub function for the new chart (Section 1)
         async function renderEnginePerformanceSharpeChart() {
             const messageP = document.getElementById('enginePerformanceSharpeChartMessage');
-            const canvas = document.getElementById('enginePerformanceSharpeChart');
+            const canvas = document.getElementById('enginePerformanceSharpeChart'); // Correct canvas ID
+
             if (enginePerformanceSharpeChartInstance) {
                 enginePerformanceSharpeChartInstance.destroy();
             }
-            // Currently, engine_performance_log.csv does not contain Sharpe Ratio data.
-            // To implement this chart as "Best Sharpe Ratio by k and Sim Runs",
-            // data would need to be fetched from engine_results_log.csv and merged
-            // with engine_performance_log.csv based on run_id.
-            // For now, we'll just ensure the placeholder message is visible.
-            if (canvas) canvas.style.display = 'none'; // Hide canvas if no data
-            if (messageP) messageP.style.display = 'block';
-            console.log("renderEnginePerformanceSharpeChart: Placeholder function. Data merging from multiple CSVs would be required.");
-        }
 
+            try {
+                const [perfResponse, resultsResponse] = await Promise.all([
+                    fetch(CSV_PATH + '?t=' + new Date().getTime()), // engine_performance_log.csv
+                    fetch(RESULTS_CSV_PATH + '?t=' + new Date().getTime()) // engine_results_log.csv
+                ]);
+
+                if (!perfResponse.ok) throw new Error(`HTTP error! status: ${perfResponse.status} while fetching ${CSV_PATH}`);
+                if (!resultsResponse.ok) throw new Error(`HTTP error! status: ${resultsResponse.status} while fetching ${RESULTS_CSV_PATH}`);
+
+                const perfCsvText = await perfResponse.text();
+                const resultsCsvText = await resultsResponse.text();
+
+                const perfData = await parseCsvWithPapaParse(perfCsvText);
+                const resultsData = await parseCsvWithPapaParse(resultsCsvText);
+
+                if (perfData.length === 0 || resultsData.length === 0) {
+                    if (messageP) messageP.textContent = "Not enough data to render the Sharpe Ratio vs. k/Sim Runs chart.";
+                    if (canvas) canvas.style.display = 'none';
+                    if (messageP) messageP.style.display = 'block';
+                    return;
+                }
+
+                // Merge data
+                const resultsMap = resultsData.reduce((map, item) => {
+                    map[item.run_id] = item;
+                    return map;
+                }, {});
+
+                const mergedData = perfData.map(perfItem => {
+                    const resultItem = resultsMap[perfItem.run_id];
+                    if (resultItem) {
+                        return {
+                            ...perfItem,
+                            sharpe_ratio: parseFloat(resultItem.sharpe_ratio)
+                        };
+                    }
+                    return null;
+                }).filter(item => item !== null && !isNaN(item.sharpe_ratio));
+
+                if (mergedData.length === 0) {
+                    if (messageP) messageP.textContent = "No merged data available for the Sharpe Ratio vs. k/Sim Runs chart.";
+                    if (canvas) canvas.style.display = 'none';
+                    if (messageP) messageP.style.display = 'block';
+                    return;
+                }
+
+                // Process for charting: group by sim_runs_fixed, then plot k vs. best sharpe
+                const dataBySimRuns = mergedData.reduce((acc, row) => {
+                    const k = parseInt(row.max_stocks); // Assuming min_stocks == max_stocks
+                    const simRuns = row.sim_runs_fixed;
+                    const sharpe = row.sharpe_ratio;
+
+                    if (!acc[simRuns]) acc[simRuns] = {};
+                    if (!acc[simRuns][k] || sharpe > acc[simRuns][k]) {
+                        acc[simRuns][k] = sharpe;
+                    }
+                    return acc;
+                }, {});
+
+                const datasets = Object.keys(dataBySimRuns).sort((a,b) => parseInt(a) - parseInt(b)).map(simRuns => {
+                    const kData = dataBySimRuns[simRuns];
+                    return {
+                        label: `Sim Runs = ${simRuns}`,
+                        data: Object.keys(kData).map(k => ({ x: parseInt(k), y: kData[k] })).sort((a,b) => a.x - b.x),
+                        borderColor: getRandomColor(),
+                        backgroundColor: getRandomColor(0.5),
+                        showLine: true, // Can be true for line or false for scatter
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    };
+                });
+
+                if (datasets.length === 0) {
+                     if (messageP) messageP.textContent = "No data points to plot for Sharpe Ratio vs. k/Sim Runs.";
+                     if (canvas) canvas.style.display = 'none';
+                     if (messageP) messageP.style.display = 'block';
+                     return;
+                }
+
+                if (canvas) canvas.style.display = 'block';
+                if (messageP) messageP.style.display = 'none';
+
+                const ctx = canvas.getContext('2d');
+                enginePerformanceSharpeChartInstance = new Chart(ctx, {
+                    type: 'line', // or 'scatter'
+                    data: { datasets: datasets },
+                    options: {
+                        scales: {
+                            x: { type: 'linear', position: 'bottom', title: { display: true, text: 'k (Portfolio Size)' } },
+                            y: { type: 'linear', title: { display: true, text: 'Best Sharpe Ratio' } }
+                        },
+                        plugins: { tooltip: { callbacks: { label: context => `${context.dataset.label}, k: ${context.parsed.x}, Sharpe: ${context.parsed.y.toFixed(4)}` }}},
+                        responsive: true, maintainAspectRatio: true
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error rendering Engine Performance Sharpe Chart:', error);
+                if (messageP) messageP.textContent = `Error rendering chart: ${error.message}`;
+                if (canvas) canvas.style.display = 'none';
+                if (messageP) messageP.style.display = 'block';
+            }
+        }
         fetchAndDisplayPerformance();
         fetchAndDisplayGAFitnessNoise(); // Call the new function
         renderEnginePerformanceSharpeChart(); // Call the stub for the new chart
     </script>
+    <script src="js/common_utils.js"></script> <!-- Load common utility functions -->
+    <script src="js/common_nav.js"></script> <!-- Load the common navigation script -->
 </body>
 
 </html>
