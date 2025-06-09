@@ -1938,4 +1938,5 @@ logger.log(f"\n🏁 Engine Processing Finished at {overall_script_end_time.strft
 logger.log(f"⏳ Total script execution time: {total_script_duration} ⏳")
 logger.update_web_log("engine_script_end_time", overall_script_end_time.strftime('%Y-%m-%d %H:%M:%S'))
 logger.update_web_log("engine_script_total_duration", str(total_script_duration))
+logger.update_web_log("engine_overall_status", "Completed Successfully") # Ensure Engine reports its own success
 logger.flush() # Final flush

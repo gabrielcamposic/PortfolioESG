@@ -161,7 +161,7 @@ if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
 
     if [ $ENGINE_EXIT_CODE -eq 0 ]; then
         # Engine was successful
-        update_progress_json "engine_overall_status" '"Completed Successfully"'
+        # update_progress_json "engine_overall_status" '"Completed Successfully"' # Engine.py now handles this
         log_message "Engine.py completed successfully in $ENGINE_DURATION_FMT."
         # Pipeline successful completion
         PIPELINE_END_TIME_S=$(date +%s)
@@ -170,8 +170,23 @@ if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
         log_message "Portfolio Pipeline Finished successfully in $PIPELINE_DURATION_FMT."
         log_message "======================================"
         echo "" >> "$PIPELINE_LOG_FILE"
+
+        log_message "DEBUG: About to update pipeline_run_status to completed."
+        FINAL_STATUS_JSON_VALUE='{ "status_message": "Pipeline completed successfully.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Pipeline Completed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
+        log_message "DEBUG: FINAL_STATUS_JSON_VALUE is: $FINAL_STATUS_JSON_VALUE"
+
         # Final pipeline status update in JSON
-        update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline completed successfully.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Pipeline Completed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
+        update_progress_json "pipeline_run_status" "$FINAL_STATUS_JSON_VALUE"
+        JQ_EXIT_CODE=$?
+        log_message "DEBUG: jq exit code for final pipeline_run_status update: $JQ_EXIT_CODE"
+        if [ $JQ_EXIT_CODE -ne 0 ]; then
+            log_message "ERROR: jq command failed to update pipeline_run_status to completed."
+        else
+            log_message "DEBUG: Successfully updated pipeline_run_status to completed (or jq reported success)."
+        fi
+        log_message "DEBUG: Content of progress.json after final update attempt:"
+        cat "$PROGRESS_JSON_FULL_PATH" >> "$PIPELINE_LOG_FILE"
+
         exit 0 # Exit with success code
     else
         # Engine failed
