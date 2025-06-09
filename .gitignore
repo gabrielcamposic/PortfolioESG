@@ -30,5 +30,9 @@ Old.py
 PortfolioESG_Data/
 PortfolioESG_Prod/
 
-# Ignore CSV files copied to the web-accessible data folder
-*.csv
+# Ignore temporary files copied to the web-accessible data folder
+progress.json
+download_performance_log.csv.csv
+engine_performance_log.csv
+engine_results_log.csv
+portfolio_value_history.csv
