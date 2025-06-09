@@ -31,8 +31,10 @@ PortfolioESG_Data/
 PortfolioESG_Prod/
 
 # Ignore temporary files copied to the web-accessible data folder
-progress.json
-download_performance_log.csv.csv
-engine_performance_log.csv
-engine_results_log.csv
-portfolio_value_history.csv
+html/data/progress.json
+html/data/download_performance_log.csv
+html/data/engine_results_log.csv
+html/data/portfolio_value_history.csv
+html/data/download_performance_log.csv
+html/data/engine_results_log.csv
+html/data/portfolio_value_history.csv

@@ -501,7 +501,7 @@ def find_best_stock_combination(
 
     if not available_stocks_for_search:
         logger_instance.log("❌ No stocks from 'stocks_to_consider_list' found in 'source_stock_prices_df'. Skipping search.")
-        return None, None, -float("inf"), None, None, None, None, 0 # Match expected return tuple
+        return None, None, -float("inf"), None, None, None, None, 0, [], 0.0
 
     logger_instance.log(f"    Stocks available for combination search: {', '.join(available_stocks_for_search)}")
 
@@ -512,7 +512,7 @@ def find_best_stock_combination(
         min_portfolio_size = 1
     if min_portfolio_size > max_portfolio_size:
         logger_instance.log(f"❌ Min portfolio size ({min_portfolio_size}) is greater than max ({max_portfolio_size}). Skipping.")
-        return None, None, -float("inf"), None, None, None, None, 0
+        return None, None, -float("inf"), None, None, None, None, 0, available_stocks_for_search, 0.0
 
     total_combinations_to_evaluate = sum(comb(len(available_stocks_for_search), k) for k in range(min_portfolio_size, max_portfolio_size + 1))
 
@@ -1546,9 +1546,9 @@ try:
     # This num_top_stocks_for_filtering will be used to select from the global stock universe
     # before intersecting with the ESG_STOCKS_LIST.
     if 3 <= MAX_STOCKS <= 5: # If target portfolio size is small
-        num_top_stocks_for_filtering = 25 # Consider a pool of top 25 global stocks
+        num_top_stocks_for_filtering = 30 # Consider a pool of top 25 global stocks
     elif 6 <= MAX_STOCKS <= 10: # If target portfolio size is medium
-        num_top_stocks_for_filtering = 30 # Consider a pool of top 30 global stocks
+        num_top_stocks_for_filtering = 35 # Consider a pool of top 30 global stocks
     elif 11 <= MAX_STOCKS <= 20: # If target portfolio size is large
         num_top_stocks_for_filtering = 40 # Consider a pool of top 40 global stocks
     else:

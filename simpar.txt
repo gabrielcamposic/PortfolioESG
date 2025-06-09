@@ -3,12 +3,12 @@
 debug_mode = false
 
 # --- Target stock list and date range
-esg_stocks_list = AMBP3.SA, EMBR3.SA, PSSA3.SA, MRFG3.SA, CEAB3.SA, ORVR3.SA, RDOR3.SA, BRFS3.SA, CMIG4.SA, ITUB3.SA, ITUB4.SA, TOTS3.SA, CPLE3.SA, STBP3.SA, LREN3.SA, CPLE6.SA, JHSF3.SA, BBDC4.SA, ITSA4.SA, WEGE3.SA
+esg_stocks_list = ALUP11.SA, B3SA3.SA, FLRY3.SA, ITUB4.SA, LREN3.SA, ORVR3.SA, SRNA3.SA, SUZB3.SA, VIVT3.SA, WEGE3.SA
 start_date=2025-01-01
 
 # --- Target portfolio parameters
-min_stocks=5
-max_stocks=5
+min_stocks=3
+max_stocks=7
 initial_investment=1000
 rf=0.1475
 
@@ -63,7 +63,7 @@ progressive_check_interval = 50
 # Percentage of top combinations to re-run with full simulations for refinement
 top_n_percent_refinement = 0.10
 # Number of simulations for the refinement phase, or for all combinations if adaptive_sim_enabled is false.
-sim_runs=1000
+sim_runs=10000
 
 # --- Working folders
 stock_data_file=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv

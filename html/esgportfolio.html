@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns@^2/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^2/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script> <!-- Added for scatter plot zoom -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
     <link rel="stylesheet" href="css/styles.css"> <!-- Link to the common stylesheet -->
 </head>
@@ -28,7 +29,7 @@
     <div class="stage-block">
         <h2>Sharpe Ratio & Final Value (Last 12 Months)</h2>
         <div class="chart-container">
-            <canvas id="sharpeRatioChart"></canvas>
+            <canvas id="sharpeFinalValueScatterChart"></canvas> <!-- Changed ID for the new scatter plot -->
         </div>
     </div>
 
@@ -86,8 +87,8 @@
         const SUMMARY_CSV_PATH = 'data/engine_results_log.csv';
         const HISTORY_CSV_PATH = 'data/portfolio_value_history.csv';
 
-        let sharpeRatioChartInstance = null;
         let multiPortfolioHistoryChartInstance = null;
+        // Removed sharpeRatioChartInstance, will use a new one for scatter plot
 
         // formatDate and getRandomColor are now in common_utils.js
 
@@ -160,8 +161,8 @@
                 ]; // Provide default headers if no data
                 populateTable(filteredSummaryData, summaryHeaders);
 
-                // Render existing Sharpe/Final Value chart with filtered summary data
-                renderSharpeAndFinalValueChart(filteredSummaryData);
+                // Render the new scatter plot
+                renderSharpeFinalValueScatterChart(filteredSummaryData);
 
                 // Identify and display best portfolio details
                 const bestPortfolio = findBestPortfolio(filteredSummaryData);
@@ -264,64 +265,116 @@
             }
         }
 
-        function renderSharpeAndFinalValueChart(summaryData) {
-            if (sharpeRatioChartInstance) {
-                sharpeRatioChartInstance.destroy();
-            }
-            if (summaryData.length === 0) return;
+        async function renderSharpeFinalValueScatterChart(summaryData) { // summaryData is already filtered and available
+            const chartCanvasId = 'sharpeFinalValueScatterChart';
 
-            const timestamps = summaryData.map(row => parseFlexibleDate(row.generation_timestamp)); // Use actual Date objects
-            const sharpeRatios = summaryData.map(row => parseFloat(row.sharpe_ratio));
-            const finalValues = summaryData.map(row => parseFloat(row.final_value));
+            if (window.sharpeFinalValueScatterInstance) {
+                window.sharpeFinalValueScatterInstance.destroy();
+            }
+            const ctx = document.getElementById(chartCanvasId).getContext('2d');
+
+            if (!summaryData || summaryData.length === 0) {
+                console.warn('No summary data provided for scatter plot.');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "grey";
+                ctx.textAlign = "center";
+                ctx.fillText("No data available for this chart (last 12 months).", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            const scatterDataPoints = summaryData
+                .filter(row => row.run_id && row.sharpe_ratio != null && row.final_value != null)
+                .map(row => ({
+                    x: parseFloat(row.sharpe_ratio),
+                    y: parseFloat(row.final_value),
+                    run_id: row.run_id,
+                    timestamp: row.generation_timestamp, // Keep original string for tooltip
+                    optimal_stocks: row.optimal_stocks
+                }));
+
+            if (scatterDataPoints.length === 0) {
+                console.warn('No valid data points after filtering for scatter plot.');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "grey";
+                ctx.textAlign = "center";
+                ctx.fillText("No valid data points to display (last 12 months).", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
             
-            const ctx = document.getElementById('sharpeRatioChart').getContext('2d');
-            sharpeRatioChartInstance = new Chart(ctx, {
-                type: 'line',
+            window.sharpeFinalValueScatterInstance = new Chart(ctx, {
+                type: 'scatter',
                 data: {
-                    labels: timestamps,
                     datasets: [{
-                        label: 'Sharpe Ratio',
-                        data: sharpeRatios,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1,
-                        fill: false,
-                        yAxisID: 'ySharpe' // Assign to the first y-axis
-                    }, {
-                        label: 'Final Portfolio Value', // New dataset
-                        data: finalValues,
-                        borderColor: 'rgb(255, 99, 132)', // Different color
-                        tension: 0.1,
-                        fill: false,
-                        yAxisID: 'yFinalValue' // Assign to the second y-axis
+                        label: 'Portfolio Run (Last 12 Months)',
+                        data: scatterDataPoints,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        pointRadius: 6,
+                        pointHoverRadius: 9
                     }]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: true, // Or false if you want more control via CSS
                     scales: {
                         x: {
-                            type: 'time',
-                            time: {
-                                unit: 'day',
-                                tooltipFormat: 'MMM dd, yyyy HH:mm',
-                                displayFormats: { day: 'MMM dd, yy' }
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Sharpe Ratio',
+                                font: { size: 14, weight: 'bold' }
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Final Portfolio Value ($)',
+                                font: { size: 14, weight: 'bold' }
                             },
-                            title: { display: true, text: 'Generation Timestamp' }
-                        },
-                        ySharpe: { // Configuration for the primary y-axis (Sharpe Ratio)
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: { display: true, text: 'Sharpe Ratio' }
-                        },
-                        yFinalValue: { // Configuration for the secondary y-axis (Final Value)
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: { display: true, text: 'Final Value ($)' },
-                            grid: { drawOnChartArea: false } // Only draw grid for the primary axis
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                                }
+                            }
                         }
                     },
-                    responsive: true,
-                    maintainAspectRatio: true
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Portfolio Final Value vs. Sharpe Ratio (Last 12 Months)',
+                            font: { size: 18, weight: 'bold' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const point = context.raw;
+                                    let label = [];
+                                    label.push(`Run ID: ${point.run_id}`);
+                                    label.push(`Sharpe Ratio: ${point.x.toFixed(4)}`);
+                                    label.push(`Final Value: $${point.y.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+                                    if (point.timestamp) {
+                                        label.push(`Timestamp: ${formatDate(point.timestamp)}`);
+                                    }
+                                    if (point.optimal_stocks) {
+                                        label.push(`Stocks: ${point.optimal_stocks.length > 40 ? point.optimal_stocks.substring(0,37) + '...' : point.optimal_stocks }`)
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        zoom: { // Enable zoom and pan
+                            pan: { enabled: true, mode: 'xy' },
+                            zoom: {
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
+                                mode: 'xy',
+                            }
+                        }
+                    }
                 }
             });
         }
