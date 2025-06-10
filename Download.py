@@ -329,20 +329,27 @@ def get_sao_paulo_holidays(year):
 
     return holiday_dict
 
-def get_missing_dates(ticker, current_findata_dir, start_date, end_date):
+
+def get_missing_dates(ticker, current_findata_dir, start_date, end_date, yfinance_skip_data, logger_instance=None):
     """
-    Return only business days (excluding weekends and holidays) that are missing for a given ticker.
+    Return only business days (excluding weekends and holidays) that are missing for a given ticker,
+    and are not in the provided yfinance_skip_data.
     """
     if DEBUG_MODE:
-        logger.log(f"DEBUG: get_missing_dates for ticker: {ticker}, start: {start_date.strftime('%Y-%m-%d')}, end: {end_date.strftime('%Y-%m-%d')}")
+        # Use logger_instance if provided, otherwise fallback to global logger
+        log_target = logger_instance if logger_instance else logger
+        log_target.log(f"DEBUG: get_missing_dates for {ticker}, start: {start_date.strftime('%Y-%m-%d')}, end: {end_date.strftime('%Y-%m-%d')}")
+    
     ticker_folder = os.path.join(current_findata_dir, ticker)
     if not os.path.exists(ticker_folder):
         logger.log(f"📂 No folder found for {ticker}. All dates are missing.")
         ticker_holidays = holidays.Brazil(years=range(start_date.year, end_date.year + 1), subdiv='SP')
         # The following line was causing issues if get_sao_paulo_holidays returns a dict instead of HolidayBase
-        ticker_holidays.update(get_sao_paulo_holidays(start_date.year))
+        ticker_holidays.update(get_sao_paulo_holidays(start_date.year)) # Pass logger_instance if get_sao_paulo_holidays uses it
         business_days = pd.bdate_range(start=start_date, end=end_date, freq='C', holidays=ticker_holidays)
-        return business_days.to_pydatetime().tolist()
+        skipped_dates_for_ticker_str = yfinance_skip_data.get(ticker, [])
+        skipped_dates_for_ticker_dt_obj = {datetime.strptime(d_str, "%Y-%m-%d").date() for d_str in skipped_dates_for_ticker_str}
+        return [dt.to_pydatetime() for dt in business_days if dt.date() not in skipped_dates_for_ticker_dt_obj]
 
     # Step 1: Get existing dates from CSV filenames
     existing_dates = []
@@ -362,15 +369,26 @@ def get_missing_dates(ticker, current_findata_dir, start_date, end_date):
     br_holidays = {}
 
     for year in all_years:
-        custom = get_sao_paulo_holidays(year)
+        custom = get_sao_paulo_holidays(year) # Pass logger_instance if get_sao_paulo_holidays uses it
         br_holidays.update(custom)
 
     business_days = pd.bdate_range(start=start_date, end=end_date, freq='C', holidays=br_holidays)
     if DEBUG_MODE:
         logger.log(f"DEBUG: Generated {len(business_days)} business days in range for {ticker}.")
 
-    # Step 3: Find missing dates (as datetime, not .date)
-    missing_dates = [dt for dt in business_days if dt.date() not in existing_dates]
+    # Step 2.5: Exclude skipped dates
+    skipped_dates_for_ticker_str = yfinance_skip_data.get(ticker, [])
+    skipped_dates_for_ticker_dt_obj = {datetime.strptime(d_str, "%Y-%m-%d").date() for d_str in skipped_dates_for_ticker_str}
+
+    # Filter business_days (which is a DatetimeIndex)
+    # Keep only those business_days that are NOT in skipped_dates_for_ticker_dt_obj
+    potential_business_days_to_check_files_for = [dt for dt in business_days if dt.date() not in skipped_dates_for_ticker_dt_obj]
+
+    if DEBUG_MODE and len(skipped_dates_for_ticker_dt_obj) > 0:
+        logger.log(f"DEBUG: For {ticker}, {len(business_days) - len(potential_business_days_to_check_files_for)} dates were already skipped and excluded from file check.")
+
+    # Step 3: Find missing dates (as datetime objects) by checking against existing files
+    missing_dates = [dt.to_pydatetime() for dt in potential_business_days_to_check_files_for if dt.date() not in existing_dates]
     if DEBUG_MODE:
         logger.log(f"DEBUG: Identified {len(missing_dates)} missing dates for {ticker}.")
 
@@ -456,7 +474,7 @@ def debug_check_dates_against_holidays(dates_to_check):
         else:
             print(f"❌ {d} is NOT marked as a holiday")
 
-def download_and_append(tickers_list, current_findata_dir, current_findb_dir, current_db_filepath, perf_data_ref):
+def download_and_append(tickers_list, current_findata_dir, current_findb_dir, current_db_filepath, perf_data_ref, yfinance_skip_data):
     """
     Download missing data for each ticker, compare with existing data in findata and StockDataDB.csv,
     and update StockDataDB.csv with only the missing rows.
@@ -651,7 +669,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         # Step 1: Determine missing business days
         if DEBUG_MODE: logger.log(f"DEBUG: Calling get_missing_dates for {ticker_to_process}.")
         # Use global_start_date_for_yfinance for determining the overall range for missing dates
-        missing_dates = get_missing_dates(ticker_to_process, current_findata_dir, global_start_date_for_yfinance, end_date)
+        missing_dates = get_missing_dates(ticker_to_process, current_findata_dir, global_start_date_for_yfinance, end_date, yfinance_skip_data, logger)
         if DEBUG_MODE: logger.log(f"DEBUG: get_missing_dates returned {len(missing_dates)} potential missing dates for {ticker_to_process}.")
         confirmed_missing_dates = []
         for d in missing_dates:
@@ -733,6 +751,25 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         # Step 5: Filter and Save
         data['Date'] = pd.to_datetime(data['Date']).dt.date
         data['Stock'] = ticker_to_process
+
+        # --- Yfinance Skip Data Update Logic ---
+        # Identify dates that were in confirmed_missing_dates but are NOT in the downloaded 'data'
+        downloaded_dates_in_data_set = set(data['Date'].tolist()) # set of datetime.date objects
+        
+        dates_to_add_to_skip_data_for_ticker = []
+        for confirmed_dt_obj in confirmed_missing_dates: # confirmed_missing_dates contains datetime.datetime
+            confirmed_date_as_date_obj = confirmed_dt_obj.date() # convert to datetime.date for comparison
+            if confirmed_date_as_date_obj not in downloaded_dates_in_data_set:
+                dates_to_add_to_skip_data_for_ticker.append(confirmed_date_as_date_obj.strftime('%Y-%m-%d'))
+        
+        if dates_to_add_to_skip_data_for_ticker:
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: Adding {len(dates_to_add_to_skip_data_for_ticker)} dates to yfinance skip data for {ticker_to_process}: {', '.join(dates_to_add_to_skip_data_for_ticker)}")
+            current_skip_data_for_ticker = yfinance_skip_data.get(ticker_to_process, [])
+            current_skip_data_for_ticker.extend(dates_to_add_to_skip_data_for_ticker)
+            yfinance_skip_data[ticker_to_process] = sorted(list(set(current_skip_data_for_ticker))) # Keep unique and sorted
+        # --- End Yfinance Skip Data Update Logic ---
+
         data = data[data['Date'].isin([d.date() for d in confirmed_missing_dates])]
 
         if data.empty:
@@ -832,6 +869,19 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     final_db_save_start_time = time.time()
     combined_data.to_csv(current_db_filepath, index=False)
     perf_data_ref["final_db_save_duration_s"] = time.time() - final_db_save_start_time
+
+    # Save the yfinance_skip_data at the end of processing all tickers
+    if YFINANCE_SKIP_FILEPATH:
+        try:
+            # Ensure lists in yfinance_skip_data are sorted and unique
+            for ticker_skip_key in yfinance_skip_data:
+                if isinstance(yfinance_skip_data[ticker_skip_key], list):
+                    yfinance_skip_data[ticker_skip_key] = sorted(list(set(yfinance_skip_data[ticker_skip_key])))
+            with open(YFINANCE_SKIP_FILEPATH, 'w') as f_skip_save:
+                json.dump(yfinance_skip_data, f_skip_save, indent=4)
+            logger.log(f"✅ Saved updated yfinance skip data to {YFINANCE_SKIP_FILEPATH}")
+        except Exception as e_skip_save:
+            logger.log(f"⚠️ Error saving yfinance skip data to {YFINANCE_SKIP_FILEPATH}: {e_skip_save}")
 
     status_update["current_ticker"] = f"StockDataDB.csv saved ({len(combined_data)} rows)" # Update after save
     logger.update_web_log("ticker_download", status_update)
@@ -1034,8 +1084,18 @@ try:
     if DEBUG_MODE:
         logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
 
+    # Load yfinance skip data before calling download_and_append
+    current_yfinance_skip_data = {}
+    if YFINANCE_SKIP_FILEPATH and os.path.exists(YFINANCE_SKIP_FILEPATH):
+        try:
+            with open(YFINANCE_SKIP_FILEPATH, 'r') as f_skip_load:
+                current_yfinance_skip_data = json.load(f_skip_load)
+            logger.log(f"✅ Loaded yfinance skip data from {YFINANCE_SKIP_FILEPATH} with {len(current_yfinance_skip_data)} tickers.")
+        except Exception as e_skip_load:
+            logger.log(f"⚠️ Error loading yfinance skip data from {YFINANCE_SKIP_FILEPATH}: {e_skip_load}. Starting with empty skip data.")
+
     logger.update_web_log("download_overall_status", "Downloading Data...")
-    download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics) # Corrected indentation
+    download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics, current_yfinance_skip_data)
 
     overall_script_end_time_dt = datetime.now()
     total_script_duration = overall_script_end_time_dt - overall_script_start_time_dt
