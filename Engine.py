@@ -875,7 +875,8 @@ def find_best_stock_combination(
             "stocks": best_overall_portfolio_combo, "weights": [round(w,4) for w in best_overall_weights_alloc],
             "sharpe_ratio": round(overall_best_sharpe,4), "final_value": round(best_overall_final_val,2),
             "roi_percent": round(best_overall_roi_val,2), "expected_return_annual_pct": round(best_overall_expected_return*100,2),
-            "expected_volatility_annual_pct": round(best_overall_volatility*100,2)
+            "expected_volatility_annual_pct": round(best_overall_volatility*100,2),
+            "initial_investment": round(current_initial_investment, 2) # Add initial investment
         })
     else:
         logger_instance.log("    ❌ No suitable portfolio combination found.")
@@ -1506,6 +1507,29 @@ if DEBUG_MODE:
 
 # --- Main Execution Block with Error Handling ---
 try:
+    # --- Helper function for persistent summary ---
+    def write_persistent_summary(summary_data, run_id_str, filepath, logger_instance):
+        """Writes the summary data to a persistent JSON file."""
+        if not filepath:
+            logger_instance.log("Warning: Persistent summary filepath not provided. Skipping.")
+            return
+        try:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            
+            persistent_content = {
+                "last_updated_run_id": run_id_str,
+                "last_updated_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "best_portfolio_details": summary_data # This will be None if no portfolio found in current run
+            }
+
+            with open(filepath, 'w') as f:
+                json.dump(persistent_content, f, indent=4)
+            logger_instance.log(f"✅ Successfully wrote persistent summary to: {filepath}")
+
+        except Exception as e:
+            logger_instance.log(f"❌ Error writing persistent summary to {filepath}: {e}")
+
+
 
 
 # --- Read & Wrangle Stock Data ---
@@ -1709,8 +1733,8 @@ try:
     elif not RESULTS_LOG_CSV_PATH:
         logger.log("Info: results_log_csv_path not set in simpar.txt. Skipping CSV results log.")
     elif not best_portfolio_stocks:
+        # The persistent summary will be updated later to reflect no portfolio found for this run.
         logger.log("Info: No optimal portfolio found by Engine.py. Skipping CSV results log.")
-
     section_end_time = datetime.now()
     section_duration = section_end_time - section_start_time
     logger.log(f"--- Search for Best Stock Combination finished in {section_duration}. End time: {section_end_time.strftime('%Y-%m-%d %H:%M:%S')} ---")
@@ -1750,6 +1774,16 @@ try:
                 logger.log(f"Warning: Could not calculate portfolio value history for run {run_id}. Portfolio value DataFrame is empty.")
         except Exception as e:
             logger.log(f"❌ Error logging portfolio value history for run {run_id}: {e}")
+
+    # --- Write/Update persistent summary for the current run's outcome ---
+    if WEB_ACCESSIBLE_DATA_FOLDER:
+        # logger.web_data should contain the "best_portfolio_details" from the current run,
+        # which could be None if no portfolio was found by find_best_stock_combination.
+        current_run_outcome_details = logger.web_data.get("best_portfolio_details")
+        persistent_summary_filepath = os.path.join(WEB_ACCESSIBLE_DATA_FOLDER, "latest_run_summary.json")
+        write_persistent_summary(current_run_outcome_details, run_id, persistent_summary_filepath, logger)
+    else:
+        logger.log("Warning: WEB_ACCESSIBLE_DATA_FOLDER not defined in simpar.txt. Cannot write persistent summary.")
 
     # --- Define these variables in the global scope before calling the summary function ---
     initial_estimated_duration_from_log = logger.web_data.get("estimated_completion_time", "N/A") # This is a timestamp
@@ -1871,12 +1905,11 @@ try:
         except Exception as e:
             logger_instance.log(f"❌ Error copying results log to web directory: {e}")
 
-    # After logging to the primary CSV, copy it if the path was set
-    if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
+    # --- Copy various logs to web accessible location ---
+    if RESULTS_LOG_CSV_PATH and best_portfolio_stocks: # Only copy if it was created
         copy_results_log_to_web_accessible_location(RESULTS_LOG_CSV_PATH, logger)
 
-    # After logging GA fitness/noise data, copy it if the path was set
-    if GA_FITNESS_NOISE_LOG_PATH:
+    if GA_FITNESS_NOISE_LOG_PATH and os.path.exists(GA_FITNESS_NOISE_LOG_PATH): # Check if GA log exists
         copy_ga_fitness_noise_log_to_web_accessible_location(GA_FITNESS_NOISE_LOG_PATH, logger)
 
     # After logging portfolio value history, copy it if the path was set

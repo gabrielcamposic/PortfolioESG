@@ -25,3 +25,4 @@ dynamic_user_agents_enabled = true
 # --- Performance Logging ---
 download_performance_log_path = ~/Documents/Prog/PortfolioESG_Data/Results/download_performance_log.csv
 web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/
+yfinance_skip_filepath = ~/Documents/Prog/PortfolioESG_Data/findb/yfinance_skip.json

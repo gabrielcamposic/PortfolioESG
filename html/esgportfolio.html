@@ -17,6 +17,24 @@
     <div class="main-content">
         <h1>ESG Portfolio</h1>
 
+    <div class="stage-block">
+        <h2>Last Portfolio Details</h2>
+        <div id="bestPortfolioDetails" class="table-container"> <!-- Added table-container for consistency -->
+            <table id="bestPortfolioTable"> <!-- Added ID for easier targeting -->
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JavaScript will populate this or show 'Loading...' -->
+                    <tr><td colspan="2" style="text-align: center;">Loading best portfolio details...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Section 1 (Formerly Section 2): Portfolio Historical Values -->
     <div class="stage-block">
         <h2>Portfolio Historical Values (Last 12 Months)</h2>
@@ -34,23 +52,8 @@
     </div>
 
     <!-- Section 3 (Formerly Section 1): Best Portfolio Details -->
-    <div class="stage-block">
-        <h2>Best Portfolio Details (Last 12 Months)</h2>
-        <div id="bestPortfolioDetails" class="table-container"> <!-- Added table-container for consistency -->
-            <table id="bestPortfolioTable"> <!-- Added ID for easier targeting -->
-                <thead>
-                    <tr>
-                        <th>Metric</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- JavaScript will populate this or show 'Loading...' -->
-                    <tr><td colspan="2" style="text-align: center;">Loading best portfolio details...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <!-- This section is now moved to the top -->
+
 
     <!-- Section 4: Logged Portfolio Results -->
     <div class="stage-block">
@@ -86,6 +89,7 @@
     <script>
         const SUMMARY_CSV_PATH = 'data/engine_results_log.csv';
         const HISTORY_CSV_PATH = 'data/portfolio_value_history.csv';
+        const LATEST_RUN_SUMMARY_JSON_PATH = 'data/latest_run_summary.json'; // Path to the new summary file
 
         let multiPortfolioHistoryChartInstance = null;
         // Removed sharpeRatioChartInstance, will use a new one for scatter plot
@@ -127,16 +131,19 @@
 
         async function main() {
             try {
-                const [summaryResponse, historyResponse] = await Promise.all([
+                const [summaryResponse, historyResponse, latestRunResponse] = await Promise.all([
                     fetch(SUMMARY_CSV_PATH + '?t=' + new Date().getTime()),
-                    fetch(HISTORY_CSV_PATH + '?t=' + new Date().getTime())
+                    fetch(HISTORY_CSV_PATH + '?t=' + new Date().getTime()),
+                    fetch(LATEST_RUN_SUMMARY_JSON_PATH + '?t=' + new Date().getTime()) // Fetch the latest run summary
                 ]);
 
                 if (!summaryResponse.ok) throw new Error(`HTTP error! status: ${summaryResponse.status} while fetching ${SUMMARY_CSV_PATH}`);
                 if (!historyResponse.ok) throw new Error(`HTTP error! status: ${historyResponse.status} while fetching ${HISTORY_CSV_PATH}`);
+                if (!latestRunResponse.ok) throw new Error(`HTTP error! status: ${latestRunResponse.status} while fetching ${LATEST_RUN_SUMMARY_JSON_PATH}`);
 
                 const summaryCsvText = await summaryResponse.text();
                 const historyCsvText = await historyResponse.text();
+                const latestRunJson = await latestRunResponse.json(); // Parse the JSON response
 
                 const allSummaryData = await parseCsvWithPapaParse(summaryCsvText);
                 const allPortfolioHistoryData = await parseCsvWithPapaParse(historyCsvText);
@@ -164,9 +171,12 @@
                 // Render the new scatter plot
                 renderSharpeFinalValueScatterChart(filteredSummaryData);
 
-                // Identify and display best portfolio details
-                const bestPortfolio = findBestPortfolio(filteredSummaryData);
-                displayBestPortfolioDetails(bestPortfolio);
+                // Display "Last Portfolio Details" using latest_run_summary.json
+                // The structure of latestRunJson is expected to be:
+                // { "last_updated_run_id": "...", "last_updated_timestamp": "...", "best_portfolio_details": { ... } or null }
+                // The old findBestPortfolio and displayBestPortfolioDetails might need to be adapted or replaced
+                // For now, let's assume we are creating/modifying displayLastPortfolioDetails
+                displayLastPortfolioDetails(latestRunJson.best_portfolio_details, latestRunJson.last_updated_run_id);
 
                 // Render new multi-portfolio history chart
                 renderMultiPortfolioHistoryChart(filteredSummaryData, allPortfolioHistoryData);
@@ -188,17 +198,12 @@
                 console.error('Error in main function (fetching/parsing CSV):', error); // Log the original error object too
                 const tableBody = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
                 tableBody.innerHTML = `<tr><td colspan="16" style="text-align:center; color:red;">Error loading data: ${errorMessage}. Check console for details.</td></tr>`;
-                document.getElementById('bestPortfolioDetails').innerHTML = `<p style="color:red;">Error loading best portfolio details: ${errorMessage}. Check console for details.</p>`;
+                // Update the "Last Portfolio Details" table on error as well
+                const lastPortfolioTableBody = document.getElementById('bestPortfolioTable')?.getElementsByTagName('tbody')[0];
+                if (lastPortfolioTableBody) {
+                    lastPortfolioTableBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:red;">Error loading last portfolio details: ${errorMessage}. Check console.</td></tr>`;
+                }
             }
-        }
-
-        function findBestPortfolio(summaryData) {
-            if (!summaryData || summaryData.length === 0) return null;
-            return summaryData.reduce((best, current) => {
-                const currentSharpe = parseFloat(current.sharpe_ratio);
-                const bestSharpe = best ? parseFloat(best.sharpe_ratio) : -Infinity;
-                return (!isNaN(currentSharpe) && currentSharpe > bestSharpe) ? current : best;
-            }, null);
         }
 
         function populateTable(summaryData, headers) {
@@ -223,37 +228,39 @@
             });
         }
 
-        function displayBestPortfolioDetails(portfolio) {
+        // Renamed and adapted to use data from latest_run_summary.json
+        function displayLastPortfolioDetails(portfolioDetails, runId) {
             const tableBody = document.getElementById('bestPortfolioTable')?.getElementsByTagName('tbody')[0];
             const detailsContainer = document.getElementById('bestPortfolioDetails');
 
             if (!tableBody) {
-                if(detailsContainer) detailsContainer.innerHTML = '<p style="color:red;">Error: Best portfolio table structure not found.</p>';
-                console.error("Element with ID 'bestPortfolioTable' or its tbody not found.");
+                if(detailsContainer) detailsContainer.innerHTML = '<p style="color:red;">Error: Last portfolio table structure not found.</p>';
+                console.error("Element with ID 'bestPortfolioTable' (for last portfolio) or its tbody not found.");
                 return;
             }
             tableBody.innerHTML = ''; // Clear previous content
 
-            if (!portfolio) {
+            if (!portfolioDetails) { // portfolioDetails is the object from latest_run_summary.json's "best_portfolio_details" key
                 const tr = tableBody.insertRow();
                 const td = tr.insertCell();
                 td.colSpan = 2;
                 td.style.textAlign = "center";
-                td.textContent = 'No portfolio data available for the last 12 months to determine the best.';
+                td.textContent = `No portfolio found in the last run (ID: ${runId || 'N/A'}).`;
                 return;
             }
 
             const detailsMap = {
-                "Run ID": portfolio.run_id || 'N/A',
-                "Generated": formatDate(portfolio.generation_timestamp),
-                "Sharpe Ratio": parseFloat(portfolio.sharpe_ratio).toFixed(4) || 'N/A',
-                "Optimal Stocks": portfolio.optimal_stocks || 'N/A',
-                "Optimal Weights": portfolio.optimal_weights || 'N/A',
-                "Expected Annual Return": `${parseFloat(portfolio.expected_annual_return_pct).toFixed(2) || 'N/A'}%`,
-                "Expected Annual Volatility": `${parseFloat(portfolio.expected_annual_volatility_pct).toFixed(2) || 'N/A'}%`,
-                "Final Value": `$${parseFloat(portfolio.final_value).toFixed(2) || 'N/A'}`,
-                "ROI": `${parseFloat(portfolio.roi_pct).toFixed(2) || 'N/A'}%`,
-                "Initial Investment": `$${parseFloat(portfolio.initial_investment).toFixed(2) || 'N/A'}`
+                "Run ID": runId || 'N/A', // runId is passed as a separate argument
+                // "Generated" timestamp is part of latest_run_summary.json's root, not best_portfolio_details.
+                // We can add it if needed by modifying what's passed or fetching it. For now, focusing on portfolio metrics.
+                "Sharpe Ratio": portfolioDetails.sharpe_ratio !== undefined ? parseFloat(portfolioDetails.sharpe_ratio).toFixed(4) : 'N/A',
+                "Optimal Stocks": portfolioDetails.stocks ? portfolioDetails.stocks.join(', ') : 'N/A',
+                "Optimal Weights": portfolioDetails.weights ? portfolioDetails.weights.map(w => parseFloat(w).toFixed(4)).join(', ') : 'N/A',
+                "Expected Annual Return": portfolioDetails.expected_return_annual_pct !== undefined ? `${parseFloat(portfolioDetails.expected_return_annual_pct).toFixed(2)}%` : 'N/A',
+                "Expected Annual Volatility": portfolioDetails.expected_volatility_annual_pct !== undefined ? `${parseFloat(portfolioDetails.expected_volatility_annual_pct).toFixed(2)}%` : 'N/A',
+                "Final Value": portfolioDetails.final_value !== undefined ? `$${parseFloat(portfolioDetails.final_value).toFixed(2)}` : 'N/A',
+                "ROI": portfolioDetails.roi_percent !== undefined ? `${parseFloat(portfolioDetails.roi_percent).toFixed(2)}%` : 'N/A',
+                "Initial Investment": portfolioDetails.initial_investment !== undefined ? `$${parseFloat(portfolioDetails.initial_investment).toFixed(2)}` : 'N/A'
             };
 
             for (const metric in detailsMap) {

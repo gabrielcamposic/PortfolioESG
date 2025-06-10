@@ -35,6 +35,7 @@ DB_FILEPATH = "" # Will be constructed
 DOWNLOAD_LOG_FILE = ""
 PROGRESS_JSON_FILE = ""
 DOWNLOAD_PERFORMANCE_LOG_PATH = "" # For performance logging
+YFINANCE_SKIP_FILEPATH = "" # For yfinance unavailable data (skip list)
 WEB_ACCESSIBLE_DATA_FOLDER = "" # For copying logs
 
 # Fallback list of user agents (moved here, after parameter placeholders)
@@ -155,8 +156,9 @@ def load_download_parameters(filepath, logger_instance=None):
         "progress_json_file": str,
         # Optional user-agent params
         "dynamic_user_agents_enabled": bool,
-        "download_performance_log_path": str, # New performance log path
-        "web_accessible_data_folder": str # New web data folder path
+        "download_performance_log_path": str,
+        "web_accessible_data_folder": str,
+        "yfinance_skip_filepath": str # Path for the yfinance skip file
     }
 
     try:
@@ -907,6 +909,7 @@ TICKERS_FILE = params.get("tickers_list_file") # Critical
 DOWNLOAD_LOG_FILE = params.get("download_log_file") # Critical
 PROGRESS_JSON_FILE = params.get("progress_json_file", os.path.join(SCRIPT_DIR, "progress.json")) # Default if not specified
 DOWNLOAD_PERFORMANCE_LOG_PATH = params.get("download_performance_log_path") # Load performance log path
+YFINANCE_SKIP_FILEPATH = params.get("yfinance_skip_filepath") # Load yfinance skip path
 WEB_ACCESSIBLE_DATA_FOLDER = params.get("web_accessible_data_folder") # Load web data folder
 
 DB_FILENAME = "StockDataDB.csv" # Standard name for the database file
@@ -922,6 +925,7 @@ logger.log(f"Logger paths updated. Log file: {DOWNLOAD_LOG_FILE}, Web log: {PROG
 if DEBUG_MODE:
     logger.log(f"DEBUG: Final Parameters Loaded:")
     logger.log(f"DEBUG:   DEBUG_MODE = {DEBUG_MODE}")
+    logger.log(f"DEBUG:   YFINANCE_SKIP_FILEPATH = {YFINANCE_SKIP_FILEPATH if YFINANCE_SKIP_FILEPATH else 'Not Set'}")
     logger.log(f"DEBUG:   HISTORY_YEARS = {HISTORY_YEARS}")
     logger.log(f"DEBUG:   DB_FILEPATH = {DB_FILEPATH}")
 
