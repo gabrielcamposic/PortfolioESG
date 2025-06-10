@@ -102,8 +102,38 @@ echo "Initial progress.json written to $PROGRESS_JSON_FULL_PATH"
 update_progress_json() {
     local KEY="$1"
     local VALUE="$2"
+    local TEMP_JSON_FILE="$PROGRESS_JSON_FULL_PATH.tmp"
+
+    log_message "DEBUG: update_progress_json: Attempting to update key '$KEY' with value '$VALUE'"
+
     # Use a temporary file to avoid issues with jq modifying the file it's reading
-    jq --arg key "$KEY" --argjson value "$VALUE" '.[$key] = $value' "$PROGRESS_JSON_FULL_PATH" > "$PROGRESS_JSON_FULL_PATH.tmp" && mv "$PROGRESS_JSON_FULL_PATH.tmp" "$PROGRESS_JSON_FULL_PATH"
+    # Capture jq's output (new JSON) and any errors.
+    local JQ_CMD_OUTPUT
+    JQ_CMD_OUTPUT=$(jq --arg key "$KEY" --argjson value "$VALUE" '.[$key] = $value' "$PROGRESS_JSON_FULL_PATH" 2>&1)
+    local JQ_REAL_EXIT_CODE=$?
+
+    if [ $JQ_REAL_EXIT_CODE -eq 0 ]; then
+        # jq succeeded, JQ_CMD_OUTPUT contains the new JSON
+        echo "$JQ_CMD_OUTPUT" > "$TEMP_JSON_FILE"
+        if [ $? -ne 0 ]; then
+            log_message "ERROR: Failed to write jq output to temporary file '$TEMP_JSON_FILE' for key '$KEY'."
+            rm -f "$TEMP_JSON_FILE" # Clean up partial write if any
+            return 1 # Indicate failure
+        fi
+
+        mv "$TEMP_JSON_FILE" "$PROGRESS_JSON_FULL_PATH"
+        if [ $? -ne 0 ]; then
+            log_message "ERROR: Failed to move temporary file '$TEMP_JSON_FILE' to '$PROGRESS_JSON_FULL_PATH' for key '$KEY'."
+            return 1 # Indicate failure
+        fi
+        return 0
+    else
+        # jq failed
+        log_message "ERROR: jq command failed for key '$KEY'. Exit code: $JQ_REAL_EXIT_CODE."
+        log_message "ERROR: Value passed to --argjson for key '$KEY' was: '$VALUE'"
+        log_message "ERROR: jq output/error was: $JQ_CMD_OUTPUT"
+        return $JQ_REAL_EXIT_CODE
+    fi
 }
 
 # Update pipeline status in JSON
