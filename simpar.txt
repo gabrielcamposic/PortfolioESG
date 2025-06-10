@@ -8,7 +8,7 @@ start_date=2025-01-01
 
 # --- Target portfolio parameters
 min_stocks=3
-max_stocks=7
+max_stocks=15
 initial_investment=1000
 rf=0.1475
 
@@ -78,3 +78,15 @@ performance_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_per
 ga_fitness_noise_log_path = ~/Documents/Prog/PortfolioESG_Data/Results/ga_fitness_noise_log.csv
 portfolio_value_history_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/portfolio_value_history.csv
 web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/
+
+ --- Stock Pool Sizing for Initial Sharpe Ratio Filtering ---
+# Defines how many top stocks (by Sharpe ratio) are initially filtered based on the MAX_STOCKS setting.
+# Format: min_max_portfolio_stocks:num_stocks_to_filter, e.g., "3-5:50,6-10:75,11-20:100"
+pool_size_tiers = 3-5:50,6-10:75,11-20:100
+pool_size_default_num_stocks = 40
+
+# --- Simulation Feedback & Advanced GA Settings ---
+# Comma-separated list of percentages for brute-force progress logging (e.g., 25,50,75)
+bf_progress_log_thresholds = 25,50,75
+# Multiplier for POPULATION_SIZE to determine max attempts for unique GA initial population generation
+ga_init_pop_max_attempts_multiplier = 5

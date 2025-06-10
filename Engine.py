@@ -16,7 +16,7 @@ import math
 import shutil # Add this import
 
 # --- Engine Version ---
-ENGINE_VERSION = "1.5.0" # Added comprehensive error handling, improved web logging, GA stubs, adaptive logic framework
+ENGINE_VERSION = "1.5.1" # Reflected latest modifications to parameter handling and pool sizing logic
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -213,13 +213,24 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "results_log_csv_path": str, # Added: Path for results CSV log
         "web_accessible_data_folder": str, # Added: Path for web-accessible data
         "performance_log_csv_path": str, # Added: Path for performance CSV log
+        "debug_mode": bool, # Ensure debug_mode is in expected types
+        # Stock pool sizing parameters
+        "pool_size_tiers": str,
+        "pool_size_default_num_stocks": int,
         "ga_fitness_noise_log_path": str, # Added: Path for GA fitness/noise CSV log
+        # New parameters for simulation feedback and advanced GA
+        "bf_progress_log_thresholds": str, # Will be parsed to list of ints
+        "ga_init_pop_max_attempts_multiplier": int,
     }
 
     # Add the new parameter for portfolio value history
     expected_types["portfolio_value_history_csv_path"] = str
 
     try:
+        # Read debug_mode first, if available, to control logging within this function
+        local_debug_mode = False
+        # We'll do a preliminary pass or look for it specifically
+
         with open(filepath, 'r') as f:
             for line_number, line in enumerate(f, 1):
                 line = line.strip()
@@ -237,6 +248,20 @@ def load_simulation_parameters(filepath, logger_instance=None):
                 
                 key, value_str = parts[0].strip(), parts[1].strip()
 
+                # Special handling for debug_mode to use it immediately
+                if key == "debug_mode":
+                    try:
+                        if value_str.lower() == 'true':
+                            local_debug_mode = True
+                        elif value_str.lower() == 'false':
+                            local_debug_mode = False
+                        else:
+                            raise ValueError(f"Boolean value for '{key}' must be 'true' or 'false', got '{value_str}'")
+                        parameters[key] = local_debug_mode # Store it in parameters dict too
+                    except ValueError:
+                         message = f"Warning: Could not convert value '{value_str}' for key '{key}' to bool in '{filepath}'. Using default False for local debug."
+                         if logger_instance: logger_instance.log(message) # Use logger if available
+                         else: print(message) # Fallback print
                 # Handle the typo: stock_data_file' -> stock_data_file
                 if key == "stock_data_file'":
                     message = (f"Info: Correcting key 'stock_data_file'' to 'stock_data_file' from '{filepath}'. "
@@ -256,6 +281,46 @@ def load_simulation_parameters(filepath, logger_instance=None):
                         processed_value = []  # Empty list for empty string
                     parameters[key] = processed_value # Assign the processed list
                     # Continue to next line in file, as this key is handled
+                
+                elif key == "pool_size_tiers":
+                    parsed_tiers = []
+                    if value_str: # Ensure not empty
+                        try:
+                            tier_definitions = value_str.split(',')
+                            for tier_def in tier_definitions:
+                                range_part, num_stocks_part = tier_def.split(':')
+                                min_s, max_s = map(int, range_part.split('-'))
+                                num_stocks = int(num_stocks_part)
+                                parsed_tiers.append(((min_s, max_s), num_stocks))
+                            processed_value = parsed_tiers
+                        except ValueError as e:
+                            message = (f"Warning: Malformed 'pool_size_tiers' string '{value_str}' in '{filepath}'. Error: {e}. "
+                                       "Expected format like '3-5:50,6-10:75'. Using empty list.")
+                            if logger_instance: logger_instance.log(message)
+                            else: print(message)
+                            processed_value = [] # Fallback to empty list
+                    else:
+                        processed_value = [] # Empty list for empty string
+                    parameters[key] = processed_value
+                    if local_debug_mode and logger_instance: # Use local debug mode
+                        logger_instance.log(f"DEBUG: Parsed pool_size_tiers: {processed_value}")
+                    # Continue to next line in file, as this key is handled
+
+                elif key == "bf_progress_log_thresholds":
+                    if value_str:
+                        try:
+                            processed_value = [int(t.strip()) for t in value_str.split(',') if t.strip()]
+                        except ValueError:
+                            message = f"Warning: Malformed 'bf_progress_log_thresholds' string '{value_str}'. Expected comma-separated integers. Using default [25, 50, 75]."
+                            if logger_instance: logger_instance.log(message)
+                            else: print(message)
+                            processed_value = [25, 50, 75] # Fallback
+                    else:
+                        processed_value = [25, 50, 75] # Default if empty
+                    parameters[key] = processed_value
+                    # Continue to next line in file
+
+
 
                 elif key in expected_types: # Check if key is a known, expected type
                     target_type = expected_types[key]
@@ -285,7 +350,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
                         if logger_instance:
                             logger_instance.log(message)
                         else:
-                            print(message)
+                            print(message) # Fallback print
                         parameters[key] = value_str  # Fallback to string
 
                 else: # Truly unknown key
@@ -294,7 +359,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
                         logger_instance.log(message)
                     else:
                         print(message)
-                    if value_str.startswith('~'):
+                    if value_str.startswith('~'): # Still expand user paths for unknown strings
                         processed_value = os.path.expanduser(value_str)
                     else:
                         processed_value = value_str
@@ -961,7 +1026,7 @@ def run_genetic_algorithm(
     # For a more robust unique population, a set could be used, or more advanced generation.
     generated_combos = set()
     attempts = 0
-    max_attempts = POPULATION_SIZE * 5 # Try a bit harder to get unique combos
+    max_attempts = POPULATION_SIZE * GA_INIT_POP_MAX_ATTEMPTS_MULTIPLIER # Use parameter
 
     while len(population) < POPULATION_SIZE and attempts < max_attempts:
         combo_tuple = tuple(sorted(random.sample(available_stocks_for_search, num_stocks_in_combo)))
@@ -1392,6 +1457,13 @@ PROGRESSIVE_CHECK_INTERVAL = sim_params.get("progressive_check_interval", 50)
 TOP_N_PERCENT_REFINEMENT = sim_params.get("top_n_percent_refinement", 0.10)
 
 
+# Stock pool sizing parameters
+PARSED_POOL_SIZE_TIERS = sim_params.get("parsed_pool_size_tiers", []) # Loaded as a parsed list of tuples
+POOL_SIZE_DEFAULT_NUM_STOCKS = sim_params.get("pool_size_default_num_stocks", 40) # Default if not in tiers
+
+# Simulation Feedback & Advanced GA Settings
+BF_PROGRESS_LOG_THRESHOLDS = sim_params.get("bf_progress_log_thresholds", [25, 50, 75]) # Expects list of ints
+GA_INIT_POP_MAX_ATTEMPTS_MULTIPLIER = sim_params.get("ga_init_pop_max_attempts_multiplier", 5) # Expects int
 # Paths are now sourced *exclusively* from simpar.txt
 # The load_simulation_parameters function already handles os.path.expanduser()
 STOCK_DATA_FILE = sim_params.get("stock_data_file")
@@ -1544,40 +1616,43 @@ try:
     StockDataDB_df.fillna({'Close': 0}, inplace=True) # Replace NaN with 0 for closing prices
     StockDataDB_df.sort_values(by=['Date', 'Stock'], inplace=True)
 
-    # Filter data based on the start_date
     if START_DATE:
         StockDataDB_df = StockDataDB_df[StockDataDB_df['Date'] >= START_DATE]
         logger.log(f"    Data filtered from {START_DATE} to {StockDataDB_df['Date'].max()}.")
 
-    # Pivot to get closing prices structured by stock
-    StockClose_df = StockDataDB_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
-    StockClose_df.dropna(inplace=True)  # Keep only complete data
-    StockClose_df.reset_index(inplace=True)
+    # Pivot to get closing prices for ALL stocks first, with 'Date' as index
+    StockClose_Universe_df = StockDataDB_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
 
-    # Calculate daily returns
-    StockDailyReturn_df = StockClose_df.copy()
-    StockDailyReturn_df.iloc[:, 1:] = StockClose_df.iloc[:, 1:].pct_change() * 100 # Calculate daily returns skipping the date column
-    StockDailyReturn_df.replace(np.nan, 0, inplace=True)
+    # Calculate daily returns for ALL stocks from StockClose_Universe_df
+    # This uses the full date range available for each stock before any global dropna for Sharpe calculation
+    StockDailyReturn_Universe_df = StockClose_Universe_df.pct_change(fill_method=None) # Returns are decimal here
+    # No * 100 here, calculate_individual_sharpe_ratios expects decimal returns
+    StockDailyReturn_Universe_df.fillna(0, inplace=True) # Fill NaNs from pct_change (e.g., first row)
 
-    # Calculate Individual Sharpe Ratios
-    # We use .iloc[:, 1:] to exclude the 'Date' column from calculations.
-    # The daily returns in StockDailyReturn_df are already percentages, so we divide by 100.
-    IndividualSharpeRatios_sr = calculate_individual_sharpe_ratios(StockDailyReturn_df.iloc[:, 1:] / 100, RF_RATE)
+    # Calculate Individual Sharpe Ratios using the full available data for each stock
+    # calculate_individual_sharpe_ratios expects decimal daily returns
+    IndividualSharpeRatios_sr = calculate_individual_sharpe_ratios(StockDailyReturn_Universe_df, RF_RATE)
 
     # --- Filter DataFrames for Top Stocks by Sharpe Ratio based on MAX_STOCKS ---
 
     # Determine the number of top stocks for the initial broader filter based on MAX_STOCKS from simpar.txt
     # This num_top_stocks_for_filtering will be used to select from the global stock universe
     # before intersecting with the ESG_STOCKS_LIST.
-    if 3 <= MAX_STOCKS <= 5: # If target portfolio size is small
-        num_top_stocks_for_filtering = 30 # Consider a pool of top 25 global stocks
-    elif 6 <= MAX_STOCKS <= 10: # If target portfolio size is medium
-        num_top_stocks_for_filtering = 35 # Consider a pool of top 30 global stocks
-    elif 11 <= MAX_STOCKS <= 20: # If target portfolio size is large
-        num_top_stocks_for_filtering = 40 # Consider a pool of top 40 global stocks
-    else:
-        logger.log(f"    Warning: MAX_STOCKS ({MAX_STOCKS}) is outside the defined tier ranges (3-5, 6-10, 11-20). Defaulting to a pool size of 40 for initial Sharpe Ratio filtering.")
-        num_top_stocks_for_filtering = 40
+    num_top_stocks_for_filtering = POOL_SIZE_DEFAULT_NUM_STOCKS # Start with default
+    tier_found = False
+    for (min_s, max_s), num_stocks_in_tier in PARSED_POOL_SIZE_TIERS:
+        if min_s <= MAX_STOCKS <= max_s:
+            num_top_stocks_for_filtering = num_stocks_in_tier
+            tier_found = True
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: MAX_STOCKS ({MAX_STOCKS}) falls into tier {min_s}-{max_s}. Using pool size: {num_stocks_in_tier}")
+            break
+    if not tier_found:
+        logger.log(f"    Info: MAX_STOCKS ({MAX_STOCKS}) did not fall into any defined 'pool_size_tiers'. Defaulting to pool size: {POOL_SIZE_DEFAULT_NUM_STOCKS}.")
+        # num_top_stocks_for_filtering is already set to default
+    # The 'else' block here was incorrect and has been removed.
+    # If a tier was found, num_top_stocks_for_filtering is correctly set.
+    # If no tier was found, the 'if not tier_found:' block above handles the default.
     top_n_stocks_by_sharpe = IndividualSharpeRatios_sr.nlargest(num_top_stocks_for_filtering).index.tolist() # Use the dynamically determined number
 
     # Check if the number of stocks found is less than num_top_stocks_for_filtering,
@@ -1587,13 +1662,16 @@ try:
         logger.log(f"    Note: Requested top {num_top_stocks_for_filtering} stocks, but only {actual_stocks_found_count} unique stocks available in the data after date filtering.")
         num_top_stocks_for_filtering = actual_stocks_found_count # Adjust to actual count
 
-    logger.log(f"    Global top {len(top_n_stocks_by_sharpe)} stocks by Sharpe Ratio selected for initial pool: {', '.join(top_n_stocks_by_sharpe)}")
+    logger.log(f"    Global top {len(top_n_stocks_by_sharpe)} stocks by Sharpe Ratio selected for simulation pool: {', '.join(top_n_stocks_by_sharpe)}")
 
-    # Ensure 'Date' column is included, then add the top n stocks
-    StockDailyReturn_df = StockDailyReturn_df[['Date'] + top_n_stocks_by_sharpe]
-
-    # Filter StockClose_df as well, as it's used by find_best_stock_combination
-    StockClose_df = StockClose_df[['Date'] + top_n_stocks_by_sharpe]
+    # Create StockClose_df_SimPool for the simulation pool (top_n_stocks_by_sharpe)
+    # Reset index to make 'Date' a column, then select relevant columns
+    StockClose_df_SimPool = StockClose_Universe_df.reset_index()
+    relevant_cols_for_sim_pool = ['Date'] + [stock for stock in top_n_stocks_by_sharpe if stock in StockClose_df_SimPool.columns]
+    StockClose_df_SimPool = StockClose_df_SimPool[relevant_cols_for_sim_pool].copy()
+    StockClose_df_SimPool.dropna(inplace=True) # Drop rows with NaNs *within this simulation pool*
+    
+    # StockDailyReturn_df for portfolio calculations within simulation_engine_calc will be derived from its input stock_combo_prices_df
 
     section_end_time = datetime.now()
     section_duration = section_end_time - section_start_time
@@ -1610,14 +1688,12 @@ try:
     section_start_time = datetime.now()
     logger.update_web_log("stock_combination_search_start", section_start_time.strftime('%Y-%m-%d %H:%M:%S'))
 
-    # StockClose_df here is already filtered to top 20 stocks by Sharpe.
-    # ESG_STOCKS_LIST is the list of target tickers from simpar.txt.
-    # The find_best_stock_combination will find the best combo from ESG_STOCKS_LIST (target list)
-    # that are also present in the (already filtered) StockClose_df.
+    # Pass the StockClose_df_SimPool to find_best_stock_combination.
+    # This DataFrame has a common date range for all stocks in the top_n_stocks_by_sharpe pool.
     (best_portfolio_stocks, best_weights, best_sharpe,
      best_final_value, best_roi, best_exp_return, best_volatility,
      avg_sim_time, stock_pool_used_in_search, refinement_duration_seconds) = find_best_stock_combination(
-        StockClose_df,              # Price data for the universe of stocks to select from (e.g., top 20)
+        StockClose_df_SimPool,      # Price data for the simulation pool
         ESG_STOCKS_LIST,            # List of specific stocks to consider for combinations (e.g., ESG list)
         INITIAL_INVESTMENT,
         MIN_STOCKS,                 # Min stocks in a portfolio combination
@@ -1707,8 +1783,9 @@ try:
 
     # Log results to CSV
     if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
-        data_min_date_for_log = StockClose_df['Date'].min() if not StockClose_df.empty else None
-        data_max_date_for_log = StockClose_df['Date'].max() if not StockClose_df.empty else None
+        # For logging, use the date range of the simulation pool
+        data_min_date_for_log = StockClose_df_SimPool['Date'].min() if not StockClose_df_SimPool.empty else None
+        data_max_date_for_log = StockClose_df_SimPool['Date'].max() if not StockClose_df_SimPool.empty else None
 
         log_optimal_portfolio_results_to_csv(
             RESULTS_LOG_CSV_PATH,
@@ -1746,14 +1823,22 @@ try:
         logger.log(f"\n--- Logging Portfolio Value History for Run {run_id} ---")
         logger.update_web_log("current_engine_phase", "Logging Portfolio History") # Update phase
         try:
-            # Get the relevant price data for the best portfolio stocks
-            # StockClose_df is already filtered to the universe of stocks considered
-            # Ensure it's a copy to avoid SettingWithCopyWarning if portfolio_price_df is modified later
-            portfolio_price_df = StockClose_df[['Date'] + best_portfolio_stocks].copy()
+            # For the historical chart, use StockClose_Universe_df to get the maximum possible date range
+            # for the *specific best_portfolio_stocks*.
+            if StockClose_Universe_df.index.name == 'Date': # Check if 'Date' is index
+                StockClose_All_df_for_history = StockClose_Universe_df.reset_index()
+            else: # If 'Date' is already a column (should not happen with current pivot)
+                StockClose_All_df_for_history = StockClose_Universe_df.copy()
+
+            cols_for_history_chart = ['Date'] + [stock for stock in best_portfolio_stocks if stock in StockClose_All_df_for_history.columns]
+            portfolio_price_df_for_history_chart = StockClose_All_df_for_history[cols_for_history_chart].copy()
+
+            # Drop rows where any of the *best_portfolio_stocks* have NaN for this specific subset
+            # This ensures the historical data uses the maximum common date range for the chosen stocks.
+            portfolio_price_df_for_history_chart.dropna(subset=[stock for stock in best_portfolio_stocks if stock in portfolio_price_df_for_history_chart.columns], inplace=True)
 
             # Calculate historical portfolio value using the best weights
-            # The asset_allocation function expects weights as a list or 1D numpy array
-            portfolio_value_df = asset_allocation(portfolio_price_df, best_weights, INITIAL_INVESTMENT, logger)
+            portfolio_value_df = asset_allocation(portfolio_price_df_for_history_chart, best_weights, INITIAL_INVESTMENT, logger)
 
             if not portfolio_value_df.empty:
                 # Prepare data for the new CSV

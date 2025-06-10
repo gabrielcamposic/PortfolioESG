@@ -18,7 +18,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry 
 
 # --- Script Version ---
-DOWNLOAD_PY_VERSION = "1.3.0" # Added comprehensive error handling, improved web logging
+DOWNLOAD_PY_VERSION = "1.3.1" # Reflected latest modifications
 # ----------------------
 
 # ----------------------------------------------------------- #
