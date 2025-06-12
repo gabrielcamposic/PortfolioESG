@@ -5,6 +5,8 @@ PROJECT_DIR="/home/gabrielcampos/PortfolioESG_Prod"
 LOG_DIR="$PROJECT_DIR/Logs"
 PIPELINE_LOG_FILE="$LOG_DIR/pipeline_execution.log"
 PROGRESS_JSON_FULL_PATH="/home/gabrielcampos/PortfolioESG_Prod/html/progress.json"
+# Define the absolute path to jq.
+JQ_EXEC="/usr/bin/jq"
 
 # --- Ensure Project and Log Directories Exist ---
 cd "$PROJECT_DIR" || {
@@ -38,7 +40,7 @@ format_duration() {
 CURRENT_TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 
 # Create/overwrite progress.json with initial status for all sections
-jq -n \
+$JQ_EXEC -n \
   --arg startTime "$CURRENT_TIMESTAMP" \
   '{
      # New section for overall pipeline status
@@ -109,7 +111,7 @@ update_progress_json() {
     # Use a temporary file to avoid issues with jq modifying the file it's reading
     # Capture jq's output (new JSON) and any errors.
     local JQ_CMD_OUTPUT
-    JQ_CMD_OUTPUT=$(jq --arg key "$KEY" --argjson value "$VALUE" '.[$key] = $value' "$PROGRESS_JSON_FULL_PATH" 2>&1)
+    JQ_CMD_OUTPUT=$($JQ_EXEC --arg key "$KEY" --argjson value "$VALUE" '.[$key] = $value' "$PROGRESS_JSON_FULL_PATH" 2>&1)
     local JQ_REAL_EXIT_CODE=$?
 
     if [ $JQ_REAL_EXIT_CODE -eq 0 ]; then
@@ -129,7 +131,7 @@ update_progress_json() {
         return 0
     else
         # jq failed
-        log_message "ERROR: jq command failed for key '$KEY'. Exit code: $JQ_REAL_EXIT_CODE."
+        log_message "ERROR: $JQ_EXEC command failed for key '$KEY'. Exit code: $JQ_REAL_EXIT_CODE."
         log_message "ERROR: Value passed to --argjson for key '$KEY' was: '$VALUE'"
         log_message "ERROR: jq output/error was: $JQ_CMD_OUTPUT"
         return $JQ_REAL_EXIT_CODE
@@ -206,7 +208,7 @@ if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
         log_message "DEBUG: FINAL_STATUS_JSON_VALUE is: $FINAL_STATUS_JSON_VALUE"
 
         # Final pipeline status update in JSON
-        update_progress_json "pipeline_run_status" "$FINAL_STATUS_JSON_VALUE"
+        update_progress_json "pipeline_run_status" "$FINAL_STATUS_JSON_VALUE" # This calls the function that uses $JQ_EXEC
         JQ_EXIT_CODE=$?
         log_message "DEBUG: jq exit code for final pipeline_run_status update: $JQ_EXIT_CODE"
         if [ $JQ_EXIT_CODE -ne 0 ]; then
