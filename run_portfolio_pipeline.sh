@@ -1,6 +1,6 @@
 #!/bin/bash
 # --- Configuration ---
-PIPELINE_SCRIPT_VERSION="1.2.0" # Added error handling, detailed logging, JSON updates
+PIPELINE_SCRIPT_VERSION="1.2.1" # Patched for cron execution (JQ_EXEC, PATH)
 PROJECT_DIR="/home/gabrielcampos/PortfolioESG_Prod"
 LOG_DIR="$PROJECT_DIR/Logs"
 PIPELINE_LOG_FILE="$LOG_DIR/pipeline_execution.log"
