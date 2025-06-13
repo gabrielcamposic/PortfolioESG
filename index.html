@@ -4,105 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modelo Portfolio ESG: Investimento Consciente e Rentável</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 20px auto;
-            max-width: 800px;
-            padding: 0 20px;
-            color: #333;
-        }
-        h1, h2, h3 {
-            color: #2c3e50;
-        }
-        h1 {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-        }
-        ul {
-            list-style-type: disc;
-            margin-left: 20px;
-        }
-        a {
-            color: #3498db;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .section-separator {
-            border-top: 1px solid #eee;
-            margin: 40px 0;
-        }
-    </style>
+    <link rel="stylesheet" href="html/css/navbar_styles.css"> <!-- Styles for the top navigation bar -->
+    <link rel="stylesheet" href="html/css/styles.css">       <!-- Common styles for content blocks, tables, etc. -->
 </head>
 <body>
+    <div id="navbar-placeholder"></div> <!-- Placeholder for the common navigation bar -->
 
-    <h1>Modelo Portfolio ESG: Investimento Consciente e Rentável em Python</h1>
+    <div class="main-content">
+        <h1>Modelo Portfolio ESG: Investimento Consciente e Rentável em Python</h1>
 
-    <div class="section-separator"></div>
+        <div class="stage-block">
+            <h2>Visão Geral: Alinhando Lucro e Propósito ESG</h2>
+            <p>No cenário de investimentos atual, a integração de fatores Ambientais, Sociais e de Governança (ESG) é crucial. No entanto, o desafio reside em <strong>encontrar o equilíbrio entre métricas ESG publicly disponíveis e a rentabilidade desejada</strong>.</p>
+            <p>O <strong>Modelo Portfolio ESG</strong> é um projeto pessoal desenvolvido para investigar se é possível usar ações de empresas brasileiras para incentivar companhias genuinamente orientadas a ESG, ao mesmo tempo em que se busca otimizar o retorno financeiro. Meu objetivo é democratizar a análise aprofundada de carteiras com foco em sustentabilidade, governança e impacto social, combinando solidez teórica e aplicação prática.</p>
+        </div>
 
-    <h2>Visão Geral: Alinhando Lucro e Propósito ESG</h2>
-    <p>No cenário de investimentos atual, a integração de fatores Ambientais, Sociais e de Governança (ESG) é crucial. No entanto, o desafio reside em <strong>encontrar o equilíbrio entre métricas ESG publicly disponíveis e a rentabilidade desejada</strong>.</p>
-    <p>O <strong>Modelo Portfolio ESG</strong> é um projeto pessoal desenvolvido para investigar se é possível usar ações de empresas brasileiras para incentivar companhias genuinamente orientadas a ESG, ao mesmo tempo em que se busca otimizar o retorno financeiro. Meu objetivo é democratizar a análise aprofundada de carteiras com foco em sustentabilidade, governança e impacto social, combinando solidez teórica e aplicação prática.</p>
-
-    <div class="section-separator"></div>
-
-    <h2>Como Funciona: Inteligência Quantitativa Aplicada</h2>
-    <p>Nosso modelo opera de forma autônoma para construir e otimizar carteiras de ações.</p>
-    <ul>
-        <li><strong>Coleta de Dados:</strong> O modelo baixa dados históricos de empresas da B3 (Bolsa de Valores do Brasil) através do Yahoo Finance, a partir de uma lista pré-selecionada de ações que compõem carteiras ESG relevantes do mercado (XP, S&P, Moody's, entre outras). Para garantir a coleta contínua, são utilizadas proxies que evitam bloqueios.</li>
-        <li><strong>Organização e Análise:</strong> As informações são organizadas individualmente por ação e consolidadas em uma base de dados robusta.</li>
-        <li><strong>Otimização da Carteira:</strong> Utilizando algoritmos avançados, como <strong>Simulação de Monte Carlo</strong> e <strong>Algoritmos Genéticos</strong>, o modelo seleciona a combinação ideal de ações e seus respectivos pesos na carteira que resultará no melhor <strong>Sharpe Ratio</strong> (medida de retorno ajustada ao risco).</li>
-        <li><strong>Simulação Histórica:</strong> A melhor combinação encontrada é então avaliada através de simulações históricas, permitindo visualizar seu desempenho ao longo do tempo.</li>
-    </ul>
-
-    <div class="section-separator"></div>
-
-    <h2>Funcionalidades Principais</h2>
-    <p>O Modelo Portfolio ESG oferece um conjunto de ferramentas para análise e monitoramento de carteiras:</p>
-    <ul>
-        <li><strong>Coleta Robusta de Dados:</strong> Baixa dados históricos do Yahoo Finance com suporte a proxies para evitar bloqueios.</li>
-        <li><strong>Organização e Consolidação de Dados:</strong> Estrutura informações individuais de ações e constrói uma base de dados consolidada.</li>
-        <li><strong>Cálculo de Sharpe Ratio:</strong> Calcula o Sharpe Ratio para ações individuais e para cada conjunto simulado de carteiras.</li>
-        <li><strong>Otimização Inteligente de Portfólio:</strong> Apresenta a melhor combinação de ações e pesos, maximizando o Sharpe Ratio através de Monte Carlo e Algoritmos Genéticos.</li>
-        <li><strong>Análise Histórica de Desempenho:</strong> Simula e exibe o valor histórico da carteira otimizada.</li>
-        <li><strong>Ferramentas de Controle de Performance:</strong> Inclui mecanismos para monitoramento contínuo do desempenho da carteira.</li>
-        <li><strong>Interface de Monitoramento:</strong> Conjunto de páginas HTML interativas para visualização e análise de dados.</li>
-    </ul>
-
-    <div class="section-separator"></div>
-
-    <h2>Tecnologia e Desenvolvimento</h2>
-    <p>O Modelo Portfolio ESG é desenvolvido em <strong>Python</strong>, com uma interface de monitoramento em <strong>HTML e JavaScript</strong>.</p>
-    <ul>
-        <li><strong>Linguagens e Bibliotecas Principais:</strong>
+        <div class="stage-block">
+            <h2>Como Funciona: Inteligência Quantitativa Aplicada</h2>
+            <p>Nosso modelo opera de forma autônoma para construir e otimizar carteiras de ações.</p>
             <ul>
-                <li><strong>Python:</strong> pandas, numpy, matplotlib, yfinance.</li>
-                <li><strong>HTML &amp; JavaScript:</strong> cdn.jsdelivr.net/npm/chart.js, cdn.jsdelivr.net/npm/date-fns@^2, cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^2/dist/chartjs-adapter-date-fns.bundle.min.js, cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js, cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js.</li>
+                <li><strong>Coleta de Dados:</strong> O modelo baixa dados históricos de empresas da B3 (Bolsa de Valores do Brasil) através do Yahoo Finance, a partir de uma lista pré-selecionada de ações que compõem carteiras ESG relevantes do mercado (XP, S&P, Moody's, entre outras). Para garantir a coleta contínua, são utilizadas proxies que evitam bloqueios.</li>
+                <li><strong>Organização e Análise:</strong> As informações são organizadas individualmente por ação e consolidadas em uma base de dados robusta.</li>
+                <li><strong>Otimização da Carteira:</strong> Utilizando algoritmos avançados, como <strong>Simulação de Monte Carlo</strong> e <strong>Algoritmos Genéticos</strong>, o modelo seleciona a combinação ideal de ações e seus respectivos pesos na carteira que resultará no melhor <strong>Sharpe Ratio</strong> (medida de retorno ajustada ao risco).</li>
+                <li><strong>Simulação Histórica:</strong> A melhor combinação encontrada é então avaliada através de simulações históricas, permitindo visualizar seu desempenho ao longo do tempo.</li>
             </ul>
-        </li>
-        <li><strong>Desenvolvimento Acelerado por IA:</strong>
-            <p>Este projeto foi <strong>significativamente otimizado e acelerado pela colaboração estratégica com ferramentas de Inteligência Artificial</strong>, como <strong>Gemini Code Assistant</strong>, ChatGPT e Pilot. O uso de IAs foi fundamental para a otimização de código, validação de algoritmos e exploração de abordagens, permitindo focar na aplicação da teoria financeira e na evolução contínua do modelo.</p>
-        </li>
-    </ul>
+        </div>
 
-    <div class="section-separator"></div>
+        <div class="stage-block">
+            <h2>Funcionalidades Principais</h2>
+            <p>O Modelo Portfolio ESG oferece um conjunto de ferramentas para análise e monitoramento de carteiras:</p>
+            <ul>
+                <li><strong>Coleta Robusta de Dados:</strong> Baixa dados históricos do Yahoo Finance com suporte a proxies para evitar bloqueios.</li>
+                <li><strong>Organização e Consolidação de Dados:</strong> Estrutura informações individuais de ações e constrói uma base de dados consolidada.</li>
+                <li><strong>Cálculo de Sharpe Ratio:</strong> Calcula o Sharpe Ratio para ações individuais e para cada conjunto simulado de carteiras.</li>
+                <li><strong>Otimização Inteligente de Portfólio:</strong> Apresenta a melhor combinação de ações e pesos, maximizando o Sharpe Ratio através de Monte Carlo e Algoritmos Genéticos.</li>
+                <li><strong>Análise Histórica de Desempenho:</strong> Simula e exibe o valor histórico da carteira otimizada.</li>
+                <li><strong>Ferramentas de Controle de Performance:</strong> Inclui mecanismos para monitoramento contínuo do desempenho da carteira.</li>
+                <li><strong>Interface de Monitoramento:</strong> Conjunto de páginas HTML interativas para visualização e análise de dados.</li>
+            </ul>
+        </div>
 
-    <h2>Status e Futuro do Projeto (Open Source)</h2>
-    <p>O Modelo Portfolio ESG atingiu uma fase de <strong>estabilidade</strong> e atualmente estou focado em <strong>ajustar parâmetros e avaliar a evolução</strong> da composição da carteira ao longo do tempo.</p>
-    <p>Como parte da evolução futura, pretendo desenvolver <strong>modelos regressivos</strong> para construir métricas inovadoras ESG baseadas em dados públicos. A regressão será utilizada para selecionar as ações candidatas que comporão a carteira, aprimorando ainda mais a inteligência do modelo.</p>
-    <p>Este é um projeto <strong>open source</strong>, disponível publicamente para a comunidade. A premissa é que a análise aprofundada de carteiras ESG deve ser acessível a todos, fomentando o benefício coletivo e o desenvolvimento colaborativo de investimentos mais conscientes e sustentáveis.</p>
+        <div class="stage-block">
+            <h2>Tecnologia e Desenvolvimento</h2>
+            <p>O Modelo Portfolio ESG é desenvolvido em <strong>Python</strong>, com uma interface de monitoramento em <strong>HTML e JavaScript</strong>.</p>
+            <ul>
+                <li><strong>Linguagens e Bibliotecas Principais:</strong>
+                    <ul>
+                        <li><strong>Python:</strong> pandas, numpy, matplotlib, yfinance.</li>
+                        <li><strong>HTML &amp; JavaScript:</strong> cdn.jsdelivr.net/npm/chart.js, cdn.jsdelivr.net/npm/date-fns@^2, cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^2/dist/chartjs-adapter-date-fns.bundle.min.js, cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js, cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js.</li>
+                    </ul>
+                </li>
+                <li><strong>Desenvolvimento Acelerado por IA:</strong>
+                    <p>Este projeto foi <strong>significativamente otimizado e acelerado pela colaboração estratégica com ferramentas de Inteligência Artificial</strong>, como <strong>Gemini Code Assistant</strong>, ChatGPT e Pilot. O uso de IAs foi fundamental para a otimização de código, validação de algoritmos e exploração de abordagens, permitindo focar na aplicação da teoria financeira e na evolução contínua do modelo.</p>
+                </li>
+            </ul>
+        </div>
 
-    <div class="section-separator"></div>
+        <div class="stage-block">
+            <h2>Status e Futuro do Projeto (Open Source)</h2>
+            <p>O Modelo Portfolio ESG atingiu uma fase de <strong>estabilidade</strong> e atualmente estou focado em <strong>ajustar parâmetros e avaliar a evolução</strong> da composição da carteira ao longo do tempo.</p>
+            <p>Como parte da evolução futura, pretendo desenvolver <strong>modelos regressivos</strong> para construir métricas inovadoras ESG baseadas em dados públicos. A regressão será utilizada para selecionar as ações candidatas que comporão a carteira, aprimorando ainda mais a inteligência do modelo.</p>
+            <p>Este é um projeto <strong>open source</strong>, disponível publicamente para a comunidade. A premissa é que a análise aprofundada de carteiras ESG deve ser acessível a todos, fomentando o benefício coletivo e o desenvolvimento colaborativo de investimentos mais conscientes e sustentáveis.</p>
+        </div>
 
-    <h2>Acesse o Código e Conecte-se</h2>
-    <p>O código completo do Modelo Portfolio ESG está disponível no meu repositório GitHub. Sinta-se à vontade para explorar, usar e contribuir!</p>
-    <ul>
-        <li><strong>Repositório GitHub:</strong> <a href="https://github.com/gabrielcamposic/PortfolioESG" target="_blank">https://github.com/gabrielcamposic/PortfolioESG</a></li>
-        <li><strong>Conecte-se comigo no LinkedIn:</strong> <a href="https://www.linkedin.com/in/gabrielcampos" target="_blank">https://www.linkedin.com/in/gabrielcampos</a></li>
-    </ul>
+        <div class="stage-block">
+            <h2>Acesse o Código e Conecte-se</h2>
+            <p>O código completo do Modelo Portfolio ESG está disponível no meu repositório GitHub. Sinta-se à vontade para explorar, usar e contribuir!</p>
+            <ul>
+                <li><strong>Repositório GitHub:</strong> <a href="https://github.com/gabrielcamposic/PortfolioESG" target="_blank">https://github.com/gabrielcamposic/PortfolioESG</a></li>
+                <li><strong>Conecte-se comigo no LinkedIn:</strong> <a href="https://www.linkedin.com/in/gabrielcampos" target="_blank">https://www.linkedin.com/in/gabrielcampos</a></li>
+            </ul>
+        </div>
+    </div> <!-- End of main-content -->
 
+    <script src="html/js/common_utils.js"></script> <!-- Common utility functions -->
+    <script src="html/js/common_nav.js"></script>   <!-- Script to load and manage the navbar -->
 </body>
 </html>

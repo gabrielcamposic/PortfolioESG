@@ -123,8 +123,29 @@ async function loadNavbar() {
         const navbarHtml = await response.text();
         const navbarPlaceholder = document.getElementById('navbar-placeholder');
         if (navbarPlaceholder) {
-            navbarPlaceholder.innerHTML = navbarHtml;
-            initializeNavbarStatusUpdates(); // Start updating the status once nav is loaded
+            // Use DOMParser to handle the HTML and its script
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(navbarHtml, 'text/html');
+            
+            // Append the <nav> element (or whatever the main content is)
+            const navElement = doc.querySelector('nav#top-navbar'); // Assuming your main nav element has this ID
+            if (navElement) {
+                navbarPlaceholder.appendChild(navElement);
+            } else {
+                // Fallback if the structure is different, append all body children
+                Array.from(doc.body.childNodes).forEach(node => {
+                    navbarPlaceholder.appendChild(node.cloneNode(true)); // cloneNode to avoid issues if node is script
+                });
+            }
+
+            // Find and execute the script tag
+            const scriptElement = doc.querySelector('script');
+            if (scriptElement) {
+                const newScript = document.createElement('script');
+                newScript.textContent = scriptElement.textContent; // Copy the script content
+                document.head.appendChild(newScript); // Append to head to execute
+            }
+            initializeNavbarStatusUpdates(); // Start updating status after nav structure and script are handled
         } else {
             console.error('Navbar placeholder #navbar-placeholder not found.');
         }

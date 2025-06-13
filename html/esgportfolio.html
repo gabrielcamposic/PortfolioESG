@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/date-fns@^2/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^2/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script> <!-- Added for scatter plot zoom -->
+    <link rel="stylesheet" href="css/navbar_styles.css"> <!-- Link to the new navbar CSS -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
     <link rel="stylesheet" href="css/styles.css"> <!-- Link to the common stylesheet -->
 </head>
@@ -32,6 +33,14 @@
                     <tr><td colspan="2" style="text-align: center;">Loading best portfolio details...</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- New Section: Optimal Portfolios Stacked Bar Chart -->
+    <div class="stage-block">
+        <h2>Optimal Portfolios (Last 12 Months)</h2>
+        <div class="chart-container">
+            <canvas id="optimalPortfoliosStackedBarChart"></canvas>
         </div>
     </div>
 
@@ -93,6 +102,7 @@
 
         let multiPortfolioHistoryChartInstance = null;
         // Removed sharpeRatioChartInstance, will use a new one for scatter plot
+        let optimalPortfoliosStackedBarChartInstance = null; // Instance for the new chart
 
         // formatDate and getRandomColor are now in common_utils.js
 
@@ -170,6 +180,9 @@
 
                 // Render the new scatter plot
                 renderSharpeFinalValueScatterChart(filteredSummaryData);
+
+                // Render the new stacked bar chart for optimal portfolios
+                renderOptimalPortfoliosStackedBarChart(filteredSummaryData);
 
                 // Display "Last Portfolio Details" using latest_run_summary.json
                 // The structure of latestRunJson is expected to be:
@@ -381,6 +394,92 @@
                                 mode: 'xy',
                             }
                         }
+                    }
+                }
+            });
+        }
+
+        function renderOptimalPortfoliosStackedBarChart(summaryData) {
+            const chartCanvasId = 'optimalPortfoliosStackedBarChart';
+            if (optimalPortfoliosStackedBarChartInstance) {
+                optimalPortfoliosStackedBarChartInstance.destroy();
+            }
+            const ctx = document.getElementById(chartCanvasId).getContext('2d');
+
+            if (!summaryData || summaryData.length === 0) {
+                console.warn('No summary data provided for optimal portfolios stacked bar chart.');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "grey";
+                ctx.textAlign = "center";
+                ctx.fillText("No portfolio data available for this chart (last 12 months).", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            const labels = summaryData.map(row => row.run_id);
+            const stockData = {}; // To hold data for each stock: { STOCK_TICKER: [weight1, weight2, ...], ... }
+            const allStocks = new Set();
+
+            summaryData.forEach(row => {
+                const stocks = row.optimal_stocks ? row.optimal_stocks.split(',').map(s => s.trim()) : [];
+                const weights = row.optimal_weights ? row.optimal_weights.split(',').map(w => parseFloat(w.trim())) : [];
+
+                stocks.forEach((stock, index) => {
+                    allStocks.add(stock);
+                    if (!stockData[stock]) {
+                        stockData[stock] = Array(summaryData.length).fill(0); // Initialize with zeros for all runs
+                    }
+                    // Find the index of the current run_id in the labels array to place the weight correctly
+                    const runIndex = labels.indexOf(row.run_id);
+                    if (runIndex !== -1 && weights[index] !== undefined) {
+                        stockData[stock][runIndex] = weights[index]; // Assuming weights are proportions (0 to 1)
+                    }
+                });
+            });
+
+            const sortedStockTickers = Array.from(allStocks).sort();
+
+            const datasets = sortedStockTickers.map(stock => {
+                return {
+                    label: stock,
+                    data: stockData[stock] || Array(summaryData.length).fill(0),
+                    backgroundColor: getRandomColor(0.7), // Use common_utils.js function
+                };
+            });
+
+            optimalPortfoliosStackedBarChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Optimal Portfolios Composition (Last 12 Months)',
+                            font: { size: 18, weight: 'bold' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += (context.parsed.y * 100).toFixed(2) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true, title: { display: true, text: 'Run ID' } },
+                        y: { stacked: true, title: { display: true, text: 'Weight (%)' }, min: 0, max: 1, ticks: { callback: function(value) { return (value * 100).toFixed(0) + '%'; } } }
                     }
                 }
             });

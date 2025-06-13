@@ -1,19 +1,49 @@
 <!-- /Users/gabrielcampos/Documents/Prog/PortfolioESG_public/html/nav_template.html -->
-<nav>
-    <div id="nav-pipeline-status-details">
-        <h4 class="nav-section-title">Pipeline Status</h4>
-        <p><strong>Status:</strong> <span id="pipeline-status-message" class="status-text">Loading...</span></p>
-        <p><strong>Started:</strong> <span id="pipeline-start-time">N/A</span></p>
-        <p><strong>Ended:</strong> <span id="pipeline-end-time-nav">N/A</span></p>
-        <p><strong>Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
+<nav id="top-navbar">
+    <div class="nav-logo">
+        <a href="pipeline.html">PortfolioESG</a> <!-- Logo links to pipeline.html as a default "home" -->
     </div>
-    <hr class="nav-divider">
-    <h2>Navigation</h2>
-    <a href="pipeline.html">Pipeline Status</a>
-    <a href="esgportfolio.html">ESG Portfolio</a>
-    <a href="engine.html">Engine Performance</a>
-    <a href="script.html">Script Performance</a>
-    <div class="nav-footer">
-        <p>HTML Nav v1.0.0</p> <!-- Version of this nav component -->
+    <ul class="nav-links">
+        <li><a href="pipeline.html">Pipeline Status</a></li>
+        <li><a href="esgportfolio.html">ESG Portfolio</a></li>
+        <li><a href="engine.html">Engine Performance</a></li>
+        <li><a href="script.html">Script Performance</a></li>
+    </ul>
+    <div id="nav-pipeline-status-details" class="nav-status-widget">
+        <span id="pipeline-status-message" class="status-indicator">Loading...</span>
+        <div class="status-details-tooltip">
+            <p><strong>Status:</strong> <span id="pipeline-status-message-detail">N/A</span></p>
+            <p><strong>Started:</strong> <span id="pipeline-start-time">N/A</span></p>
+            <p><strong>Ended:</strong> <span id="pipeline-end-time-nav">N/A</span></p>
+            <p><strong>Stage:</strong> <span id="pipeline-current-stage">N/A</span></p>
+        </div>
     </div>
 </nav>
+<script>
+// Run active link highlighting immediately when this script is parsed
+console.log('[NAV SCRIPT] Running active link highlighting script...');
+(function() {
+    const links = document.querySelectorAll('#top-navbar .nav-links a');
+    const currentPath = window.location.pathname.split("/").pop(); // e.g., "pipeline.html"
+
+    console.log('[NAV SCRIPT] currentPath:', currentPath);
+    console.log('[NAV SCRIPT] Found links:', links.length);
+
+    links.forEach(link => {
+        const linkHref = link.getAttribute('href');
+        console.log('[NAV SCRIPT] Checking link href:', linkHref);
+        if (linkHref === currentPath) {
+            link.classList.add('active');
+            console.log('[NAV SCRIPT] Added .active to:', linkHref);
+        }
+    });
+
+    // Sync status message to tooltip detail (if elements exist)
+    const mainStatus = document.getElementById('pipeline-status-message');
+    const detailStatus = document.getElementById('pipeline-status-message-detail');
+    if (mainStatus && detailStatus) {
+        new MutationObserver(() => { detailStatus.textContent = mainStatus.textContent; }).observe(mainStatus, { childList: true, characterData: true, subtree: true });
+        detailStatus.textContent = mainStatus.textContent; // Initial sync
+    }
+})();
+</script>

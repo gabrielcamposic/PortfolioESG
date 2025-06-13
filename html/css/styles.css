@@ -1,11 +1,13 @@
 /* /Users/gabrielcampos/Documents/Prog/PortfolioESG_public/html/css/main_styles.css */
 body {
     font-family: Arial, sans-serif;
-    margin: 0;
-    padding-left: 240px; /* Space for the fixed left nav */
-    padding-top: 20px;
+    margin: 0; /* Keep margin 0 */
+    /* padding-left: 240px; /* REMOVE: No longer needed for top nav */
+    /* padding-top: 20px; /* REMOVE: Top spacing is handled by navbar_styles.css body margin-top */
     padding-right: 20px;
     padding-bottom: 20px;
+    /* Ensure padding-left is 20px for consistency if desired, or remove if not needed */
+    padding-left: 20px; 
     background-color: #f8f9fa;
     color: #343a40;
     font-size: 1rem;
@@ -21,91 +23,7 @@ h1 {
     font-weight: 600;
 }
 
-/* Styles for the <nav> element itself, which is loaded from nav_template.html */
-nav {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 220px; /* Width of the nav bar */
-    height: 100%;
-    background-color: #343a40; /* Dark background for nav */
-    padding-top: 20px;
-    overflow-y: auto; /* Scroll if content is too long */
-    color: #f8f9fa; /* Light text color for nav */
-}
-
-.nav-section-title, /* For "Pipeline Status" title in nav */
-nav h2 { /* For "Navigation" title in nav */
-    color: #f8f9fa;
-    font-size: 0.9em;
-    text-align: left;
-    padding-left: 20px;
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-weight: 600;
-}
-
-nav h2 { /* Specific margin for "Navigation" title */
-    margin-top: 10px;
-}
-
-nav a {
-    display: block;
-    padding: 10px 20px;
-    text-decoration: none;
-    color: #dee2e6;
-    font-size: 0.9em;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-nav a:hover {
-    background-color: #495057;
-    color: #ffffff;
-}
-
-#nav-pipeline-status-details { /* Container for status in nav */
-    padding: 0px 0px 10px 0px;
-    margin-bottom: 0;
-}
-
-#nav-pipeline-status-details p {
-    color: #adb5bd;
-    font-size: 0.9em;
-    margin-bottom: 4px;
-    line-height: 1.3;
-    padding-left: 20px;
-    text-align: left;
-}
-
-#nav-pipeline-status-details p strong {
-    color: #dee2e6;
-    font-weight: 500;
-}
-
-#nav-pipeline-status-details .status-text { /* For the actual status message span in nav */
-    font-weight: 500; /* Color will be applied by specific status classes */
-}
-
-.nav-divider {
-    margin: 0px 20px 10px 20px;
-    border-color: #495057;
-}
-
-.nav-footer {
-    position: absolute;
-    bottom: 10px;
-    left: 0;
-    width: 100%;
-    text-align: center;
-    padding-bottom: 10px;
-}
-
-.nav-footer p {
-    font-size: 0.75em;
-    color: #adb5bd;
-    margin: 0;
-    padding: 5px 0;
-}
+/* REMOVE OLD NAV STYLES: The styles for the old left-hand navigation (generic 'nav' selector, .nav-section-title, nav h2, nav a, #nav-pipeline-status-details, .nav-divider, .nav-footer, etc.) should be removed or commented out as they conflict with the new top navbar styled by css/navbar_styles.css */
 
 /* Common Content Block Styles */
 .stage-block {
