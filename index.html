@@ -11,73 +11,206 @@
     <div id="navbar-placeholder"></div> <!-- Placeholder for the common navigation bar -->
 
     <div class="main-content">
-        <h1>Modelo Portfolio ESG: Investimento Consciente e Rentável em Python</h1>
+        <div class="language-switcher" style="text-align: right; margin-bottom: 15px;">
+            <button id="lang-pt-BR">Português</button>
+            <button id="lang-en">English</button>
+            <button id="lang-es">Español</button>
+        </div>
 
-        <div class="stage-block">
+        <h1>Modelo Portfolio ESG</h1>
+        <p class="page-subtitle">Investimento Consciente e Rentável em Python</p>
+
+        <div class="stage-block" id="overview">
             <h2>Visão Geral: Alinhando Lucro e Propósito ESG</h2>
-            <p>No cenário de investimentos atual, a integração de fatores Ambientais, Sociais e de Governança (ESG) é crucial. No entanto, o desafio reside em <strong>encontrar o equilíbrio entre métricas ESG publicly disponíveis e a rentabilidade desejada</strong>.</p>
-            <p>O <strong>Modelo Portfolio ESG</strong> é um projeto pessoal desenvolvido para investigar se é possível usar ações de empresas brasileiras para incentivar companhias genuinamente orientadas a ESG, ao mesmo tempo em que se busca otimizar o retorno financeiro. Meu objetivo é democratizar a análise aprofundada de carteiras com foco em sustentabilidade, governança e impacto social, combinando solidez teórica e aplicação prática.</p>
+            <!-- Content will be loaded here by JavaScript -->
         </div>
 
-        <div class="stage-block">
+        <div class="stage-block" id="how-it-works">
             <h2>Como Funciona: Inteligência Quantitativa Aplicada</h2>
-            <p>Nosso modelo opera de forma autônoma para construir e otimizar carteiras de ações.</p>
-            <ul>
-                <li><strong>Coleta de Dados:</strong> O modelo baixa dados históricos de empresas da B3 (Bolsa de Valores do Brasil) através do Yahoo Finance, a partir de uma lista pré-selecionada de ações que compõem carteiras ESG relevantes do mercado (XP, S&P, Moody's, entre outras). Para garantir a coleta contínua, são utilizadas proxies que evitam bloqueios.</li>
-                <li><strong>Organização e Análise:</strong> As informações são organizadas individualmente por ação e consolidadas em uma base de dados robusta.</li>
-                <li><strong>Otimização da Carteira:</strong> Utilizando algoritmos avançados, como <strong>Simulação de Monte Carlo</strong> e <strong>Algoritmos Genéticos</strong>, o modelo seleciona a combinação ideal de ações e seus respectivos pesos na carteira que resultará no melhor <strong>Sharpe Ratio</strong> (medida de retorno ajustada ao risco).</li>
-                <li><strong>Simulação Histórica:</strong> A melhor combinação encontrada é então avaliada através de simulações históricas, permitindo visualizar seu desempenho ao longo do tempo.</li>
-            </ul>
+            <!-- Content will be loaded here by JavaScript -->
         </div>
 
-        <div class="stage-block">
+        <div class="stage-block" id="features">
             <h2>Funcionalidades Principais</h2>
-            <p>O Modelo Portfolio ESG oferece um conjunto de ferramentas para análise e monitoramento de carteiras:</p>
-            <ul>
-                <li><strong>Coleta Robusta de Dados:</strong> Baixa dados históricos do Yahoo Finance com suporte a proxies para evitar bloqueios.</li>
-                <li><strong>Organização e Consolidação de Dados:</strong> Estrutura informações individuais de ações e constrói uma base de dados consolidada.</li>
-                <li><strong>Cálculo de Sharpe Ratio:</strong> Calcula o Sharpe Ratio para ações individuais e para cada conjunto simulado de carteiras.</li>
-                <li><strong>Otimização Inteligente de Portfólio:</strong> Apresenta a melhor combinação de ações e pesos, maximizando o Sharpe Ratio através de Monte Carlo e Algoritmos Genéticos.</li>
-                <li><strong>Análise Histórica de Desempenho:</strong> Simula e exibe o valor histórico da carteira otimizada.</li>
-                <li><strong>Ferramentas de Controle de Performance:</strong> Inclui mecanismos para monitoramento contínuo do desempenho da carteira.</li>
-                <li><strong>Interface de Monitoramento:</strong> Conjunto de páginas HTML interativas para visualização e análise de dados.</li>
-            </ul>
+            <!-- Content will be loaded here by JavaScript -->
         </div>
 
-        <div class="stage-block">
+        <div class="stage-block" id="technology">
             <h2>Tecnologia e Desenvolvimento</h2>
-            <p>O Modelo Portfolio ESG é desenvolvido em <strong>Python</strong>, com uma interface de monitoramento em <strong>HTML e JavaScript</strong>.</p>
-            <ul>
-                <li><strong>Linguagens e Bibliotecas Principais:</strong>
-                    <ul>
-                        <li><strong>Python:</strong> pandas, numpy, matplotlib, yfinance.</li>
-                        <li><strong>HTML &amp; JavaScript:</strong> cdn.jsdelivr.net/npm/chart.js, cdn.jsdelivr.net/npm/date-fns@^2, cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^2/dist/chartjs-adapter-date-fns.bundle.min.js, cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js, cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js.</li>
-                    </ul>
-                </li>
-                <li><strong>Desenvolvimento Acelerado por IA:</strong>
-                    <p>Este projeto foi <strong>significativamente otimizado e acelerado pela colaboração estratégica com ferramentas de Inteligência Artificial</strong>, como <strong>Gemini Code Assistant</strong>, ChatGPT e Pilot. O uso de IAs foi fundamental para a otimização de código, validação de algoritmos e exploração de abordagens, permitindo focar na aplicação da teoria financeira e na evolução contínua do modelo.</p>
-                </li>
-            </ul>
+            <!-- Content will be loaded here by JavaScript -->
         </div>
 
-        <div class="stage-block">
+        <div class="stage-block" id="status-future">
             <h2>Status e Futuro do Projeto (Open Source)</h2>
-            <p>O Modelo Portfolio ESG atingiu uma fase de <strong>estabilidade</strong> e atualmente estou focado em <strong>ajustar parâmetros e avaliar a evolução</strong> da composição da carteira ao longo do tempo.</p>
-            <p>Como parte da evolução futura, pretendo desenvolver <strong>modelos regressivos</strong> para construir métricas inovadoras ESG baseadas em dados públicos. A regressão será utilizada para selecionar as ações candidatas que comporão a carteira, aprimorando ainda mais a inteligência do modelo.</p>
-            <p>Este é um projeto <strong>open source</strong>, disponível publicamente para a comunidade. A premissa é que a análise aprofundada de carteiras ESG deve ser acessível a todos, fomentando o benefício coletivo e o desenvolvimento colaborativo de investimentos mais conscientes e sustentáveis.</p>
+            <!-- Content will be loaded here by JavaScript -->
         </div>
 
-        <div class="stage-block">
+        <div class="stage-block" id="contact">
             <h2>Acesse o Código e Conecte-se</h2>
-            <p>O código completo do Modelo Portfolio ESG está disponível no meu repositório GitHub. Sinta-se à vontade para explorar, usar e contribuir!</p>
-            <ul>
-                <li><strong>Repositório GitHub:</strong> <a href="https://github.com/gabrielcamposic/PortfolioESG" target="_blank">https://github.com/gabrielcamposic/PortfolioESG</a></li>
-                <li><strong>Conecte-se comigo no LinkedIn:</strong> <a href="https://www.linkedin.com/in/gabrielcampos" target="_blank">https://www.linkedin.com/in/gabrielcampos</a></li>
-            </ul>
+            <!-- Content will be loaded here by JavaScript -->
         </div>
     </div> <!-- End of main-content -->
 
     <script src="html/js/common_utils.js"></script> <!-- Common utility functions -->
     <script src="html/js/common_nav.js"></script>   <!-- Script to load and manage the navbar -->
+    <script>
+        const translations = {
+            "pt-BR": {
+                pageTitle: "Modelo Portfolio ESG",
+                pageSubtitle: "Investimento Consciente e Rentável em Python",
+                overviewTitle: "Visão Geral: Alinhando Lucro e Propósito ESG",
+                howItWorksTitle: "Como Funciona: Inteligência Quantitativa Aplicada",
+                featuresTitle: "Funcionalidades Principais",
+                technologyTitle: "Tecnologia e Desenvolvimento",
+                statusFutureTitle: "Status e Futuro do Projeto (Open Source)",
+                contactTitle: "Acesse o Código e Conecte-se",
+                navOverview: "Visão Geral",
+                navHowItWorks: "Como Funciona",
+                navFeatures: "Funcionalidades",
+                navTechnology: "Tecnologia",
+                navStatusFuture: "Status e Futuro",
+                navContact: "Contato"
+            },
+            en: {
+                pageTitle: "ESG Portfolio Model",
+                pageSubtitle: "Conscious and Profitable Investment in Python",
+                overviewTitle: "Overview: Aligning Profit and ESG Purpose",
+                howItWorksTitle: "How It Works: Applied Quantitative Intelligence",
+                featuresTitle: "Main Features",
+                technologyTitle: "Technology and Development",
+                statusFutureTitle: "Status and Future (Open Source)",
+                contactTitle: "Access Code and Connect",
+                navOverview: "Overview",
+                navHowItWorks: "How It Works",
+                navFeatures: "Features",
+                navTechnology: "Technology",
+                navStatusFuture: "Status & Future",
+                navContact: "Contact"
+            },
+            es: {
+                pageTitle: "Modelo de Portafolio ESG",
+                pageSubtitle: "Inversión Consciente y Rentable en Python",
+                overviewTitle: "Visión General: Alineando Beneficio y Propósito ESG",
+                howItWorksTitle: "Cómo Funciona: Inteligencia Cuantitativa Aplicada",
+                featuresTitle: "Funcionalidades Principales",
+                technologyTitle: "Tecnología y Desarrollo",
+                statusFutureTitle: "Estado y Futuro (Código Abierto)",
+                contactTitle: "Acceder al Código y Conectar",
+                navOverview: "Visión General",
+                navHowItWorks: "Cómo Funciona",
+                navFeatures: "Funcionalidades",
+                navTechnology: "Tecnología",
+                navStatusFuture: "Estado y Futuro",
+                navContact: "Contacto"
+            }
+        };
+
+        let currentLanguage = localStorage.getItem('preferredLanguage') || 'pt-BR'; // Default to Portuguese
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            localStorage.setItem('preferredLanguage', lang);
+            updatePageText();
+            if (typeof window.updateIndexNavbarLinksText === 'function') {
+                 window.updateIndexNavbarLinksText(translations[currentLanguage]);
+            }
+        }
+
+        function updatePageText() {
+            const langTrans = translations[currentLanguage];
+            if (!langTrans) return;
+
+            document.querySelector('.main-content > h1').textContent = langTrans.pageTitle;
+            document.querySelector('.page-subtitle').textContent = langTrans.pageSubtitle;
+            document.querySelector('#overview h2').textContent = langTrans.overviewTitle;
+            document.querySelector('#how-it-works h2').textContent = langTrans.howItWorksTitle;
+            document.querySelector('#features h2').textContent = langTrans.featuresTitle;
+            document.querySelector('#technology h2').textContent = langTrans.technologyTitle;
+            document.querySelector('#status-future h2').textContent = langTrans.statusFutureTitle;
+            document.querySelector('#contact h2').textContent = langTrans.contactTitle;
+
+            loadTextContent();
+        }
+
+        async function loadTextContent() {
+            const sections = [
+                { id: 'overview', file: 'text_content/overview.txt' },
+                { id: 'how-it-works', file: 'text_content/how_it_works.txt' },
+                { id: 'features', file: 'text_content/features.txt' },
+                { id: 'technology', file: 'text_content/technology.txt' },
+                { id: 'status-future', file: 'text_content/status_future.txt' },
+                { id: 'contact', file: 'text_content/contact.txt' }
+            ];
+
+            const baseContentPath = `text_content/${currentLanguage}/`;
+
+            for (const section of sections) {
+                const sectionElement = document.getElementById(section.id);
+                if (sectionElement) {
+                    const h2Element = sectionElement.querySelector('h2');
+                    if (!h2Element) {
+                        console.error(`No h2 found in section ${section.id}`);
+                        sectionElement.innerHTML = `<p style="color:red;">Error: Section structure incorrect (missing h2).</p>`;
+                        continue;
+                    }
+
+                    // Remove existing content after h2 (if any, though it should be empty now)
+                    while (h2Element.nextSibling) {
+                        sectionElement.removeChild(h2Element.nextSibling);
+                    }
+
+                    try {
+                        const response = await fetch(baseContentPath + section.file.split('/').pop() + '?t=' + new Date().getTime()); // Cache buster
+                        if (response.ok) {
+                            const htmlContent = await response.text();
+                            // Create a temporary div to parse the HTML string
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = htmlContent;
+                            // Append all children of tempDiv after h2
+                            while (tempDiv.firstChild) {
+                                sectionElement.appendChild(tempDiv.firstChild);
+                            }
+                        } else {
+                            const errorP = document.createElement('p');
+                            errorP.style.color = 'red';
+                            errorP.textContent = `Error loading content for this section. (${response.status})`;
+                            sectionElement.appendChild(errorP);
+                            console.error(`Failed to load ${section.file}: ${response.status}`);
+                        }
+                    } catch (error) {
+                        const errorP = document.createElement('p');
+                        errorP.style.color = 'red';
+                        errorP.textContent = `Error loading content for this section.`;
+                        sectionElement.appendChild(errorP);
+                        console.error(`Error fetching ${section.file}:`, error);
+                    }
+                }
+            }
+        }
+
+        // Function to be called by common_nav.js to update navbar link texts
+        window.updateIndexNavbarLinksText = function(langTrans) {
+            if (!langTrans) langTrans = translations[currentLanguage]; // Fallback if not passed
+            const navLinksUl = document.querySelector('#top-navbar .nav-links');
+            if (navLinksUl && langTrans) {
+                const linksMap = {
+                    '#overview': langTrans.navOverview, '#how-it-works': langTrans.navHowItWorks,
+                    '#features': langTrans.navFeatures, '#technology': langTrans.navTechnology,
+                    '#status-future': langTrans.navStatusFuture, '#contact': langTrans.navContact
+                };
+                navLinksUl.querySelectorAll('a').forEach(a => {
+                    const href = a.getAttribute('href');
+                    if (linksMap[href]) a.textContent = linksMap[href];
+                });
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('lang-pt-BR').addEventListener('click', () => setLanguage('pt-BR'));
+            document.getElementById('lang-en').addEventListener('click', () => setLanguage('en'));
+            document.getElementById('lang-es').addEventListener('click', () => setLanguage('es'));
+            setLanguage(currentLanguage); // Initialize with current or default language
+        });
+    </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 /* /Users/gabrielcampos/Documents/Prog/PortfolioESG_public/html/css/main_styles.css */
 body {
     font-family: Arial, sans-serif;
-    margin: 0; /* Keep margin 0 */
+    /* margin: 0; /* REMOVED: Let navbar_styles.css handle top margin */
     /* padding-left: 240px; /* REMOVE: No longer needed for top nav */
     /* padding-top: 20px; /* REMOVE: Top spacing is handled by navbar_styles.css body margin-top */
     padding-right: 20px;
@@ -23,6 +23,15 @@ h1 {
     font-weight: 600;
 }
 
+.page-subtitle { /* Style for the new subtitle on index.html */
+    font-size: 1.4em;
+    color: #555; /* Slightly lighter than h1 */
+    margin-top: -20px; /* Pull it up a bit closer to the h1 */
+    margin-bottom: 30px;
+    font-weight: 400; /* Normal weight */
+    text-align: left;
+}
+
 /* REMOVE OLD NAV STYLES: The styles for the old left-hand navigation (generic 'nav' selector, .nav-section-title, nav h2, nav a, #nav-pipeline-status-details, .nav-divider, .nav-footer, etc.) should be removed or commented out as they conflict with the new top navbar styled by css/navbar_styles.css */
 
 /* Common Content Block Styles */
@@ -34,6 +43,7 @@ h1 {
     border-radius: 6px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    scroll-margin-top: 70px; /* Offset for fixed navbar when scrolling to an ID */
 }
 
 .stage-block:hover {

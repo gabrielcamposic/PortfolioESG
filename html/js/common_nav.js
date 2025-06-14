@@ -62,10 +62,14 @@ function setNavPipelineBlockStatusClass(statusClassSuffix) {
 
 // --- Fetches progress.json and updates the navbar status section ---
 async function updateNavbarStatus() {
+    // Determine the correct path to progress.json
+    const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html');
+    const progressJsonPath = isIndexPage ? 'html/progress.json' : 'progress.json';
+
     try {
-        const response = await fetch('progress.json?t=' + new Date().getTime());
+        const response = await fetch(progressJsonPath + '?t=' + new Date().getTime());
         if (!response.ok) {
-            console.warn(`Failed to fetch progress.json for navbar: ${response.status}`);
+            console.warn(`Failed to fetch ${progressJsonPath} for navbar: ${response.status}`);
             setTextAndStatusClassForNav('pipeline-status-message', 'Error fetching status', 'status-error');
             setNavPipelineBlockStatusClass('status-error');
             return;
@@ -116,9 +120,13 @@ function initializeNavbarStatusUpdates() {
 // --- Loads the navbar template and then initializes status updates ---
 async function loadNavbar() {
     try {
-        const response = await fetch('nav_template.html?t=' + new Date().getTime());
+        const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html');
+        const navTemplatePath = isIndexPage ? 'html/nav_template.html' : 'nav_template.html';
+
+        const response = await fetch(navTemplatePath + '?t=' + new Date().getTime());
         if (!response.ok) {
-            throw new Error(`Failed to load nav_template.html: ${response.status}`);
+            console.error(`Failed to load ${navTemplatePath}: ${response.status}`);
+            throw new Error(`Failed to load ${navTemplatePath}: ${response.status}`);
         }
         const navbarHtml = await response.text();
         const navbarPlaceholder = document.getElementById('navbar-placeholder');
@@ -130,22 +138,67 @@ async function loadNavbar() {
             // Append the <nav> element (or whatever the main content is)
             const navElement = doc.querySelector('nav#top-navbar'); // Assuming your main nav element has this ID
             if (navElement) {
-                navbarPlaceholder.appendChild(navElement);
+                if (isIndexPage) {
+                    // Customize for index.html
+                    const logoLink = navElement.querySelector('.nav-logo a');
+                    if (logoLink) {
+                        // Point to the top of the index page or a specific section like #overview
+                        logoLink.setAttribute('href', '#overview'); 
+                    }
+
+                    const navLinksUl = navElement.querySelector('.nav-links');
+                    if (navLinksUl) {
+                        navLinksUl.innerHTML = ''; // Clear existing links from nav_template.html
+                        const indexPageLinks = [
+                            { href: '#overview', text: 'Visão Geral' },
+                            { href: '#how-it-works', text: 'Como Funciona' },
+                            { href: '#features', text: 'Funcionalidades' },
+                            { href: '#technology', text: 'Tecnologia' },
+                            { href: '#status-future', text: 'Status e Futuro' },
+                            { href: '#contact', text: 'Contato' }
+                        ];
+                        indexPageLinks.forEach(linkInfo => {
+                            const li = document.createElement('li');
+                            const a = document.createElement('a');
+                            a.setAttribute('href', linkInfo.href);
+                            a.textContent = linkInfo.text;
+                            li.appendChild(a);
+                            navLinksUl.appendChild(li);
+                        });
+                    }
+
+                    const statusWidget = navElement.querySelector('.nav-status-widget');
+                    if (statusWidget) {
+                        statusWidget.style.display = 'none'; // Hide status widget
+                    }
+                    
+                    // Append the modified navElement without executing its original script
+                    navbarPlaceholder.appendChild(navElement);
+                    // DO NOT call initializeNavbarStatusUpdates() for index.html
+                    // Call a function to update link text if it exists (defined in index.html's script)
+                    if (typeof window.updateIndexNavbarLinksText === 'function') {
+                        window.updateIndexNavbarLinksText(); // It will use its own translations
+                    }
+
+                } else {
+                    // For other pages (pipeline.html, esgportfolio.html, etc.)
+                    navbarPlaceholder.appendChild(navElement); // Append the original nav element
+                    // Find and execute the script tag from nav_template.html
+                    const scriptElement = doc.querySelector('script');
+                    if (scriptElement) {
+                        const newScript = document.createElement('script');
+                        newScript.textContent = scriptElement.textContent; // Copy the script content
+                        document.head.appendChild(newScript); // Append to head to execute
+                    }
+                    initializeNavbarStatusUpdates(); // Start updating status only for non-index pages
+                }
             } else {
                 // Fallback if the structure is different, append all body children
                 Array.from(doc.body.childNodes).forEach(node => {
                     navbarPlaceholder.appendChild(node.cloneNode(true)); // cloneNode to avoid issues if node is script
                 });
+                if (!isIndexPage) initializeNavbarStatusUpdates(); // Still initialize if fallback used on non-index page
             }
-
-            // Find and execute the script tag
-            const scriptElement = doc.querySelector('script');
-            if (scriptElement) {
-                const newScript = document.createElement('script');
-                newScript.textContent = scriptElement.textContent; // Copy the script content
-                document.head.appendChild(newScript); // Append to head to execute
-            }
-            initializeNavbarStatusUpdates(); // Start updating status after nav structure and script are handled
         } else {
             console.error('Navbar placeholder #navbar-placeholder not found.');
         }

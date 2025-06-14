@@ -1,0 +1,10 @@
+<p>O Modelo Portfolio ESG oferece um conjunto de ferramentas para análise e monitoramento de carteiras:</p>
+<ul>
+    <li><strong>Coleta Robusta de Dados:</strong> Baixa dados históricos do Yahoo Finance com suporte a proxies para evitar bloqueios.</li>
+    <li><strong>Organização e Consolidação de Dados:</strong> Estrutura informações individuais de ações e constrói uma base de dados consolidada.</li>
+    <li><strong>Cálculo de Sharpe Ratio:</strong> Calcula o Sharpe Ratio para ações individuais e para cada conjunto simulado de carteiras.</li>
+    <li><strong>Otimização Inteligente de Portfólio:</strong> Apresenta a melhor combinação de ações e pesos, maximizando o Sharpe Ratio através de Monte Carlo e Algoritmos Genéticos.</li>
+    <li><strong>Análise Histórica de Desempenho:</strong> Simula e exibe o valor histórico da carteira otimizada.</li>
+    <li><strong>Ferramentas de Controle de Performance:</strong> Inclui mecanismos para monitoramento contínuo do desempenho da carteira.</li>
+    <li><strong>Interface de Monitoramento:</strong> Conjunto de páginas HTML interativas para visualização e análise de dados.</li>
+</ul>
