@@ -27,17 +27,17 @@
     "stock_combination_search_duration": "0:00:21.080867",
     "engine_script_end_time": "2025-06-10 13:07:37",
     "engine_script_total_duration": "0:00:21.451962",
-    "download_execution_start": "2025-06-10 11:13:44",
+    "download_execution_start": "2025-06-14 08:22:03",
     "ticker_download": {
-        "completed_tickers": 162,
-        "total_tickers": 162,
+        "completed_tickers": 192,
+        "total_tickers": 192,
         "progress": 100,
         "current_ticker": "Download completed",
-        "date_range": "2015-06-13 to 2025-06-09",
-        "rows": 143355,
+        "date_range": "2015-06-17 to 2025-06-13",
+        "rows": 64075,
         "overall_status": "Completed"
     },
-    "download_execution_end": "2025-06-10 11:19:28",
+    "download_execution_end": "2025-06-14 08:32:23",
     "current_engine_phase": "Logging Portfolio History",
     "overall_progress": {
         "completed_actual_simulations_bf": 603,

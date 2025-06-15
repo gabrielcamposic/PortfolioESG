@@ -3,13 +3,13 @@
 debug_mode = false
 
 # --- Target stock list and date range
-esg_stocks_list = ALUP11.SA, B3SA3.SA, FLRY3.SA, ITUB4.SA, LREN3.SA, ORVR3.SA, SRNA3.SA, SUZB3.SA, VIVT3.SA, WEGE3.SA
+esg_stocks_list = ALUP11.SA, AZZA3.SA , BBDC4.SA, B3SA3.SA, EGIE3.SA, FLRY3.SA, HYPE3.SA, ITSA4.SA, ITUB4.SA, KLBN11.SA, LREN3.SA, ORVR3.SA, SRNA3.SA, SUZB3.SA, TIMS3.SA, VIVT3.SA, WEGE3.SA
 start_date=2025-01-01
 
 # --- Target portfolio parameters
 min_stocks=3
 max_stocks=15
-initial_investment=1000
+initial_investment=100000
 rf=0.1475
 
 # --- Threshold for switching from brute-force to heuristic (Genetic Algorithm)
