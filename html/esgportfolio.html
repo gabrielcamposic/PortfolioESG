@@ -223,17 +223,53 @@
             const tableBody = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
             tableBody.innerHTML = ''; // Clear existing rows
 
+            // Define the headers we want to display and their mapping to CSV headers
+            // IMPORTANT: Ensure the keys in this map match the actual headers in your CSV file.
+            const desiredHeadersMap = {
+                "Run ID": "run_id",
+                "Timestamp": "generation_timestamp", // Keeping timestamp as it's often useful
+                "Engine Version": "engine_version",
+                "Min Stocks": "min_target_stocks",
+                "Max Stocks": "max_target_stocks",
+                // "Data Start": "data_start_date", // Removed as per request
+                // "Data End": "data_end_date", // Removed as per request
+                // "Stock Pool": "stock_pool_considered", // Removed as per request
+                "Optimal Stocks": "optimal_stocks",
+                "Optimal Weights": "optimal_weights",
+                "Sharpe Ratio": "sharpe_ratio",
+                "Exp. Return (%)": "expected_annual_return_pct",
+                "Exp. Volatility (%)": "expected_annual_volatility_pct",
+                // "Final Value": "final_value", // Removed as per request
+                "ROI (%)": "roi_pct"
+                // "Initial Investment": "initial_investment" // Removed as per request
+            };
+
+            const displayTableHeaders = Object.keys(desiredHeadersMap);
+            const csvFieldNamesToExtract = Object.values(desiredHeadersMap);
+
+            // Update the table's thead with the desired headers
+            const tableHead = document.getElementById('resultsTable').getElementsByTagName('thead')[0];
+            tableHead.innerHTML = ''; // Clear existing header
+            const headerRow = tableHead.insertRow();
+            displayTableHeaders.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+
             if (summaryData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No data found in CSV.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="${displayTableHeaders.length}" style="text-align:center;">No data found in CSV.</td></tr>`;
                 return;
             }
 
             summaryData.forEach(rowData => {
                 const tr = tableBody.insertRow();
-                headers.forEach(header => {
+                // Iterate based on the desired CSV field names to ensure correct order and selection
+                csvFieldNamesToExtract.forEach(csvFieldName => {
                     const td = tr.insertCell();
-                    let cellValue = rowData[header.trim()] || 'N/A';
-                    if (header.trim().toLowerCase() === 'generation_timestamp' || header.trim().toLowerCase() === 'data_start_date' || header.trim().toLowerCase() === 'data_end_date') {
+                    let cellValue = rowData[csvFieldName.trim()] || 'N/A';
+                    // Apply formatting for specific columns if they are still included
+                    if (csvFieldName.trim().toLowerCase() === 'generation_timestamp' || csvFieldName.trim().toLowerCase() === 'data_start_date' || csvFieldName.trim().toLowerCase() === 'data_end_date') {
                         cellValue = formatDate(cellValue);
                     }
                     td.textContent = cellValue;
