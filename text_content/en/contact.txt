@@ -1,5 +1,8 @@
-<p>O código completo do Modelo Portfolio ESG está disponível no meu repositório GitHub. Sinta-se à vontade para explorar, usar e contribuir!</p>
+<p>We hope PortfolioESG empowers you to make more informed and conscious investment decisions! Explore the code, experiment with the parameters, and discover the potential of optimized portfolios aligned with your values.</p>
+
 <ul>
-    <li><strong>Repositório GitHub:</strong> <a href="https://github.com/gabrielcamposic/PortfolioESG" target="_blank">https://github.com/gabrielcamposic/PortfolioESG</a></li>
-    <li><strong>Conecte-se comigo no LinkedIn:</strong> <a href="https://www.linkedin.com/in/gabrielcampos" target="_blank">https://www.linkedin.com/in/gabrielcampos</a></li>
+    <li><strong>GitHub Repository:</strong> <a href="[Your GitHub Repository URL]" target="_blank">[Your GitHub Repository URL]</a></li>
+    <li><strong>Report an Issue:</strong> <a href="[Link to GitHub Issues Page]" target="_blank">Project Issues Page</a></li>
+    <li><strong>Author/Maintainer:</strong> [Your Name/Handle] - <a href="[Link to your Profile/Email, if desired]" target="_blank">[Your Profile/Email]</a></li>
 </ul>
+<p>Feel free to reach out with questions, suggestions, or collaboration ideas through the GitHub repository.</p>

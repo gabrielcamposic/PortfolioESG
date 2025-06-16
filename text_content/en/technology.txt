@@ -1,10 +1,38 @@
-<p>O Modelo Portfolio ESG oferece um conjunto de ferramentas para análise e monitoramento de carteiras:</p>
+<p>The PortfolioESG model is built using Python and leverages several key libraries and concepts to achieve its functionality:</p>
 <ul>
-    <li><strong>Coleta Robusta de Dados:</strong> Baixa dados históricos do Yahoo Finance com suporte a proxies para evitar bloqueios.</li>
-    <li><strong>Organização e Consolidação de Dados:</strong> Estrutura informações individuais de ações e constrói uma base de dados consolidada.</li>
-    <li><strong>Cálculo de Sharpe Ratio:</strong> Calcula o Sharpe Ratio para ações individuais e para cada conjunto simulado de carteiras.</li>
-    <li><strong>Otimização Inteligente de Portfólio:</strong> Apresenta a melhor combinação de ações e pesos, maximizando o Sharpe Ratio através de Monte Carlo e Algoritmos Genéticos.</li>
-    <li><strong>Análise Histórica de Desempenho:</strong> Simula e exibe o valor histórico da carteira otimizada.</li>
-    <li><strong>Ferramentas de Controle de Performance:</strong> Inclui mecanismos para monitoramento contínuo do desempenho da carteira.</li>
-    <li><strong>Interface de Monitoramento:</strong> Conjunto de páginas HTML interativas para visualização e análise de dados.</li>
+    <li><strong>Core Language:</strong> Python 3.x</li>
+    <li><strong>Data Acquisition & APIs:</strong>
+        <ul>
+            <li><code>yfinance</code>: For downloading historical stock market data from Yahoo Finance.</li>
+            <li><code>requests</code>: For making HTTP requests, with robust session management including retries.</li>
+            <li><code>fake_useragent</code>: To generate realistic browser user-agents for web scraping politeness and to avoid blocks.</li>
+            <li><code>holidays</code>: To accurately identify public holidays for specific markets (e.g., Brazil - SP).</li>
+        </ul>
+    </li>
+    <li><strong>Data Manipulation & Analysis:</strong>
+        <ul>
+            <li><code>pandas</code>: Extensively used for data structures (DataFrames), data cleaning, manipulation, time-series analysis, and CSV I/O.</li>
+            <li><code>numpy</code>: For numerical operations, especially in portfolio return and volatility calculations.</li>
+        </ul>
+    </li>
+    <li><strong>Optimization & Algorithms:</strong>
+        <ul>
+            <li>Implementation of <strong>Modern Portfolio Theory (MPT)</strong> principles.</li>
+            <li><strong>Monte Carlo Simulation</strong> for exploring portfolio weightings.</li>
+            <li>Custom-built <strong>Brute-Force</strong> search for smaller portfolio sizes.</li>
+            <li>Custom-built <strong>Genetic Algorithm (GA)</strong> for heuristic optimization of larger portfolios, including selection, crossover, and mutation operators.</li>
+        </ul>
+    </li>
+    <li><strong>Software Design & Utilities:</strong>
+        <ul>
+            <li><strong>Object-Oriented Programming (OOP):</strong> Used for classes like <code>Logger</code> and <code>ExecutionTimer</code> to encapsulate functionality.</li>
+            <li><strong>Parameterization:</strong> External configuration files (<code>.txt</code>) for easy adjustment of script behavior without code changes.</li>
+            <li><strong>Logging:</strong> Custom logger for detailed console output, file logging, and JSON updates for web-based progress monitoring.</li>
+            <li><code>json</code>: For reading/writing JSON data, particularly for progress updates and skip lists.</li>
+            <li><code>datetime</code>, <code>time</code>: For handling dates, times, and performance measurements.</li>
+            <li><code>os</code>, <code>shutil</code>: For file and directory operations.</li>
+            <li><code>itertools</code>, <code>math</code>: For combinatorial calculations and mathematical functions.</li>
+        </ul>
+    </li>
 </ul>
+<p>The architecture emphasizes modularity, separating data handling from the analytical engine, and aims for robustness in data acquisition and computational efficiency in the optimization phase.</p>

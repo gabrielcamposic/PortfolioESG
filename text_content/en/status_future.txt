@@ -1,3 +1,24 @@
-<p>O Modelo Portfolio ESG atingiu uma fase de <strong>estabilidade</strong> e atualmente estou focado em <strong>ajustar parâmetros e avaliar a evolução</strong> da composição da carteira ao longo do tempo.</p>
-<p>Como parte da evolução futura, pretendo desenvolver <strong>modelos regressivos</strong> para construir métricas inovadoras ESG baseadas em dados públicos. A regressão será utilizada para selecionar as ações candidatas que comporão a carteira, aprimorando ainda mais a inteligência do modelo.</p>
-<p>Este é um projeto <strong>open source</strong>, disponível publicamente para a comunidade. A premissa é que a análise aprofundada de carteiras ESG deve ser acessível a todos, fomentando o benefício coletivo e o desenvolvimento colaborativo de investimentos mais conscientes e sustentáveis.</p>
+<p><em>(This section should be filled in by you, the project owner. Here are some ideas of what you might include:)</em></p>
+
+<h4>Current Status:</h4>
+<ul>
+    <li>Version X.Y.Z released.</li>
+    <li>Core functionalities for data download and portfolio optimization (Brute-Force, Genetic Algorithm, Sharpe Ratio maximization) are implemented and tested.</li>
+    <li>Web-based progress monitoring is active.</li>
+    <li>Key features include [...list key stable features...].</li>
+</ul>
+
+<h4>Planned Features & Future Development:</h4>
+<ul>
+    <li>Integration of more sophisticated risk models (e.g., Conditional Value at Risk - CVaR).</li>
+    <li>Backtesting framework to evaluate portfolio performance on out-of-sample data.</li>
+    <li>Enhanced Genetic Algorithm operators and convergence criteria.</li>
+    <li>Support for additional asset classes (e.g., bonds, cryptocurrencies).</li>
+    <li>More advanced data visualization for portfolio analysis.</li>
+    <li>Option for direct weight optimization within the Genetic Algorithm.</li>
+    <li>Parallelization of computationally intensive tasks.</li>
+    <li>User interface improvements for parameter configuration and results display.</li>
+</ul>
+
+<h4>Contributing:</h4>
+<p>This is an open-source project, and contributions are welcome! If you're interested in contributing, please check out the [Link to GitHub Issues] or [Link to Contribution Guidelines].</p>

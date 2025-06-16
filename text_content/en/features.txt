@@ -1,10 +1,24 @@
-<p>O Modelo Portfolio ESG oferece um conjunto de ferramentas para análise e monitoramento de carteiras:</p>
 <ul>
-    <li><strong>Coleta Robusta de Dados:</strong> Baixa dados históricos do Yahoo Finance com suporte a proxies para evitar bloqueios.</li>
-    <li><strong>Organização e Consolidação de Dados:</strong> Estrutura informações individuais de ações e constrói uma base de dados consolidada.</li>
-    <li><strong>Cálculo de Sharpe Ratio:</strong> Calcula o Sharpe Ratio para ações individuais e para cada conjunto simulado de carteiras.</li>
-    <li><strong>Otimização Inteligente de Portfólio:</strong> Apresenta a melhor combinação de ações e pesos, maximizando o Sharpe Ratio através de Monte Carlo e Algoritmos Genéticos.</li>
-    <li><strong>Análise Histórica de Desempenho:</strong> Simula e exibe o valor histórico da carteira otimizada.</li>
-    <li><strong>Ferramentas de Controle de Performance:</strong> Inclui mecanismos para monitoramento contínuo do desempenho da carteira.</li>
-    <li><strong>Interface de Monitoramento:</strong> Conjunto de páginas HTML interativas para visualização e análise de dados.</li>
+    <li><strong>Data-Driven Insights:</strong> Relies on historical market data for all analyses and portfolio construction.</li>
+    <li><strong>Highly Configurable:</strong> Utilizes external parameter files (<code>downpar.txt</code>, <code>simpar.txt</code>) for easy customization of data sources, simulation settings, stock lists (e.g., ESG criteria), risk-free rates, and portfolio size constraints without code modification.</li>
+    <li><strong>Risk-Aware Optimization:</strong> Primarily aims to maximize the Sharpe Ratio, effectively balancing expected return with portfolio risk (volatility).</li>
+    <li><strong>Advanced Search Techniques:</strong>
+        <ul>
+            <li>Employs a <strong>Brute-Force</strong> search for smaller portfolios to ensure all combinations are considered.</li>
+            <li>Utilizes <strong>Genetic Algorithms (GA)</strong> for larger portfolios to efficiently navigate vast search spaces.</li>
+            <li>Leverages <strong>Monte Carlo simulations</strong> to explore numerous random weighting schemes for each stock combination.</li>
+        </ul>
+    </li>
+    <li><strong>Adaptive & Efficient Engine:</strong> Incorporates intelligent strategies to optimize computational effort, including early discarding of unpromising candidates and dynamic adjustment of simulation intensity.</li>
+    <li><strong>Comprehensive Logging & Monitoring:</strong>
+        <ul>
+            <li>Detailed text logs for tracking script progress, decisions, and errors.</li>
+            <li>Performance logs to measure the efficiency of data download and optimization phases.</li>
+            <li>Web-accessible JSON files (<code>progress.json</code>) for near real-time monitoring of script execution status and key metrics.</li>
+            <li>CSV outputs for the best portfolio found, its historical value, and GA performance metrics.</li>
+        </ul>
+    </li>
+    <li><strong>Modular Design:</strong> Clear separation between data acquisition (<code>Download.py</code>) and optimization logic (<code>Engine.py</code>) enhances clarity, maintainability, and scalability.</li>
+    <li><strong>Market-Specific Data Handling:</strong> Accounts for business days and local holidays (e.g., São Paulo, Brazil) for accurate historical data retrieval.</li>
+    <li><strong>Resilient Data Downloading:</strong> Features user-agent rotation and request retries to improve the reliability of fetching data from online sources.</li>
 </ul>

@@ -1,7 +1,43 @@
-<p>Nosso modelo opera de forma autônoma para construir e otimizar carteiras de ações.</p>
+<p>The system operates through two primary Python scripts: <code>Download.py</code> for data acquisition and <code>Engine.py</code> for portfolio optimization. They work together to provide a comprehensive analysis pipeline.</p>
+
+<h4><code>Download.py</code>: Fueling the Analysis with Data</h4>
+<p>Before any optimization can occur, reliable data is paramount. <code>Download.py</code> is responsible for:</p>
 <ul>
-    <li><strong>Coleta de Dados:</strong> O modelo baixa dados históricos de empresas da B3 (Bolsa de Valores do Brasil) através do Yahoo Finance, a partir de uma lista pré-selecionada de ações que compõem carteiras ESG relevantes do mercado (XP, S&P, Moody's, entre outras). Para garantir a coleta contínua, são utilizadas proxies que evitam bloqueios.</li>
-    <li><strong>Organização e Análise:</strong> As informações são organizadas individualmente por ação e consolidadas em uma base de dados robusta.</li>
-    <li><strong>Otimização da Carteira:</strong> Utilizando algoritmos avançados, como <strong>Simulação de Monte Carlo</strong> e <strong>Algoritmos Genéticos</strong>, o modelo seleciona a combinação ideal de ações e seus respectivos pesos na carteira que resultará no melhor <strong>Sharpe Ratio</strong> (medida de retorno ajustada ao risco).</li>
-    <li><strong>Simulação Histórica:</strong> A melhor combinação encontrada é então avaliada através de simulações históricas, permitindo visualizar seu desempenho ao longo do tempo.</li>
+    <li><strong>Fetching Financial Data:</strong> It systematically downloads historical stock data (like daily open, high, low, close prices, and volume) primarily from Yahoo Finance using the <code>yfinance</code> library.</li>
+    <li><strong>Ensuring Data Quality:</strong> The script is designed for robustness. It intelligently handles:
+        <ul>
+            <li><em>Business Days & Holidays:</em> Accurately identifies trading days, respecting market-specific calendars (e.g., Brazilian holidays) to avoid seeking data for non-trading periods.</li>
+            <li><em>Data Gaps:</em> It checks for previously downloaded data and attempts to fill in any missing historical information.</li>
+            <li><em>Efficient Downloads:</em> It maintains a "skip list" of dates for which data was previously unavailable from the source, preventing redundant failed attempts.</li>
+            <li><em>Resilience:</em> Implements retries for network issues and rotates user-agents to ensure consistent data access.</li>
+        </ul>
+    </li>
+    <li><strong>Consolidating Data:</strong> All downloaded information is processed and stored in a clean, consolidated CSV file (<code>StockDataDB.csv</code>), ready to be used by the optimization engine.</li>
 </ul>
+<p><em>Why is this important?</em> Accurate, comprehensive, and up-to-date historical data is the bedrock of any sound financial analysis. <code>Download.py</code> ensures our optimization engine has the quality input it needs.</p>
+
+<h4><code>Engine.py</code>: Crafting Optimized Portfolios</h4>
+<p>With the data prepared, <code>Engine.py</code> takes center stage to perform the complex task of portfolio optimization. Its goal is to find the best mix of stocks according to specific criteria:</p>
+<ul>
+    <li><strong>Foundation in Financial Theory:</strong> The engine's logic is rooted in <strong>Modern Portfolio Theory (MPT)</strong>. The primary objective is to <strong>maximize the Sharpe Ratio</strong>, a key metric that measures return relative to risk.</li>
+    <li><strong>Data Preparation:</strong> It ingests the data from <code>Download.py</code>, calculates daily returns for each stock, and prepares a focused pool of promising assets for analysis based on individual Sharpe Ratios.</li>
+    <li><strong>Exploring Possibilities with Monte Carlo Simulation:</strong> For any given combination of stocks, the engine runs numerous simulations. In each simulation, it assigns random weights to the stocks in the portfolio and then calculates the portfolio's historical performance: Expected Annual Return, Expected Annual Volatility (Risk), and the Sharpe Ratio.</li>
+    <li><strong>A Hybrid Search Strategy:</strong>
+        <ul>
+            <li><em>Brute-Force (for smaller portfolios):</em> For portfolios with a small number of stocks (configurable, e.g., up to 9), the engine exhaustively evaluates all possible combinations of stocks from a pre-defined list (like an ESG-focused stock list).</li>
+            <li><em>Genetic Algorithms (GA) (for larger portfolios):</em> When the number of possible combinations becomes too vast for brute-force, the engine switches to a Genetic Algorithm. GAs are powerful heuristic search methods inspired by natural evolution, intelligently exploring the solution space.</li>
+        </ul>
+    </li>
+    <li><strong>Adaptive Intelligence:</strong> The engine incorporates adaptive strategies to use computational resources efficiently, such as running quick initial scans, discarding unpromising combinations early, and dynamically adjusting simulation counts based on portfolio complexity or convergence.</li>
+    <li><strong>Refinement:</strong> After the main search, a refinement phase can re-evaluate the top-performing combinations with an even greater number of simulations to fine-tune the results.</li>
+    <li><strong>Clear Outputs:</strong> The engine logs its findings, including the composition of the best portfolio found (stocks and their weights), its Sharpe Ratio, expected return, volatility, and historical performance.</li>
+</ul>
+<p><em>Why this approach?</em> Finding an optimal portfolio is a complex challenge. The hybrid search balances thoroughness with feasibility, Monte Carlo simulation explores weighting schemes, focusing on the Sharpe Ratio aligns with risk-adjusted return principles, and adaptive techniques make the extensive search practical.</p>
+
+<h4>Working in Harmony</h4>
+<p><code>Download.py</code> and <code>Engine.py</code> work sequentially:</p>
+<ol>
+    <li><code>Download.py</code> runs first (or periodically) to gather and prepare the foundational historical stock data, producing <code>StockDataDB.csv</code>.</li>
+    <li><code>Engine.py</code> then consumes this data as input to simulate, evaluate, and optimize portfolios.</li>
+</ol>
+<p>This separation of concerns makes the system modular and robust, ensuring that high-quality data fuels a sophisticated optimization process.</p>
