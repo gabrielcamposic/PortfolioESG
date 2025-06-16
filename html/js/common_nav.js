@@ -127,8 +127,18 @@ async function loadNavbar() {
         if (!window.location.hostname.includes('github.io')) { // Simple check for local vs. GitHub Pages
             navTemplatePath = window.location.pathname.includes('/html/') ? 'nav_template.html' : 'html/nav_template.html';
         } else {
-             // On GitHub Pages, ensure the path starts with a slash if it's from the root of the domain
-             // but since we have repoName, it's already handled.
+             // Logic for local (Mac) and RPi server
+            const currentPathname = window.location.pathname;
+            if (currentPathname.endsWith('/') || currentPathname.endsWith('/index.html')) {
+                // This is index.html (likely on Mac dev environment, served from project root)
+                // or the root of a site.
+                navTemplatePath = 'html/nav_template.html';
+            } else {
+                // This is for other pages like pipeline.html, esgportfolio.html, etc.
+                // On Mac, currentPathname is /PortfolioESG_public/html/pipeline.html, nav_template.html is a sibling.
+                // On RPi, currentPathname is /pipeline.html, nav_template.html is a sibling.
+                navTemplatePath = 'nav_template.html';
+            }
         }
 
         const response = await fetch(navTemplatePath + '?t=' + new Date().getTime());
