@@ -1,0 +1,7 @@
+<p>¡Gracias por tu interés en el proyecto Modelo de Cartera ESG! Espero que esta exploración en la optimización de carteras basada en datos y potencialmente alineada con ESG sea tan interesante para ti como lo es para mí.</p>
+<p>Este proyecto está en GitHub, donde puedes acceder al código completo, reportar problemas, sugerir ideas o contribuir. Siéntete libre de contactar a través del repositorio de GitHub para cualquier pregunta, sugerencia o idea de colaboración.</p>
+<p>¡Además, por favor, contacta vía LinkedIn!</p>
+<ul>
+    <li><strong>Repositorio GitHub:</strong> <a href="https://github.com/gabrielcamposic/PortfolioESG" target="_blank">https://github.com/gabrielcamposic/PortfolioESG</a></li>
+    <li><strong>Mi perfil en LinkedIn:</strong> <a href="https://www.linkedin.com/in/gabrielcampos" target="_blank">https://www.linkedin.com/in/gabrielcampos</a></li>
+</ul>

@@ -1,3 +1,24 @@
-<p>O Modelo Portfolio ESG atingiu uma fase de <strong>estabilidade</strong> e atualmente estou focado em <strong>ajustar parâmetros e avaliar a evolução</strong> da composição da carteira ao longo do tempo.</p>
-<p>Como parte da evolução futura, pretendo desenvolver <strong>modelos regressivos</strong> para construir métricas inovadoras ESG baseadas em dados públicos. A regressão será utilizada para selecionar as ações candidatas que comporão a carteira, aprimorando ainda mais a inteligência do modelo.</p>
-<p>Este é um projeto <strong>open source</strong>, disponível publicamente para a comunidade. A premissa é que a análise aprofundada de carteiras ESG deve ser acessível a todos, fomentando o benefício coletivo e o desenvolvimento colaborativo de investimentos mais conscientes e sustentáveis.</p>
+<p>Este proyecto es un trabajo en curso, impulsado principalmente por mis objetivos personales de aprendizaje e interés en el área. Se comparte abiertamente para cualquier persona interesada en explorar estas ideas más a fondo.</p>
+
+<h4>Estado Actual:</h4>
+<ul>
+    <li>La lógica central para descargar datos históricos y realizar la optimización de carteras utilizando un enfoque híbrido de Fuerza Bruta/Algoritmo Genético (centrado en el Ratio de Sharpe) está implementada.</li>
+    <li>La monitorización de progreso basada en web está activa.</li>
+    <li>El proyecto incluye registro de resultados y rendimiento.</li>
+</ul>
+
+<h4>Funcionalidades Planeadas y Desarrollo Futuro:</h4>
+<p>Aquí hay algunas áreas que estoy considerando para desarrollo futuro, o que podrían ser vías interesantes para colaboradores:</p>
+<ul>
+    <li>Integración de modelos de riesgo más sofisticados (ej: Valor en Riesgo Condicional - CVaR).</li>
+    <li>Framework de backtesting para evaluar el rendimiento de la cartera con datos fuera de la muestra.</li>
+    <li>Operadores de Algoritmo Genético y criterios de convergencia mejorados.</li>
+    <li>Soporte para clases de activos adicionales (ej: bonos, criptomonedas).</li>
+    <li>Visualización de datos más avanzada para el análisis de carteras.</li>
+    <li>Explorar diferentes objetivos de optimización más allá del Ratio de Sharpe.</li>
+    <li>Paralelización de tareas computacionalmente intensivas.</li>
+    <li>Mejoras en la flexibilidad y facilidad de uso de la configuración de parámetros.</li>
+</ul>
+
+<h4>Contribuyendo:</h4>
+<p>Como proyecto de código abierto, ¡las contribuciones son muy bienvenidas! Ya sea sugiriendo nuevas funcionalidades, mejorando la eficiencia del código, añadiendo soporte para nuevas fuentes de datos, mejorando los algoritmos o corrigiendo errores, tu aportación es valiosa. Por favor, siéntete libre de abrir issues o pull requests en el repositorio de GitHub.</p>

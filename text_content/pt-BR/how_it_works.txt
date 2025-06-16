@@ -1,7 +1,50 @@
-<p>Nosso modelo opera de forma autônoma para construir e otimizar carteiras de ações.</p>
+<p>O fluxo de trabalho do projeto é gerenciado por dois scripts Python principais: <code>Download.py</code> para aquisição de dados e <code>Engine.py</code> para os cálculos de otimização. Eles formam um pipeline para ir de dados brutos a sugestões de carteiras potenciais. Uma consideração chave durante o desenvolvimento foi garantir que esses scripts pudessem rodar eficientemente, mesmo em hardware com recursos limitados como um Raspberry Pi 3B, tornando a análise acessível.</p>
+
+<h4><code>Download.py</code>: Abastecendo a Análise com Dados</h4>
+<p>Uma boa análise começa com bons dados. Meu script <code>Download.py</code> é construído para coletar as informações financeiras históricas necessárias para o processo de otimização. Suas principais tarefas incluem:</p>
 <ul>
-    <li><strong>Coleta de Dados:</strong> O modelo baixa dados históricos de empresas da B3 (Bolsa de Valores do Brasil) através do Yahoo Finance, a partir de uma lista pré-selecionada de ações que compõem carteiras ESG relevantes do mercado (XP, S&P, Moody's, entre outras). Para garantir a coleta contínua, são utilizadas proxies que evitam bloqueios.</li>
-    <li><strong>Organização e Análise:</strong> As informações são organizadas individualmente por ação e consolidadas em uma base de dados robusta.</li>
-    <li><strong>Otimização da Carteira:</strong> Utilizando algoritmos avançados, como <strong>Simulação de Monte Carlo</strong> e <strong>Algoritmos Genéticos</strong>, o modelo seleciona a combinação ideal de ações e seus respectivos pesos na carteira que resultará no melhor <strong>Sharpe Ratio</strong> (medida de retorno ajustada ao risco).</li>
-    <li><strong>Simulação Histórica:</strong> A melhor combinação encontrada é então avaliada através de simulações históricas, permitindo visualizar seu desempenho ao longo do tempo.</li>
+    <li><strong>Coleta de Dados Financeiros:</strong> Ele baixa sistematicamente dados históricos de ações (como preços diários de abertura, máxima, mínima, fechamento e volume), principalmente do Yahoo Finance usando a biblioteca <code>yfinance</code>.</li>
+    <li><strong>Lidando com Desafios de Dados Eficientemente:</strong> Obter dados limpos e consistentes pode ser complicado, especialmente visando performance. O script inclui lógica para lidar com:
+        <ul>
+            <li><em>Dias Úteis e Feriados:</em> Identifica com precisão os dias de negociação, respeitando calendários de mercado específicos (ex: feriados de São Paulo, Brasil) para evitar buscar dados em períodos sem negociação.</li>
+            <li><em>Lacunas nos Dados:</em> Verifica dados baixados anteriormente e tenta preencher qualquer informação histórica faltante.</li>
+            <li><em>Downloads Eficientes:</em> Mantém uma "lista de exclusão" (skip list) de datas para as quais dados não estavam disponíveis anteriormente na fonte, prevenindo tentativas falhas redundantes.</li>
+            <li><em>Resiliência:</em> Implementa novas tentativas para problemas de rede e rotaciona user-agents para garantir acesso consistente aos dados.</li>
+        </ul>
+    </li>
+    <li><strong>Organização dos Dados:</strong> Os dados baixados são processados e salvos em um único arquivo CSV consolidado e limpo (<code>StockDataDB.csv</code>). Este arquivo serve como a principal entrada para o script de otimização.</li>
+</ul>
+<p><em>Por que isso é importante?</em> Dados históricos precisos, abrangentes e atualizados são a base de qualquer análise financeira sólida. O <code>Download.py</code> garante que nosso motor de otimização tenha a entrada de qualidade que necessita.</p>
+
+<h4><code>Engine.py</code>: Construindo Carteiras Otimizadas</h4>
+<p>Com os dados preparados, o <code>Engine.py</code> entra em cena. Este script é onde ocorre o trabalho computacional pesado, explorando diferentes combinações de ações para encontrar carteiras potencialmente "otimizadas". Ele é projetado para ser computacionalmente intensivo, mas gerenciável, mesmo em hardware menos potente. Eis uma olhada nas técnicas usadas:</p>
+<ul>
+    <li><strong>Fundamentação em Teoria Financeira:</strong> A lógica do motor é baseada nos princípios da <strong>Teoria Moderna do Portfólio (MPT)</strong>. O objetivo principal é <strong>maximizar o Índice de Sharpe</strong>, uma métrica chave que mede o retorno em relação ao risco.</li>
+    <li><strong>Preparação dos Dados:</strong> Ele lê eficientemente os dados históricos, calcula os retornos diários e seleciona um grupo de ações promissoras para focar a busca (atualmente com base nos Índices de Sharpe individuais).</li>
+    <li><strong>Explorando Possibilidades com Simulação de Monte Carlo:</strong> Para qualquer combinação de ações, o motor executa inúmeras simulações. Em cada simulação, ele atribui pesos aleatórios às ações na carteira e então calcula o desempenho histórico da carteira: Retorno Anual Esperado, Volatilidade Anual Esperada (Risco) e o Índice de Sharpe.</li>
+    <li><strong>Uma Estratégia de Busca Híbrida:</strong>
+        <ul>
+            <li><em>Força Bruta (para carteiras menores):</em> Para carteiras com um pequeno número de ações (configurável, ex: até 9), o motor avalia exaustivamente todas as combinações possíveis de ações de uma lista pré-definida (como uma lista de ações com foco em ESG).</li>
+            <li><em>Algoritmos Genéticos (AG) (para carteiras maiores):</em> Quando o número de combinações possíveis se torna vasto demais para a força bruta, o motor muda para um Algoritmo Genético. AGs são poderosos métodos de busca heurística inspirados pela evolução natural, explorando inteligentemente o espaço de soluções.</li>
+        </ul>
+    </li>
+    <li><strong>Simulação Adaptativa:</strong> Para gerenciar o tempo de computação, o motor usa estratégias adaptativas. Ele pode rodar menos simulações para combinações que rapidamente mostram resultados ruins e focar mais esforço naquelas que parecem promissoras, ou parar de simular uma combinação se seu desempenho parecer ter convergido.</li>
+    <li><strong>Fase de Refinamento:</strong> Após a busca inicial, as melhores combinações encontradas podem opcionalmente passar por uma fase de refinamento, onde são simuladas muito mais vezes para obter uma estimativa mais precisa de seu desempenho potencial.</li>
+    <li><strong>Registro de Resultados:</strong> O script registra os detalhes da melhor carteira encontrada (as ações, quanto alocar em cada uma, e suas métricas de desempenho calculadas como Índice de Sharpe, retorno esperado e volatilidade).</li>
+</ul>
+<p><em>Por que essas técnicas?</em> Combinar força bruta para problemas menores e gerenciáveis com Algoritmos Genéticos para os maiores permite ao motor explorar uma vasta gama de possibilidades. Monte Carlo ajuda a entender a faixa de desempenho potencial de um dado conjunto de ações, e focar no Índice de Sharpe fornece uma maneira padrão de comparar diferentes carteiras com base no retorno ajustado ao risco.</p>
+
+<h4>Trabalhando em Harmonia</h4>
+<p>Os dois scripts, <code>Download.py</code> e <code>Engine.py</code>, trabalham sequencialmente:</p>
+<ol>
+    <li>Primeiro, você executa o <code>Download.py</code> para obter os dados históricos de ações mais recentes e salvá-los em <code>StockDataDB.csv</code>.</li>
+    <li>Então, você executa o <code>Engine.py</code>, que lê o <code>StockDataDB.csv</code> e realiza os cálculos de otimização com base nos parâmetros que você definir.</li>
+</ol>
+<p>Essa separação mantém o código organizado e garante que a otimização esteja sempre usando os dados preparados pelo script de download.</p>
+
+<h4>Monitoramento e Resultados via Interface Web</h4>
+<p>Para tornar o processo transparente e os resultados facilmente acessíveis, configurei uma interface web simples usando um servidor web Apache rodando no Raspberry Pi. Ambos os scripts geram atualizações de status e resultados que são escritos em arquivos (como <code>progress.json</code> e vários CSVs) em um diretório acessível pela web. Isso permite:</p>
+<ul>
+    <li><strong>Monitoramento ao Vivo:</strong> Você pode verificar o progresso dos processos de download de dados e otimização através de um conjunto de páginas HTML que leem esses arquivos de status.</li>
+    <li><strong>Visualização de Resultados:</strong> Os detalhes da carteira otimizada final, métricas de desempenho e gráficos de valor histórico também podem ser visualizados diretamente no seu navegador, fornecendo uma maneira conveniente de analisar o resultado.</li>
 </ul>

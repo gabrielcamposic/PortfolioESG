@@ -1,3 +1,24 @@
-<p>O Modelo Portfolio ESG atingiu uma fase de <strong>estabilidade</strong> e atualmente estou focado em <strong>ajustar parâmetros e avaliar a evolução</strong> da composição da carteira ao longo do tempo.</p>
-<p>Como parte da evolução futura, pretendo desenvolver <strong>modelos regressivos</strong> para construir métricas inovadoras ESG baseadas em dados públicos. A regressão será utilizada para selecionar as ações candidatas que comporão a carteira, aprimorando ainda mais a inteligência do modelo.</p>
-<p>Este é um projeto <strong>open source</strong>, disponível publicamente para a comunidade. A premissa é que a análise aprofundada de carteiras ESG deve ser acessível a todos, fomentando o benefício coletivo e o desenvolvimento colaborativo de investimentos mais conscientes e sustentáveis.</p>
+<p>Este projeto é um trabalho em andamento, impulsionado principalmente pelos meus objetivos pessoais de aprendizado e interesse na área. Ele é compartilhado abertamente para qualquer pessoa interessada em explorar essas ideias mais a fundo.</p>
+
+<h4>Status Atual:</h4>
+<ul>
+    <li>A lógica central para baixar dados históricos e realizar a otimização de portfólio usando uma abordagem híbrida de Força Bruta/Algoritmo Genético (focada no Índice de Sharpe) está implementada.</li>
+    <li>O monitoramento de progresso baseado na web está ativo.</li>
+    <li>O projeto inclui logging para resultados e desempenho.</li>
+</ul>
+
+<h4>Funcionalidades Planejadas e Desenvolvimento Futuro:</h4>
+<p>Aqui estão algumas áreas que estou considerando para desenvolvimento futuro, ou que poderiam ser caminhos interessantes para colaboradores:</p>
+<ul>
+    <li>Integração de modelos de risco mais sofisticados (ex: Valor em Risco Condicional - CVaR).</li>
+    <li>Framework de backtesting para avaliar o desempenho da carteira com dados fora da amostra.</li>
+    <li>Operadores de Algoritmo Genético e critérios de convergência aprimorados.</li>
+    <li>Suporte para classes de ativos adicionais (ex: títulos, criptomoedas).</li>
+    <li>Visualização de dados mais avançada para análise de portfólio.</li>
+    <li>Explorar diferentes objetivos de otimização além do Índice de Sharpe.</li>
+    <li>Paralelização de tarefas computacionalmente intensivas.</li>
+    <li>Melhorias na flexibilidade e facilidade de uso da configuração de parâmetros.</li>
+</ul>
+
+<h4>Contribuindo:</h4>
+<p>Como um projeto de código aberto, contribuições são muito bem-vindas! Seja sugerindo novas funcionalidades, melhorando a eficiência do código, adicionando suporte para novas fontes de dados, aprimorando os algoritmos ou corrigindo bugs, sua contribuição é valiosa. Sinta-se à vontade para abrir issues ou pull requests no repositório do GitHub.</p>
