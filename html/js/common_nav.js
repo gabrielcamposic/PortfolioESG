@@ -159,13 +159,8 @@ async function loadNavbar() {
                         logoLink.setAttribute('href', '#overview'); 
                     }
 
-                    // Add hamburger toggle for index.html
-                    const navToggle = document.createElement('button');
-                    navToggle.className = 'nav-toggle';
-                    navToggle.setAttribute('aria-label', 'toggle navigation');
-                    navToggle.setAttribute('aria-expanded', 'false');
-                    navToggle.innerHTML = '<span class="hamburger-icon"></span>';
-
+                    // Find the existing hamburger toggle from the parsed navElement
+                    const existingNavToggle = navElement.querySelector('.nav-toggle');
                     const navLinksUl = navElement.querySelector('.nav-links');
                     if (navLinksUl) {
                         navLinksUl.innerHTML = ''; // Clear existing links from nav_template.html
@@ -187,12 +182,14 @@ async function loadNavbar() {
                             navLinksUl.appendChild(li);
                         });
 
-                        // Insert toggle before navLinksUl or after logo
-                        navElement.insertBefore(navToggle, navLinksUl);
-                        navToggle.addEventListener('click', () => {
-                            navLinksUl.classList.toggle('nav-links-active');
-                            navToggle.setAttribute('aria-expanded', navLinksUl.classList.contains('nav-links-active'));
-                        });
+                        // Attach event listener to the EXISTING toggle if found
+                        if (existingNavToggle) {
+                            existingNavToggle.addEventListener('click', () => {
+                                navLinksUl.classList.toggle('nav-links-active');
+                                existingNavToggle.setAttribute('aria-expanded', navLinksUl.classList.contains('nav-links-active'));
+                            });
+                        }
+
                     }
 
                     const statusWidget = navElement.querySelector('.nav-status-widget');
