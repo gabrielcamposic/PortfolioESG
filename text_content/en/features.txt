@@ -10,11 +10,11 @@
         </ul>
     </li>
     <li><strong>Adaptive Simulation Logic:</strong> Includes features to potentially speed up the process by focusing computational effort where it's most likely to find better results.</li>
-    <li><strong>Detailed Logging:</strong> Provides various logs to help you understand what the scripts are doing, track progress, see performance metrics, and review the final results.
+    <li><strong>Detailed Logging & Web Monitoring:</strong> Provides various logs for understanding script execution, tracking progress, and reviewing performance. Key status updates and results are also made available via a web interface (served by Apache on a Raspberry Pi in my setup) for live monitoring and easy access to outcomes.
         <ul>
             <li>Standard text logs for general progress and errors.</li>
             <li>Performance logs to see how long different parts of the process took.</li>
-            <li>A web-accessible JSON file (<code>progress.json</code>) designed for simple monitoring of the script's status from a web browser.</li>
+            <li>Web-accessible JSON (<code>progress.json</code>) and CSV files for dynamic content on HTML monitoring pages.</li>
             <li>CSV files containing the details of the best portfolio found, its historical value over the data period, and data related to the Genetic Algorithm's run.</li>
         </ul>
     </li>
@@ -22,4 +22,4 @@
     <li><strong>Market Calendar Awareness:</strong> The data download script considers specific market holidays and business days for more accurate data collection.</li>
     <li><strong>Robust Data Fetching:</strong> Includes features like retries and user agent rotation to handle potential issues when downloading data from online sources.</li>
 </ul>
-<p>These features are part of my ongoing development and exploration in this area.</p>
+<p>These features, including the optimization for running on a Raspberry Pi 3B, are part of my ongoing development and exploration in this area.</p>

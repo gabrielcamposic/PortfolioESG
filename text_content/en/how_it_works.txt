@@ -1,10 +1,10 @@
-<p>The project's workflow is managed by two main Python scripts: <code>Download.py</code>, which handles getting the data, and <code>Engine.py</code>, where the optimization calculations happen. They form a simple pipeline to go from raw data to a potential portfolio suggestion.</p>
+<p>The project's workflow is managed by two main Python scripts: <code>Download.py</code> for data acquisition and <code>Engine.py</code> for optimization calculations. They form a pipeline to go from raw data to potential portfolio suggestions. A key consideration during development was ensuring these scripts could run efficiently, even on resource-constrained hardware like a Raspberry Pi 3B, making the analysis accessible.</p>
 
 <h4><code>Download.py</code>: Fueling the Analysis with Data</h4>
 <p>Good analysis starts with good data. My <code>Download.py</code> script is built to gather the historical financial information needed for the optimization process. Its main tasks include:</p>
 <ul>
     <li><strong>Fetching Financial Data:</strong> It systematically downloads historical stock data (like daily open, high, low, close prices, and volume) primarily from Yahoo Finance using the <code>yfinance</code> library.</li>
-    <li><strong>Handling Data Challenges:</strong> Getting clean, consistent data can be tricky. The script includes logic to handle:
+    <li><strong>Handling Data Challenges Efficiently:</strong> Getting clean, consistent data can be tricky, especially when aiming for performance. The script includes logic to handle:
         <ul>
             <li><em>Business Days & Holidays:</em> Accurately identifies trading days, respecting market-specific calendars (e.g., Brazilian holidays) to avoid seeking data for non-trading periods.</li>
             <li><em>Data Gaps:</em> It checks for previously downloaded data and attempts to fill in any missing historical information.</li>
@@ -17,10 +17,10 @@
 <p><em>Why is this important?</em> Accurate, comprehensive, and up-to-date historical data is the bedrock of any sound financial analysis. <code>Download.py</code> ensures our optimization engine has the quality input it needs.</p>
 
 <h4><code>Engine.py</code>: Crafting Optimized Portfolios</h4>
-<p>Once the data is ready, <code>Engine.py</code> takes over. This script is where the computational heavy lifting happens, exploring different combinations of stocks to find potentially "optimized" portfolios. Here's a look at the techniques used:</p>
+<p>Once the data is ready, <code>Engine.py</code> takes over. This script is where the computational heavy lifting happens, exploring different combinations of stocks to find potentially "optimized" portfolios. It's designed to be computationally intensive yet manageable, even on less powerful hardware. Here's a look at the techniques used:</p>
 <ul>
     <li><strong>Foundation in Financial Theory:</strong> The engine's logic is rooted in <strong>Modern Portfolio Theory (MPT)</strong>. The primary objective is to <strong>maximize the Sharpe Ratio</strong>, a key metric that measures return relative to risk.</li>
-    <li><strong>Data Preparation:</strong> It ingests the data from <code>Download.py</code>, calculates daily returns for each stock, and prepares a focused pool of promising assets for analysis based on individual Sharpe Ratios.</li>
+    <li><strong>Data Preparation:</strong> It efficiently reads the historical data, calculates daily returns, and selects a pool of stocks to focus the search on (currently based on individual Sharpe Ratios).</li>
     <li><strong>Exploring Possibilities with Monte Carlo Simulation:</strong> For any given combination of stocks, the engine runs numerous simulations. In each simulation, it assigns random weights to the stocks in the portfolio and then calculates the portfolio's historical performance: Expected Annual Return, Expected Annual Volatility (Risk), and the Sharpe Ratio.</li>
     <li><strong>A Hybrid Search Strategy:</strong>
         <ul>
@@ -35,9 +35,16 @@
 <p><em>Why these techniques?</em> Combining brute-force for smaller, manageable problems with Genetic Algorithms for larger ones allows the engine to explore a wide range of possibilities. Monte Carlo helps understand the potential performance range of a given set of stocks, and focusing on the Sharpe Ratio provides a standard way to compare different portfolios based on risk-adjusted return.</p>
 
 <h4>Working in Harmony</h4>
-<p><code>Download.py</code> and <code>Engine.py</code> work sequentially:</p>
+<p>The two scripts, <code>Download.py</code> and <code>Engine.py</code>, work sequentially:</p>
 <ol>
     <li>First, you run <code>Download.py</code> to get the latest historical stock data and save it to <code>StockDataDB.csv</code>.</li>
     <li>Then, you run <code>Engine.py</code>, which reads <code>StockDataDB.csv</code> and performs the optimization calculations based on the parameters you set.</li>
 </ol>
 <p>This separation keeps the code organized and makes sure the optimization is always using the data prepared by the download script.</p>
+
+<h4>Monitoring and Results via Web Interface</h4>
+<p>To make the process transparent and the results easily accessible, I've set up a simple web interface using an Apache web server running on the Raspberry Pi. Both scripts generate status updates and results that are written to files (like <code>progress.json</code> and various CSVs) in a web-accessible directory. This allows for:</p>
+<ul>
+    <li><strong>Live Monitoring:</strong> You can check the progress of the data download and optimization processes through a set of HTML pages that read these status files.</li>
+    <li><strong>Results Viewing:</strong> The final optimized portfolio details, performance metrics, and historical value charts can also be viewed directly in your browser, providing a convenient way to analyze the outcome.</li>
+</ul>
