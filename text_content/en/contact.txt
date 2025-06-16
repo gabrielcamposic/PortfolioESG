@@ -1,9 +1,8 @@
 <p>Thank you for your interest in the PortfolioESG Model project! I hope this exploration into data-driven, potentially ESG-aligned portfolio optimization is as interesting for you as it is for me.</p>
-<p>This project is on GitHub, where you can access the full codebase, report issues, suggest ideas, or contribute.</p>
+<p>This project is on GitHub, where you can access the full codebase, report issues, suggest ideas, or contribute. Also, please reach out via LinkedIn!</p>
 
 <ul>
-    <li><strong>GitHub Repository:</strong> <a href="[Your GitHub Repository URL]" target="_blank">[Your GitHub Repository URL]</a></li>
-    <li><strong>Report an Issue:</strong> <a href="[Link to GitHub Issues Page]" target="_blank">Project Issues Page</a></li>
-    <li><strong>Author/Maintainer:</strong> [Your Name/Handle]</li>
+    <li><strong>GitHub Repository:</strong> <a href="https://github.com/gabrielcamposic/PortfolioESG" target="_blank">https://github.com/gabrielcamposic/PortfolioESG</a></li>
+    <li><strong>My profile on LinkedIn:</strong> <a href="https://www.linkedin.com/in/gabrielcampos" target="_blank">https://www.linkedin.com/in/gabrielcampos</a></li>
 </ul>
 <p>Feel free to connect via the GitHub repository for any questions, suggestions, or collaboration ideas.</p>

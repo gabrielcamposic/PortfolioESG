@@ -5,7 +5,6 @@
     <li>The core logic for downloading historical data and performing portfolio optimization using a hybrid Brute-Force/Genetic Algorithm approach (focused on Sharpe Ratio) is implemented.</li>
     <li>Web-based progress monitoring is active.</li>
     <li>The project includes logging for results and performance.</li>
-    <li><em>(You can add specific stable features or milestones here, e.g., "Basic parameter configuration via text files is functional.")</em></li>
 </ul>
 
 <h4>Planned Features & Future Development:</h4>
