@@ -146,6 +146,11 @@ async function loadNavbar() {
             // Append the <nav> element (or whatever the main content is)
             const navElement = doc.querySelector('nav#top-navbar'); // Assuming your main nav element has this ID
             if (navElement) {
+                // Define isIndexPage based on the current path and repository name
+                const currentPathname = window.location.pathname;
+                // Check against the base path for the repo and index.html specifically
+                const isIndexPage = currentPathname === `/${repoName}/` || currentPathname === `/${repoName}/index.html`;
+
                 if (isIndexPage) {
                     // Customize for index.html
                     const logoLink = navElement.querySelector('.nav-logo a');
@@ -205,7 +210,13 @@ async function loadNavbar() {
                 Array.from(doc.body.childNodes).forEach(node => {
                     navbarPlaceholder.appendChild(node.cloneNode(true)); // cloneNode to avoid issues if node is script
                 });
-                if (!isIndexPage) initializeNavbarStatusUpdates(); // Still initialize if fallback used on non-index page
+                // Define isIndexPage here as well if it wasn't defined before this fallback
+                const currentPathnameForFallback = window.location.pathname;
+                const isIndexPageForFallback = currentPathnameForFallback === `/${repoName}/` || currentPathnameForFallback === `/${repoName}/index.html`;
+
+                if (!isIndexPageForFallback) {
+                    initializeNavbarStatusUpdates(); // Still initialize if fallback used on non-index page
+                }
             }
         } else {
             console.error('Navbar placeholder #navbar-placeholder not found.');
