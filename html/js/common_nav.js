@@ -120,16 +120,15 @@ function initializeNavbarStatusUpdates() {
 // --- Loads the navbar template and then initializes status updates ---
 async function loadNavbar() {
     try {
-        // Construct path to nav_template.html, assuming it's always in an 'html' directory
-        // at the same level or one level down from where index.html might be.
+        const repoName = 'PortfolioESG'; // Your GitHub repository name
+        let navTemplatePath = `/${repoName}/html/nav_template.html`; // Absolute path from site root
 
-        // If the current page is in the /html/ directory, nav_template.html is a sibling.
-        // If the current page is at the root (like index.html), nav_template.html is in ./html/
-        let navTemplatePath;
-        if (window.location.pathname.includes('/html/')) {
-            navTemplatePath = 'nav_template.html'; // e.g. from /html/pipeline.html
+        // Fallback for local development (if not served from /PortfolioESG/ base)
+        if (!window.location.hostname.includes('github.io')) { // Simple check for local vs. GitHub Pages
+            navTemplatePath = window.location.pathname.includes('/html/') ? 'nav_template.html' : 'html/nav_template.html';
         } else {
-            navTemplatePath = 'html/nav_template.html'; // e.g. from /index.html
+             // On GitHub Pages, ensure the path starts with a slash if it's from the root of the domain
+             // but since we have repoName, it's already handled.
         }
 
         const response = await fetch(navTemplatePath + '?t=' + new Date().getTime());
