@@ -219,7 +219,8 @@ tr:nth-child(even) {
 }
 
 .preview-item p { /* Caption styling */
-    margin-top: 10px;
+    /* margin-top: 10px; /* Original when caption was below */
+    margin-bottom: 10px; /* New: margin below the caption, above the image */
     font-weight: bold;
     color: #333;
     font-size: 0.9em;

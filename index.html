@@ -44,20 +44,20 @@
             <h2>Pré-visualizações do Projeto</h2> <!-- Default title, will be updated by JS -->
             <div class="project-previews-container">
                 <div class="preview-item">
+                    <p id="caption-pipeline">Status do Pipeline</p>
                     <img src="html/img/pipeline_preview.png" alt="Pré-visualização do Status do Pipeline">
-                    <p>Status do Pipeline</p>
                 </div>
                 <div class="preview-item">
+                    <p id="caption-esgportfolio">Carteira ESG</p>
                     <img src="html/img/esgportfolio_preview.png" alt="Pré-visualização da Carteira ESG">
-                    <p>Carteira ESG</p>
                 </div>
                 <div class="preview-item">
+                    <p id="caption-engine">Performance do Motor</p>
                     <img src="html/img/engine_performance_preview.png" alt="Pré-visualização da Performance do Motor">
-                    <p>Performance do Motor</p>
                 </div>
                 <div class="preview-item">
+                    <p id="caption-script">Performance dos Scripts</p>
                     <img src="html/img/script_performance_preview.png" alt="Pré-visualização da Performance dos Scripts">
-                    <p>Performance dos Scripts</p>
                 </div>
             </div>
         </div>
@@ -93,7 +93,11 @@
                 navFeatures: "Funcionalidades",
                 navTechnology: "Tecnologia",
                 navStatusFuture: "Status e Futuro",
-                navContact: "Contato"
+                navContact: "Contato",
+                captionPipeline: "Status do Pipeline",
+                captionEsgPortfolio: "Carteira ESG",
+                captionEngine: "Performance do Motor",
+                captionScript: "Performance dos Scripts"
             },
             en: {
                 pageTitle: "ESG Portfolio Model",
@@ -110,7 +114,11 @@
                 navFeatures: "Features",
                 navTechnology: "Technology",
                 navStatusFuture: "Status & Future",
-                navContact: "Contact"
+                navContact: "Contact",
+                captionPipeline: "Pipeline Status",
+                captionEsgPortfolio: "ESG Portfolio",
+                captionEngine: "Engine Performance",
+                captionScript: "Script Performance"
             },
             es: {
                 pageTitle: "Modelo de Portafolio ESG",
@@ -127,7 +135,11 @@
                 navFeatures: "Funcionalidades",
                 navTechnology: "Tecnología",
                 navStatusFuture: "Estado y Futuro",
-                navContact: "Contacto"
+                navContact: "Contacto",
+                captionPipeline: "Estado del Pipeline",
+                captionEsgPortfolio: "Cartera ESG",
+                captionEngine: "Rendimiento del Motor",
+                captionScript: "Rendimiento de Scripts"
             }
         };
 
@@ -155,6 +167,12 @@
             document.querySelector('#project-previews h2').textContent = langTrans.projectPreviewsTitle;
             document.querySelector('#status-future h2').textContent = langTrans.statusFutureTitle;
             document.querySelector('#contact h2').textContent = langTrans.contactTitle;
+
+            // Translate preview captions
+            document.getElementById('caption-pipeline').textContent = langTrans.captionPipeline;
+            document.getElementById('caption-esgportfolio').textContent = langTrans.captionEsgPortfolio;
+            document.getElementById('caption-engine').textContent = langTrans.captionEngine;
+            document.getElementById('caption-script').textContent = langTrans.captionScript;
 
             loadTextContent();
         }
