@@ -121,25 +121,33 @@ function initializeNavbarStatusUpdates() {
 async function loadNavbar() {
     try {
         const repoName = 'PortfolioESG'; // Your GitHub repository name
-        let navTemplatePath = `/${repoName}/html/nav_template.html`; // Absolute path from site root
+        let navTemplatePath; 
+        const currentHostname = window.location.hostname;
+        const currentPathname = window.location.pathname;
 
-        // Fallback for local development (if not served from /PortfolioESG/ base)
-        if (!window.location.hostname.includes('github.io')) { // Simple check for local vs. GitHub Pages
-            navTemplatePath = window.location.pathname.includes('/html/') ? 'nav_template.html' : 'html/nav_template.html';
-        } else {
+        console.log('[NAV DEBUG] Hostname:', currentHostname);
+        console.log('[NAV DEBUG] Pathname:', currentPathname);
+
+        if (currentHostname.includes('github.io')) {
+            navTemplatePath = `/${repoName}/html/nav_template.html`; // Absolute path from site root for GitHub Pages
+            console.log('[NAV DEBUG] GitHub Pages. navTemplatePath set to:', navTemplatePath);
+        } else { 
+            // Logic for local (Mac) and RPi server
+            console.log('[NAV DEBUG] RPi/Local environment detected.');
              // Logic for local (Mac) and RPi server
-            const currentPathname = window.location.pathname;
             if (currentPathname.endsWith('/') || currentPathname.endsWith('/index.html')) {
                 // This is index.html (likely on Mac dev environment, served from project root)
                 // or the root of a site.
                 navTemplatePath = 'html/nav_template.html';
+                console.log('[NAV DEBUG] RPi/Local. Path ends with / or /index.html. navTemplatePath set to:', navTemplatePath);
             } else {
                 // This is for other pages like pipeline.html, esgportfolio.html, etc.
                 // On Mac, currentPathname is /PortfolioESG_public/html/pipeline.html, nav_template.html is a sibling.
                 // On RPi, currentPathname is /pipeline.html, nav_template.html is a sibling.
                 navTemplatePath = 'nav_template.html';
+                console.log('[NAV DEBUG] RPi/Local. Path does NOT end with / or /index.html. navTemplatePath set to:', navTemplatePath);
             }
-        }
+        } 
 
         const response = await fetch(navTemplatePath + '?t=' + new Date().getTime());
         if (!response.ok) {
