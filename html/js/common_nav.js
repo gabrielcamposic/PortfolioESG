@@ -120,8 +120,17 @@ function initializeNavbarStatusUpdates() {
 // --- Loads the navbar template and then initializes status updates ---
 async function loadNavbar() {
     try {
-        const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html');
-        const navTemplatePath = isIndexPage ? 'html/nav_template.html' : 'nav_template.html';
+        // Construct path to nav_template.html, assuming it's always in an 'html' directory
+        // at the same level or one level down from where index.html might be.
+
+        // If the current page is in the /html/ directory, nav_template.html is a sibling.
+        // If the current page is at the root (like index.html), nav_template.html is in ./html/
+        let navTemplatePath;
+        if (window.location.pathname.includes('/html/')) {
+            navTemplatePath = 'nav_template.html'; // e.g. from /html/pipeline.html
+        } else {
+            navTemplatePath = 'html/nav_template.html'; // e.g. from /index.html
+        }
 
         const response = await fetch(navTemplatePath + '?t=' + new Date().getTime());
         if (!response.ok) {
