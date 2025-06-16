@@ -1,4 +1,4 @@
-rm a simple pipeline to go from raw data to a potential portfolio suggestion.</p>
+<p>The project's workflow is managed by two main Python scripts: <code>Download.py</code>, which handles getting the data, and <code>Engine.py</code>, where the optimization calculations happen. They form a simple pipeline to go from raw data to a potential portfolio suggestion.</p>
 
 <h4><code>Download.py</code>: Fueling the Analysis with Data</h4>
 <p>Good analysis starts with good data. My <code>Download.py</code> script is built to gather the historical financial information needed for the optimization process. Its main tasks include:</p>
