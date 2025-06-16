@@ -40,6 +40,29 @@
             <!-- Content will be loaded here by JavaScript -->
         </div>
 
+        <div class="stage-block" id="project-previews">
+            <h2>Pré-visualizações do Projeto</h2> <!-- Default title, will be updated by JS -->
+            <div class="project-previews-container">
+                <div class="preview-item">
+                    <img src="html/img/pipeline_preview.png" alt="Pré-visualização do Status do Pipeline">
+                    <p>Status do Pipeline</p>
+                </div>
+                <div class="preview-item">
+                    <img src="html/img/esgportfolio_preview.png" alt="Pré-visualização da Carteira ESG">
+                    <p>Carteira ESG</p>
+                </div>
+                <div class="preview-item">
+                    <img src="html/img/engine_performance_preview.png" alt="Pré-visualização da Performance do Motor">
+                    <p>Performance do Motor</p>
+                </div>
+                <div class="preview-item">
+                    <img src="html/img/script_performance_preview.png" alt="Pré-visualização da Performance dos Scripts">
+                    <p>Performance dos Scripts</p>
+                </div>
+            </div>
+        </div>
+
+
         <div class="stage-block" id="status-future">
             <h2>Status e Futuro do Projeto (Open Source)</h2>
             <!-- Content will be loaded here by JavaScript -->
@@ -62,6 +85,7 @@
                 howItWorksTitle: "Como Funciona: Inteligência Quantitativa Aplicada",
                 featuresTitle: "Funcionalidades Principais",
                 technologyTitle: "Tecnologia e Desenvolvimento",
+                projectPreviewsTitle: "Pré-visualizações do Projeto",
                 statusFutureTitle: "Status e Futuro do Projeto (Open Source)",
                 contactTitle: "Acesse o Código e Conecte-se",
                 navOverview: "Visão Geral",
@@ -78,6 +102,7 @@
                 howItWorksTitle: "How It Works: Applied Quantitative Intelligence",
                 featuresTitle: "Main Features",
                 technologyTitle: "Technology and Development",
+                projectPreviewsTitle: "Project Previews",
                 statusFutureTitle: "Status and Future (Open Source)",
                 contactTitle: "Access Code and Connect",
                 navOverview: "Overview",
@@ -94,6 +119,7 @@
                 howItWorksTitle: "Cómo Funciona: Inteligencia Cuantitativa Aplicada",
                 featuresTitle: "Funcionalidades Principales",
                 technologyTitle: "Tecnología y Desarrollo",
+                projectPreviewsTitle: "Vistas Previas del Proyecto",
                 statusFutureTitle: "Estado y Futuro (Código Abierto)",
                 contactTitle: "Acceder al Código y Conectar",
                 navOverview: "Visión General",
@@ -126,6 +152,7 @@
             document.querySelector('#how-it-works h2').textContent = langTrans.howItWorksTitle;
             document.querySelector('#features h2').textContent = langTrans.featuresTitle;
             document.querySelector('#technology h2').textContent = langTrans.technologyTitle;
+            document.querySelector('#project-previews h2').textContent = langTrans.projectPreviewsTitle;
             document.querySelector('#status-future h2').textContent = langTrans.statusFutureTitle;
             document.querySelector('#contact h2').textContent = langTrans.contactTitle;
 
@@ -138,6 +165,7 @@
                 { id: 'how-it-works', file: 'text_content/how_it_works.txt' },
                 { id: 'features', file: 'text_content/features.txt' },
                 { id: 'technology', file: 'text_content/technology.txt' },
+                // The new 'project-previews' section does not load dynamic text content from a .txt file.
                 { id: 'status-future', file: 'text_content/status_future.txt' },
                 { id: 'contact', file: 'text_content/contact.txt' }
             ];
@@ -146,6 +174,10 @@
 
             for (const section of sections) {
                 const sectionElement = document.getElementById(section.id);
+                // Skip if the section is project-previews as its content is static HTML
+                if (section.id === 'project-previews') {
+                    continue;
+                }
                 if (sectionElement) {
                     const h2Element = sectionElement.querySelector('h2');
                     if (!h2Element) {
