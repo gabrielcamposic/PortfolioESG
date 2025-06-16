@@ -159,6 +159,13 @@ async function loadNavbar() {
                         logoLink.setAttribute('href', '#overview'); 
                     }
 
+                    // Add hamburger toggle for index.html
+                    const navToggle = document.createElement('button');
+                    navToggle.className = 'nav-toggle';
+                    navToggle.setAttribute('aria-label', 'toggle navigation');
+                    navToggle.setAttribute('aria-expanded', 'false');
+                    navToggle.innerHTML = '<span class="hamburger-icon"></span>';
+
                     const navLinksUl = navElement.querySelector('.nav-links');
                     if (navLinksUl) {
                         navLinksUl.innerHTML = ''; // Clear existing links from nav_template.html
@@ -177,6 +184,13 @@ async function loadNavbar() {
                             a.textContent = linkInfo.text;
                             li.appendChild(a);
                             navLinksUl.appendChild(li);
+                        });
+
+                        // Insert toggle before navLinksUl or after logo
+                        navElement.insertBefore(navToggle, navLinksUl);
+                        navToggle.addEventListener('click', () => {
+                            navLinksUl.classList.toggle('nav-links-active');
+                            navToggle.setAttribute('aria-expanded', navLinksUl.classList.contains('nav-links-active'));
                         });
                     }
 
@@ -197,6 +211,8 @@ async function loadNavbar() {
                     // For other pages (pipeline.html, esgportfolio.html, etc.)
                     navbarPlaceholder.appendChild(navElement); // Append the original nav element
                     // Find and execute the script tag from nav_template.html
+                // The script in nav_template.html now has a DOMContentLoaded listener,
+                // so it should execute correctly when appended and parsed.
                     const scriptElement = doc.querySelector('script');
                     if (scriptElement) {
                         const newScript = document.createElement('script');

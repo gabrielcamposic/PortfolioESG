@@ -10,8 +10,9 @@ body {
     left: 0;
     width: 100%;
     z-index: 1000;
-    background-color: #2c3e50; /* Dark background for the navbar */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #ffffff; /* White background for the navbar */
+    border-bottom: 1px solid #dadce0; /* Subtle border like Google's headers */
+    /* box-shadow: 0 2px 4px rgba(0,0,0,0.1); */ /* Optional: remove or soften shadow */
 }
 
 #top-navbar {
@@ -25,8 +26,9 @@ body {
 }
 
 .nav-logo a {
-    color: #ecf0f1;
+    color: #202124; /* Darker text color for logo, matching h1 */
     font-size: 1.5em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Consistent font */
     font-weight: bold;
     text-decoration: none;
 }
@@ -47,31 +49,34 @@ body {
 }
 
 .nav-links a {
-    color: #ecf0f1;
+    color: #5f6368; /* Softer link color, matching page subtitle */
     text-decoration: none;
     font-size: 1em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Consistent font */
     padding: 10px 15px;
     border-radius: 4px;
     transition: background-color 0.3s ease, color 0.3s ease;
+    font-weight: 500; /* Medium weight for nav links */
 }
 
 /* Style for hovered links */
 .nav-links a:hover {
-    background-color: #3498db;
-    color: #fff;
+    background-color: #f1f3f4; /* Lighter hover background */
+    color: #202124; /* Darker text on hover */
 }
 
 /* Style for the currently active page link */
 #top-navbar .nav-links a.active { /* Increased specificity by adding the parent ID */
-    background-color: #3498db;
-    color: #fff;
+    background-color: #e8f0fe; /* Light blue background for active, Google-like */
+    color: #1967d2; /* Blue text for active, Google-like */
+    font-weight: 600;
 }
 
 .nav-status-widget {
     position: relative;
     display: flex;
     align-items: center;
-    color: #ecf0f1;
+    color: #5f6368; /* Match link color */
 }
 
 .status-indicator {
@@ -79,24 +84,26 @@ body {
     border-radius: 4px;
     font-size: 0.9em;
     color: #fff; /* Default text color, background will provide contrast */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Consistent font */
 }
 
 /* Status classes from common_nav.js will be applied here */
-.status-indicator.status-pending { background-color: #f39c12; }
-.status-indicator.status-running { background-color: #3498db; }
-.status-indicator.status-completed { background-color: #2ecc71; }
-.status-indicator.status-error { background-color: #e74c3c; }
-.status-indicator.status-inactive { background-color: #95a5a6; }
+/* Softer status colors */
+.status-indicator.status-pending { background-color: #fdc65a; color: #3c4043; } /* Softer yellow, dark text */
+.status-indicator.status-running { background-color: #89b9e1; color: #fff; } /* Softer blue */
+.status-indicator.status-completed { background-color: #81c995; color: #fff; } /* Softer green */
+.status-indicator.status-error { background-color: #f28b82; color: #fff; } /* Softer red */
+.status-indicator.status-inactive { background-color: #dadce0; color: #3c4043; } /* Light grey, dark text */
 
 .status-details-tooltip {
     display: none;
     position: absolute;
     top: 100%; 
     right: 0;
-    background-color: #34495e;
-    color: #ecf0f1;
-    border: 1px solid #2c3e50;
-    border-radius: 0 0 4px 4px;
+    background-color: #ffffff; /* White background */
+    color: #3c4043; /* Dark text */
+    border: 1px solid #dadce0; /* Subtle border */
+    border-radius: 8px; /* Rounded corners */
     padding: 10px 15px;
     width: 280px; 
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -113,10 +120,96 @@ body {
     margin: 8px 0;
 }
 .status-details-tooltip strong {
-    color: #bdc3c7;
+    color: #202124; /* Darker strong text */
     min-width: 60px;
     display: inline-block;
 }
 
-/* Add responsive adjustments if needed */
-/* @media (max-width: 768px) { ... } */
+/* Hamburger Menu Styles */
+.nav-toggle {
+    display: none; /* Hidden by default, shown on mobile */
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    padding: 0.5em;
+    position: relative; 
+    z-index: 1001; 
+}
+
+.hamburger-icon {
+    display: block;
+    position: relative;
+    width: 25px; 
+    height: 3px; 
+    background: #5f6368; 
+    border-radius: 2px;
+    transition: all 0.2s ease-in-out;
+}
+
+.hamburger-icon::before,
+.hamburger-icon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 3px; 
+    background: #5f6368; 
+    border-radius: 2px;
+    transition: all 0.2s ease-in-out;
+}
+
+.hamburger-icon::before {
+    top: -8px; 
+}
+
+.hamburger-icon::after {
+    bottom: -8px; 
+}
+
+/* Mobile Navigation Styles */
+@media (max-width: 768px) {
+    .nav-toggle {
+        display: block; /* Show hamburger on mobile */
+    }
+
+    .nav-links {
+        display: none; /* Hide links by default on mobile */
+        position: absolute;
+        top: 60px; /* Position below the navbar (assuming navbar height is 60px) */
+        left: 0;
+        right: 0;
+        background-color: #ffffff; /* Background for mobile menu */
+        flex-direction: column;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+        border-top: 1px solid #dadce0;
+    }
+
+    .nav-links.nav-links-active {
+        display: flex; /* Show when active */
+    }
+
+    .nav-links li {
+        margin: 0;
+    }
+
+    .nav-links a {
+        display: block;
+        padding: 1em; /* Larger touch target */
+        border-bottom: 1px solid #f1f3f4; /* Separator for links */
+    }
+    .nav-links li:last-child a {
+        border-bottom: none;
+    }
+
+    .nav-status-widget {
+        /* Hide status widget on small screens if it causes layout issues, or adjust its position */
+        /* display: none; */
+        margin-left: auto; /* Push to right if nav-links are hidden */
+        margin-right: 5px; /* Space from hamburger */
+    }
+    #top-navbar {
+        padding: 0 15px; /* Reduce navbar padding on mobile */
+    }
+}

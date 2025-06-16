@@ -1,35 +1,33 @@
 /* /Users/gabrielcampos/Documents/Prog/PortfolioESG_public/html/css/main_styles.css */
 body {
-    font-family: Arial, sans-serif;
-    /* margin: 0; /* REMOVED: Let navbar_styles.css handle top margin */
-    /* padding-left: 240px; /* REMOVE: No longer needed for top nav */
-    /* padding-top: 20px; /* REMOVE: Top spacing is handled by navbar_styles.css body margin-top */
-    padding-right: 20px;
-    padding-bottom: 20px;
-    /* Ensure padding-left is 20px for consistency if desired, or remove if not needed */
-    padding-left: 20px; 
-    background-color: #f8f9fa;
-    color: #343a40;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    padding-right: 20px; 
+    padding-bottom: 40px; /* More space at the bottom */
+    padding-left: 20px;  
+    background-color: #ffffff; 
+    color: #3c4043; /* Google's primary text color */
     font-size: 1rem;
-    line-height: 1.1; /* Adjusted for better readability than 1 */
+    line-height: 1.6; /* Improved line height for readability */
 }
 
 h1 {
-    color: #2c3e50;
+    color: #202124; /* Darker, more modern heading color */
     text-align: left;
-    margin-bottom: 30px;
-    margin-top: 0px;
-    font-size: 2.4em;
-    font-weight: 600;
+    margin-top: 15px; 
+    margin-bottom: 10px; 
+    font-size: 2.5em; 
+    font-weight: 700; /* Bolder */
+    letter-spacing: -0.5px;
 }
 
 .page-subtitle { /* Style for the new subtitle on index.html */
-    font-size: 1.4em;
-    color: #555; /* Slightly lighter than h1 */
-    margin-top: -20px; /* Pull it up a bit closer to the h1 */
-    margin-bottom: 30px;
-    font-weight: 400; /* Normal weight */
+    font-size: 1.5em; /* Slightly larger */
+    color: #5f6368; /* Softer subtitle color */
+    margin-top: 0; 
+    margin-bottom: 40px; 
+    font-weight: 400; 
     text-align: left;
+    line-height: 1.5;
 }
 
 /* REMOVE OLD NAV STYLES: The styles for the old left-hand navigation (generic 'nav' selector, .nav-section-title, nav h2, nav a, #nav-pipeline-status-details, .nav-divider, .nav-footer, etc.) should be removed or commented out as they conflict with the new top navbar styled by css/navbar_styles.css */
@@ -37,50 +35,51 @@ h1 {
 /* Common Content Block Styles */
 .stage-block {
     background-color: #fff;
-    border: 1px solid #e0e0e0;
-    padding: 20px;
-    margin-bottom: 25px;
-    border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    /* border: 1px solid #e0e0e0; */ /* Removed border */
+    padding: 20px 0; 
+    margin-bottom: 30px; 
+    /* border-radius: 6px; */ /* Removed border-radius for a flatter look */
+    /* box-shadow: 0 2px 4px rgba(0,0,0,0.05); */ /* Removed shadow */
+    /* transition: border-color 0.3s ease, box-shadow 0.3s ease; */ /* No longer needed */
     scroll-margin-top: 70px; /* Offset for fixed navbar when scrolling to an ID */
 }
 
-.stage-block:hover {
+/* .stage-block:hover {
      border-color: #bdc3c7;
      box-shadow: 0 3px 6px rgba(0,0,0,0.07);
-}
+} */ /* Removed hover effect */
 
 .stage-block h2 { /* Main title for a stage block */
     margin-top: 0;
-    color: #34495e;
-    border-bottom: 1px solid #dee2e6;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-    font-size: 1.75em;
-    font-weight: 600;
+    color: #202124;
+    border-bottom: 1px solid #dadce0; /* Softer border color */
+    padding-bottom: 8px;
+    margin-bottom: 20px; 
+    font-size: 2em; /* Slightly larger */
+    font-weight: 500; /* Medium weight */
     text-align: left;
 }
 
 .stage-block h3 { /* Sub-headings within a stage block */
     margin-top: 20px;
     margin-bottom: 10px;
-    color: #495057;
-    font-size: 1.4em;
-    font-weight: 600;
+    color: #3c4043; 
+    font-size: 1.5em;
+    font-weight: 500;
     padding-bottom: 5px;
-    border-bottom: 1px solid #eee;
+    /* border-bottom: 1px solid #eee; */ /* Optional: remove for even cleaner look */
     text-align: left;
 }
 
 .stage-block p {
-    margin-bottom: 8px;
-    font-size: 0.95em;
-    color: #495057;
+    margin-bottom: 1em; 
+    font-size: 1em; /* Standardize paragraph font size */
+    color: #5f6368; /* Softer paragraph text color */
+    line-height: 1.7; /* Increased line-height for paragraphs */
 }
 
 .stage-block strong {
-    color: #343a40;
+    color: #3c4043; /* Match heading text color */
     font-weight: bold;
 }
 
@@ -88,12 +87,12 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: 25px; /* More space above table */
     font-size: 0.9em; /* Standardized table font size */
 }
 
 th, td {
-    border: 1px solid #ddd;
+    border: 1px solid #dadce0; /* Softer border */
     padding: 6px; /* Standardized padding */
     text-align: left;
     white-space: nowrap;
@@ -101,10 +100,11 @@ th, td {
 
 th {
     background-color: #f2f2f2;
+    font-weight: 500; /* Medium weight for table headers */
 }
 
 tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #f8f9fa; /* Slightly different even row color */
 }
 
 .table-container {
@@ -196,31 +196,32 @@ tr:nth-child(even) {
     display: flex;
     flex-wrap: wrap; /* Allow images to wrap to the next line on smaller screens */
     justify-content: space-around; /* Distribute space around items */
-    gap: 20px; /* Space between images */
-    margin-top: 20px; /* Space above the container */
+    gap: 30px; /* Increased space between images */
+    margin-top: 25px; /* Space above the container */
 }
 
 .preview-item {
-    flex-basis: calc(50% - 20px); /* Aim for two items per row, accounting for gap */
-    max-width: calc(50% - 20px); /* Ensure it doesn't exceed 50% with gap */
+    flex-basis: calc(50% - 30px); /* Aim for two items per row, accounting for new gap */
+    max-width: calc(50% - 30px); 
     text-align: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    padding: 15px;
-    border-radius: 8px;
-    background-color: #fdfdfd; /* Slightly off-white background for items */
+    /* box-shadow: 0 2px 5px rgba(0,0,0,0.1); */ /* Removed shadow for cleaner look */
+    padding: 0; /* Remove padding, rely on image margin and caption margin */
+    /* border-radius: 8px; */ /* Removed border-radius */
+    /* background-color: #fdfdfd; */ /* Removed background color */
     box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }
 
 .preview-item img {
     max-width: 100%;
     height: auto; /* Maintain aspect ratio */
-    border-radius: 4px;
-    border: 1px solid #eee; /* Light border around images */
+    border-radius: 8px; /* Slightly larger radius for images */
+    border: 1px solid #dadce0; /* Softer border around images */
+    display: block; /* To remove any extra space below image if it's inline */
 }
 
 .preview-item p { /* Caption styling */
     /* margin-top: 10px; */ /* Original when caption was below */
-    margin-bottom: 10px;   /* New: margin below the caption, above the image */
+    margin-bottom: 12px;   /* Increased margin below the caption, above the image */
     font-weight: bold;
     color: #333;
     font-size: 0.9em;
@@ -229,7 +230,36 @@ tr:nth-child(even) {
 /* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
     .preview-item {
-        flex-basis: calc(100% - 20px); /* One item per row on smaller screens */
-        max-width: calc(100% - 20px);
+        flex-basis: calc(100% - 30px); /* One item per row on smaller screens, accounting for new gap */
+        max-width: calc(100% - 30px);
+    }
+    body {
+        padding-left: 15px;
+        padding-right: 15px;
+        font-size: 0.95rem; /* Slightly smaller base font for mobile */
+    }
+    h1 {
+        font-size: 2em;
+        margin-top: 10px;
+    }
+    .page-subtitle {
+        font-size: 1.2em;
+        margin-bottom: 30px;
+    }
+    .stage-block h2 {
+        font-size: 1.6em;
+        margin-bottom: 15px;
+    }
+    .stage-block h3 {
+        font-size: 1.3em;
+    }
+    .stage-block {
+        padding: 15px 0;
+        margin-bottom: 25px;
+    }
+    .language-switcher button { /* Style language switcher buttons for mobile */
+        padding: 6px 10px;
+        font-size: 0.9em;
+        margin: 2px;
     }
 }
