@@ -1,24 +1,25 @@
 <ul>
-    <li><strong>Data-Driven Insights:</strong> Relies on historical market data for all analyses and portfolio construction.</li>
-    <li><strong>Highly Configurable:</strong> Utilizes external parameter files (<code>downpar.txt</code>, <code>simpar.txt</code>) for easy customization of data sources, simulation settings, stock lists (e.g., ESG criteria), risk-free rates, and portfolio size constraints without code modification.</li>
-    <li><strong>Risk-Aware Optimization:</strong> Primarily aims to maximize the Sharpe Ratio, effectively balancing expected return with portfolio risk (volatility).</li>
-    <li><strong>Advanced Search Techniques:</strong>
+    <li><strong>Data-Driven Approach:</strong> The analysis and portfolio suggestions are based on historical market data.</li>
+    <li><strong>Flexible Configuration:</strong> Uses simple external text files (<code>downpar.txt</code>, <code>simpar.txt</code>) to let you easily adjust settings like the list of stocks to consider (e.g., your chosen ESG list), the date range, portfolio size limits, risk-free rate, and optimization parameters without changing the Python code itself.</li>
+    <li><strong>Focus on Risk-Adjusted Return:</strong> The primary goal is to find portfolios that offer a good balance between potential return and risk, using the Sharpe Ratio as the main metric.</li>
+    <li><strong>Hybrid Optimization Methods:</strong>
         <ul>
-            <li>Employs a <strong>Brute-Force</strong> search for smaller portfolios to ensure all combinations are considered.</li>
-            <li>Utilizes <strong>Genetic Algorithms (GA)</strong> for larger portfolios to efficiently navigate vast search spaces.</li>
-            <li>Leverages <strong>Monte Carlo simulations</strong> to explore numerous random weighting schemes for each stock combination.</li>
+            <li>Combines a more thorough <strong>Brute-Force</strong> search for smaller portfolios.</li>
+            <li>Switches to a <strong>Genetic Algorithm (GA)</strong> for larger portfolios to find good solutions more efficiently.</li>
+            <li>Uses <strong>Monte Carlo simulations</strong> to evaluate the potential performance of different stock combinations with various weightings.</li>
         </ul>
     </li>
-    <li><strong>Adaptive & Efficient Engine:</strong> Incorporates intelligent strategies to optimize computational effort, including early discarding of unpromising candidates and dynamic adjustment of simulation intensity.</li>
-    <li><strong>Comprehensive Logging & Monitoring:</strong>
+    <li><strong>Adaptive Simulation Logic:</strong> Includes features to potentially speed up the process by focusing computational effort where it's most likely to find better results.</li>
+    <li><strong>Detailed Logging:</strong> Provides various logs to help you understand what the scripts are doing, track progress, see performance metrics, and review the final results.
         <ul>
-            <li>Detailed text logs for tracking script progress, decisions, and errors.</li>
-            <li>Performance logs to measure the efficiency of data download and optimization phases.</li>
-            <li>Web-accessible JSON files (<code>progress.json</code>) for near real-time monitoring of script execution status and key metrics.</li>
-            <li>CSV outputs for the best portfolio found, its historical value, and GA performance metrics.</li>
+            <li>Standard text logs for general progress and errors.</li>
+            <li>Performance logs to see how long different parts of the process took.</li>
+            <li>A web-accessible JSON file (<code>progress.json</code>) designed for simple monitoring of the script's status from a web browser.</li>
+            <li>CSV files containing the details of the best portfolio found, its historical value over the data period, and data related to the Genetic Algorithm's run.</li>
         </ul>
     </li>
-    <li><strong>Modular Design:</strong> Clear separation between data acquisition (<code>Download.py</code>) and optimization logic (<code>Engine.py</code>) enhances clarity, maintainability, and scalability.</li>
-    <li><strong>Market-Specific Data Handling:</strong> Accounts for business days and local holidays (e.g., São Paulo, Brazil) for accurate historical data retrieval.</li>
-    <li><strong>Resilient Data Downloading:</strong> Features user-agent rotation and request retries to improve the reliability of fetching data from online sources.</li>
+    <li><strong>Modular Structure:</strong> Separating data handling from the optimization logic makes the code easier to understand, modify, and potentially extend.</li>
+    <li><strong>Market Calendar Awareness:</strong> The data download script considers specific market holidays and business days for more accurate data collection.</li>
+    <li><strong>Robust Data Fetching:</strong> Includes features like retries and user agent rotation to handle potential issues when downloading data from online sources.</li>
 </ul>
+<p>These features are part of my ongoing development and exploration in this area.</p>

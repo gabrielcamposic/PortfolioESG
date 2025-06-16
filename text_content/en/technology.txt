@@ -1,29 +1,29 @@
-<p>The PortfolioESG model is built using Python and leverages several key libraries and concepts to achieve its functionality:</p>
+<p>This project is built using Python, leveraging several standard libraries commonly used in data analysis and scientific computing. Here are some of the key technologies and concepts involved:</p>
 <ul>
     <li><strong>Core Language:</strong> Python 3.x</li>
-    <li><strong>Data Acquisition & APIs:</strong>
+    <li><strong>Data Handling & External Interaction:</strong>
         <ul>
-            <li><code>yfinance</code>: For downloading historical stock market data from Yahoo Finance.</li>
-            <li><code>requests</code>: For making HTTP requests, with robust session management including retries.</li>
-            <li><code>fake_useragent</code>: To generate realistic browser user-agents for web scraping politeness and to avoid blocks.</li>
-            <li><code>holidays</code>: To accurately identify public holidays for specific markets (e.g., Brazil - SP).</li>
+            <li><code>yfinance</code>: Used to fetch historical stock data.</li>
+            <li><code>requests</code>: For managing HTTP connections, including handling retries for more reliable data fetching.</li>
+            <li><code>fake_useragent</code>: Helps in generating user agents for requests, which can be useful when interacting with web sources.</li>
+            <li><code>holidays</code>: Used to identify specific market holidays, ensuring data is collected for actual trading days.</li>
         </ul>
     </li>
     <li><strong>Data Manipulation & Analysis:</strong>
         <ul>
-            <li><code>pandas</code>: Extensively used for data structures (DataFrames), data cleaning, manipulation, time-series analysis, and CSV I/O.</li>
-            <li><code>numpy</code>: For numerical operations, especially in portfolio return and volatility calculations.</li>
+            <li><code>pandas</code>: This is fundamental for handling and manipulating the financial data, including reading/writing CSVs and time-series operations.</li>
+            <li><code>numpy</code>: Used for numerical computations, particularly in the mathematical calculations for portfolio performance (returns, volatility).</li>
         </ul>
     </li>
     <li><strong>Optimization & Algorithms:</strong>
         <ul>
-            <li>Implementation of <strong>Modern Portfolio Theory (MPT)</strong> principles.</li>
-            <li><strong>Monte Carlo Simulation</strong> for exploring portfolio weightings.</li>
-            <li>Custom-built <strong>Brute-Force</strong> search for smaller portfolio sizes.</li>
-            <li>Custom-built <strong>Genetic Algorithm (GA)</strong> for heuristic optimization of larger portfolios, including selection, crossover, and mutation operators.</li>
+            <li>The project implements concepts from <strong>Modern Portfolio Theory (MPT)</strong>.</li>
+            <li><strong>Monte Carlo Simulation</strong> is used to evaluate potential portfolio performance by trying random weightings.</li>
+            <li>A custom <strong>Brute-Force</strong> search is implemented for smaller portfolio sizes.</li>
+            <li>A custom <strong>Genetic Algorithm (GA)</strong> is used as a heuristic search method for larger portfolio sizes, including basic implementations of selection, crossover, and mutation.</li>
         </ul>
     </li>
-    <li><strong>Software Design & Utilities:</strong>
+    <li><strong>Code Structure & Utilities:</strong>
         <ul>
             <li><strong>Object-Oriented Programming (OOP):</strong> Used for classes like <code>Logger</code> and <code>ExecutionTimer</code> to encapsulate functionality.</li>
             <li><strong>Parameterization:</strong> External configuration files (<code>.txt</code>) for easy adjustment of script behavior without code changes.</li>
@@ -35,4 +35,5 @@
         </ul>
     </li>
 </ul>
-<p>The architecture emphasizes modularity, separating data handling from the analytical engine, and aims for robustness in data acquisition and computational efficiency in the optimization phase.</p>
+<p>The design focuses on keeping the data handling separate from the analysis engine, aiming for a clear and modular structure that is easier to understand and potentially modify.</p>
+

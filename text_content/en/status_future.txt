@@ -1,24 +1,25 @@
-<p><em>(This section should be filled in by you, the project owner. Here are some ideas of what you might include:)</em></p>
+<p>This project is a work in progress, primarily driven by my personal learning goals and interest in the field. It's shared openly for anyone interested in exploring these ideas further.</p>
 
 <h4>Current Status:</h4>
 <ul>
-    <li>Version X.Y.Z released.</li>
-    <li>Core functionalities for data download and portfolio optimization (Brute-Force, Genetic Algorithm, Sharpe Ratio maximization) are implemented and tested.</li>
+    <li>The core logic for downloading historical data and performing portfolio optimization using a hybrid Brute-Force/Genetic Algorithm approach (focused on Sharpe Ratio) is implemented.</li>
     <li>Web-based progress monitoring is active.</li>
-    <li>Key features include [...list key stable features...].</li>
+    <li>The project includes logging for results and performance.</li>
+    <li><em>(You can add specific stable features or milestones here, e.g., "Basic parameter configuration via text files is functional.")</em></li>
 </ul>
 
 <h4>Planned Features & Future Development:</h4>
+<p>Here are some areas I'm considering for future development, or that could be interesting avenues for contributors:</p>
 <ul>
     <li>Integration of more sophisticated risk models (e.g., Conditional Value at Risk - CVaR).</li>
     <li>Backtesting framework to evaluate portfolio performance on out-of-sample data.</li>
     <li>Enhanced Genetic Algorithm operators and convergence criteria.</li>
     <li>Support for additional asset classes (e.g., bonds, cryptocurrencies).</li>
     <li>More advanced data visualization for portfolio analysis.</li>
-    <li>Option for direct weight optimization within the Genetic Algorithm.</li>
+    <li>Exploring different optimization objectives beyond just Sharpe Ratio.</li>
     <li>Parallelization of computationally intensive tasks.</li>
-    <li>User interface improvements for parameter configuration and results display.</li>
+    <li>Improving the flexibility and user-friendliness of parameter configuration.</li>
 </ul>
 
 <h4>Contributing:</h4>
-<p>This is an open-source project, and contributions are welcome! If you're interested in contributing, please check out the [Link to GitHub Issues] or [Link to Contribution Guidelines].</p>
+<p>As an open-source project, contributions are very welcome! Whether it's suggesting new features, improving the code's efficiency, adding support for new data sources, enhancing the algorithms, or fixing bugs, your input is valuable. Please feel free to open issues or pull requests on the GitHub repository.</p>
