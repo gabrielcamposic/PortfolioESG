@@ -174,6 +174,7 @@ async function loadNavbar() {
                             { href: '#how-it-works', text: 'Como Funciona' },
                             { href: '#features', text: 'Funcionalidades' },
                             { href: '#technology', text: 'Tecnologia' },
+                            { href: '#project-previews', text: 'Pré-visualizações' }, // Default text, will be translated
                             { href: '#status-future', text: 'Status e Futuro' },
                             { href: '#contact', text: 'Contato' }
                         ];
@@ -218,6 +219,17 @@ async function loadNavbar() {
                         const newScript = document.createElement('script');
                         newScript.textContent = scriptElement.textContent; // Copy the script content
                         document.head.appendChild(newScript); // Append to head to execute
+                    }
+                    // Translate links in the loaded navElement for non-index pages
+                    // This assumes 'translations' and 'currentLanguage' are globally available on the page (e.g., pipeline.html)
+                    if (navElement && typeof translations !== 'undefined' && typeof currentLanguage !== 'undefined' && translations[currentLanguage]) {
+                        const langTrans = translations[currentLanguage];
+                        navElement.querySelectorAll('a[data-translate-key]').forEach(a => {
+                            const key = a.getAttribute('data-translate-key');
+                            if (langTrans[key]) {
+                                a.textContent = langTrans[key];
+                            }
+                        });
                     }
                     initializeNavbarStatusUpdates(); // Start updating status only for non-index pages
                 }
