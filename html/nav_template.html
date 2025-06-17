@@ -24,6 +24,19 @@
     </div>
 </nav>
 <script>
+    // Hamburger menu toggle logic - runs when this script is parsed.
+    // This is for pages that load nav_template.html (e.g., pipeline.html, esgportfolio.html).
+    // common_nav.js handles the hamburger for index.html separately.
+    const navToggleInTemplate = document.querySelector('#top-navbar .nav-toggle');
+    const navLinksInTemplate = document.querySelector('#top-navbar .nav-links');
+
+    if (navToggleInTemplate && navLinksInTemplate) {
+        navToggleInTemplate.addEventListener('click', () => {
+            navLinksInTemplate.classList.toggle('nav-links-active');
+            navToggleInTemplate.setAttribute('aria-expanded', navLinksInTemplate.classList.contains('nav-links-active'));
+        });
+    }
+
 // Run active link highlighting immediately when this script is parsed
 console.log('[NAV SCRIPT] Running active link highlighting script...');
 (function() {

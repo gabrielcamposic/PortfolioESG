@@ -226,14 +226,15 @@ async function loadNavbar() {
                 } else {
                     // For other pages (pipeline.html, esgportfolio.html, etc.)
                     navbarPlaceholder.appendChild(navElement); // Append the original nav element
+
                     // Find and execute the script tag from nav_template.html
-                // The script in nav_template.html now has a DOMContentLoaded listener,
-                // so it should execute correctly when appended and parsed.
+                    // By appending it here, it executes in the context of the main document
+                    // after navElement is part of the DOM.
                     const scriptElement = doc.querySelector('script');
                     if (scriptElement) {
                         const newScript = document.createElement('script');
                         newScript.textContent = scriptElement.textContent; // Copy the script content
-                        document.head.appendChild(newScript); // Append to head to execute
+                        navbarPlaceholder.appendChild(newScript); // Append to placeholder to execute
                     }
                     // Translate links in the loaded navElement for non-index pages
                     // This assumes 'translations' and 'currentLanguage' are globally available on the page (e.g., pipeline.html)

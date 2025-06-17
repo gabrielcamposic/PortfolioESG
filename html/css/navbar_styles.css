@@ -42,6 +42,7 @@ body {
 
 .nav-links li {
     margin-left: 15px;
+    flex-shrink: 0; /* Prevent list items from shrinking too much */
 }
 
 .nav-links li:first-child {
@@ -56,6 +57,7 @@ body {
     padding: 10px 15px;
     border-radius: 4px;
     transition: background-color 0.3s ease, color 0.3s ease;
+    white-space: nowrap; /* Prevent text within a link from wrapping */
     font-weight: 500; /* Medium weight for nav links */
 }
 
