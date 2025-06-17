@@ -17,7 +17,7 @@
 <p><em>Why is this important?</em> Accurate, comprehensive, and up-to-date historical data is the bedrock of any sound financial analysis. <code>Download.py</code> ensures our optimization engine has the quality input it needs.</p>
 
 <h4><code>Engine.py</code>: Crafting Optimized Portfolios</h4>
-<p>Once the data is ready, <code>Engine.py</code> takes over. This script is where the computational heavy lifting happens, exploring different combinations of stocks to find potentially "optimized" portfolios. It's designed to be computationally intensive yet manageable, even on less powerful hardware. Here's a look at the techniques used:</p>
+<p>Once the data is ready, <code>Engine.py</code> takes over. This script is where the computational heavy lifting happens, exploring different combinations of stocks to find potentially "optimized" portfolios. Its development, particularly in structuring the complex optimization logic and exploring algorithmic approaches, was aided by AI coding assistants. It's designed to be computationally intensive yet manageable, even on less powerful hardware. Here's a look at the techniques used:</p>
 <ul>
     <li><strong>Foundation in Financial Theory:</strong> The engine's logic is rooted in <strong>Modern Portfolio Theory (MPT)</strong>. The primary objective is to <strong>maximize the Sharpe Ratio</strong>, a key metric that measures return relative to risk.</li>
     <li><strong>Data Preparation:</strong> It efficiently reads the historical data, calculates daily returns, and selects a pool of stocks to focus the search on (currently based on individual Sharpe Ratios).</li>

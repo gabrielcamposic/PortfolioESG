@@ -34,6 +34,10 @@
             <li><code>itertools</code>, <code>math</code>: For combinatorial calculations and mathematical functions.</li>
         </ul>
     </li>
+    <li><strong>Development Approach & AI Assistance:</strong>
+        <ul>
+            <li>The development of this project was significantly accelerated and enhanced by leveraging AI-powered coding assistants, including <strong>Google's Gemini</strong>, <strong>OpenAI's ChatGPT</strong>, and <strong>Microsoft CoPilot</strong>. These tools were instrumental in brainstorming solutions, generating boilerplate code, debugging, and exploring complex algorithms, showcasing a modern approach to software engineering.</li>
+        </ul>
+    </li>
 </ul>
 <p>The design focuses on keeping the data handling separate from the analysis engine, aiming for a clear and modular structure that is easier to understand and potentially modify.</p>
-

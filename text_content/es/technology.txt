@@ -34,5 +34,10 @@
             <li><code>itertools</code>, <code>math</code>: Usado para cálculos combinatorios y otras necesidades matemáticas.</li>
         </ul>
     </li>
+    <li><strong>Enfoque de Desarrollo y Asistencia de IA:</strong>
+        <ul>
+            <li>El desarrollo de este proyecto fue significativamente acelerado y mejorado mediante el uso de asistentes de codificación impulsados por IA, incluyendo <strong>Gemini de Google</strong>, <strong>ChatGPT de OpenAI</strong> y <strong>Microsoft CoPilot</strong>. Estas herramientas fueron fundamentales en la lluvia de ideas de soluciones, generación de código base, depuración y exploración de algoritmos complejos, demostrando un enfoque moderno de la ingeniería de software.</li>
+        </ul>
+    </li>
 </ul>
 <p>El diseño se centra en mantener el manejo de datos separado del motor de análisis, buscando una estructura clara y modular que sea más fácil de entender y potencialmente modificar.</p>
