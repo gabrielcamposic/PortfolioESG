@@ -10,15 +10,15 @@
 <h4>Planned Features & Future Development:</h4>
 <p>Here are some areas I'm considering for future development, or that could be interesting avenues for contributors:</p>
 <ul>
+    <li>Usage of regression models to select target ESG stocks, based on publicly available economic data and ESG data</li>
     <li>Integration of more sophisticated risk models (e.g., Conditional Value at Risk - CVaR).</li>
     <li>Backtesting framework to evaluate portfolio performance on out-of-sample data.</li>
     <li>Enhanced Genetic Algorithm operators and convergence criteria.</li>
-    <li>Support for additional asset classes (e.g., bonds, cryptocurrencies).</li>
+    <li>Support for additional asset classes (e.g., treasury bonds).</li>
     <li>More advanced data visualization for portfolio analysis.</li>
-    <li>Exploring different optimization objectives beyond just Sharpe Ratio.</li>
+    <li>Exploring different and more modern optimization objectives beyond just Sharpe Ratio.</li>
     <li>Parallelization of computationally intensive tasks.</li>
     <li>Improving the flexibility and user-friendliness of parameter configuration.</li>
 </ul>
-
 <h4>Contributing:</h4>
 <p>As an open-source project, contributions are very welcome! Whether it's suggesting new features, improving the code's efficiency, adding support for new data sources, enhancing the algorithms, or fixing bugs, your input is valuable. Please feel free to open issues or pull requests on the GitHub repository.</p>
