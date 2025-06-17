@@ -151,12 +151,30 @@ tr:nth-child(even) {
     font-size: 0.8em;
 }
 
-/* Stage Block Status Borders (used in pipeline.html) */
-.stage-block.status-pending { border-left: 5px solid #f39c12; }
+/* Remove old Stage Block Status Borders */
+/* .stage-block.status-pending { border-left: 5px solid #f39c12; }
 .stage-block.status-running { border-left: 5px solid #3498db; box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15); }
 .stage-block.status-completed { border-left: 5px solid #27ae60; }
 .stage-block.status-error { border-left: 5px solid #e74c3c; box-shadow: 0 2px 6px rgba(231, 76, 60, 0.15); }
-.stage-block.status-inactive { border-left: 5px solid #bdc3c7; }
+.stage-block.status-inactive { border-left: 5px solid #bdc3c7; } */
+
+/* New Stage Status Pill Styles */
+.stage-status-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    margin-left: 15px;
+    border-radius: 12px; /* Pill shape */
+    font-size: 0.75em;   /* Smaller font size relative to h2 */
+    font-weight: bold;
+    color: #fff; /* Default text color, background will provide contrast */
+    vertical-align: middle; /* Align nicely with h2 text */
+}
+
+.stage-status-pill.status-pending { background-color: #fdc65a; color: #3c4043; }
+.stage-status-pill.status-running { background-color: #89b9e1; color: #fff; }
+.stage-status-pill.status-completed { background-color: #81c995; color: #fff; }
+.stage-status-pill.status-error { background-color: #f28b82; color: #fff; }
+.stage-status-pill.status-inactive { background-color: #dadce0; color: #3c4043; }
 
 /* Specific text styling from pipeline.html */
 .stage-block p span:not(.status-text) { /* Ensure non-status spans are normal */

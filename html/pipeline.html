@@ -15,7 +15,7 @@
 
         <!-- Stage 2: Stock Data Download -->
         <div class="stage-block" id="download-stage">
-            <h2>Stock database update</h2>
+            <h2>Stock database update <span class="stage-status-pill" id="download-stage-status-pill">Pending</span></h2>
             <div class="stage-columns">
                 <div class="column stage-details"> <!-- Left Column - Added stage-details class -->
                 <h3>Overall Details</h3>
@@ -38,7 +38,7 @@
     <!-- Stage 3-6: Portfolio Optimization Engine -->
     <div class="stage-block" id="engine-stage">
 
-        <h2>Portfolio Optimization Progress</h2>
+        <h2>Portfolio Optimization Progress <span class="stage-status-pill" id="engine-stage-status-pill">Pending</span></h2>
         <div class="stage-columns">
             <div class="column stage-details"> <!-- Left Column - Added stage-details class -->
                 <h3>Overall Details</h3>
@@ -164,25 +164,29 @@
         }
 
         // Function to set status class on a stage block
-        function setStageStatus(stageId, status) {
-            const stageElement = document.getElementById(stageId);
-            if (stageElement) {
-                stageElement.classList.remove('status-pending', 'status-running', 'status-completed', 'status-error');
-                if (status) {
-                    // Clean status string for class name: toLowerCase, remove non-alpha, then prefix with 'status-'
-                    let className = 'status-' + status.toLowerCase().replace(/[^a-z]/g, '');
-                    // Handle common variations for "running" or "in progress"
-                    if (status.toLowerCase().includes("running") || status.toLowerCase().includes("progress") || status.toLowerCase().includes("started")) {
+        function setStageStatus(stageId, statusText) { // statusText is like "Running", "Completed"
+            const statusPill = document.getElementById(stageId + '-status-pill'); // e.g., download-stage-status-pill
+            if (statusPill) {
+                statusPill.textContent = statusText || 'Pending'; // Set the text of the pill
+
+                // Remove old status classes and add the new one
+                statusPill.classList.remove('status-pending', 'status-running', 'status-completed', 'status-error', 'status-inactive');
+                
+                let className = 'status-pending'; // Default class
+                if (statusText) {
+                    const lowerStatus = statusText.toLowerCase();
+                    if (lowerStatus.includes("running") || lowerStatus.includes("progress") || lowerStatus.includes("started") || lowerStatus.includes("initializing")) {
                         className = 'status-running';
-                    } else if (status.toLowerCase().includes("completed") || status.toLowerCase().includes("finished")) {
+                    } else if (lowerStatus.includes("completed") || lowerStatus.includes("finished")) {
                         className = 'status-completed';
-                    } else if (status.toLowerCase().includes("error") || status.toLowerCase().includes("failed")) {
+                    } else if (lowerStatus.includes("error") || lowerStatus.includes("failed")) {
                         className = 'status-error';
-                    } else if (status.toLowerCase().includes("pending") || status.toLowerCase().includes("awaiting") || status.toLowerCase().includes("initializing")) {
-                        className = 'status-pending';
+                    } else if (lowerStatus.includes("inactive") || lowerStatus.includes("none")) {
+                        className = 'status-inactive';
                     }
-                    stageElement.classList.add(className);
+                    // "pending", "awaiting" will fall to default 'status-pending'
                 }
+                statusPill.classList.add(className);
             }
         }
         // formatDuration is now in common_utils.js
@@ -247,20 +251,23 @@
                 }
 
                 // Determine download status for CSS class
-                let downloadStageStatusCss = 'pending';
+                let downloadStageDisplayText = 'Pending';
                 if (download.download_execution_start && download.download_execution_start !== "N/A") {
                     if (download.download_execution_end && download.download_execution_end !== "N/A") {
-                         downloadStageStatusCss = 'completed';
+                         downloadStageDisplayText = 'Completed';
                     } else {
-                         downloadStageStatusCss = 'running';
+                         downloadStageDisplayText = 'Running';
                     }
                 }
                 if (download.download_overall_status && download.download_overall_status.toLowerCase().includes('failed')) {
-                     downloadStageStatusCss = 'error';
+                     downloadStageDisplayText = 'Failed';
+                } else if (download.download_overall_status && download.download_overall_status.toLowerCase().includes('pending')) {
+                    downloadStageDisplayText = 'Pending';
+                } else if (download.download_overall_status && download.download_overall_status.toLowerCase().includes('initializing')) {
+                    downloadStageDisplayText = 'Initializing';
                 }
-                setStageStatus('download-stage', downloadStageStatusCss);
+                setStageStatus('download-stage', downloadStageDisplayText);
 
-    
                                 // --- Engine.py - Portfolio Optimization Progress Section ---
                 const engine = data; // Engine data is also at the root level in your progress.json
 
@@ -319,12 +326,12 @@
                 // Use setText for the overall engine status to ensure it uses default paragraph span styling
                 setText('engine-overall-status', engineOverallStatusText);
                 // Determine Engine stage CSS status
-                let engineStageStatusCss = 'pending';
-                if (engineOverallStatusText.toLowerCase().includes('running')) engineStageStatusCss = 'running';
-                if (engineOverallStatusText.toLowerCase().includes('completed')) engineStageStatusCss = 'completed';
-                if (engineOverallStatusText.toLowerCase().includes('error') || (engine.current_engine_phase && engine.current_engine_phase.toLowerCase().includes('error'))) engineStageStatusCss = 'error';
-                setStageStatus('engine-stage', engineStageStatusCss);
-
+                // The engineOverallStatusText already contains the descriptive status like "Running...", "Completed", "Pending"
+                // We can directly pass this to setStageStatus for the engine stage pill.
+                let engineDisplayStatusText = engineOverallStatusText;
+                if (engine.engine_overall_status && engine.engine_overall_status.toLowerCase().includes('failed')) engineDisplayStatusText = 'Failed';
+                else if (engine.current_engine_phase && engine.current_engine_phase.toLowerCase().includes('error')) engineDisplayStatusText = 'Error';
+                setStageStatus('engine-stage', engineDisplayStatusText);
 
                 // Overall Engine Progress Bar
                 let overallEngineProgressValue = 0;
