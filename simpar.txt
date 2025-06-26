@@ -10,7 +10,7 @@ start_date=2025-01-01
 min_stocks=3
 max_stocks=15
 initial_investment=100000
-rf=0.1475
+rf=0.15
 
 # --- Threshold for switching from brute-force to heuristic (Genetic Algorithm)
 # If target portfolio size (k) is <= this value, brute-force is used.

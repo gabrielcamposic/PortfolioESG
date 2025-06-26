@@ -12,6 +12,7 @@ import holidays
 import random
 import time # Keep time for interval timing
 import json
+import sys # For exit codes
 import shutil # For copying files
 from fake_useragent import UserAgent
 from requests.adapters import HTTPAdapter
@@ -1124,5 +1125,7 @@ except Exception as e:
     logger.log(f"CRITICAL ERROR: Unhandled exception during Download.py execution: {e}", web_data={"download_overall_status": "Failed"})
     import traceback
     logger.log(f"Traceback:\n{traceback.format_exc()}")
-    # The script will now exit with a non-zero status due to the unhandled exception
+    # The script should explicitly exit with a non-zero status to indicate failure
+    logger.flush() # Ensure logs are written before exiting
+    sys.exit(1) 
 logger.flush() # Final flush
