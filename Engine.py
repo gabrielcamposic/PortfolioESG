@@ -1850,19 +1850,29 @@ try:
         logger.log(f"\n--- Logging Portfolio Value History for Run {run_id} ---")
         logger.update_web_log("current_engine_phase", "Logging Portfolio History") # Update phase
         try:
-            # For the historical chart, use StockClose_Universe_df to get the maximum possible date range
-            # for the *specific best_portfolio_stocks*.
-            if StockClose_Universe_df.index.name == 'Date': # Check if 'Date' is index
-                StockClose_All_df_for_history = StockClose_Universe_df.reset_index()
-            else: # If 'Date' is already a column (should not happen with current pivot)
-                StockClose_All_df_for_history = StockClose_Universe_df.copy()
+            # For the historical chart, we need the full price history for the optimal stocks.
+            # We start from the original StockDataDB_df (which contains all raw data).
+            # Filter StockDataDB_df to only include the optimal stocks
+            optimal_stocks_data = StockDataDB_df[StockDataDB_df['Stock'].isin(best_portfolio_stocks)].copy()
 
-            cols_for_history_chart = ['Date'] + [stock for stock in best_portfolio_stocks if stock in StockClose_All_df_for_history.columns]
-            portfolio_price_df_for_history_chart = StockClose_All_df_for_history[cols_for_history_chart].copy()
+            # Pivot to get closing prices for only the optimal stocks, with 'Date' as index
+            # This will give us the full available history for these specific stocks.
+            portfolio_price_df_for_history_chart = optimal_stocks_data.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
 
-            # Drop rows where any of the *best_portfolio_stocks* have NaN for this specific subset
-            # This ensures the historical data uses the maximum common date range for the chosen stocks.
-            portfolio_price_df_for_history_chart.dropna(subset=[stock for stock in best_portfolio_stocks if stock in portfolio_price_df_for_history_chart.columns], inplace=True)
+            # Apply dropna() to find the common date range for *only these optimal stocks*.
+            # This is critical for calculating a continuous portfolio value.
+            initial_rows_history = len(portfolio_price_df_for_history_chart)
+            portfolio_price_df_for_history_chart.dropna(inplace=True)
+            final_rows_history = len(portfolio_price_df_for_history_chart)
+            if initial_rows_history != final_rows_history:
+                logger.log(f"    Note: Portfolio history data cleaning (dropna) for optimal stocks retained {final_rows_history} of {initial_rows_history} trading days.")
+            
+            # Reset index to make 'Date' a column again for the asset_allocation function.
+            portfolio_price_df_for_history_chart.reset_index(inplace=True)
+
+            # Ensure the order of columns matches the order of weights
+            ordered_cols = ['Date'] + [s for s in best_portfolio_stocks if s in portfolio_price_df_for_history_chart.columns]
+            portfolio_price_df_for_history_chart = portfolio_price_df_for_history_chart[ordered_cols]
 
             # Calculate historical portfolio value using the best weights
             portfolio_value_df = asset_allocation(portfolio_price_df_for_history_chart, best_weights, INITIAL_INVESTMENT, logger)
