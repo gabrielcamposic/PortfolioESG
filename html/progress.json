@@ -1,32 +1,15 @@
 {
-    "engine_script_start_time": "2025-06-10 13:07:16",
-    "data_wrangling_start": "2025-06-10 13:07:16",
-    "data_wrangling_end": "2025-06-10 13:07:16",
-    "data_wrangling_duration": "0:00:00.066139",
-    "stock_combination_search_start": "2025-06-10 13:07:16",
-    "estimated_completion_time": "2025-06-10 13:07:43",
-    "best_portfolio_details": {
-        "stocks": [
-            "ITUB4.SA",
-            "ORVR3.SA",
-            "SRNA3.SA"
-        ],
-        "weights": [
-            0.509,
-            0.0003,
-            0.4907
-        ],
-        "sharpe_ratio": 5.1249,
-        "final_value": 1784.48,
-        "roi_percent": 78.45,
-        "expected_return_annual_pct": 142.93,
-        "expected_volatility_annual_pct": 25.01,
-        "initial_investment": 1000.0
-    },
+    "engine_script_start_time": "2025-06-27 05:28:50",
+    "data_wrangling_start": "2025-06-27 05:28:50",
+    "data_wrangling_end": "2025-06-27 05:28:50",
+    "data_wrangling_duration": "0:00:00.099238",
+    "stock_combination_search_start": "2025-06-27 05:28:50",
+    "estimated_completion_time": "2025-06-27 05:33:25",
+    "best_portfolio_details": null,
     "stock_combination_search_end": "2025-06-10 13:07:37",
     "stock_combination_search_duration": "0:00:21.080867",
-    "engine_script_end_time": "2025-06-10 13:07:37",
-    "engine_script_total_duration": "0:00:21.451962",
+    "engine_script_end_time": "N/A",
+    "engine_script_total_duration": "N/A",
     "download_execution_start": "2025-06-14 08:22:03",
     "ticker_download": {
         "completed_tickers": 192,
@@ -38,12 +21,12 @@
         "overall_status": "Completed"
     },
     "download_execution_end": "2025-06-14 08:32:23",
-    "current_engine_phase": "Logging Portfolio History",
+    "current_engine_phase": "Refinement Phase",
     "overall_progress": {
-        "completed_actual_simulations_bf": 603,
-        "total_expected_actual_simulations_bf": 603,
-        "percentage_bf": 100.0,
-        "estimated_completion_time_bf": "Calculating..."
+        "completed_actual_simulations_bf": 27716,
+        "total_expected_actual_simulations_bf": 35835,
+        "percentage_bf": 77.34337937770336,
+        "estimated_completion_time_bf": "2025-06-27 05:30:57"
     },
     "ga_progress": {
         "status": "Pending/Inactive",
@@ -54,14 +37,14 @@
         "best_sharpe_this_k": "N/A"
     },
     "refinement_progress": {
-        "status": "Completed",
-        "current_combo_refined": 1,
-        "total_combos_to_refine": 1,
-        "percentage_refinement": 100
+        "status": "Running",
+        "current_combo_refined": 3,
+        "total_combos_to_refine": 4,
+        "percentage_refinement": 75.0
     },
     "download_overall_status": "Completed",
-    "engine_overall_status": "Completed Successfully",
-    "current_run_id": "20250610_130716",
+    "engine_overall_status": "Running",
+    "current_run_id": "20250627_052850",
     "engine_search_modes": {
         "uses_brute_force": true,
         "uses_ga": true,

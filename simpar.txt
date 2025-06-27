@@ -79,7 +79,7 @@ ga_fitness_noise_log_path = ~/Documents/Prog/PortfolioESG_Data/Results/ga_fitnes
 portfolio_value_history_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/portfolio_value_history.csv
 web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/
 
- --- Stock Pool Sizing for Initial Sharpe Ratio Filtering ---
+# --- Stock Pool Sizing for Initial Sharpe Ratio Filtering ---
 # Defines how many top stocks (by Sharpe ratio) are initially filtered based on the MAX_STOCKS setting.
 # Format: min_max_portfolio_stocks:num_stocks_to_filter, e.g., "3-5:50,6-10:75,11-20:100"
 pool_size_tiers = 3-5:50,6-10:75,11-20:100
