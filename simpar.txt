@@ -3,7 +3,7 @@
 debug_mode = false
 
 # --- Target stock list and date range
-esg_stocks_list = ALUP11.SA, AZZA3.SA , BBDC4.SA, B3SA3.SA, EGIE3.SA, FLRY3.SA, HYPE3.SA, ITSA4.SA, ITUB4.SA, KLBN11.SA, LREN3.SA, ORVR3.SA, SRNA3.SA, SUZB3.SA, TIMS3.SA, VIVT3.SA, WEGE3.SA
+esg_stocks_file_path = ~/Documents/Prog/PortfolioESG_Data/esg_stocks.txt
 start_date=2025-01-01
 
 # --- Target portfolio parameters

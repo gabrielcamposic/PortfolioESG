@@ -16,7 +16,7 @@ import math
 import shutil # Add this import
 
 # --- Engine Version ---
-ENGINE_VERSION = "1.5.1" # Reflected latest modifications to parameter handling and pool sizing logic
+ENGINE_VERSION = "1.6.0" # Updated for external ESG stock list file handling
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -182,7 +182,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "rf": float,
         "start_date": str,  # Keep as string; parse to datetime object later if needed
         "stock_data_file": str, # Added: recognize stock_data_file
-        "esg_stocks_list": str, 
+        "esg_stocks_file_path": str, # New: path to ESG stocks file
         "portfolio_folder": str, # This is still used for reading benchmark portfolios if that feature is active
         "log_file_path": str,
         "debug_mode": bool, # Added for debug mode
@@ -271,16 +271,6 @@ def load_simulation_parameters(filepath, logger_instance=None):
                     else:
                         print(message)
                     key = "stock_data_file"
-
-                processed_value = None
-
-                if key == "esg_stocks_list": # Match the intended parameter name (plural)
-                    if value_str: # Ensure not empty string
-                        processed_value = [stock.strip() for stock in value_str.split(',') if stock.strip()]
-                    else:
-                        processed_value = []  # Empty list for empty string
-                    parameters[key] = processed_value # Assign the processed list
-                    # Continue to next line in file, as this key is handled
                 
                 elif key == "pool_size_tiers":
                     parsed_tiers = []
@@ -389,6 +379,48 @@ def load_simulation_parameters(filepath, logger_instance=None):
     #         else: print(message)
 
     return parameters
+
+def load_esg_stocks_from_file(filepath, logger_instance=None):
+    """
+    Loads a comma-separated list of stock tickers from a file.
+    Each line in the file is treated as a potential list of tickers.
+    Empty lines and lines starting with '#' are ignored.
+    """
+    esg_stocks = []
+    expanded_filepath = os.path.expanduser(filepath) # Ensure path is expanded
+    if not os.path.exists(expanded_filepath):
+        message = f"CRITICAL ERROR: ESG stocks file not found at '{expanded_filepath}'. Cannot proceed."
+        if logger_instance:
+            logger_instance.log(message)
+        else:
+            print(message)
+        raise FileNotFoundError(message)
+
+    try:
+        with open(expanded_filepath, 'r') as f:
+            for line_number, line in enumerate(f, 1):
+                line = line.strip()
+                if not line or line.startswith('#'):  # Skip empty lines and comments
+                    continue
+                # Split by comma, strip whitespace, and filter out empty strings
+                tickers_on_line = [ticker.strip() for ticker in line.split(',') if ticker.strip()]
+                esg_stocks.extend(tickers_on_line)
+        
+        # Remove duplicates and sort for consistency
+        esg_stocks = sorted(list(set(esg_stocks)))
+        
+        if logger_instance:
+            logger_instance.log(f"Successfully loaded {len(esg_stocks)} ESG stocks from: {expanded_filepath}")
+            if DEBUG_MODE:
+                logger_instance.log(f"DEBUG: Loaded ESG stocks: {', '.join(esg_stocks)}")
+        return esg_stocks
+    except Exception as e:
+        message = f"CRITICAL ERROR: Failed to read or parse ESG stocks file '{expanded_filepath}': {e}"
+        if logger_instance:
+            logger_instance.log(message)
+        else:
+            print(message)
+        raise # Re-raise for critical failure
 
 # Helper function for adaptive sampling
 def should_continue_sampling(sharpes, min_iter, max_iter_for_combo, convergence_window, delta_threshold, logger_instance=None):
@@ -1439,7 +1471,7 @@ SIM_RUNS = sim_params.get("sim_runs", 100)
 INITIAL_INVESTMENT = sim_params.get("initial_investment", 10000.0)
 RF_RATE = sim_params.get("rf")
 START_DATE_STR = sim_params.get("start_date")
-ESG_STOCKS_LIST = sim_params.get("esg_stocks_list", []) # Load the list of ESG stocks
+ESG_STOCKS_FILE_PATH = sim_params.get("esg_stocks_file_path") # Load the path to the ESG stocks file
 DEBUG_MODE = sim_params.get("debug_mode", False) # Load debug_mode, default to False
 HEURISTIC_THRESHOLD_K = sim_params.get("heuristic_threshold_k", 9) # Define global HEURISTIC_THRESHOLD_K
 
@@ -1475,6 +1507,20 @@ GA_FITNESS_NOISE_LOG_PATH = sim_params.get("ga_fitness_noise_log_path") # Load G
 WEB_ACCESSIBLE_DATA_FOLDER = sim_params.get("web_accessible_data_folder") # Load web data folder path
 PORTFOLIO_VALUE_HISTORY_CSV_PATH = sim_params.get("portfolio_value_history_csv_path") # Load the new path
 
+# After all sim_params are loaded, load the ESG stocks list from the file
+ESG_STOCKS_LIST = [] # Initialize as empty list
+if ESG_STOCKS_FILE_PATH:
+    try:
+        ESG_STOCKS_LIST = load_esg_stocks_from_file(ESG_STOCKS_FILE_PATH, logger_instance=logger)
+    except FileNotFoundError:
+        logger.log(f"CRITICAL ERROR: ESG stocks file not found at '{ESG_STOCKS_FILE_PATH}'. Exiting.")
+        sys.exit(1)
+    except Exception as e:
+        logger.log(f"CRITICAL ERROR: Failed to load ESG stocks from '{ESG_STOCKS_FILE_PATH}'. Error: {e}. Exiting.")
+        sys.exit(1)
+else:
+    logger.log("Warning: 'esg_stocks_file_path' not specified in simpar.txt. ESG stock list will be empty.")
+
 # Step 5: Update logger paths if they were defined in sim_params and are different
 if LOG_FILE_PATH_PARAM and LOG_FILE_PATH_PARAM != logger.log_path:
     logger.log(f"Info: Updating log path from parameters file to: {LOG_FILE_PATH_PARAM}")
@@ -1508,8 +1554,8 @@ critical_params_to_check = {
     "PORTFOLIO_FOLDER": PORTFOLIO_FOLDER, # Keep if used
     "LOG_FILE_PATH_PARAM": LOG_FILE_PATH_PARAM, # Check the one from params
     "RF_RATE": RF_RATE,
-    "HEURISTIC_THRESHOLD_K": HEURISTIC_THRESHOLD_K, # Add to critical check
-    "ESG_STOCKS_LIST": ESG_STOCKS_LIST # Add if this list must not be empty
+    "HEURISTIC_THRESHOLD_K": HEURISTIC_THRESHOLD_K, # Critical check
+    "ESG_STOCKS_FILE_PATH": ESG_STOCKS_FILE_PATH # Critical check for the path
     # PORTFOLIO_VALUE_HISTORY_CSV_PATH is not strictly critical for the engine to run,
 } # but it is critical for the new feature. We'll check its presence before using it.
 missing_critical = [name for name, val in critical_params_to_check.items() if val is None]

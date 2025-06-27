@@ -3,11 +3,28 @@ import os # Required for os.path.expanduser
 
 # --- Configuration from your simpar.txt ---
 # Using the absolute path based on your context
-stock_data_file_path = "/Users/gabrielcampos/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv"
-esg_stocks_list_str = "ALUP11.SA, B3SA3.SA, FLRY3.SA, ITUB4.SA, LREN3.SA, ORVR3.SA, SRNA3.SA, SUZB3.SA, VIVT3.SA, WEGE3.SA"
+# stock_data_file_path = "/Users/gabrielcampos/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv" # Kept for clarity
+# esg_stocks_list_str = "ALUP11.SA, B3SA3.SA, FLRY3.SA, ITUB4.SA, LREN3.SA, ORVR3.SA, SRNA3.SA, SUZB3.SA, VIVT3.SA, WEGE3.SA" # Old hardcoded string
 # --- End Configuration ---
 
-esg_stocks = [stock.strip() for stock in esg_stocks_list_str.split(',')]
+# New: Read ESG stocks from a separate file
+ESG_STOCKS_FILE_PATH = os.path.expanduser("~/Documents/Prog/PortfolioESG_Data/esg_stocks.txt")
+
+esg_stocks = []
+try:
+    with open(ESG_STOCKS_FILE_PATH, 'r') as f:
+        for line in f:
+            esg_stocks.extend([stock.strip() for stock in line.split(',') if stock.strip()])
+    esg_stocks = sorted(list(set(esg_stocks))) # Remove duplicates and sort
+except FileNotFoundError:
+    print(f"ERROR: ESG stocks file not found at {ESG_STOCKS_FILE_PATH}. Please create it.")
+    exit(1)
+except Exception as e:
+    print(f"An error occurred while reading ESG stocks file: {e}")
+    exit(1)
+
+# Assuming stock_data_file_path is still hardcoded or derived elsewhere for this script
+stock_data_file_path = "/Users/gabrielcampos/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv"
 
 try:
     # No need for expanduser here as we're using the absolute path
