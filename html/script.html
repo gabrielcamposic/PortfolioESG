@@ -20,15 +20,15 @@
                         <tr>
                             <th>Run Start Timestamp</th>
                             <th>Download.py Version</th>
-                            <th>Param Load (s)</th>
-                            <th>User Agent Setup (s)</th>
-                            <th>Initial DB Load (s)</th>
-                            <th>Findata Proc. (s)</th>
+                            <th>Param Load</th>
+                            <th>User Agent Setup</th>
+                            <th>Initial DB Load</th>
+                            <th>Findata Proc.</th>
                             <th>Total Tickers</th>
                             <th>Tickers w/ New Data</th>
-                            <th>New Data DL Loop (s)</th>
-                            <th>Final DB Save (s)</th>
-                            <th>Overall Script (s)</th>
+                            <th>New Data DL Loop</th>
+                            <th>Final DB Save</th>
+                            <th>Overall Script</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -130,7 +130,7 @@
                     if (header.trim().toLowerCase() === 'run_start_timestamp') {
                         cellValue = formatDate(cellValue);
                     } else if (durationColumns.includes(header.trim())) {
-                        cellValue = formatSeconds(cellValue);
+                        cellValue = formatSecondsToHMS(cellValue);
                     }
                     td.textContent = cellValue;
                 });

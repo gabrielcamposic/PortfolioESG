@@ -339,15 +339,36 @@
                 return;
             }
 
-            const scatterDataPoints = summaryData
+            const latestRunId = summaryData.length > 0 ? summaryData[summaryData.length - 1].run_id : null;
+
+            const scatterDataPoints = [];
+            const backgroundColors = [];
+            const borderColors = [];
+            const pointRadii = [];
+            const pointHoverRadii = [];
+
+            const LATEST_RUN_BG_COLOR = 'rgba(255, 99, 132, 0.8)'; // Bright pink, semi-transparent
+            const LATEST_RUN_BORDER_COLOR = 'rgba(255, 99, 132, 1)';   // Bright pink, solid
+            const OTHER_RUN_BG_COLOR = 'rgba(54, 162, 235, 0.3)';  // Faded blue
+            const OTHER_RUN_BORDER_COLOR = 'rgba(54, 162, 235, 0.6)';// Faded blue border
+
+            summaryData
                 .filter(row => row.run_id && row.sharpe_ratio != null && row.final_value != null)
-                .map(row => ({
-                    x: parseFloat(row.sharpe_ratio),
-                    y: parseFloat(row.final_value),
-                    run_id: row.run_id,
-                    timestamp: row.generation_timestamp, // Keep original string for tooltip
-                    optimal_stocks: row.optimal_stocks
-                }));
+                .forEach(row => {
+                    scatterDataPoints.push({
+                        x: parseFloat(row.sharpe_ratio),
+                        y: parseFloat(row.final_value),
+                        run_id: row.run_id,
+                        timestamp: row.generation_timestamp,
+                        optimal_stocks: row.optimal_stocks
+                    });
+
+                    const isLatestRun = row.run_id === latestRunId;
+                    backgroundColors.push(isLatestRun ? LATEST_RUN_BG_COLOR : OTHER_RUN_BG_COLOR);
+                    borderColors.push(isLatestRun ? LATEST_RUN_BORDER_COLOR : OTHER_RUN_BORDER_COLOR);
+                    pointRadii.push(isLatestRun ? 10 : 6); // Larger radius for latest
+                    pointHoverRadii.push(isLatestRun ? 13 : 9); // Larger hover radius for latest
+                });
 
             if (scatterDataPoints.length === 0) {
                 console.warn('No valid data points after filtering for scatter plot.');
@@ -365,10 +386,10 @@
                     datasets: [{
                         label: 'Portfolio Run (Last 12 Months)',
                         data: scatterDataPoints,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        pointRadius: 6,
-                        pointHoverRadius: 9
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        pointRadius: pointRadii,
+                        pointHoverRadius: pointHoverRadii
                     }]
                 },
                 options: {
@@ -531,6 +552,8 @@
             }
             document.getElementById('multiPortfolioHistoryChart').style.display = 'block';
 
+            const latestRunId = filteredSummaryData.length > 0 ? filteredSummaryData[filteredSummaryData.length - 1].run_id : null;
+
             const recentRunIds = new Set(filteredSummaryData.map(row => row.run_id));
             const relevantHistory = allPortfolioHistoryData.filter(histRow => recentRunIds.has(histRow.RunID));
 
@@ -550,12 +573,18 @@
             Object.keys(historyByRunId).forEach(runId => {
                 const dataPoints = historyByRunId[runId].sort((a,b) => a.x - b.x); // Sort by date
                 if (dataPoints.length > 0) {
+                    const isLatestRun = runId === latestRunId;
+                    const color = isLatestRun ? 'rgba(255, 99, 132, 1)' : getRandomColor(0.4);
                     datasets.push({
-                        label: `Run ${runId}`,
+                        label: `Run ${runId}` + (isLatestRun ? ' (Latest)' : ''),
                         data: dataPoints,
-                        borderColor: getRandomColor(),
+                        borderColor: color,
+                        pointBackgroundColor: color,
+                        borderWidth: isLatestRun ? 3 : 1.5, // Thicker line for latest
                         tension: 0.1,
-                        fill: false
+                        fill: false,
+                        pointRadius: isLatestRun ? 4 : 2, // Larger points for latest
+                        pointHoverRadius: isLatestRun ? 6 : 4
                     });
                 }
             });
