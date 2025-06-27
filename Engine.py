@@ -16,7 +16,7 @@ import math
 import shutil # Add this import
 
 # --- Engine Version ---
-ENGINE_VERSION = "1.6.0" # Updated for external ESG stock list file handling
+ENGINE_VERSION = "1.7.0" # Updated data wrangling to focus exclusively on the provided stock list.
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -1490,7 +1490,7 @@ TOP_N_PERCENT_REFINEMENT = sim_params.get("top_n_percent_refinement", 0.10)
 
 
 # Stock pool sizing parameters
-PARSED_POOL_SIZE_TIERS = sim_params.get("parsed_pool_size_tiers", []) # Loaded as a parsed list of tuples
+PARSED_POOL_SIZE_TIERS = sim_params.get("pool_size_tiers", []) # Corrected key from "parsed_pool_size_tiers"
 POOL_SIZE_DEFAULT_NUM_STOCKS = sim_params.get("pool_size_default_num_stocks", 40) # Default if not in tiers
 
 # Simulation Feedback & Advanced GA Settings
@@ -1665,59 +1665,40 @@ try:
     if START_DATE:
         StockDataDB_df = StockDataDB_df[StockDataDB_df['Date'] >= START_DATE]
         logger.log(f"    Data filtered from {START_DATE} to {StockDataDB_df['Date'].max()}.")
-
-    # Pivot to get closing prices for ALL stocks first, with 'Date' as index
-    StockClose_Universe_df = StockDataDB_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
-
-    # Calculate daily returns for ALL stocks from StockClose_Universe_df
-    # This uses the full date range available for each stock before any global dropna for Sharpe calculation
-    StockDailyReturn_Universe_df = StockClose_Universe_df.pct_change(fill_method=None) # Returns are decimal here
-    # No * 100 here, calculate_individual_sharpe_ratios expects decimal returns
-    StockDailyReturn_Universe_df.fillna(0, inplace=True) # Fill NaNs from pct_change (e.g., first row)
-
-    # Calculate Individual Sharpe Ratios using the full available data for each stock
-    # calculate_individual_sharpe_ratios expects decimal daily returns
-    IndividualSharpeRatios_sr = calculate_individual_sharpe_ratios(StockDailyReturn_Universe_df, RF_RATE)
-
-    # --- Filter DataFrames for Top Stocks by Sharpe Ratio based on MAX_STOCKS ---
-
-    # Determine the number of top stocks for the initial broader filter based on MAX_STOCKS from simpar.txt
-    # This num_top_stocks_for_filtering will be used to select from the global stock universe
-    # before intersecting with the ESG_STOCKS_LIST.
-    num_top_stocks_for_filtering = POOL_SIZE_DEFAULT_NUM_STOCKS # Start with default
-    tier_found = False
-    for (min_s, max_s), num_stocks_in_tier in PARSED_POOL_SIZE_TIERS:
-        if min_s <= MAX_STOCKS <= max_s:
-            num_top_stocks_for_filtering = num_stocks_in_tier
-            tier_found = True
-            if DEBUG_MODE:
-                logger.log(f"DEBUG: MAX_STOCKS ({MAX_STOCKS}) falls into tier {min_s}-{max_s}. Using pool size: {num_stocks_in_tier}")
-            break
-    if not tier_found:
-        logger.log(f"    Info: MAX_STOCKS ({MAX_STOCKS}) did not fall into any defined 'pool_size_tiers'. Defaulting to pool size: {POOL_SIZE_DEFAULT_NUM_STOCKS}.")
-        # num_top_stocks_for_filtering is already set to default
-    # The 'else' block here was incorrect and has been removed.
-    # If a tier was found, num_top_stocks_for_filtering is correctly set.
-    # If no tier was found, the 'if not tier_found:' block above handles the default.
-    top_n_stocks_by_sharpe = IndividualSharpeRatios_sr.nlargest(num_top_stocks_for_filtering).index.tolist() # Use the dynamically determined number
-
-    # Check if the number of stocks found is less than num_top_stocks_for_filtering,
-    # which can happen if the total number of stocks in IndividualSharpeRatios_sr is small.
-    actual_stocks_found_count = len(top_n_stocks_by_sharpe)
-    if actual_stocks_found_count < num_top_stocks_for_filtering:
-        logger.log(f"    Note: Requested top {num_top_stocks_for_filtering} stocks, but only {actual_stocks_found_count} unique stocks available in the data after date filtering.")
-        num_top_stocks_for_filtering = actual_stocks_found_count # Adjust to actual count
-
-    logger.log(f"    Global top {len(top_n_stocks_by_sharpe)} stocks by Sharpe Ratio selected for simulation pool: {', '.join(top_n_stocks_by_sharpe)}")
-
-    # Create StockClose_df_SimPool for the simulation pool (top_n_stocks_by_sharpe)
-    # Reset index to make 'Date' a column, then select relevant columns
-    StockClose_df_SimPool = StockClose_Universe_df.reset_index()
-    relevant_cols_for_sim_pool = ['Date'] + [stock for stock in top_n_stocks_by_sharpe if stock in StockClose_df_SimPool.columns]
-    StockClose_df_SimPool = StockClose_df_SimPool[relevant_cols_for_sim_pool].copy()
-    StockClose_df_SimPool.dropna(inplace=True) # Drop rows with NaNs *within this simulation pool*
     
-    # StockDailyReturn_df for portfolio calculations within simulation_engine_calc will be derived from its input stock_combo_prices_df
+    # --- New Logic: Focus exclusively on the provided ESG_STOCKS_LIST ---
+    logger.log(f"    Focusing analysis exclusively on the {len(ESG_STOCKS_LIST)} stocks provided in '{os.path.basename(ESG_STOCKS_FILE_PATH)}'.")
+    logger.log(f"    Note: The 'pool_size_tiers' parameter is ignored in this mode.")
+
+    # 1. Filter the main DataFrame to only include stocks from our ESG list.
+    esg_stocks_in_db = [stock for stock in ESG_STOCKS_LIST if stock in StockDataDB_df['Stock'].unique()]
+    if len(esg_stocks_in_db) < len(ESG_STOCKS_LIST):
+        missing_from_db = set(ESG_STOCKS_LIST) - set(esg_stocks_in_db)
+        logger.log(f"    Warning: The following {len(missing_from_db)} stocks from your list were not found in StockDataDB.csv and will be excluded: {', '.join(sorted(list(missing_from_db)))}")
+
+    if not esg_stocks_in_db:
+        logger.log("CRITICAL ERROR: None of the stocks from your ESG list were found in the database. Cannot proceed.")
+        sys.exit(1)
+
+    focused_df = StockDataDB_df[StockDataDB_df['Stock'].isin(esg_stocks_in_db)].copy()
+
+    # 2. Pivot this smaller, focused DataFrame.
+    StockClose_df_SimPool = focused_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
+
+    # 3. Apply dropna() to find the common date range for *only these stocks*.
+    initial_rows = len(StockClose_df_SimPool)
+    StockClose_df_SimPool.dropna(inplace=True)
+    final_rows = len(StockClose_df_SimPool)
+    logger.log(f"    Data cleaning (dropna) on the focused stock list retained {final_rows} of {initial_rows} trading days.")
+
+    # 4. Reset index to make 'Date' a column again for the simulation function.
+    StockClose_df_SimPool.reset_index(inplace=True)
+
+    # Check if any stocks were lost entirely due to having no data in the final common date range.
+    stocks_surviving_dropna = [col for col in StockClose_df_SimPool.columns if col != 'Date']
+    if len(stocks_surviving_dropna) < len(esg_stocks_in_db):
+        lost_stocks = set(esg_stocks_in_db) - set(stocks_surviving_dropna)
+        logger.log(f"    Warning: After finding a common date range, the following {len(lost_stocks)} stocks were dropped due to incomplete data: {', '.join(sorted(list(lost_stocks)))}")
 
     section_end_time = datetime.now()
     section_duration = section_end_time - section_start_time

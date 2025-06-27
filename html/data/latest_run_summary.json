@@ -1,6 +1,6 @@
 {
-    "last_updated_run_id": "20250627_052850",
-    "last_updated_timestamp": "2025-06-27 05:32:46",
+    "last_updated_run_id": "20250627_053446",
+    "last_updated_timestamp": "2025-06-27 05:38:53",
     "best_portfolio_details": {
         "stocks": [
             "HYPE3.SA",
@@ -9,16 +9,16 @@
             "TIMS3.SA"
         ],
         "weights": [
-            0.0937,
-            0.3334,
-            0.4222,
-            0.1508
+            0.1022,
+            0.3367,
+            0.4006,
+            0.1605
         ],
-        "sharpe_ratio": 5.2867,
-        "final_value": 173827.34,
-        "roi_percent": 73.83,
-        "expected_return_annual_pct": 136.78,
-        "expected_volatility_annual_pct": 23.04,
-        "initial_investment": 100000.0
+        "sharpe_ratio": 5.2869,
+        "final_value": 1722.38,
+        "roi_percent": 72.24,
+        "expected_return_annual_pct": 134.48,
+        "expected_volatility_annual_pct": 22.6,
+        "initial_investment": 1000.0
     }
 }

@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # --- Configuration ---
-RUN_ID_TO_REMOVE = "20250609_114424"
+RUN_ID_TO_REMOVE = "20250627_052850"
 RESULTS_LOG_PATH = os.path.expanduser("~/Documents/Prog/PortfolioESG_Data/Results/engine_results_log.csv")
 HISTORY_LOG_PATH = os.path.expanduser("~/Documents/Prog/PortfolioESG_Data/Results/portfolio_value_history.csv")
 
