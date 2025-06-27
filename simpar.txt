@@ -7,8 +7,8 @@ esg_stocks_file_path = ~/Documents/Prog/PortfolioESG_Data/esg_stocks.txt
 start_date=2025-01-01
 
 # --- Target portfolio parameters
-min_stocks=3
-max_stocks=15
+min_stocks=5
+max_stocks=5
 initial_investment=1000
 rf=0.15
 
