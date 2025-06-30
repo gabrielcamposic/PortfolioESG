@@ -8,6 +8,11 @@ top_n_stocks = 20
 # Annual risk-free rate for Sharpe Ratio calculation (e.g., 0.05 for 5%)
 risk_free_rate = 0.15
 
+# --- Composite Score Weights ---
+# Weights for combining Sharpe Ratio and Potential Upside into a single score. Should sum to 1.0.
+sharpe_weight = 0.6
+upside_weight = 0.4
+
 # --- File and Directory Paths ---
 # Path to the consolidated historical stock data database from Download.py
 stock_data_file = ~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
@@ -15,8 +20,8 @@ stock_data_file = ~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
 financials_db_file = ~/Documents/Prog/PortfolioESG_Data/findb/FinancialsDB.csv
 # Path to the input file containing the list of tickers to score (e.g., the master list)
 input_stocks_file = ~/Documents/Prog/PortfolioESG_Data/Tickers.txt
-# Path for the output file containing the comma-separated list of top N scored stocks (this can be the input for Engine.py)
-scored_stocks_output_file = ~/Documents/Prog/PortfolioESG_Data/findb/Scored_ESG_Stocks.txt
+# Path for the structured CSV database containing the top N scored stocks from each run. This is the input for Engine.py.
+scored_stocks_output_file = ~/Documents/Prog/PortfolioESG_Data/findb/scored_runs.csv
 # Path for the full CSV results of all scored stocks for analysis
 scored_results_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/Scored_Stocks_Results.csv
 # Full path for the scoring script's log file
