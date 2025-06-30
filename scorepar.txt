@@ -1,0 +1,25 @@
+# Scoring Script Parameters for PortfolioESG
+
+# --- General Settings ---
+# Enable extensive debug logging (true/false)
+debug_mode = false
+# Number of top stocks to select after scoring
+top_n_stocks = 20
+# Annual risk-free rate for Sharpe Ratio calculation (e.g., 0.05 for 5%)
+risk_free_rate = 0.15
+
+# --- File and Directory Paths ---
+# Path to the consolidated historical stock data database from Download.py
+stock_data_file = ~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
+# Path to the consolidated historical financials database from Download.py
+financials_db_file = ~/Documents/Prog/PortfolioESG_Data/findb/FinancialsDB.csv
+# Path to the input file containing the list of tickers to score (e.g., the master list)
+input_stocks_file = ~/Documents/Prog/PortfolioESG_Data/Tickers.txt
+# Path for the output file containing the comma-separated list of top N scored stocks (this can be the input for Engine.py)
+scored_stocks_output_file = ~/Documents/Prog/PortfolioESG_Data/findb/Scored_ESG_Stocks.txt
+# Path for the full CSV results of all scored stocks for analysis
+scored_results_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/Scored_Stocks_Results.csv
+# Full path for the scoring script's log file
+log_file_path = ~/Documents/Prog/PortfolioESG_Prod/Logs/Scoring.log
+# Full path for the web-accessible progress JSON file (can be the same as Engine's)
+web_log_path = ~/Documents/Prog/PortfolioESG_public/html/progress.json

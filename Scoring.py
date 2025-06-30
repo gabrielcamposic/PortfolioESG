@@ -2,14 +2,12 @@
 # ----------------------------------------------------------- #
 #                           Libraries                         #
 # ----------------------------------------------------------- #
-import yfinance as yf
 import pandas as pd
 import numpy as np
 import os
 import sys
 import json
 from datetime import datetime
-import time
 
 # --- Script Version ---
 SCORING_PY_VERSION = "1.0.0"
@@ -22,6 +20,7 @@ SCORING_PY_VERSION = "1.0.0"
 # These will be populated by load_scoring_parameters
 DEBUG_MODE = False
 STOCK_DATA_FILE = ""
+FINANCIALS_DB_FILE = ""
 INPUT_STOCKS_FILE = ""
 SCORED_STOCKS_OUTPUT_FILE = ""
 SCORED_RESULTS_CSV_PATH = ""
@@ -102,7 +101,7 @@ def load_scoring_parameters(filepath, logger_instance=None):
     expected_types = {
         "debug_mode": bool, "top_n_stocks": int, "risk_free_rate": float,
         "stock_data_file": str, "input_stocks_file": str,
-        "scored_stocks_output_file": str, "log_file_path": str, "web_log_path": str,
+        "financials_db_file": str, "scored_stocks_output_file": str, "log_file_path": str, "web_log_path": str,
         "scored_results_csv_path": str
     }
     try:
@@ -138,28 +137,6 @@ def load_input_stocks(filepath, logger_instance):
         logger_instance.log(f"CRITICAL: Input stocks file not found at '{filepath}'.")
         raise
 
-def get_stock_financials(tickers, logger_instance):
-    logger_instance.log(f"Fetching financial data for {len(tickers)} tickers...")
-    financials = {}
-    for i, ticker in enumerate(tickers):
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
-            forward_pe = info.get('forwardPE')
-            forward_eps = info.get('forwardEps')
-
-            if isinstance(forward_pe, (int, float)) and isinstance(forward_eps, (int, float)) and forward_eps > 0:
-                financials[ticker] = {'forwardPE': forward_pe, 'forwardEps': forward_eps}
-                if DEBUG_MODE: logger_instance.log(f"  - Fetched for {ticker}: PE={forward_pe}, EPS={forward_eps}")
-            else:
-                logger_instance.log(f"  - Skipping {ticker} due to missing/invalid forward PE/EPS. PE: {forward_pe}, EPS: {forward_eps}")
-            
-            logger_instance.update_web_log("scoring_progress", {"current_ticker": ticker, "progress": ((i + 1) / len(tickers)) * 100})
-            time.sleep(0.2)  # Be polite to the API
-        except Exception as e:
-            logger_instance.log(f"  - Error fetching financial data for {ticker}: {e}")
-    return financials
-
 def calculate_individual_sharpe_ratios(stock_daily_returns, risk_free_rate):
     mean_returns = stock_daily_returns.mean() * 252
     std_devs = stock_daily_returns.std() * np.sqrt(252)
@@ -167,5 +144,139 @@ def calculate_individual_sharpe_ratios(stock_daily_returns, risk_free_rate):
     sharpe_ratios = (mean_returns - risk_free_rate) / std_devs.replace(0, np.nan)
     return sharpe_ratios.fillna(0)
 
+def load_financials_data(filepath, logger_instance):
+    """
+    Loads historical financial data from the CSV file, then returns only the
+    most recent entry for each stock.
+    """
+    try:
+        logger_instance.log(f"Loading financial data from {filepath}...")
+        financials_df = pd.read_csv(filepath)
+        # Ensure LastUpdated is a datetime object to sort correctly
+        financials_df['LastUpdated'] = pd.to_datetime(financials_df['LastUpdated'])
+        # Sort by stock and date, then take the last (most recent) entry for each stock
+        latest_financials = financials_df.sort_values('LastUpdated').drop_duplicates(subset='Stock', keep='last')
+        logger_instance.log(f"Successfully loaded and found latest financial data for {len(latest_financials)} stocks.")
+        return latest_financials[['Stock', 'forwardPE', 'forwardEps']]
+    except FileNotFoundError:
+        logger_instance.log(f"Warning: Financials data file not found at '{filepath}'. Scoring will proceed without P/E data.")
+        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEps']) # Return empty df with correct columns
+
 # ----------------------------------------------------------- #
-#
+#                     Execution Pipeline                      #
+# ----------------------------------------------------------- #
+
+def main():
+    """Main execution function for the scoring script."""
+    # --- Configuration Loading ---
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    parameters_file_path = os.path.join(script_dir, "scorepar.txt")
+    
+    # Initialize preliminary logger
+    prelim_log_path = os.path.join(script_dir, "scoring_bootstrap.log")
+    logger = Logger(log_path=prelim_log_path)
+    logger.log(f"Scoring script v{SCORING_PY_VERSION} started.")
+    logger.log(f"Attempting to load parameters from: {parameters_file_path}")
+
+    try:
+        params = load_scoring_parameters(parameters_file_path, logger)
+        logger.log("Successfully loaded parameters.")
+    except FileNotFoundError:
+        logger.log(f"CRITICAL: Parameters file not found at '{parameters_file_path}'. Exiting.")
+        sys.exit(1)
+
+    # Assign global variables from loaded parameters
+    global DEBUG_MODE, STOCK_DATA_FILE, FINANCIALS_DB_FILE, INPUT_STOCKS_FILE, SCORED_STOCKS_OUTPUT_FILE
+    global SCORED_RESULTS_CSV_PATH, TOP_N_STOCKS, RISK_FREE_RATE, LOG_FILE_PATH, WEB_LOG_PATH
+    
+    DEBUG_MODE = params.get("debug_mode", False)
+    STOCK_DATA_FILE = params.get("stock_data_file")
+    FINANCIALS_DB_FILE = params.get("financials_db_file")
+    INPUT_STOCKS_FILE = params.get("input_stocks_file")
+    SCORED_STOCKS_OUTPUT_FILE = params.get("scored_stocks_output_file")
+    SCORED_RESULTS_CSV_PATH = params.get("scored_results_csv_path")
+    TOP_N_STOCKS = params.get("top_n_stocks", 20)
+    RISK_FREE_RATE = params.get("risk_free_rate", 0.0)
+    LOG_FILE_PATH = params.get("log_file_path")
+    WEB_LOG_PATH = params.get("web_log_path")
+
+    # Update logger with paths from parameters
+    if LOG_FILE_PATH:
+        logger.log_path = LOG_FILE_PATH
+        os.makedirs(os.path.dirname(LOG_FILE_PATH), exist_ok=True)
+    if WEB_LOG_PATH:
+        logger.web_log_path = WEB_LOG_PATH
+        os.makedirs(os.path.dirname(WEB_LOG_PATH), exist_ok=True)
+    logger.log("Logger paths updated from parameters.")
+    
+    start_time = datetime.now()
+    logger.log(f"🚀 Scoring execution started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}", 
+               web_data={"scoring_status": "Running", "scoring_start_time": start_time.strftime('%Y-%m-%d %H:%M:%S')})
+
+    try:
+        # 1. Load Input Stocks
+        tickers = load_input_stocks(INPUT_STOCKS_FILE, logger)
+        if not tickers:
+            logger.log("No tickers loaded. Exiting.", web_data={"scoring_status": "Failed - No Tickers"})
+            sys.exit(1)
+
+        # 2. Load Historical Data and Calculate Sharpe
+        logger.log(f"Loading historical data from {STOCK_DATA_FILE}...")
+        all_data_df = pd.read_csv(STOCK_DATA_FILE)
+        all_data_df['Date'] = pd.to_datetime(all_data_df['Date'], format='mixed', errors='coerce').dt.date
+        filtered_df = all_data_df[all_data_df['Stock'].isin(tickers)]
+        close_prices_df = filtered_df.pivot(index='Date', columns='Stock', values='Close')
+        daily_returns = close_prices_df.pct_change().dropna()
+        
+        logger.log("Calculating Sharpe Ratios...")
+        sharpe_ratios = calculate_individual_sharpe_ratios(daily_returns, RISK_FREE_RATE)
+        results_df = pd.DataFrame(sharpe_ratios, columns=['SharpeRatio']).reset_index()
+
+        # 3. Load Financials (including Forward P/E) from file
+        financials_df = load_financials_data(FINANCIALS_DB_FILE, logger) # This line was calling a non-existent function
+
+        # 4. Merge and Score
+        logger.log("Merging financial data and calculating scores...")
+        if not financials_df.empty:
+            results_df = pd.merge(results_df, financials_df, on='Stock', how='left')
+        else:
+            # Ensure columns exist even if financial fetch fails
+            results_df['forwardPE'] = np.nan
+            results_df['forwardEps'] = np.nan
+
+        # Sort by highest Sharpe, then lowest P/E (lower is better)
+        results_df.sort_values(by=['SharpeRatio', 'forwardPE'], ascending=[False, True], inplace=True)
+        
+        # 5. Save Results
+        logger.log(f"Selecting top {TOP_N_STOCKS} stocks and saving results...")
+        top_stocks_df = results_df.head(TOP_N_STOCKS)
+        
+        if SCORED_RESULTS_CSV_PATH:
+            os.makedirs(os.path.dirname(SCORED_RESULTS_CSV_PATH), exist_ok=True)
+            results_df.to_csv(SCORED_RESULTS_CSV_PATH, index=False)
+            logger.log(f"Full scored results saved to {SCORED_RESULTS_CSV_PATH}")
+
+        if SCORED_STOCKS_OUTPUT_FILE:
+            os.makedirs(os.path.dirname(SCORED_STOCKS_OUTPUT_FILE), exist_ok=True)
+            with open(SCORED_STOCKS_OUTPUT_FILE, 'w') as f:
+                f.write(','.join(top_stocks_df['Stock'].tolist()))
+            logger.log(f"Top {TOP_N_STOCKS} stocks saved to {SCORED_STOCKS_OUTPUT_FILE}")
+
+        end_time = datetime.now()
+        duration = end_time - start_time
+        logger.log(f"✅ Scoring execution finished successfully in {duration}.", 
+                   web_data={"scoring_status": "Completed", "scoring_end_time": end_time.strftime('%Y-%m-%d %H:%M:%S')})
+
+    except Exception as e:
+        end_time = datetime.now()
+        logger.log(f"CRITICAL ERROR: An unhandled exception occurred: {e}", 
+                   web_data={"scoring_status": "Failed", "scoring_end_time": end_time.strftime('%Y-%m-%d %H:%M:%S')})
+        import traceback
+        logger.log(f"Traceback:\n{traceback.format_exc()}")
+        logger.flush()
+        sys.exit(1)
+
+    logger.flush()
+
+if __name__ == "__main__":
+    main()

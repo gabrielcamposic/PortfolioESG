@@ -17,9 +17,14 @@ import shutil # For copying files
 from fake_useragent import UserAgent
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry 
+import logging
+
+# Suppress yfinance's informational logs to clean up the console output.
+# We will handle logging of success/failure within our own script's logic.
+logging.getLogger('yfinance').setLevel(logging.ERROR)
 
 # --- Script Version ---
-DOWNLOAD_PY_VERSION = "1.3.1" # Reflected latest modifications
+DOWNLOAD_PY_VERSION = "1.3.2" # Suppress yfinance logs
 # ----------------------
 
 # ----------------------------------------------------------- #
@@ -475,7 +480,46 @@ def debug_check_dates_against_holidays(dates_to_check):
         else:
             print(f"❌ {d} is NOT marked as a holiday")
 
-def download_and_append(tickers_list, current_findata_dir, current_findb_dir, current_db_filepath, perf_data_ref, yfinance_skip_data):
+def fetch_and_save_financials(tickers, filepath, logger_instance):
+    """Fetches and saves key financial data for a list of tickers."""
+    logger_instance.log(f"Fetching financial data for {len(tickers)} tickers...")
+    financials_data = []
+    for i, ticker in enumerate(tickers):
+        try:
+            stock = yfin.Ticker(ticker)
+            info = stock.info
+            forward_pe = info.get('forwardPE')
+            forward_eps = info.get('forwardEps')
+
+            # Basic validation: P/E must be a positive number, EPS must be a number.
+            if isinstance(forward_pe, (int, float)) and forward_pe > 0 and isinstance(forward_eps, (int, float)):
+                financials_data.append({
+                    'Stock': ticker,
+                    'forwardPE': forward_pe,
+                    'forwardEps': forward_eps,
+                    'LastUpdated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
+                if DEBUG_MODE: logger_instance.log(f"  - Fetched financials for {ticker}: PE={forward_pe:.2f}, EPS={forward_eps:.2f}")
+            else:
+                logger_instance.log(f"  - Skipping financials for {ticker} due to missing/invalid data. PE: {forward_pe}, EPS: {forward_eps}")
+            
+            time.sleep(0.2) # Be polite to the API
+        except Exception as e:
+            logger_instance.log(f"  - Error fetching financial data for {ticker}: {e}")
+
+    if not financials_data:
+        logger_instance.log("No financial data was fetched. Skipping save.")
+        return
+
+    financials_df = pd.DataFrame(financials_data)
+    try:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        financials_df.to_csv(filepath, index=False)
+        logger_instance.log(f"✅ Saved financial data for {len(financials_df)} tickers to {filepath}")
+    except Exception as e:
+        logger_instance.log(f"❌ Error saving financial data to {filepath}: {e}")
+
+def download_and_append(tickers_list, current_findata_dir, current_findb_dir, current_db_filepath, perf_data_ref, yfinance_skip_data, financials_db_filepath):
     """
     Download missing data for each ticker, compare with existing data in findata and StockDataDB.csv,
     and update StockDataDB.csv with only the missing rows.
@@ -522,107 +566,18 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
 
     perf_data_ref["initial_db_load_duration_s"] = time.time() - initial_db_load_start_time
 
-    # Step 2 & 3 (Merged): Process findata folder ticker by ticker and merge into combined_data
-    logger.log(f"🔄 Processing existing data from findata directory: {current_findata_dir}")
-    
-    status_update = get_current_ticker_status()
-    status_update["current_ticker"] = "Processing local findata directory..."
-    logger.update_web_log("ticker_download", status_update)
+    # The logic to re-process the entire findata directory has been removed for performance.
+    # StockDataDB.csv is now treated as the single source of truth for historical data.
+    # The script will now proceed directly to downloading only the data identified as missing
+    # by checking for file existence in the findata directory.
     findata_processing_start_time = time.time()
-
-
-    for ticker_item in tickers_list: # Iterate using the passed tickers_list
-        ticker_folder = os.path.join(current_findata_dir, ticker_item)
-        if not os.path.exists(ticker_folder):
-            if DEBUG_MODE:
-                logger.log(f"DEBUG: No findata folder found for ticker {ticker_item} at {ticker_folder}. Skipping this ticker for findata load.")
-            logger.log(f"📂 No findata data folder for {ticker_item}. Skipping.")
-            continue
-        
-        status_update = get_current_ticker_status()
-        status_update["current_ticker"] = f"Processing local files for {ticker_item}..."
-        logger.update_web_log("ticker_download", status_update)
-        
-        if DEBUG_MODE:
-            logger.log(f"DEBUG: Processing findata for ticker: {ticker_item} from {ticker_folder}")
-        
-        files_in_ticker_folder = [f for f in os.listdir(ticker_folder) if f.endswith(".csv")]
-        if DEBUG_MODE:
-            logger.log(f"DEBUG: Found {len(files_in_ticker_folder)} CSV files in {ticker_folder}.")
-
-        if not files_in_ticker_folder:
-            logger.log(f"📂 No CSV files found for {ticker_item} in {ticker_folder}. Skipping.")
-            continue
-
-        # Initialize lists and counters for the current ticker's findata files
-        ticker_findata_rows = []
-        files_processed_for_ticker = 0
-        rows_loaded_for_ticker = 0
-
-        for file_count, file_name in enumerate(files_in_ticker_folder):
-            file_path = os.path.join(ticker_folder, file_name)
-            try:
-                if DEBUG_MODE and file_count % 50 == 0 : # Log every 50 files per ticker to avoid flooding
-                    logger.log(f"DEBUG: Loading file {file_count + 1}/{len(files_in_ticker_folder)} for ticker {ticker_item}: {file_path}")
-                file_data = pd.read_csv(file_path)
-                files_processed_for_ticker += 1
-                if 'Date' in file_data.columns:
-                    file_data['Date'] = pd.to_datetime(file_data['Date'], format='mixed', errors='coerce').dt.date
-                else:
-                    logger.log(f"⚠️ 'Date' column missing in file {file_path}. Skipping this file.")
-                    continue
-                file_data['Stock'] = ticker_item
-                ticker_findata_rows.append(file_data)
-                rows_loaded_for_ticker += len(file_data)
-            except Exception as e:
-                logger.log(f"⚠️ Failed to load file {file_path}: {e}")
-        
-        # After processing all files for the current ticker_item
-        if ticker_findata_rows:
-            if DEBUG_MODE:
-                logger.log(f"DEBUG: For ticker {ticker_item}, processed {files_processed_for_ticker} files from findata, loaded {rows_loaded_for_ticker} rows. Concatenating into ticker_df...")
-            ticker_df = pd.concat(ticker_findata_rows, ignore_index=True)
-            if DEBUG_MODE:
-                logger.log(f"DEBUG: Concatenated {len(ticker_df)} findata rows for {ticker_item}. Shape: {ticker_df.shape}. Columns: {ticker_df.columns.tolist()}")
-
-            # Ensure columns match common_cols before concatenating with combined_data
-            # For ticker_df:
-            missing_cols_in_ticker_df = [col for col in common_cols if col not in ticker_df.columns]
-            for col in missing_cols_in_ticker_df:
-                ticker_df[col] = pd.NA # Or appropriate default like 0 for numeric, or None
-            if not ticker_df.empty: # Only reorder if not empty
-                ticker_df = ticker_df[common_cols] # Reorder/select common columns
-
-            # For combined_data (especially if it was empty or from an old DB with different columns):
-            if combined_data.empty and not ticker_df.empty: # If combined_data was empty, it now takes columns of the first ticker_df
-                 combined_data = pd.DataFrame(columns=common_cols) # Initialize with common_cols
-            
-            missing_cols_in_combined_data = [col for col in common_cols if col not in combined_data.columns]
-            for col in missing_cols_in_combined_data:
-                 combined_data[col] = pd.NA
-            if not combined_data.empty: # Only reorder if not empty
-                combined_data = combined_data[common_cols]
-
-            # Now concatenate ticker_df to combined_data
-            combined_data = pd.concat([combined_data, ticker_df], ignore_index=True)
-            if DEBUG_MODE:
-                logger.log(f"DEBUG: Combined {ticker_item}'s findata into combined_data. Shape before dedup: {combined_data.shape}.")
-            
-            combined_data = combined_data.drop_duplicates(subset=['Date', 'Stock'], keep='last')
-            if DEBUG_MODE:
-                logger.log(f"DEBUG: Deduplicated combined_data after {ticker_item}'s findata. Shape after dedup: {combined_data.shape}.")
-            logger.log(f"✅ Processed and merged findata for {ticker_item}. Current total unique rows in combined_data: {len(combined_data)}")
-        else:
-            if DEBUG_MODE:
-                logger.log(f"DEBUG: No valid findata rows loaded for {ticker_item} from its folder. Skipping merge for this ticker.")
-            logger.log(f"ℹ️ No new findata rows to merge for {ticker_item}.")
-
     perf_data_ref["findata_processing_duration_s"] = time.time() - findata_processing_start_time
-    logger.log(f"✅ Finished processing all findata. Current total unique rows in combined_data: {len(combined_data)}. Shape: {combined_data.shape}.")
+    logger.log(f"✅ Initial database loaded. Rows: {len(combined_data)}. Shape: {combined_data.shape}. Skipping re-processing of findata directory.")
     
     # Step 4: Download missing data for each ticker
     # all_downloaded_data list is removed; data will be merged immediately.
     logger.log("🔄 Starting download of new/missing data...")
+    all_financials_data = [] # Initialize list for financial data
     
     new_data_download_loop_start_time = time.time()
     local_tickers_with_new_data_count = 0
@@ -633,6 +588,13 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     perf_data_ref["total_tickers_processed"] = len(tickers_list)
 
     for i, ticker_to_process in enumerate(tickers_list): # Minor rename for clarity
+        # Check if the entire ticker is marked for permanent skipping
+        if yfinance_skip_data.get(ticker_to_process) == ["ALL"]:
+            if DEBUG_MODE:
+                logger.log(f"DEBUG: Ticker {ticker_to_process} is in the permanent skip list. Skipping.")
+            logger.log(f"ℹ️ Skipping permanently ignored ticker: {ticker_to_process}")
+            continue
+
         total_tickers_to_process = len(tickers_list)
 
         # Update progress for the web log BEFORE processing the current ticker
@@ -648,6 +610,36 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         merged_status_for_web = get_current_ticker_status()
         merged_status_for_web.update(current_ticker_progress_data)
         logger.update_web_log("ticker_download", merged_status_for_web)
+
+        # Create the Ticker object once per stock for efficiency
+        stock = yfin.Ticker(ticker_to_process)
+
+        # --- Fetch Financials for the current ticker ---
+        # This block now also validates the ticker. If it fails, we skip the rest of the loop for this ticker.
+        try:
+            info = stock.info
+            # A valid ticker must have a symbol. If not, it's likely invalid or delisted.
+            if not info or 'symbol' not in info:
+                logger.log(f"❌ Ticker {ticker_to_process} seems invalid. Adding to skip list and skipping.")
+                yfinance_skip_data[ticker_to_process] = ["ALL"] # Mark for permanent skip
+                continue # Skip to the next ticker in the list
+
+            forward_pe = info.get('forwardPE')
+            forward_eps = info.get('forwardEps')
+
+            if isinstance(forward_pe, (int, float)) and forward_pe > 0 and isinstance(forward_eps, (int, float)):
+                all_financials_data.append({
+                    'Stock': ticker_to_process,
+                    'forwardPE': forward_pe,
+                    'forwardEps': forward_eps,
+                    'LastUpdated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
+                if DEBUG_MODE: logger.log(f"DEBUG: Fetched financials for {ticker_to_process}: PE={forward_pe:.2f}")
+        except Exception as e:
+            logger.log(f"❌ Error fetching info for {ticker_to_process}: {e}. Adding to skip list and skipping.")
+            yfinance_skip_data[ticker_to_process] = ["ALL"] # Mark for permanent skip
+            continue # Skip to the next ticker
+        # --- End Financials Fetch ---
 
         # This message is useful for progress tracking, could be INFO or conditional DEBUG
         if DEBUG_MODE:
@@ -706,8 +698,8 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         download_end_date_str = end_date_for_download.strftime('%Y-%m-%d')
         if DEBUG_MODE:
             logger.log(f"DEBUG: Calling yfin.download for {ticker_to_process}, start: {download_start_date_str}, end: {download_end_date_str}")
-        data = yfin.download(
-            ticker_to_process,
+        # Use the existing Ticker object to fetch history, replacing yfin.download
+        data = stock.history(
             start=download_start_date_str,
             end=download_end_date_str
         )
@@ -887,6 +879,33 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     status_update["current_ticker"] = f"StockDataDB.csv saved ({len(combined_data)} rows)" # Update after save
     logger.update_web_log("ticker_download", status_update)
     logger.log(f"✅ Updated {current_db_filepath} with {len(combined_data)} total unique rows.")
+
+    # --- Update and Save Historical Financial Data ---
+    if financials_db_filepath and all_financials_data:
+        logger.log(f"🔄 Updating historical financial data for {len(all_financials_data)} tickers...")
+        new_financials_df = pd.DataFrame(all_financials_data)
+        new_financials_df['FetchDate'] = pd.to_datetime(new_financials_df['LastUpdated']).dt.date
+
+        try:
+            if os.path.exists(financials_db_filepath):
+                existing_df = pd.read_csv(financials_db_filepath)
+                existing_df['FetchDate'] = pd.to_datetime(existing_df['LastUpdated']).dt.date
+                combined_df = pd.concat([existing_df, new_financials_df], ignore_index=True)
+            else:
+                combined_df = new_financials_df
+
+            combined_df.sort_values(by='LastUpdated', inplace=True)
+            combined_df.drop_duplicates(subset=['Stock', 'FetchDate'], keep='last', inplace=True)
+            final_df_to_save = combined_df.drop(columns=['FetchDate'])
+
+            os.makedirs(os.path.dirname(financials_db_filepath), exist_ok=True)
+            final_df_to_save.to_csv(financials_db_filepath, index=False)
+            logger.log(f"✅ Saved historical financial data to {financials_db_filepath}")
+        except Exception as e:
+            logger.log(f"❌ Error updating historical financial data at {financials_db_filepath}: {e}")
+    elif not financials_db_filepath:
+        logger.log("Info: 'financials_db_filepath' not specified. Skipping financial data save.")
+
     if DEBUG_MODE:
         logger.log("DEBUG: Finished download_and_append function.")
 
@@ -1073,30 +1092,39 @@ try:
         logger.flush()
         exit(1)
 
-    # Update total_tickers in web log now that we have the list
-    # Ensure "ticker_download" key exists from initial_web_log_data merge
-    current_ticker_status = logger.web_data.get("ticker_download", initial_ticker_download_status).copy()
-    current_ticker_status["total_tickers"] = len(tickers_to_download)
-    current_ticker_status["overall_status"] = "Running" # Confirm running status
-    current_ticker_status["current_ticker"] = "Preparing to process findata..."
-    logger.update_web_log("download_overall_status", "Processing Local Data...")
-    logger.update_web_log("ticker_download", current_ticker_status)
-
-    if DEBUG_MODE:
-        logger.log(f"DEBUG: Found {len(tickers_to_download)} tickers to process. Calling download_and_append.")
-
     # Load yfinance skip data before calling download_and_append
     current_yfinance_skip_data = {}
     if YFINANCE_SKIP_FILEPATH and os.path.exists(YFINANCE_SKIP_FILEPATH):
         try:
             with open(YFINANCE_SKIP_FILEPATH, 'r') as f_skip_load:
                 current_yfinance_skip_data = json.load(f_skip_load)
-            logger.log(f"✅ Loaded yfinance skip data from {YFINANCE_SKIP_FILEPATH} with {len(current_yfinance_skip_data)} tickers.")
+            logger.log(f"✅ Loaded yfinance skip data from {YFINANCE_SKIP_FILEPATH} with {len(current_yfinance_skip_data)} tickers marked for skipping.")
         except Exception as e_skip_load:
             logger.log(f"⚠️ Error loading yfinance skip data from {YFINANCE_SKIP_FILEPATH}: {e_skip_load}. Starting with empty skip data.")
 
+    # --- Pre-filter tickers based on the skip list ---
+    initial_ticker_count = len(tickers_to_download)
+    tickers_to_process_after_skip = [
+        t for t in tickers_to_download if current_yfinance_skip_data.get(t) != ["ALL"]
+    ]
+    skipped_ticker_count = initial_ticker_count - len(tickers_to_process_after_skip)
+    if skipped_ticker_count > 0:
+        logger.log(f"ℹ️ Pre-skipping {skipped_ticker_count} tickers found in the permanent skip list.")
+
+    # Update total_tickers in web log now that we have the final list
+    current_ticker_status = logger.web_data.get("ticker_download", initial_ticker_download_status).copy()
+    current_ticker_status["total_tickers"] = len(tickers_to_process_after_skip)
+    current_ticker_status["overall_status"] = "Running"
+    current_ticker_status["current_ticker"] = "Preparing to process local data..."
+    logger.update_web_log("download_overall_status", "Processing Local Data...")
+    logger.update_web_log("ticker_download", current_ticker_status)
+
+    if DEBUG_MODE:
+        logger.log(f"DEBUG: Found {len(tickers_to_process_after_skip)} tickers to process after filtering skip list. Calling download_and_append.")
+
     logger.update_web_log("download_overall_status", "Downloading Data...")
-    download_and_append(tickers_to_download, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics, current_yfinance_skip_data)
+    FINANCIALS_DB_FILEPATH = params.get("financials_db_filepath") # Get path for financials
+    download_and_append(tickers_to_process_after_skip, FINDATA_DIR, FINDB_DIR, DB_FILEPATH, performance_metrics, current_yfinance_skip_data, FINANCIALS_DB_FILEPATH)
 
     overall_script_end_time_dt = datetime.now()
     total_script_duration = overall_script_end_time_dt - overall_script_start_time_dt
