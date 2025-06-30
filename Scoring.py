@@ -301,12 +301,12 @@ def main():
 
         # 4b. Calculate Risk-Adjusted Upside Score
         logger.log("Calculating Risk-Adjusted Upside Score...")
-        # Use median for benchmark P/E as it's more robust to outliers
-        reasonable_pe = results_df['forwardPE'][(results_df['forwardPE'] > 0) & (results_df['forwardPE'] < 100)]
-        benchmark_pe = reasonable_pe.median() if not reasonable_pe.empty else 20.0 # Fallback benchmark
-        logger.log(f"Using a benchmark P/E of {benchmark_pe:.2f} for target price calculation.")
+        # The target price is calculated using each stock's own forward P/E and forward EPS.
+        # Target Price = Forward EPS * Forward P/E
+        # This reflects the market's current expectation for the stock's future earnings and valuation.
+        logger.log("Calculating Target Price using individual forward P/E and forward EPS for each stock.")
+        results_df['TargetPrice'] = results_df['forwardEps'] * results_df['forwardPE']
 
-        results_df['TargetPrice'] = results_df['forwardEps'] * benchmark_pe
         results_df['PotentialUpside_pct'] = ((results_df['TargetPrice'] - results_df['CurrentPrice']) / results_df['CurrentPrice']).replace([np.inf, -np.inf], np.nan)
 
         # 4c. Normalize metrics and compute final score
