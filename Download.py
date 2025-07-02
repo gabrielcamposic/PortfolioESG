@@ -1,4 +1,9 @@
 #!/home/gabrielcampos/.pyenv/versions/env-fa/bin/python
+
+# --- Script Version ---
+DOWNLOAD_PY_VERSION = "1.4.0" # Handle Tickers.txt with sector/industry, integrated financials fetch.
+# ----------------------
+
 # ----------------------------------------------------------- #
 #                           Libraries                         #
 # ----------------------------------------------------------- #
@@ -22,10 +27,6 @@ import logging
 # Suppress yfinance's informational logs to clean up the console output.
 # We will handle logging of success/failure within our own script's logic.
 logging.getLogger('yfinance').setLevel(logging.ERROR)
-
-# --- Script Version ---
-DOWNLOAD_PY_VERSION = "1.3.2" # Suppress yfinance logs
-# ----------------------
 
 # ----------------------------------------------------------- #
 #                       Global variables                      #
@@ -411,10 +412,39 @@ def initialize_performance_data():
         "overall_script_duration_s": 0.0
     }
 
-def read_tickers_from_file(file_path):
-    with open(file_path, 'r') as f:
-        tickers = [line.strip() for line in f.readlines() if line.strip()]
-    return tickers
+def load_tickers_data(file_path, logger_instance):
+    """
+    Loads tickers, sectors, and industries from a CSV file.
+    It expects the format: Ticker,Sector,Industry
+    It ignores lines starting with '#' and blank lines.
+    Returns a pandas DataFrame with 'Ticker', 'Sector', 'Industry' columns.
+    """
+    try:
+        # Use pandas to easily read CSV, skipping comments and blank lines
+        tickers_df = pd.read_csv(
+            file_path,
+            header=None,
+            names=['Ticker', 'Sector', 'Industry'],
+            comment='#',
+            skip_blank_lines=True,
+            sep=','
+        )
+        # Strip whitespace from all string columns
+        for col in tickers_df.select_dtypes(['object']):
+            tickers_df[col] = tickers_df[col].str.strip()
+        
+        # Drop rows where Ticker is missing
+        tickers_df.dropna(subset=['Ticker'], inplace=True)
+        
+        logger_instance.log(f"Loaded {len(tickers_df)} tickers from {file_path}")
+        return tickers_df
+    except FileNotFoundError:
+        logger_instance.log(f"CRITICAL: Tickers file not found at '{file_path}'.")
+        raise
+    except Exception as e:
+        logger_instance.log(f"CRITICAL: Error reading tickers file '{file_path}': {e}")
+        raise
+
 
 def save_ticker_data_to_csv(ticker, data, current_findata_dir):
     """
@@ -586,6 +616,7 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
     status_update["current_ticker"] = "Preparing to download new/missing data..."
     logger.update_web_log("ticker_download", status_update)
     perf_data_ref["total_tickers_processed"] = len(tickers_list)
+    total_tickers_to_process = len(tickers_list) # Define once before the loop
 
     for i, ticker_to_process in enumerate(tickers_list): # Minor rename for clarity
         # Check if the entire ticker is marked for permanent skipping
@@ -594,8 +625,6 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
                 logger.log(f"DEBUG: Ticker {ticker_to_process} is in the permanent skip list. Skipping.")
             logger.log(f"ℹ️ Skipping permanently ignored ticker: {ticker_to_process}")
             continue
-
-        total_tickers_to_process = len(tickers_list)
 
         # Update progress for the web log BEFORE processing the current ticker
         current_ticker_progress_data = {
@@ -647,7 +676,8 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
         else:
             # Log less frequently if not in debug to avoid flooding, e.g., every 10% or N tickers
             if i % max(1, total_tickers_to_process // 10) == 0 or i == total_tickers_to_process - 1:
-                logger.log(f"Processing ticker {i+1}/{len(tickers_list)}: {ticker_to_process}")
+                progress_percent = ((i + 1) / total_tickers_to_process) * 100
+                logger.log(f"Processing tickers: {i+1}/{total_tickers_to_process} ({progress_percent:.0f}%)")
 
         # 🔁 Refresh user agents every 10 tickers
         if i > 0 and i % 10 == 0 and ua:
@@ -704,8 +734,9 @@ def download_and_append(tickers_list, current_findata_dir, current_findb_dir, cu
             end=download_end_date_str
         )
         if data.empty:
-            logger.log(f"⚠️ No data fetched by yfinance for {ticker_to_process} for the period {download_start_date_str} to {download_end_date_str}. Skipping save.")
+            logger.log(f"⚠️ No data fetched by yfinance for {ticker_to_process} for the period {download_start_date_str} to {download_end_date_str}. Adding to permanent skip list.")
             if DEBUG_MODE:
+                yfinance_skip_data[ticker_to_process] = ["ALL"]
                 logger.log(f"DEBUG: yfin.download returned empty DataFrame for {ticker_to_process}.")
             # Update web log to reflect completion of this ticker attempt
             current_ticker_progress_data["completed_tickers"] = i + 1
@@ -1074,7 +1105,9 @@ try:
     logger.update_web_log("download_overall_status", "Reading Tickers List...")
     if DEBUG_MODE:
         logger.log(f"DEBUG: Reading tickers from: {TICKERS_FILE}")
-    tickers_to_download = read_tickers_from_file(TICKERS_FILE)
+    
+    tickers_df = load_tickers_data(TICKERS_FILE, logger)
+    tickers_to_download = tickers_df['Ticker'].tolist() if not tickers_df.empty else []
     if not tickers_to_download:
         logger.update_web_log("download_overall_status", "Failed (No Tickers)")
         logger.log("⚠️ No tickers found in the Tickers.txt file. Exiting.")

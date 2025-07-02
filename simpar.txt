@@ -1,16 +1,24 @@
 # --- General Settings
 # Enable extensive debug logging (true/false)
 debug_mode = false
+start_date=2024-01-01
 
-# --- Target stock list and date range
-esg_stocks_file_path = ~/Documents/Prog/PortfolioESG_Data/esg_stocks.txt
-start_date=2025-01-01
+# --- Stock Selection from Scoring ---
+# Path to the historical scored runs file from Scoring.py
+scored_runs_file_path = ~/Documents/Prog/PortfolioESG_Data/Results/scored_runs.csv
+# Number of top stocks to select from the latest scoring run based on CompositeScore
+top_n_stocks_from_score = 20
 
 # --- Target portfolio parameters
 min_stocks=5
 max_stocks=5
 initial_investment=1000
 rf=0.15
+
+# --- Diversification Constraints ---
+# The maximum number of stocks allowed from any single sector in a portfolio.
+# Set to a high number (e.g., 99) to disable this constraint.
+max_stocks_per_sector = 2
 
 # --- Threshold for switching from brute-force to heuristic (Genetic Algorithm)
 # If target portfolio size (k) is <= this value, brute-force is used.
@@ -47,13 +55,13 @@ initial_scan_sims = 200
 # after initial_scan_sims, and best_overall_sharpe is meaningful (>0.1),
 # stop simulating this combo early.
 early_discard_factor = 0.75
-early_discard_min_best_sharpe = 0.1
+early_discard_min_best_sharpe = 0.2
 # Minimum simulations for the progressive phase before convergence checks start
-progressive_min_sims = 200
+progressive_min_sims = 150
 # Base number for logarithmic scaling: sims = base * log(k)^2
-progressive_base_log_k = 500
+progressive_base_log_k = 200
 # Overall cap for simulations in the progressive phase for a single combination
-progressive_max_sims_cap = 3000
+progressive_max_sims_cap = 1500
 # How many recent Sharpe ratios to consider for convergence
 progressive_convergence_window = 50
 # If max-min of recent sharpes is below this, consider it converged
@@ -61,7 +69,7 @@ progressive_convergence_delta = 0.005
 # Interval (in simulations) at which to check for convergence
 progressive_check_interval = 50
 # Percentage of top combinations to re-run with full simulations for refinement
-top_n_percent_refinement = 0.10
+top_n_percent_refinement = 0.05
 # Number of simulations for the refinement phase, or for all combinations if adaptive_sim_enabled is false.
 sim_runs=1000
 
@@ -90,3 +98,8 @@ pool_size_default_num_stocks = 40
 bf_progress_log_thresholds = 25,50,75
 # Multiplier for POPULATION_SIZE to determine max attempts for unique GA initial population generation
 ga_init_pop_max_attempts_multiplier = 5
+
+# --- Data Quality Parameters ---
+# Threshold for auto-curating the stock pool. A stock is considered a "culprit" and removed
+# if it has fewer data points than (median_data_points * this_threshold).
+auto_curate_threshold = 0.75

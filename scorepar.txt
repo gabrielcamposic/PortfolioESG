@@ -3,15 +3,25 @@
 # --- General Settings ---
 # Enable extensive debug logging (true/false)
 debug_mode = false
-# Number of top stocks to select after scoring
-top_n_stocks = 20
 # Annual risk-free rate for Sharpe Ratio calculation (e.g., 0.05 for 5%)
 risk_free_rate = 0.15
 
+# --- Dynamic Score Weighting ---
+# Set to true to dynamically calculate weights based on metric variance.
+# If false, the static weights below will be used.
+dynamic_score_weighting = true
+
+# --- Momentum Factor ---
+# Set to true to include a momentum score in the composite calculation.
+momentum_enabled = true
+# The lookback period (in trading days) for calculating momentum. 126 days is approx. 6 months.
+momentum_period_days = 126
+
 # --- Composite Score Weights ---
-# Weights for combining Sharpe Ratio and Potential Upside into a single score. Should sum to 1.0.
+# (Used only if dynamic_score_weighting is false). Must sum to 1.0.
 sharpe_weight = 0.6
-upside_weight = 0.4
+upside_weight = 0.3
+momentum_weight = 0.2
 
 # --- File and Directory Paths ---
 # Path to the consolidated historical stock data database from Download.py
@@ -20,11 +30,11 @@ stock_data_file = ~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
 financials_db_file = ~/Documents/Prog/PortfolioESG_Data/findb/FinancialsDB.csv
 # Path to the input file containing the list of tickers to score (e.g., the master list)
 input_stocks_file = ~/Documents/Prog/PortfolioESG_Data/Tickers.txt
-# Path for the structured CSV database containing the top N scored stocks from each run. This is the input for Engine.py.
-scored_stocks_output_file = ~/Documents/Prog/PortfolioESG_Data/findb/scored_runs.csv
-# Path for the full CSV results of all scored stocks for analysis
-scored_results_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/Scored_Stocks_Results.csv
+# Path for the historical database of all scored runs. This is a primary result file.
+scored_stocks_output_file = ~/Documents/Prog/PortfolioESG_Data/Results/scored_runs.csv
 # Full path for the scoring script's log file
 log_file_path = ~/Documents/Prog/PortfolioESG_Prod/Logs/Scoring.log
 # Full path for the web-accessible progress JSON file (can be the same as Engine's)
 web_log_path = ~/Documents/Prog/PortfolioESG_public/html/progress.json
+# Path for the log of sector median P/E values from each run
+sector_pe_log_path = ~/Documents/Prog/PortfolioESG_Data/Results/Sector_Median_PE_Log.csv

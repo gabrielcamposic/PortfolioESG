@@ -1,44 +1,47 @@
-<p>O fluxo de trabalho do projeto é gerenciado por dois scripts Python principais: <code>Download.py</code> para aquisição de dados e <code>Engine.py</code> para os cálculos de otimização. Eles formam um pipeline para ir de dados brutos a sugestões de carteiras potenciais. Uma consideração chave durante o desenvolvimento foi garantir que esses scripts pudessem rodar eficientemente, mesmo em hardware com recursos limitados como um Raspberry Pi 3B, tornando a análise acessível.</p>
+<p>O fluxo de trabalho do projeto é gerenciado por três scripts Python principais: <code>Download.py</code> para aquisição de dados, <code>Scoring.py</code> para classificar ações e <code>Engine.py</code> para otimização de portfólio. Eles formam um pipeline que vai de dados brutos a sugestões de portfólios diversificados e otimizados. Uma consideração chave durante o desenvolvimento foi garantir que esses scripts pudessem ser executados de forma eficiente, mesmo em hardware com recursos limitados como um Raspberry Pi, tornando a análise acessível.</p>
 
 <h4><code>Download.py</code>: Abastecendo a Análise com Dados</h4>
-<p>Uma boa análise começa com bons dados. Meu script <code>Download.py</code> é construído para coletar as informações financeiras históricas necessárias para o processo de otimização. Suas principais tarefas incluem:</p>
+<p>Uma boa análise começa com bons dados. O script <code>Download.py</code> coleta as informações financeiras históricas e fundamentalistas necessárias para as etapas subsequentes. Suas principais tarefas incluem:</p>
 <ul>
-    <li><strong>Coleta de Dados Financeiros:</strong> Ele baixa sistematicamente dados históricos de ações (como preços diários de abertura, máxima, mínima, fechamento e volume), principalmente do Yahoo Finance usando a biblioteca <code>yfinance</code>.</li>
-    <li><strong>Lidando com Desafios de Dados Eficientemente:</strong> Obter dados limpos e consistentes pode ser complicado, especialmente visando performance. O script inclui lógica para lidar com:
-        <ul>
-            <li><em>Dias Úteis e Feriados:</em> Identifica com precisão os dias de negociação, respeitando calendários de mercado específicos (ex: feriados de São Paulo, Brasil) para evitar buscar dados em períodos sem negociação.</li>
-            <li><em>Lacunas nos Dados:</em> Verifica dados baixados anteriormente e tenta preencher qualquer informação histórica faltante.</li>
-            <li><em>Downloads Eficientes:</em> Mantém uma "lista de exclusão" (skip list) de datas para as quais dados não estavam disponíveis anteriormente na fonte, prevenindo tentativas falhas redundantes.</li>
-            <li><em>Resiliência:</em> Implementa novas tentativas para problemas de rede e rotaciona user-agents para garantir acesso consistente aos dados.</li>
-        </ul>
-    </li>
-    <li><strong>Organização dos Dados:</strong> Os dados baixados são processados e salvos em um único arquivo CSV consolidado e limpo (<code>StockDataDB.csv</code>). Este arquivo serve como a principal entrada para o script de otimização.</li>
+    <li><strong>Busca de Preços Históricos:</strong> Baixa sistematicamente dados históricos de ações (preços de abertura, máxima, mínima, fechamento e volume) do Yahoo Finance usando a biblioteca <code>yfinance</code>.</li>
+    <li><strong>Busca de Dados Fundamentalistas:</strong> Também recupera métricas importantes de projeção, como P/L Futuro (Forward P/E) e LPA Futuro (Forward EPS) para cada ação.</li>
+    <li><strong>Gerenciamento Inteligente de Dados:</strong> Lida eficientemente com lacunas de dados, respeita calendários de feriados específicos do mercado e mantém uma "lista de ignorados" para evitar requisitar novamente dados indisponíveis.</li>
+    <li><strong>Organização dos Dados:</strong> Todos os dados de preços são salvos em <code>StockDataDB.csv</code> e os dados fundamentalistas em <code>FinancialsDB.csv</code>, criando uma entrada limpa e consolidada para a próxima etapa.</li>
 </ul>
-<p><em>Por que isso é importante?</em> Dados históricos precisos, abrangentes e atualizados são a base de qualquer análise financeira sólida. O <code>Download.py</code> garante que nosso motor de otimização tenha a entrada de qualidade que necessita.</p>
 
-<h4><code>Engine.py</code>: Construindo Carteiras Otimizadas</h4>
-<p>Com os dados preparados, o <code>Engine.py</code> entra em cena. Este script é onde ocorre o trabalho computacional pesado, explorando diferentes combinações de ações para encontrar carteiras potencialmente "otimizadas". Seu desenvolvimento, particularmente na estruturação da lógica complexa de otimização e na exploração de abordagens algorítmicas, foi auxiliado por assistentes de codificação de IA. Ele é projetado para ser computacionalmente intensivo, mas gerenciável, mesmo em hardware menos potente. Eis uma olhada nas técnicas usadas:</p>
+<h4><code>Scoring.py</code>: Identificando Ações Promissoras</h4>
+<p>Em vez de alimentar todas as ações disponíveis no motor de cálculo, que é computacionalmente caro, o <code>Scoring.py</code> as pré-filtra e classifica. Este passo crucial garante que o motor concentre sua busca em um grupo de candidatos de alta qualidade. Ele calcula um <strong>Score Composto</strong> para cada ação com base em três fatores distintos:</p>
+<ul>
+    <li><strong>Retorno Ajustado ao Risco (Índice de Sharpe):</strong> Uma medida clássica do desempenho histórico ajustado pela volatilidade. Responde à pergunta: "Quanto retorno eu obtive pelo risco que corri?"</li>
+    <li><strong>Valor (Potencial de Valorização):</strong> Uma estimativa de valor futura. Calcula um preço-alvo com base nas projeções de lucros dos analistas (LPA Futuro) e na mediana do P/L do setor inteiro da ação. Isso fornece uma avaliação robusta e normalizada pela indústria.</li>
+    <li><strong>Momento (Momentum):</strong> Uma pontuação que recompensa ações que tiveram um bom desempenho recente (por exemplo, nos últimos 6 meses), com base na teoria de que "vencedores tendem a continuar vencendo".</li>
+</ul>
+<p>Uma característica chave deste script é sua <strong>ponderação dinâmica baseada em variância</strong>. Em vez de usar pesos fixos (ex: 50% Sharpe, 30% Valorização, 20% Momento), o modelo automaticamente dá mais influência à métrica que fornece a maior diferenciação entre as ações naquela execução específica. Os resultados, incluindo os scores e os pesos utilizados, são registrados em <code>scored_runs.csv</code>.</p>
+
+<h4><code>Engine.py</code>: Construindo Portfólios Otimizados</h4>
+<p>É aqui que o portfólio final é construído. O motor pega as ações mais bem classificadas do <code>Scoring.py</code> e realiza o trabalho computacional pesado para encontrar a combinação e ponderação ótimas. Veja como funciona:</p>
 <ul>
     <li><strong>Fundamentação em Teoria Financeira:</strong> A lógica do motor é baseada nos princípios da <strong>Teoria Moderna do Portfólio (MPT)</strong>. O objetivo principal é <strong>maximizar o Índice de Sharpe</strong>, uma métrica chave que mede o retorno em relação ao risco.</li>
-    <li><strong>Preparação dos Dados:</strong> Ele lê eficientemente os dados históricos, calcula os retornos diários e seleciona um grupo de ações promissoras para focar a busca (atualmente com base nos Índices de Sharpe individuais).</li>
+    <li><strong>Seleção de Ações:</strong> Primeiro, ele carrega as N melhores ações (ex: as 20 melhores) da última execução em <code>scored_runs.csv</code>. Isso garante que o espaço de busca seja focado em candidatos de alta qualidade.</li>
+    <li><strong>Restrições de Diversificação:</strong> Para evitar a superconcentração em um único setor em alta, o motor aplica uma restrição crucial. Você pode configurar o número máximo de ações permitidas de um mesmo setor (ex: não mais que 2 ações de tecnologia).</li>
     <li><strong>Explorando Possibilidades com Simulação de Monte Carlo:</strong> Para qualquer combinação de ações, o motor executa inúmeras simulações. Em cada simulação, ele atribui pesos aleatórios às ações na carteira e então calcula o desempenho histórico da carteira: Retorno Anual Esperado, Volatilidade Anual Esperada (Risco) e o Índice de Sharpe.</li>
     <li><strong>Uma Estratégia de Busca Híbrida:</strong>
         <ul>
-            <li><em>Força Bruta (para carteiras menores):</em> Para carteiras com um pequeno número de ações (configurável, ex: até 9), o motor avalia exaustivamente todas as combinações possíveis de ações de uma lista pré-definida (como uma lista de ações com foco em ESG).</li>
-            <li><em>Algoritmos Genéticos (AG) (para carteiras maiores):</em> Quando o número de combinações possíveis se torna vasto demais para a força bruta, o motor muda para um Algoritmo Genético. AGs são poderosos métodos de busca heurística inspirados pela evolução natural, explorando inteligentemente o espaço de soluções.</li>
+            <li><em>Força Bruta (para carteiras menores):</em> Para carteiras com um pequeno número de ações (ex: até 9), o motor avalia exaustivamente todas as combinações possíveis que atendem aos critérios de diversificação.</li>
+            <li><em>Algoritmos Genéticos (AG) (para carteiras maiores):</em> Quando o número de combinações possíveis se torna muito vasto para a força bruta, o motor muda para um Algoritmo Genético. AGs são poderosos métodos de busca heurística inspirados na evolução natural, explorando inteligentemente o espaço de soluções.</li>
         </ul>
     </li>
     <li><strong>Simulação Adaptativa:</strong> Para gerenciar o tempo de computação, o motor usa estratégias adaptativas. Ele pode rodar menos simulações para combinações que rapidamente mostram resultados ruins e focar mais esforço naquelas que parecem promissoras, ou parar de simular uma combinação se seu desempenho parecer ter convergido.</li>
     <li><strong>Fase de Refinamento:</strong> Após a busca inicial, as melhores combinações encontradas podem opcionalmente passar por uma fase de refinamento, onde são simuladas muito mais vezes para obter uma estimativa mais precisa de seu desempenho potencial.</li>
     <li><strong>Registro de Resultados:</strong> O script registra os detalhes da melhor carteira encontrada (as ações, quanto alocar em cada uma, e suas métricas de desempenho calculadas como Índice de Sharpe, retorno esperado e volatilidade).</li>
 </ul>
-<p><em>Por que essas técnicas?</em> Combinar força bruta para problemas menores e gerenciáveis com Algoritmos Genéticos para os maiores permite ao motor explorar uma vasta gama de possibilidades. Monte Carlo ajuda a entender a faixa de desempenho potencial de um dado conjunto de ações, e focar no Índice de Sharpe fornece uma maneira padrão de comparar diferentes carteiras com base no retorno ajustado ao risco.</p>
 
 <h4>Trabalhando em Harmonia</h4>
-<p>Os dois scripts, <code>Download.py</code> e <code>Engine.py</code>, trabalham sequencialmente:</p>
+<p>Os três scripts funcionam sequencialmente:</p>
 <ol>
-    <li>Primeiro, você executa o <code>Download.py</code> para obter os dados históricos de ações mais recentes e salvá-los em <code>StockDataDB.csv</code>.</li>
-    <li>Então, você executa o <code>Engine.py</code>, que lê o <code>StockDataDB.csv</code> e realiza os cálculos de otimização com base nos parâmetros que você definir.</li>
+    <li>Execute <code>Download.py</code> para obter os dados históricos e fundamentalistas mais recentes.</li>
+    <li>Execute <code>Scoring.py</code> para analisar todas as ações e classificá-las com base no modelo de 3 fatores.</li>
+    <li>Execute <code>Engine.py</code>, que usa os scores para selecionar os melhores candidatos e, em seguida, encontra o portfólio ótimo e diversificado.</li>
 </ol>
 <p>Essa separação mantém o código organizado e garante que a otimização esteja sempre usando os dados preparados pelo script de download.</p>
 

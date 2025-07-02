@@ -1,4 +1,9 @@
 #!/home/gabrielcampos/.pyenv/versions/env-fa/bin/python
+
+# --- Script Version ---
+SCORING_PY_VERSION = "2.2.0" # Added Momentum factor and 3-way dynamic weighting.
+# ----------------------
+
 # ----------------------------------------------------------- #
 #                           Libraries                         #
 # ----------------------------------------------------------- #
@@ -8,10 +13,6 @@ import os
 import sys
 import json
 from datetime import datetime
-
-# --- Script Version ---
-SCORING_PY_VERSION = "1.0.0"
-# ----------------------
 
 # ----------------------------------------------------------- #
 #                       Global variables                      #
@@ -23,13 +24,15 @@ STOCK_DATA_FILE = ""
 FINANCIALS_DB_FILE = ""
 INPUT_STOCKS_FILE = ""
 SCORED_STOCKS_OUTPUT_FILE = ""
-SCORED_RESULTS_CSV_PATH = ""
-TOP_N_STOCKS = 20
-RISK_FREE_RATE = 0.0
+RISK_FREE_RATE = 0.15
 LOG_FILE_PATH = ""
 SHARPE_WEIGHT = 0.6
 UPSIDE_WEIGHT = 0.4
 WEB_LOG_PATH = ""
+DYNAMIC_SCORE_WEIGHTING = False
+MOMENTUM_ENABLED = False
+MOMENTUM_PERIOD_DAYS = 126
+MOMENTUM_WEIGHT = 0.0
 
 # ----------------------------------------------------------- #
 #                           Classes                           #
@@ -101,10 +104,10 @@ class Logger:
 def load_scoring_parameters(filepath, logger_instance=None):
     parameters = {}
     expected_types = {
-        "debug_mode": bool, "top_n_stocks": int, "risk_free_rate": float,
+        "debug_mode": bool, "risk_free_rate": float, "dynamic_score_weighting": bool, "momentum_enabled": bool,
         "stock_data_file": str, "input_stocks_file": str,
-        "financials_db_file": str, "scored_stocks_output_file": str, "log_file_path": str, "web_log_path": str, "sharpe_weight": float, "upside_weight": float,
-        "scored_results_csv_path": str
+        "financials_db_file": str, "scored_stocks_output_file": str, "log_file_path": str, "web_log_path": str, 
+        "sharpe_weight": float, "upside_weight": float, "momentum_weight": float, "sector_pe_log_path": str, "momentum_period_days": int
     }
     try:
         with open(filepath, 'r') as f:
@@ -129,17 +132,35 @@ def load_scoring_parameters(filepath, logger_instance=None):
         raise
     return parameters
 
-def load_input_stocks(filepath, logger_instance):
+def load_input_stocks_with_sectors(filepath, logger_instance):
+    """
+    Loads tickers, sectors, and industries from the input CSV file.
+    Handles comments, blank lines, and ensures 'Stock' column for merging.
+    Returns a pandas DataFrame.
+    """
     try:
-        with open(filepath, 'r') as f:
-            # Read all lines, split by comma on each line, and flatten the list
-            tickers = []
-            for line in f:
-                tickers.extend([ticker.strip() for ticker in line.split(',') if ticker.strip()])
-        # Remove duplicates and sort for consistency
-        tickers = sorted(list(set(tickers)))
-        logger_instance.log(f"Loaded {len(tickers)} unique tickers from {filepath}")
-        return tickers
+        # Use pandas to easily read CSV, skipping comments and blank lines
+        stocks_df = pd.read_csv(
+            filepath,
+            header=None,
+            names=['Ticker', 'Sector', 'Industry'],
+            comment='#',
+            skip_blank_lines=True,
+            sep=','
+        )
+        # Strip whitespace from all string columns
+        for col in stocks_df.select_dtypes(['object']):
+            stocks_df[col] = stocks_df[col].str.strip()
+        
+        # Drop rows where Ticker is missing and remove duplicates
+        stocks_df.dropna(subset=['Ticker'], inplace=True)
+        stocks_df.drop_duplicates(subset=['Ticker'], keep='first', inplace=True)
+        
+        # Rename 'Ticker' to 'Stock' to match other dataframes
+        stocks_df.rename(columns={'Ticker': 'Stock'}, inplace=True)
+
+        logger_instance.log(f"Loaded {len(stocks_df)} unique stocks with sector/industry data from {filepath}")
+        return stocks_df
     except FileNotFoundError:
         logger_instance.log(f"CRITICAL: Input stocks file not found at '{filepath}'.")
         raise
@@ -213,24 +234,28 @@ def main():
 
     # Assign global variables from loaded parameters
     global DEBUG_MODE, STOCK_DATA_FILE, FINANCIALS_DB_FILE, INPUT_STOCKS_FILE, SCORED_STOCKS_OUTPUT_FILE
-    global SCORED_RESULTS_CSV_PATH, TOP_N_STOCKS, RISK_FREE_RATE, LOG_FILE_PATH, WEB_LOG_PATH, SHARPE_WEIGHT, UPSIDE_WEIGHT
+    global RISK_FREE_RATE, LOG_FILE_PATH, WEB_LOG_PATH, SHARPE_WEIGHT, UPSIDE_WEIGHT, SECTOR_PE_LOG_PATH, DYNAMIC_SCORE_WEIGHTING, MOMENTUM_ENABLED, MOMENTUM_PERIOD_DAYS, MOMENTUM_WEIGHT
     
     DEBUG_MODE = params.get("debug_mode", False)
     STOCK_DATA_FILE = params.get("stock_data_file")
     FINANCIALS_DB_FILE = params.get("financials_db_file")
     INPUT_STOCKS_FILE = params.get("input_stocks_file")
     SCORED_STOCKS_OUTPUT_FILE = params.get("scored_stocks_output_file")
-    SCORED_RESULTS_CSV_PATH = params.get("scored_results_csv_path")
-    TOP_N_STOCKS = params.get("top_n_stocks", 20)
     RISK_FREE_RATE = params.get("risk_free_rate", 0.0)
     LOG_FILE_PATH = params.get("log_file_path")
     SHARPE_WEIGHT = params.get("sharpe_weight", 0.6)
     UPSIDE_WEIGHT = params.get("upside_weight", 0.4)
     WEB_LOG_PATH = params.get("web_log_path")
+    SECTOR_PE_LOG_PATH = params.get("sector_pe_log_path")
+    DYNAMIC_SCORE_WEIGHTING = params.get("dynamic_score_weighting", False)
+    MOMENTUM_ENABLED = params.get("momentum_enabled", False)
+    MOMENTUM_PERIOD_DAYS = params.get("momentum_period_days", 126)
+    MOMENTUM_WEIGHT = params.get("momentum_weight", 0.0)
 
-    # Validate that weights sum to 1.0
-    if not np.isclose(SHARPE_WEIGHT + UPSIDE_WEIGHT, 1.0):
-        logger.log(f"CRITICAL: Score weights do not sum to 1.0 (sharpe_weight={SHARPE_WEIGHT}, upside_weight={UPSIDE_WEIGHT}). Exiting.")
+    # Validate that weights sum to 1.0, only if not using dynamic weighting
+    total_static_weight = SHARPE_WEIGHT + UPSIDE_WEIGHT + (MOMENTUM_WEIGHT if MOMENTUM_ENABLED else 0)
+    if not DYNAMIC_SCORE_WEIGHTING and not np.isclose(total_static_weight, 1.0):
+        logger.log(f"CRITICAL: Static score weights do not sum to 1.0 (Total: {total_static_weight}). Exiting.")
         sys.exit(1)
 
     # Update logger with paths from parameters
@@ -249,7 +274,8 @@ def main():
 
     try:
         # 1. Load Input Stocks
-        tickers = load_input_stocks(INPUT_STOCKS_FILE, logger)
+        stocks_with_sectors_df = load_input_stocks_with_sectors(INPUT_STOCKS_FILE, logger)
+        tickers = stocks_with_sectors_df['Stock'].tolist() if not stocks_with_sectors_df.empty else []
         if not tickers:
             logger.log("No tickers loaded. Exiting.", web_data={"scoring_status": "Failed - No Tickers"})
             sys.exit(1)
@@ -276,6 +302,16 @@ def main():
         logger.log("Calculating Sharpe Ratios...")
         results_df = calculate_individual_sharpe_ratios(daily_returns, RISK_FREE_RATE)
 
+        # --- New: Calculate Momentum ---
+        if MOMENTUM_ENABLED:
+            logger.log(f"Calculating {MOMENTUM_PERIOD_DAYS}-day momentum...")
+            if len(daily_returns) >= MOMENTUM_PERIOD_DAYS:
+                momentum = daily_returns.tail(MOMENTUM_PERIOD_DAYS).sum().rename('Momentum')
+                results_df = pd.merge(results_df, momentum, on='Stock', how='left')
+            else:
+                logger.log(f"Warning: Not enough historical data ({len(daily_returns)} days) to calculate {MOMENTUM_PERIOD_DAYS}-day momentum. Skipping.")
+                results_df['Momentum'] = np.nan
+
         # Add a check to ensure some stocks were processed
         if results_df.empty:
             logger.log("CRITICAL: No valid tickers were found in the historical data, or no returns could be calculated. The results will be empty. Please check your Tickers.txt and StockDataDB.csv.", 
@@ -299,66 +335,149 @@ def main():
         latest_prices = close_prices_df.iloc[-1].rename('CurrentPrice')
         results_df = pd.merge(results_df, latest_prices.reset_index(), on='Stock', how='left')
 
+        # 4b. Merge with sector and industry data (moved earlier to be available for P/E calculation)
+        logger.log("Merging sector and industry data...")
+        if not stocks_with_sectors_df.empty:
+            results_df = pd.merge(results_df, stocks_with_sectors_df, on='Stock', how='left')
+            # Fill any potential NaNs in Sector/Industry for stocks that might be in results_df but not Tickers.txt
+            results_df[['Sector', 'Industry']] = results_df[['Sector', 'Industry']].fillna('N/A')
+        else:
+            results_df['Sector'] = 'N/A'
+            results_df['Industry'] = 'N/A'
+
         # 4b. Calculate Risk-Adjusted Upside Score
         logger.log("Calculating Risk-Adjusted Upside Score...")
-        # The target price is calculated using each stock's own forward P/E and forward EPS.
-        # Target Price = Forward EPS * Forward P/E
-        # This reflects the market's current expectation for the stock's future earnings and valuation.
-        logger.log("Calculating Target Price using individual forward P/E and forward EPS for each stock.")
-        results_df['TargetPrice'] = results_df['forwardEps'] * results_df['forwardPE']
+
+        # --- New: Calculate Target Price using Sector Median Forward P/E ---
+        logger.log("Calculating target price using sector median Forward P/E.")
+        # Calculate median P/E for each sector, using only positive P/E values
+        sector_median_pe = results_df[results_df['forwardPE'] > 0].groupby('Sector')['forwardPE'].median().rename('SectorMedianPE')
+        
+        if DEBUG_MODE and not sector_median_pe.empty:
+            logger.log(f"DEBUG: Calculated Sector Median P/Es:\n{sector_median_pe.to_string()}")
+
+        # --- New: Log Sector Median P/E to CSV ---
+        if SECTOR_PE_LOG_PATH and not sector_median_pe.empty:
+            try:
+                sector_pe_df = sector_median_pe.reset_index()
+                sector_pe_df.columns = ['Sector', 'MedianForwardPE']
+                sector_pe_df['run_id'] = run_id
+                sector_pe_df['run_timestamp'] = start_time.strftime('%Y-%m-%d %H:%M:%S')
+                
+                os.makedirs(os.path.dirname(SECTOR_PE_LOG_PATH), exist_ok=True)
+                file_exists = os.path.isfile(SECTOR_PE_LOG_PATH)
+                sector_pe_df.to_csv(SECTOR_PE_LOG_PATH, mode='a', header=not file_exists, index=False)
+                logger.log(f"✅ Sector median P/E data logged to {os.path.basename(SECTOR_PE_LOG_PATH)}")
+            except Exception as e:
+                logger.log(f"Warning: Could not log sector median P/E data. Error: {e}")
+
+        # Merge the calculated sector median P/E back into the main dataframe
+        results_df = pd.merge(results_df, sector_median_pe, on='Sector', how='left')
+
+        # Calculate Target Price using the stock's Forward EPS and its sector's median P/E
+        results_df['TargetPrice'] = results_df['forwardEps'] * results_df['SectorMedianPE']
 
         results_df['PotentialUpside_pct'] = ((results_df['TargetPrice'] - results_df['CurrentPrice']) / results_df['CurrentPrice']).replace([np.inf, -np.inf], np.nan)
+
+        # --- Data Availability Check ---
+        missing_upside = results_df['PotentialUpside_pct'].isna().sum()
+        if missing_upside > 0:
+            logger.log(f"Info: Potential Upside could not be calculated for {missing_upside} of {len(results_df)} stocks due to missing data (e.g., missing EPS or no valid P/E in sector).")
+            if DEBUG_MODE:
+                missing_tickers = results_df[results_df['PotentialUpside_pct'].isna()]['Stock'].tolist()
+                logger.log(f"  - Affected Tickers (sample): {', '.join(missing_tickers[:10])}{'...' if len(missing_tickers) > 10 else ''}")
 
         # 4c. Normalize metrics and compute final score
         results_df['SharpeRatio_norm'] = normalize_series(results_df['SharpeRatio'])
         results_df['PotentialUpside_pct_norm'] = normalize_series(results_df['PotentialUpside_pct'])
+        if MOMENTUM_ENABLED:
+            results_df['Momentum_norm'] = normalize_series(results_df['Momentum'])
 
-        # Calculate final composite score using weights from parameters
-        results_df['CompositeScore'] = (SHARPE_WEIGHT * results_df['SharpeRatio_norm']) + \
-                                       (UPSIDE_WEIGHT * results_df['PotentialUpside_pct_norm'])
+        # --- Dynamic/Static Weight Calculation ---
+        if DYNAMIC_SCORE_WEIGHTING:
+            logger.log("Calculating dynamic score weights based on variance...")
+            var_sharpe = results_df['SharpeRatio_norm'].var()
+            var_upside = results_df['PotentialUpside_pct_norm'].var()
+            var_momentum = results_df['Momentum_norm'].var() if MOMENTUM_ENABLED and 'Momentum_norm' in results_df else 0
+            total_var = var_sharpe + var_upside + var_momentum
+
+            if total_var > 0:
+                sharpe_weight_used = var_sharpe / total_var
+                upside_weight_used = var_upside / total_var
+                momentum_weight_used = var_momentum / total_var if MOMENTUM_ENABLED else 0.0
+            else:
+                logger.log("Warning: Total variance of normalized scores is zero. Falling back to equal weights.")
+                num_factors = 2 + (1 if MOMENTUM_ENABLED and 'Momentum_norm' in results_df else 0)
+                sharpe_weight_used = 1 / num_factors
+                upside_weight_used = 1 / num_factors
+                momentum_weight_used = 1 / num_factors if MOMENTUM_ENABLED and 'Momentum_norm' in results_df else 0.0
+            
+            log_msg = f"Dynamic weights calculated: Sharpe={sharpe_weight_used:.3f}, Upside={upside_weight_used:.3f}"
+            if MOMENTUM_ENABLED: log_msg += f", Momentum={momentum_weight_used:.3f}"
+            logger.log(log_msg)
+
+        else:
+            sharpe_weight_used = SHARPE_WEIGHT
+            upside_weight_used = UPSIDE_WEIGHT
+            momentum_weight_used = MOMENTUM_WEIGHT if MOMENTUM_ENABLED else 0.0
+            log_msg = f"Using static score weights: Sharpe={sharpe_weight_used}, Upside={upside_weight_used}"
+            if MOMENTUM_ENABLED: log_msg += f", Momentum={momentum_weight_used}"
+            logger.log(log_msg)
+
+        results_df['CompositeScore'] = (sharpe_weight_used * results_df['SharpeRatio_norm']) + (upside_weight_used * results_df['PotentialUpside_pct_norm'])
+        if MOMENTUM_ENABLED and 'Momentum_norm' in results_df:
+            results_df['CompositeScore'] += (momentum_weight_used * results_df['Momentum_norm'])
         logger.log("Composite scoring complete.")
 
-        # Add run_id and timestamp for auditability
+        # --- Add weights and audit columns to DataFrame ---
         results_df['run_id'] = run_id
         results_df['run_timestamp'] = start_time.strftime('%Y-%m-%d %H:%M:%S')
+        results_df['scoring_version'] = SCORING_PY_VERSION
+        results_df['sharpe_weight_used'] = sharpe_weight_used
+        results_df['upside_weight_used'] = upside_weight_used
+        if MOMENTUM_ENABLED:
+            results_df['momentum_weight_used'] = momentum_weight_used
 
         # Sort by the new CompositeScore (higher is better)
         results_df.sort_values(by=['CompositeScore'], ascending=False, inplace=True)
         
+        # --- Reorder columns for readability before saving ---
+        final_column_order = [
+            'run_id', 'run_timestamp', 'scoring_version', 'Stock', 'Sector', 'Industry',
+            'CompositeScore', 'SharpeRatio', 'PotentialUpside_pct', 'Momentum',
+            'SharpeRatio_norm', 'PotentialUpside_pct_norm', 'Momentum_norm',
+            'sharpe_weight_used', 'upside_weight_used', 'momentum_weight_used',
+            'AnnualizedMeanReturn', 'AnnualizedStdDev', 'CurrentPrice', 'TargetPrice',
+            'forwardPE', 'forwardEps', 'SectorMedianPE'
+        ]
+        existing_columns = [col for col in final_column_order if col in results_df.columns]
+        results_df = results_df[existing_columns]
+
         # 5. Save Results
-        logger.log(f"Selecting top {TOP_N_STOCKS} stocks and saving results...")
-        top_stocks_df = results_df.head(TOP_N_STOCKS)
-
-        # Save the full results for this run to the main results CSV
-        if SCORED_RESULTS_CSV_PATH:
-            os.makedirs(os.path.dirname(SCORED_RESULTS_CSV_PATH), exist_ok=True)
-            results_df.to_csv(SCORED_RESULTS_CSV_PATH, index=False)
-            logger.log(f"Full scored results saved to {SCORED_RESULTS_CSV_PATH}")
-
+        logger.log(f"Saving all {len(results_df)} scored stocks...")
+        
         # Append the top stocks for this run to the historical scored runs database
         if SCORED_STOCKS_OUTPUT_FILE:
             os.makedirs(os.path.dirname(SCORED_STOCKS_OUTPUT_FILE), exist_ok=True)
             file_exists = os.path.isfile(SCORED_STOCKS_OUTPUT_FILE)
 
-            # Schema validation: if file exists, check if headers match.
             if file_exists:
                 try:
-                    # Read only the header to avoid loading the whole file into memory.
-                    existing_header = pd.read_csv(SCORED_STOCKS_OUTPUT_FILE, nrows=0).columns.tolist()
-                    current_header = top_stocks_df.columns.tolist()
-
-                    # If schemas don't match, abort to prevent corruption.
-                    if set(existing_header) != set(current_header):
-                        logger.log(f"CRITICAL: Schema of existing '{os.path.basename(SCORED_STOCKS_OUTPUT_FILE)}' does not match current output.")
-                        logger.log("This is likely due to a code change. Please backup/rename the old file or use the cleanup utility.")
-                        logger.log("Aborting to prevent data corruption.")
-                        sys.exit(1)
+                    # Load the existing data to merge with it
+                    existing_df = pd.read_csv(SCORED_STOCKS_OUTPUT_FILE)
+                    # Concatenate old and new data. This handles schema changes by creating a superset of columns.
+                    combined_df = pd.concat([existing_df, results_df], ignore_index=True)
+                    # Overwrite the file with the combined data
+                    combined_df.to_csv(SCORED_STOCKS_OUTPUT_FILE, index=False)
+                    logger.log(f"Appended new run and updated schema in {os.path.basename(SCORED_STOCKS_OUTPUT_FILE)}")
                 except Exception as e:
-                    logger.log(f"CRITICAL: Could not validate schema of existing file (Error: {e}). Aborting.")
+                    logger.log(f"CRITICAL: Could not read or merge with existing file '{os.path.basename(SCORED_STOCKS_OUTPUT_FILE)}' (Error: {e}). Aborting.")
                     sys.exit(1)
-            
-            top_stocks_df.to_csv(SCORED_STOCKS_OUTPUT_FILE, mode='a', header=not file_exists, index=False)
-            logger.log(f"✅ Top {TOP_N_STOCKS} stocks for run_id {run_id} appended to {SCORED_STOCKS_OUTPUT_FILE}")
+            else:
+                # If the file doesn't exist, create it with the current run's data
+                results_df.to_csv(SCORED_STOCKS_OUTPUT_FILE, index=False)
+                logger.log(f"Created new scored runs file: {os.path.basename(SCORED_STOCKS_OUTPUT_FILE)}")
+            logger.log(f"✅ All {len(results_df)} scored stocks for run_id {run_id} saved to {SCORED_STOCKS_OUTPUT_FILE}")
 
         end_time = datetime.now()
         duration = end_time - start_time

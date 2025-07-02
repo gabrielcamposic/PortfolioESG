@@ -1,45 +1,47 @@
 import pandas as pd
 import os # Required for os.path.expanduser
 
-# --- Configuration from your simpar.txt ---
-# Using the absolute path based on your context
-# stock_data_file_path = "/Users/gabrielcampos/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv" # Kept for clarity
-# esg_stocks_list_str = "ALUP11.SA, B3SA3.SA, FLRY3.SA, ITUB4.SA, LREN3.SA, ORVR3.SA, SRNA3.SA, SUZB3.SA, VIVT3.SA, WEGE3.SA" # Old hardcoded string
-# --- End Configuration ---
+# --- Configuration ---
+# This script now reads the same files as Engine.py to provide a relevant status check.
+SCORED_RUNS_FILE_PATH = os.path.expanduser("~/Documents/Prog/PortfolioESG_Data/Results/scored_runs.csv")
+STOCK_DATA_DB_PATH = os.path.expanduser("~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv")
+TOP_N_STOCKS_TO_CHECK = 20 # Set this to match 'top_n_stocks_from_score' in simpar.txt
 
-# New: Read ESG stocks from a separate file
-ESG_STOCKS_FILE_PATH = os.path.expanduser("~/Documents/Prog/PortfolioESG_Data/esg_stocks.txt")
+def load_top_scored_stocks(filepath, top_n):
+    """Loads the top N stocks from the most recent run in the scored_runs.csv file."""
+    if not os.path.exists(filepath):
+        print(f"ERROR: Scored runs file not found at {filepath}.")
+        return []
+    try:
+        df = pd.read_csv(filepath)
+        latest_run_id = df['run_id'].max()
+        latest_run_df = df[df['run_id'] == latest_run_id]
+        top_stocks = latest_run_df.sort_values(by='CompositeScore', ascending=False).head(top_n)['Stock'].tolist()
+        return top_stocks
+    except Exception as e:
+        print(f"An error occurred while reading the scored runs file: {e}")
+        return []
 
-esg_stocks = []
-try:
-    with open(ESG_STOCKS_FILE_PATH, 'r') as f:
-        for line in f:
-            esg_stocks.extend([stock.strip() for stock in line.split(',') if stock.strip()])
-    esg_stocks = sorted(list(set(esg_stocks))) # Remove duplicates and sort
-except FileNotFoundError:
-    print(f"ERROR: ESG stocks file not found at {ESG_STOCKS_FILE_PATH}. Please create it.")
+# --- Main Execution ---
+portfolio_stocks = load_top_scored_stocks(SCORED_RUNS_FILE_PATH, TOP_N_STOCKS_TO_CHECK)
+if not portfolio_stocks:
+    print("Could not load any stocks to check. Exiting.")
     exit(1)
-except Exception as e:
-    print(f"An error occurred while reading ESG stocks file: {e}")
-    exit(1)
-
-# Assuming stock_data_file_path is still hardcoded or derived elsewhere for this script
-stock_data_file_path = "/Users/gabrielcampos/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv"
 
 try:
-    # No need for expanduser here as we're using the absolute path
-    df = pd.read_csv(stock_data_file_path)
+    df = pd.read_csv(STOCK_DATA_DB_PATH)
     # Use format='mixed' for robust parsing and .dt.date to keep only the date part
     df['Date'] = pd.to_datetime(df['Date'], format='mixed', errors='coerce').dt.date
 
-    print(f"Checking data in: {stock_data_file_path}")
-    print(f"Portfolio stocks: {esg_stocks}\n")
+    print(f"Checking data in: {STOCK_DATA_DB_PATH}")
+    print(f"Checking status for the top {TOP_N_STOCKS_TO_CHECK} stocks from the latest scoring run.")
+    print(f"Stocks to be used by Engine: {portfolio_stocks}\n")
 
     latest_dates = {}
     all_stocks_present_in_csv = True
     all_stocks_have_data = True
 
-    for stock in esg_stocks:
+    for stock in portfolio_stocks:
         if stock in df['Stock'].unique():
             stock_df = df[df['Stock'] == stock]
             if not stock_df.empty:
@@ -81,8 +83,7 @@ try:
                 print(f"significantly beyond {reference_date_ts.date().strftime('%Y-%m-%d')} (limited by date: {limiting_date.strftime('%Y-%m-%d')}).")
                 print("If Download.py reported success but data is still missing for specific stocks,")
                 print("you might want to check the download log file specified in 'downpar.txt' for any warnings or errors related to those stocks.")
-
 except FileNotFoundError:
-    print(f"ERROR: StockDataDB.csv not found at {stock_data_file_path}")
+    print(f"ERROR: StockDataDB.csv not found at {STOCK_DATA_DB_PATH}")
 except Exception as e:
     print(f"An error occurred while checking the CSV: {e}")

@@ -1,4 +1,9 @@
 #!/home/gabrielcampos/.pyenv/versions/env-fa/bin/python
+
+# --- Engine Version ---
+ENGINE_VERSION = "1.7.0" # Updated data wrangling to focus exclusively on the provided stock list.
+# ----------------------
+
 # ----------------------------------------------------------- #
 #                           Libraries                         #
 # ----------------------------------------------------------- #
@@ -13,11 +18,8 @@ import itertools
 import sys  # Import sys module for logging
 import json # For logging to html readable
 import math 
+from collections import Counter # Import Counter for efficient counting
 import shutil # Add this import
-
-# --- Engine Version ---
-ENGINE_VERSION = "1.7.0" # Updated data wrangling to focus exclusively on the provided stock list.
-# ----------------------
 
 # ----------------------------------------------------------- #
 #                           Classes                           #
@@ -182,8 +184,10 @@ def load_simulation_parameters(filepath, logger_instance=None):
         "rf": float,
         "start_date": str,  # Keep as string; parse to datetime object later if needed
         "stock_data_file": str, # Added: recognize stock_data_file
-        "esg_stocks_file_path": str, # New: path to ESG stocks file
+        "scored_runs_file_path": str, # New: path to scored runs file
+        "top_n_stocks_from_score": int, # New: number of top stocks to use
         "portfolio_folder": str, # This is still used for reading benchmark portfolios if that feature is active
+        "max_stocks_per_sector": int, # New: diversification constraint
         "log_file_path": str,
         "debug_mode": bool, # Added for debug mode
         "web_log_path": str,
@@ -225,6 +229,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
 
     # Add the new parameter for portfolio value history
     expected_types["portfolio_value_history_csv_path"] = str
+    expected_types["auto_curate_threshold"] = float
 
     try:
         # Read debug_mode first, if available, to control logging within this function
@@ -380,42 +385,45 @@ def load_simulation_parameters(filepath, logger_instance=None):
 
     return parameters
 
-def load_esg_stocks_from_file(filepath, logger_instance=None):
+def load_scored_stocks(filepath, top_n, logger_instance=None):
     """
-    Loads a comma-separated list of stock tickers from a file.
-    Each line in the file is treated as a potential list of tickers.
-    Empty lines and lines starting with '#' are ignored.
+    Loads the scored runs CSV, identifies the most recent run, and returns the
+    top N stocks from that run based on 'CompositeScore'.
+    Also returns a dictionary mapping stocks to their sectors.
     """
-    esg_stocks = []
     expanded_filepath = os.path.expanduser(filepath) # Ensure path is expanded
     if not os.path.exists(expanded_filepath):
-        message = f"CRITICAL ERROR: ESG stocks file not found at '{expanded_filepath}'. Cannot proceed."
+        message = f"CRITICAL ERROR: Scored runs file not found at '{expanded_filepath}'. Please run Scoring.py to generate it, or check the path in simpar.txt."
         if logger_instance:
             logger_instance.log(message)
         else:
             print(message)
         raise FileNotFoundError(message)
-
+    
     try:
-        with open(expanded_filepath, 'r') as f:
-            for line_number, line in enumerate(f, 1):
-                line = line.strip()
-                if not line or line.startswith('#'):  # Skip empty lines and comments
-                    continue
-                # Split by comma, strip whitespace, and filter out empty strings
-                tickers_on_line = [ticker.strip() for ticker in line.split(',') if ticker.strip()]
-                esg_stocks.extend(tickers_on_line)
+        df = pd.read_csv(expanded_filepath)
+        if 'run_id' not in df.columns or 'CompositeScore' not in df.columns or 'Stock' not in df.columns or 'Sector' not in df.columns:
+            raise ValueError("Scored runs file is missing required columns: 'run_id', 'CompositeScore', 'Stock', 'Sector'.")
         
-        # Remove duplicates and sort for consistency
-        esg_stocks = sorted(list(set(esg_stocks)))
+        # Find the most recent run_id
+        latest_run_id = df['run_id'].max()
+        latest_run_df = df[df['run_id'] == latest_run_id].copy()
+        
+        # Sort by score and select the top N stocks
+        latest_run_df.sort_values(by='CompositeScore', ascending=False, inplace=True)
+        top_stocks_df = latest_run_df.head(top_n)
+        top_stocks = top_stocks_df['Stock'].tolist()
+        stock_to_sector_map = pd.Series(top_stocks_df.Sector.values, index=top_stocks_df.Stock).to_dict()
         
         if logger_instance:
-            logger_instance.log(f"Successfully loaded {len(esg_stocks)} ESG stocks from: {expanded_filepath}")
+            logger_instance.log(f"Successfully loaded {len(top_stocks)} top stocks from the latest run ('{latest_run_id}') in {os.path.basename(expanded_filepath)}.")
             if DEBUG_MODE:
-                logger_instance.log(f"DEBUG: Loaded ESG stocks: {', '.join(esg_stocks)}")
-        return esg_stocks
+                logger_instance.log(f"DEBUG: Top {top_n} stocks selected: {', '.join(top_stocks)}")
+        
+        return top_stocks, stock_to_sector_map
+
     except Exception as e:
-        message = f"CRITICAL ERROR: Failed to read or parse ESG stocks file '{expanded_filepath}': {e}"
+        message = f"CRITICAL ERROR: Failed to read or parse scored runs file '{expanded_filepath}': {e}"
         if logger_instance:
             logger_instance.log(message)
         else:
@@ -589,7 +597,9 @@ def find_best_stock_combination(
     # The above line is commented out as num_simulation_runs is now sourced from global/adaptive logic inside
     current_rf_rate,            # RF_RATE
     logger_instance,
-    timer_instance
+    timer_instance,
+    stock_sector_map,           # New: map of stocks to sectors
+    max_stocks_per_sector       # New: diversification constraint
 ):
     """Finds the best stock combination from stocks_to_consider_list using brute force."""
     logger_instance.log("    Starting brute-force stock combination search...")
@@ -714,7 +724,21 @@ def find_best_stock_combination(
             # best_sharpe_this_combo = -float("inf") 
             # ... (other best_..._this_combo vars)
 
-            for stock_combo in itertools.combinations(available_stocks_for_search, num_stocks_in_combo):
+            # --- New: Sector Diversification Filter ---
+            all_possible_combos_for_size = itertools.combinations(available_stocks_for_search, num_stocks_in_combo)
+            
+            diversified_combos = []
+            for combo in all_possible_combos_for_size:
+                sector_counts = Counter(stock_sector_map.get(s, 'Unknown') for s in combo)
+                if not sector_counts or max(sector_counts.values()) <= max_stocks_per_sector:
+                    diversified_combos.append(combo)
+            
+            if len(diversified_combos) < num_combinations_for_size:
+                logger_instance.log(f"    Sector diversification constraint reduced combinations for k={num_stocks_in_combo} from {num_combinations_for_size} to {len(diversified_combos)}.")
+            
+            # --- End Filter ---
+
+            for stock_combo in diversified_combos: # Iterate over the filtered list
                 stock_combo_list = list(stock_combo)
                 df_subset_for_simulation = source_stock_prices_df[['Date'] + stock_combo_list]
                 if DEBUG_MODE:
@@ -1471,7 +1495,9 @@ SIM_RUNS = sim_params.get("sim_runs", 100)
 INITIAL_INVESTMENT = sim_params.get("initial_investment", 10000.0)
 RF_RATE = sim_params.get("rf")
 START_DATE_STR = sim_params.get("start_date")
-ESG_STOCKS_FILE_PATH = sim_params.get("esg_stocks_file_path") # Load the path to the ESG stocks file
+SCORED_RUNS_FILE_PATH = sim_params.get("scored_runs_file_path") # New: path to scored runs
+TOP_N_STOCKS_FROM_SCORE = sim_params.get("top_n_stocks_from_score", 40) # New: number of stocks to use
+MAX_STOCKS_PER_SECTOR = sim_params.get("max_stocks_per_sector", 99) # Default to a high number to disable
 DEBUG_MODE = sim_params.get("debug_mode", False) # Load debug_mode, default to False
 HEURISTIC_THRESHOLD_K = sim_params.get("heuristic_threshold_k", 9) # Define global HEURISTIC_THRESHOLD_K
 
@@ -1496,6 +1522,7 @@ POOL_SIZE_DEFAULT_NUM_STOCKS = sim_params.get("pool_size_default_num_stocks", 40
 # Simulation Feedback & Advanced GA Settings
 BF_PROGRESS_LOG_THRESHOLDS = sim_params.get("bf_progress_log_thresholds", [25, 50, 75]) # Expects list of ints
 GA_INIT_POP_MAX_ATTEMPTS_MULTIPLIER = sim_params.get("ga_init_pop_max_attempts_multiplier", 5) # Expects int
+AUTO_CURATE_THRESHOLD = sim_params.get("auto_curate_threshold", 0.75) # Load the new data quality parameter
 # Paths are now sourced *exclusively* from simpar.txt
 # The load_simulation_parameters function already handles os.path.expanduser()
 STOCK_DATA_FILE = sim_params.get("stock_data_file")
@@ -1507,19 +1534,21 @@ GA_FITNESS_NOISE_LOG_PATH = sim_params.get("ga_fitness_noise_log_path") # Load G
 WEB_ACCESSIBLE_DATA_FOLDER = sim_params.get("web_accessible_data_folder") # Load web data folder path
 PORTFOLIO_VALUE_HISTORY_CSV_PATH = sim_params.get("portfolio_value_history_csv_path") # Load the new path
 
-# After all sim_params are loaded, load the ESG stocks list from the file
-ESG_STOCKS_LIST = [] # Initialize as empty list
-if ESG_STOCKS_FILE_PATH:
+# After all sim_params are loaded, load the top stocks from the scored runs file
+TOP_SCORED_STOCKS = [] # Initialize as empty list
+STOCK_SECTOR_MAP = {} # Initialize empty map
+if SCORED_RUNS_FILE_PATH:
     try:
-        ESG_STOCKS_LIST = load_esg_stocks_from_file(ESG_STOCKS_FILE_PATH, logger_instance=logger)
+        TOP_SCORED_STOCKS, STOCK_SECTOR_MAP = load_scored_stocks(SCORED_RUNS_FILE_PATH, TOP_N_STOCKS_FROM_SCORE, logger_instance=logger)
     except FileNotFoundError:
-        logger.log(f"CRITICAL ERROR: ESG stocks file not found at '{ESG_STOCKS_FILE_PATH}'. Exiting.")
+        # The load_scored_stocks function already logged the detailed error.
+        logger.log(f"Exiting due to missing input file.")
         sys.exit(1)
     except Exception as e:
-        logger.log(f"CRITICAL ERROR: Failed to load ESG stocks from '{ESG_STOCKS_FILE_PATH}'. Error: {e}. Exiting.")
+        logger.log(f"CRITICAL ERROR: Failed to load top stocks from '{SCORED_RUNS_FILE_PATH}'. Error: {e}. Exiting.")
         sys.exit(1)
 else:
-    logger.log("Warning: 'esg_stocks_file_path' not specified in simpar.txt. ESG stock list will be empty.")
+    logger.log("Warning: 'scored_runs_file_path' not specified in simpar.txt. Stock list will be empty.")
 
 # Step 5: Update logger paths if they were defined in sim_params and are different
 if LOG_FILE_PATH_PARAM and LOG_FILE_PATH_PARAM != logger.log_path:
@@ -1555,7 +1584,7 @@ critical_params_to_check = {
     "LOG_FILE_PATH_PARAM": LOG_FILE_PATH_PARAM, # Check the one from params
     "RF_RATE": RF_RATE,
     "HEURISTIC_THRESHOLD_K": HEURISTIC_THRESHOLD_K, # Critical check
-    "ESG_STOCKS_FILE_PATH": ESG_STOCKS_FILE_PATH # Critical check for the path
+    "SCORED_RUNS_FILE_PATH": SCORED_RUNS_FILE_PATH # Critical check for the path
     # PORTFOLIO_VALUE_HISTORY_CSV_PATH is not strictly critical for the engine to run,
 } # but it is critical for the new feature. We'll check its presence before using it.
 missing_critical = [name for name, val in critical_params_to_check.items() if val is None]
@@ -1666,21 +1695,21 @@ try:
         StockDataDB_df = StockDataDB_df[StockDataDB_df['Date'] >= START_DATE]
         logger.log(f"    Data filtered from {START_DATE} to {StockDataDB_df['Date'].max()}.")
     
-    # --- New Logic: Focus exclusively on the provided ESG_STOCKS_LIST ---
-    logger.log(f"    Focusing analysis exclusively on the {len(ESG_STOCKS_LIST)} stocks provided in '{os.path.basename(ESG_STOCKS_FILE_PATH)}'.")
+    # --- New Logic: Focus exclusively on the provided TOP_SCORED_STOCKS ---
+    logger.log(f"    Focusing analysis exclusively on the {len(TOP_SCORED_STOCKS)} top stocks from '{os.path.basename(SCORED_RUNS_FILE_PATH)}'.")
     logger.log(f"    Note: The 'pool_size_tiers' parameter is ignored in this mode.")
 
-    # 1. Filter the main DataFrame to only include stocks from our ESG list.
-    esg_stocks_in_db = [stock for stock in ESG_STOCKS_LIST if stock in StockDataDB_df['Stock'].unique()]
-    if len(esg_stocks_in_db) < len(ESG_STOCKS_LIST):
-        missing_from_db = set(ESG_STOCKS_LIST) - set(esg_stocks_in_db)
+    # 1. Filter the main DataFrame to only include stocks from our top scored list.
+    scored_stocks_in_db = [stock for stock in TOP_SCORED_STOCKS if stock in StockDataDB_df['Stock'].unique()]
+    if len(scored_stocks_in_db) < len(TOP_SCORED_STOCKS):
+        missing_from_db = set(TOP_SCORED_STOCKS) - set(scored_stocks_in_db)
         logger.log(f"    Warning: The following {len(missing_from_db)} stocks from your list were not found in StockDataDB.csv and will be excluded: {', '.join(sorted(list(missing_from_db)))}")
 
-    if not esg_stocks_in_db:
-        logger.log("CRITICAL ERROR: None of the stocks from your ESG list were found in the database. Cannot proceed.")
+    if not scored_stocks_in_db:
+        logger.log("CRITICAL ERROR: None of the top scored stocks were found in the database. Cannot proceed.")
         sys.exit(1)
 
-    focused_df = StockDataDB_df[StockDataDB_df['Stock'].isin(esg_stocks_in_db)].copy()
+    focused_df = StockDataDB_df[StockDataDB_df['Stock'].isin(scored_stocks_in_db)].copy()
 
     # 2. Pivot this smaller, focused DataFrame.
     StockClose_df_SimPool = focused_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
@@ -1690,14 +1719,49 @@ try:
     StockClose_df_SimPool.dropna(inplace=True)
     final_rows = len(StockClose_df_SimPool)
     logger.log(f"    Data cleaning (dropna) on the focused stock list retained {final_rows} of {initial_rows} trading days.")
+    
+    # Add a new, more prominent warning if a significant amount of data is lost
+    if initial_rows > 0 and final_rows < initial_rows * 0.5: # If more than 50% of the date range is lost
+        loss_pct = (1 - final_rows / initial_rows) * 100
+        logger.log(f"    CRITICAL WARNING: {loss_pct:.1f}% of the trading days were lost to find a common date range for the selected stocks.")
+        logger.log(f"    The simulation will run on a very small dataset ({final_rows} days), which may produce unreliable results.")
+        
+        # --- New Diagnostic: Identify likely culprits ---
+        # We need to re-pivot to get the pre-dropna data to analyze
+        temp_pivot_for_analysis = focused_df.pivot(index="Date", columns="Stock", values="Close")
+        non_null_counts = temp_pivot_for_analysis.notna().sum().sort_values()
+        culprits = non_null_counts.head(5) # Show the 5 stocks with the least data
+        logger.log(f"    Likely culprits (stocks with the fewest data points in this period):")
+        for stock, count in culprits.items():
+            logger.log(f"      - {stock}: {count} data points (out of {initial_rows} days)")
+        logger.log(f"    Consider removing these tickers from Tickers.txt or checking their data in StockDataDB.csv.")
+
+        # --- New: Auto-Curation Logic ---
+        logger.log(f"    Attempting to auto-curate the stock pool by removing culprits (threshold: {AUTO_CURATE_THRESHOLD * 100:.0f}% of median data points)...")
+        # Define a culprit as a stock with fewer data points than the threshold percentage of the median stock's data points
+        median_data_points = non_null_counts.median()
+        culprit_threshold = median_data_points * AUTO_CURATE_THRESHOLD
+        stocks_to_remove = non_null_counts[non_null_counts < culprit_threshold].index.tolist()
+
+        if stocks_to_remove:
+            logger.log(f"    Auto-removing {len(stocks_to_remove)} stocks with insufficient data: {', '.join(stocks_to_remove)}")
+            scored_stocks_in_db = [s for s in scored_stocks_in_db if s not in stocks_to_remove]
+            
+            # Re-run the pivot and dropna with the curated list
+            focused_df = StockDataDB_df[StockDataDB_df['Stock'].isin(scored_stocks_in_db)].copy()
+            StockClose_df_SimPool = focused_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
+            StockClose_df_SimPool.dropna(inplace=True)
+            logger.log(f"    Re-wrangled data with curated pool. New common date range has {len(StockClose_df_SimPool)} days.")
+        else:
+            logger.log("    No stocks met the auto-removal criteria. Proceeding with the small dataset.")
 
     # 4. Reset index to make 'Date' a column again for the simulation function.
     StockClose_df_SimPool.reset_index(inplace=True)
 
     # Check if any stocks were lost entirely due to having no data in the final common date range.
     stocks_surviving_dropna = [col for col in StockClose_df_SimPool.columns if col != 'Date']
-    if len(stocks_surviving_dropna) < len(esg_stocks_in_db):
-        lost_stocks = set(esg_stocks_in_db) - set(stocks_surviving_dropna)
+    if len(stocks_surviving_dropna) < len(scored_stocks_in_db):
+        lost_stocks = set(scored_stocks_in_db) - set(stocks_surviving_dropna)
         logger.log(f"    Warning: After finding a common date range, the following {len(lost_stocks)} stocks were dropped due to incomplete data: {', '.join(sorted(list(lost_stocks)))}")
 
     section_end_time = datetime.now()
@@ -1721,14 +1785,16 @@ try:
      best_final_value, best_roi, best_exp_return, best_volatility,
      avg_sim_time, stock_pool_used_in_search, refinement_duration_seconds) = find_best_stock_combination(
         StockClose_df_SimPool,      # Price data for the simulation pool
-        ESG_STOCKS_LIST,            # List of specific stocks to consider for combinations (e.g., ESG list)
+        TOP_SCORED_STOCKS,            # List of specific stocks to consider for combinations
         INITIAL_INVESTMENT,
         MIN_STOCKS,                 # Min stocks in a portfolio combination
         MAX_STOCKS,                 # Max stocks in a portfolio combination
         # SIM_RUNS,                 # This is now handled by global SIM_RUNS or adaptive logic
         RF_RATE,
         logger,                     # Pass the logger instance
-        sim_timer                   # Pass the timer instance
+        sim_timer,                  # Pass the timer instance
+        STOCK_SECTOR_MAP,           # Pass the sector map
+        MAX_STOCKS_PER_SECTOR       # Pass the constraint
     )
 
     def log_optimal_portfolio_results_to_csv(
