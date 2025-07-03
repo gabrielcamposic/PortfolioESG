@@ -1,6 +1,6 @@
 #!/bin/bash
 # --- Configuration ---
-PIPELINE_SCRIPT_VERSION="1.2.1" # Patched for cron execution (JQ_EXEC, PATH)
+PIPELINE_SCRIPT_VERSION="1.3.0" # Added Scoring.py stage
 PROJECT_DIR="/home/gabrielcampos/PortfolioESG_Prod"
 LOG_DIR="$PROJECT_DIR/Logs"
 PIPELINE_LOG_FILE="$LOG_DIR/pipeline_execution.log"
@@ -43,60 +43,57 @@ CURRENT_TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 $JQ_EXEC -n \
   --arg startTime "$CURRENT_TIMESTAMP" \
   '{
-     # New section for overall pipeline status
-     "pipeline_run_status": {
-       "status_message": "Pipeline execution started.",
-       "start_time": $startTime,
-       "current_stage": "Initializing pipeline...",
-       "end_time": "N/A" # Add end time for pipeline status
-     },
-
-     # Initial state for Stock Database Update (download.py)
-     # Matches keys expected by progress.html for this section
-     "download_execution_start": $startTime, # Indicates pipeline start, download.py will overwrite
-     "download_execution_end": "N/A",
-     "download_overall_status": "Pipeline Initialized - Awaiting Download",
-     "ticker_download": {
-       "completed_tickers": 0,
-       "total_tickers": 0,
-       "progress": 0,
-       "current_ticker": "Waiting for download.py to start...", # download.py will overwrite this
-       "overall_status": "Pending", # Add status for download step
-       "date_range": "N/A",
-       "rows": 0
-     },
-
-     # Initial state for Portfolio Optimization Progress (Engine.py)
-     # Matches keys expected by progress.html for this section
-     "engine_script_start_time": "N/A",
-     "estimated_completion_time": "N/A",
-     "engine_script_end_time": "N/A",
-     "engine_script_total_duration": "N/A",
-     "engine_overall_status": "Pending", # Add status for engine step
-     "current_engine_phase": "Pipeline Initialized - Awaiting Optimization",
-     "overall_progress": { # For Brute-Force
-        "completed_actual_simulations_bf": 0,
-        "total_expected_actual_simulations_bf": 0,
-        "percentage_bf": 0,
-        "estimated_completion_time_bf": "N/A"
-     },
-     "ga_progress": { # For GA
-        "status": "Pending",
-        "current_k": 0,
-        "current_generation": 0,
-        "current_individual_ga": 0,
-        "percentage_ga": 0,
-        "total_individuals_ga": 0,
-        "total_generations_ga": 0,
-        "best_sharpe_this_k": "N/A"
-     },
-     "refinement_progress": { # For Refinement
-        "status": "Pending",
-        "details": "N/A",
-        "current_combo_refined": 0, "total_combos_to_refine": 0, "percentage_refinement": 0
-     }
-     # "best_portfolio_details" (for Best Overall Portfolio section) is intentionally omitted
-   }' > "$PROGRESS_JSON_FULL_PATH"
+    "pipeline_run_status": {
+      "status_message": "Pipeline execution started.",
+      "start_time": $startTime,
+      "current_stage": "Initializing pipeline...",
+      "end_time": "N/A"
+    },
+    "scoring_status": "Pending",
+    "scoring_start_time": "N/A",
+    "scoring_end_time": "N/A",
+    "download_execution_start": $startTime,
+    "download_execution_end": "N/A",
+    "download_overall_status": "Pipeline Initialized - Awaiting Download",
+    "ticker_download": {
+      "completed_tickers": 0,
+      "total_tickers": 0,
+      "progress": 0,
+      "current_ticker": "Waiting for download.py to start...",
+      "overall_status": "Pending",
+      "date_range": "N/A",
+      "rows": 0
+    },
+    "engine_script_start_time": "N/A",
+    "estimated_completion_time": "N/A",
+    "engine_script_end_time": "N/A",
+    "engine_script_total_duration": "N/A",
+    "engine_overall_status": "Pending",
+    "current_engine_phase": "Pipeline Initialized - Awaiting Optimization",
+    "overall_progress": {
+      "completed_actual_simulations_bf": 0,
+      "total_expected_actual_simulations_bf": 0,
+      "percentage_bf": 0,
+      "estimated_completion_time_bf": "N/A"
+    },
+    "ga_progress": {
+      "status": "Pending",
+      "current_k": 0,
+      "current_generation": 0,
+      "current_individual_ga": 0,
+      "percentage_ga": 0,
+      "total_individuals_ga": 0,
+      "total_generations_ga": 0,
+      "best_sharpe_this_k": "N/A"
+    },
+    "refinement_progress": {
+      "status": "Pending",
+      "details": "N/A",
+      "current_combo_refined": 0,
+      "total_combos_to_refine": 0,
+      "percentage_refinement": 0
+    }
+  }' > "$PROGRESS_JSON_FULL_PATH"
 
 echo "Initial progress.json written to $PROGRESS_JSON_FULL_PATH"
 
@@ -161,8 +158,9 @@ log_message "Pipeline Script Version: $PIPELINE_SCRIPT_VERSION"
 log_message "Using Python interpreter: $($PYTHON_EXEC --version 2>&1)"
 
 # Define paths to your Python scripts (relative to PROJECT_DIR)
-DOWNLOAD_SCRIPT="./Download.py" # Note: Case-sensitive on Linux
-ENGINE_SCRIPT="./Engine.py"     # Note: Case-sensitive on Linux
+DOWNLOAD_SCRIPT="./Download.py"   # Note: Case-sensitive on Linux
+SCORING_SCRIPT="./Scoring.py"     # Note: Case-sensitive on Linux
+ENGINE_SCRIPT="./Engine.py"       # Note: Case-sensitive on Linux
 
 # --- Step 1: Run download.py ---
 log_message "Starting Download.py..."
@@ -179,65 +177,73 @@ if [ $DOWNLOAD_EXIT_CODE -eq 0 ]; then
     update_progress_json "download_overall_status" '"Completed Successfully"'
     log_message "Download.py completed successfully in $DOWNLOAD_DURATION_FMT."
 
-    # --- Step 2: Run Engine.py ---
-    # Update pipeline status to indicate starting Engine.py
-    update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Engine.py...", "end_time": "N/A" }'
-    log_message "Starting Engine.py..."
-    ENGINE_START_TIME_S=$(date +%s)
-    # Redirect stdout and stderr to the pipeline log file
-    "$PYTHON_EXEC" "$ENGINE_SCRIPT" >> "$PIPELINE_LOG_FILE" 2>&1
-    ENGINE_EXIT_CODE=$?
-    ENGINE_END_TIME_S=$(date +%s)
-    ENGINE_DURATION_S=$((ENGINE_END_TIME_S - ENGINE_START_TIME_S))
-    ENGINE_DURATION_FMT=$(format_duration $ENGINE_DURATION_S)
+    # --- Step 2: Run Scoring.py ---
+    update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Scoring.py..." }'
+    log_message "Starting Scoring.py..."
+    SCORING_START_TIME_S=$(date +%s)
+    "$PYTHON_EXEC" "$SCORING_SCRIPT" >> "$PIPELINE_LOG_FILE" 2>&1
+    SCORING_EXIT_CODE=$?
+    SCORING_END_TIME_S=$(date +%s)
+    SCORING_DURATION_S=$((SCORING_END_TIME_S - SCORING_START_TIME_S))
+    SCORING_DURATION_FMT=$(format_duration $SCORING_DURATION_S)
 
-    if [ $ENGINE_EXIT_CODE -eq 0 ]; then
-        # Engine was successful
-        # update_progress_json "engine_overall_status" '"Completed Successfully"' # Engine.py now handles this
-        log_message "Engine.py completed successfully in $ENGINE_DURATION_FMT."
-        # Pipeline successful completion
-        PIPELINE_END_TIME_S=$(date +%s)
-        PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
-        PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
-        log_message "Portfolio Pipeline Finished successfully in $PIPELINE_DURATION_FMT."
-        log_message "======================================"
-        echo "" >> "$PIPELINE_LOG_FILE"
+    if [ $SCORING_EXIT_CODE -eq 0 ]; then
+        # Scoring was successful
+        # Scoring.py itself updates its status to "Completed", so we don't need to do it here.
+        log_message "Scoring.py completed successfully in $SCORING_DURATION_FMT."
 
-        log_message "DEBUG: About to update pipeline_run_status to completed."
-        FINAL_STATUS_JSON_VALUE='{ "status_message": "Pipeline completed successfully.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Pipeline Completed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
-        log_message "DEBUG: FINAL_STATUS_JSON_VALUE is: $FINAL_STATUS_JSON_VALUE"
+        # --- Step 3: Run Engine.py ---
+        update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Engine.py...", "end_time": "N/A" }'
+        log_message "Starting Engine.py..."
+        ENGINE_START_TIME_S=$(date +%s)
+        "$PYTHON_EXEC" "$ENGINE_SCRIPT" >> "$PIPELINE_LOG_FILE" 2>&1
+        ENGINE_EXIT_CODE=$?
+        ENGINE_END_TIME_S=$(date +%s)
+        ENGINE_DURATION_S=$((ENGINE_END_TIME_S - ENGINE_START_TIME_S))
+        ENGINE_DURATION_FMT=$(format_duration $ENGINE_DURATION_S)
 
-        # Final pipeline status update in JSON
-        update_progress_json "pipeline_run_status" "$FINAL_STATUS_JSON_VALUE" # This calls the function that uses $JQ_EXEC
-        JQ_EXIT_CODE=$?
-        log_message "DEBUG: jq exit code for final pipeline_run_status update: $JQ_EXIT_CODE"
-        if [ $JQ_EXIT_CODE -ne 0 ]; then
-            log_message "ERROR: jq command failed to update pipeline_run_status to completed."
+        if [ $ENGINE_EXIT_CODE -eq 0 ]; then
+            # Engine was successful
+            log_message "Engine.py completed successfully in $ENGINE_DURATION_FMT."
+            PIPELINE_END_TIME_S=$(date +%s)
+            PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
+            PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
+            log_message "Portfolio Pipeline Finished successfully in $PIPELINE_DURATION_FMT."
+            log_message "======================================"
+            echo "" >> "$PIPELINE_LOG_FILE"
+
+            FINAL_STATUS_JSON_VALUE='{ "status_message": "Pipeline completed successfully.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Pipeline Completed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
+            update_progress_json "pipeline_run_status" "$FINAL_STATUS_JSON_VALUE"
+            exit 0
         else
-            log_message "DEBUG: Successfully updated pipeline_run_status to completed (or jq reported success)."
+            # Engine failed
+            log_message "Error: Engine.py failed with exit code $ENGINE_EXIT_CODE after $ENGINE_DURATION_FMT."
+            PIPELINE_END_TIME_S=$(date +%s)
+            PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
+            PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
+            log_message "Portfolio Pipeline Finished with errors in Engine.py after $PIPELINE_DURATION_FMT."
+            log_message "======================================"
+            echo "" >> "$PIPELINE_LOG_FILE"
+            update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline failed during Engine.py.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Engine Failed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
+            exit 1
         fi
-        log_message "DEBUG: Content of progress.json after final update attempt:"
-        cat "$PROGRESS_JSON_FULL_PATH" >> "$PIPELINE_LOG_FILE"
-
-        exit 0 # Exit with success code
     else
-        # Engine failed
-        update_progress_json "engine_overall_status" '"Failed"'
-        log_message "Error: Engine.py failed with exit code $ENGINE_EXIT_CODE after $ENGINE_DURATION_FMT."
-        # Pipeline failed during Engine step
+        # Scoring failed
+        # Scoring.py should update its own status to "Failed" in progress.json
+        log_message "Error: Scoring.py failed with exit code $SCORING_EXIT_CODE after $SCORING_DURATION_FMT. Engine.py will not run."
         PIPELINE_END_TIME_S=$(date +%s)
         PIPELINE_DURATION_S=$((PIPELINE_END_TIME_S - PIPELINE_START_TIME_S))
         PIPELINE_DURATION_FMT=$(format_duration $PIPELINE_DURATION_S)
-        log_message "Portfolio Pipeline Finished with errors in Engine.py after $PIPELINE_DURATION_FMT."
+        log_message "Portfolio Pipeline Finished with errors in Scoring.py after $PIPELINE_DURATION_FMT."
         log_message "======================================"
         echo "" >> "$PIPELINE_LOG_FILE"
-        update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline failed during Engine.py.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Engine Failed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
-        exit 1 # Exit with failure code
+        update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline failed during Scoring.py.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Scoring Failed", "end_time": "'$(date +"%Y-%m-%d %H:%M:%S")'" }'
+        exit 1
     fi
 else
     # Download failed
     update_progress_json "download_overall_status" '"Failed"'
-    log_message "Error: Download.py failed with exit code $DOWNLOAD_EXIT_CODE after $DOWNLOAD_DURATION_FMT. Engine.py will not run."
+    log_message "Error: Download.py failed with exit code $DOWNLOAD_EXIT_CODE after $DOWNLOAD_DURATION_FMT. Subsequent steps will not run."
     # Pipeline failed during Download step
     update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline failed during Download.py.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Download Failed" }'
     # Pipeline failed completion
@@ -247,7 +253,7 @@ else
     log_message "Portfolio Pipeline Finished with errors in Download.py after $PIPELINE_DURATION_FMT."
     log_message "======================================"
     echo "" >> "$PIPELINE_LOG_FILE"
-    exit 1 # Exit with failure code
+    exit 1
 fi
 
 # The lines from 161 to 172 in the original script (calculating final pipeline duration and exiting)

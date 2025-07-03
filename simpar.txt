@@ -73,20 +73,6 @@ top_n_percent_refinement = 0.05
 # Number of simulations for the refinement phase, or for all combinations if adaptive_sim_enabled is false.
 sim_runs=1000
 
-# --- Working folders
-stock_data_file=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
-portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
-log_file_path=~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log
-web_log_path=~/Documents/Prog/PortfolioESG_public/html/progress.json
-
-# --- Results Logging ---
-# Path to CSV file for logging optimal portfolio results from each run
-results_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_results_log.csv
-performance_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_performance_log.csv
-ga_fitness_noise_log_path = ~/Documents/Prog/PortfolioESG_Data/Results/ga_fitness_noise_log.csv
-portfolio_value_history_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/portfolio_value_history.csv
-web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/
-
 # --- Stock Pool Sizing for Initial Sharpe Ratio Filtering ---
 # Defines how many top stocks (by Sharpe ratio) are initially filtered based on the MAX_STOCKS setting.
 # Format: min_max_portfolio_stocks:num_stocks_to_filter, e.g., "3-5:50,6-10:75,11-20:100"
@@ -103,3 +89,17 @@ ga_init_pop_max_attempts_multiplier = 5
 # Threshold for auto-curating the stock pool. A stock is considered a "culprit" and removed
 # if it has fewer data points than (median_data_points * this_threshold).
 auto_curate_threshold = 0.75
+
+# --- Working folders
+stock_data_file=~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
+portfolio_folder=~/Documents/Prog/PortfolioESG_Data/Benchmarks/
+log_file_path=~/Documents/Prog/PortfolioESG_Prod/Logs/Portfolios_simulation.log
+web_log_path=~/Documents/Prog/PortfolioESG_public/html/progress.json
+
+# --- Results Logging ---
+# Path to CSV file for logging optimal portfolio results from each run
+results_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_results_log.csv
+performance_log_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/engine_performance_log.csv
+ga_fitness_noise_log_path = ~/Documents/Prog/PortfolioESG_Data/Results/ga_fitness_noise_log.csv
+portfolio_value_history_csv_path = ~/Documents/Prog/PortfolioESG_Data/Results/portfolio_value_history.csv
+web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/

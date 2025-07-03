@@ -35,6 +35,25 @@
             </div>
         </div>    
 
+        <!-- Scoring.py Progress Block (NEW) -->
+        <div class="stage-block" id="scoring-stage">
+            <h2>Stock Scoring <span class="stage-status-pill" id="scoring-stage-status-pill">Pending</span></h2>
+            <div class="stage-columns">
+                <div class="column stage-details">
+                    <h3>Overall Details</h3>
+                    <p><strong>Status:</strong> <span id="scoring-overall-status" class="status-text">Pending</span></p>
+                    <p><strong>Started:</strong> <span id="scoring-start-time">N/A</span></p>
+                    <p><strong>Ended:</strong> <span id="scoring-end-time">N/A</span></p>
+                    <p><strong>Duration:</strong> <span id="scoring-duration">N/A</span></p>
+                </div>
+                <div class="column">
+                    <p><strong>Stocks Scored:</strong> <span id="scoring-stocks-scored">0</span></p>
+                    <p><strong>Progress:</strong> <span id="scoring-progress-percent">0</span>%</p>
+                    <div class="progress-bar"><div class="progress-bar-inner" id="scoring-progress-bar"></div></div>
+                </div>
+            </div>
+        </div>
+
     <!-- Stage 3-6: Portfolio Optimization Engine -->
     <div class="stage-block" id="engine-stage">
 
@@ -268,7 +287,25 @@
                 }
                 setStageStatus('download-stage', downloadStageDisplayText);
 
-                                // --- Engine.py - Portfolio Optimization Progress Section ---
+                                // --- Scoring.py Progress Section (NEW) ---
+                const scoring = data; // scoring fields are at the root of progress.json
+                setText('scoring-start-time', formatDate(scoring.scoring_start_time));
+                setText('scoring-end-time', formatDate(scoring.scoring_end_time));
+                setText('scoring-overall-status', scoring.scoring_status, 'Pending');
+                setText('scoring-duration', getDurationBetweenTimestamps(scoring.scoring_start_time, scoring.scoring_end_time));
+                setText('scoring-stocks-scored', scoring.scoring_stocks_scored || '0');
+                const scoringProgressPercent = scoring.scoring_progress_percent !== undefined ? parseFloat(scoring.scoring_progress_percent) : (scoring.scoring_status && scoring.scoring_status.toLowerCase().includes('completed') ? 100 : 0);
+                setText('scoring-progress-percent', scoringProgressPercent.toFixed(0));
+                setProgress('scoring-progress-bar', scoringProgressPercent);
+                let scoringStageDisplayText = 'Pending';
+                if (scoring.scoring_status) {
+                    if (scoring.scoring_status.toLowerCase().includes('running')) scoringStageDisplayText = 'Running';
+                    else if (scoring.scoring_status.toLowerCase().includes('completed')) scoringStageDisplayText = 'Completed';
+                    else if (scoring.scoring_status.toLowerCase().includes('failed')) scoringStageDisplayText = 'Failed';
+                }
+                setStageStatus('scoring-stage', scoringStageDisplayText);
+
+                // --- Engine.py - Portfolio Optimization Progress Section ---
                 const engine = data; // Engine data is also at the root level in your progress.json
 
                 setText('engine-start-time', formatDate(engine.engine_script_start_time));
