@@ -1,0 +1,15 @@
+[4.0K]  /home/gabrielcampos/PortfolioESG_Data
+├── [4.0K]  Benchmarks
+│   ├── [ 127]  Portfolio_ESG_ESGB11.txt
+│   └── [ 144]  Portfolio_ESG_XP.txt
+├── [4.0K]  findb
+│   ├── [ 27M]  StockDataDB.csv
+│   └── [1.7M]  yfinance_skip.json
+├── [4.0K]  Results
+│   ├── [ 936]  download_performance_log.csv
+│   ├── [2.7K]  engine_performance_log.csv
+│   ├── [3.6K]  engine_results_log.csv
+│   └── [ 67K]  portfolio_value_history.csv
+└── [8.2K]  Tickers.txt
+
+4 directories, 9 files

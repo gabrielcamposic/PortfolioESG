@@ -92,7 +92,7 @@
 
     async function loadScoringResults() {
         // Load latest run
-        const resp = await fetch('PortfolioESG_Data/Results/scored_runs.csv');
+        const resp = await fetch('data/scored_runs.csv');
  if (!resp.ok) {
             document.getElementById('top-stocks-table-container').innerHTML = '<p>No results found.</p>';
             document.getElementById('sector-breakdown-table-container').innerHTML = '';
@@ -165,7 +165,7 @@
     // --- Historical Charts ---
     async function renderHistoricalCharts() {
         // Load all runs from scored_runs.csv
-        const resp = await fetch('PortfolioESG_Data/Results/scored_runs.csv');
+        const resp = await fetch('data/scored_runs.csv');
  if (!resp.ok) return;
         const csv = await resp.text();
         const rows = parseCSV(csv);

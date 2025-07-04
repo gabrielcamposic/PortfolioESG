@@ -1,0 +1,7 @@
+[  96]  [01;34m/Users/gabrielcampos/Documents/Prog/PortfolioESG_Prod[0m
+└── [ 160]  [01;34mLogs[0m
+    ├── [334K]  [00mPortfolios_simulation.log[0m
+    ├── [ 30K]  [00mScoring.log[0m
+    └── [ 35M]  [00mTicker_download.log[0m
+
+2 directories, 3 files
