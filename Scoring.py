@@ -252,6 +252,9 @@ def main():
     MOMENTUM_PERIOD_DAYS = params.get("momentum_period_days", 126)
     MOMENTUM_WEIGHT = params.get("momentum_weight", 0.0)
 
+    # Debug: Log the actual input stocks file path being used
+    logger.log(f"DEBUG: INPUT_STOCKS_FILE = {INPUT_STOCKS_FILE}")
+
     # Validate that weights sum to 1.0, only if not using dynamic weighting
     total_static_weight = SHARPE_WEIGHT + UPSIDE_WEIGHT + (MOMENTUM_WEIGHT if MOMENTUM_ENABLED else 0)
     if not DYNAMIC_SCORE_WEIGHTING and not np.isclose(total_static_weight, 1.0):
