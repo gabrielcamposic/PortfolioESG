@@ -352,7 +352,7 @@ def load_simulation_parameters(filepath, logger_instance=None):
 
     return parameters
 
-def load_scored_stocks(filepath, top_n, logger_instance=None):
+def load_scored_stocks(filepath, top_n, logger_instance=None, sim_params=None):
     """
     Loads the scored runs CSV, identifies the most recent run, and returns the
     top N stocks from that run based on 'CompositeScore'.
@@ -384,7 +384,10 @@ def load_scored_stocks(filepath, top_n, logger_instance=None):
         
         if logger_instance:
             logger_instance.log(f"Successfully loaded {len(top_stocks)} top stocks from the latest run ('{latest_run_id}') in {os.path.basename(expanded_filepath)}.")
-            if DEBUG_MODE:
+            debug_mode = False
+            if sim_params is not None:
+                debug_mode = sim_params.get('debug_mode', False)
+            if debug_mode:
                 logger_instance.log(f"DEBUG: Top {top_n} stocks selected: {', '.join(top_stocks)}")
         
         return top_stocks, stock_to_sector_map
