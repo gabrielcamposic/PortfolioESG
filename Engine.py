@@ -555,20 +555,35 @@ def simulation_engine_calc(
         return np.nan, np.nan, np.nan, np.nan, np.nan
 
 def find_best_stock_combination(
-    source_stock_prices_df,     # Main StockClose_df (e.g., top N stocks by Sharpe)
-    stocks_to_consider_list,    # E.g., ESG_STOCKS_LIST
+    source_stock_prices_df,
+    stocks_to_consider_list,
     current_initial_investment,
     min_portfolio_size,
     max_portfolio_size,
-    # num_simulation_runs,        # SIM_RUNS - This will now be taken from global SIM_RUNS or adaptive logic
-    # The above line is commented out as num_simulation_runs is now sourced from global/adaptive logic inside
-    current_rf_rate,            # RF_RATE
+    current_rf_rate,
     logger_instance,
     timer_instance,
-    stock_sector_map,           # New: map of stocks to sectors
-    max_stocks_per_sector       # New: diversification constraint
+    stock_sector_map,
+    max_stocks_per_sector,
+    sim_params
 ):
-    """Finds the best stock combination from stocks_to_consider_list using brute force."""
+    """Finds the best stock combination from stocks_to_consider_list using brute force or GA."""
+    # Extract all config from sim_params
+    SIM_RUNS = sim_params.get("sim_runs", 100)
+    ADAPTIVE_SIM_ENABLED = sim_params.get("adaptive_sim_enabled", True)
+    PROGRESSIVE_MIN_SIMS = sim_params.get("progressive_min_sims", 200)
+    PROGRESSIVE_BASE_LOG_K = sim_params.get("progressive_base_log_k", 500)
+    PROGRESSIVE_MAX_SIMS_CAP = sim_params.get("progressive_max_sims_cap", 3000)
+    PROGRESSIVE_CONVERGENCE_WINDOW = sim_params.get("progressive_convergence_window", 50)
+    PROGRESSIVE_CONVERGENCE_DELTA = sim_params.get("progressive_convergence_delta", 0.005)
+    PROGRESSIVE_CHECK_INTERVAL = sim_params.get("progressive_check_interval", 50)
+    TOP_N_PERCENT_REFINEMENT = sim_params.get("top_n_percent_refinement", 0.10)
+    HEURISTIC_THRESHOLD_K = sim_params.get("heuristic_threshold_k", 9)
+    INITIAL_SCAN_SIMS = sim_params.get("initial_scan_sims", 200)
+    EARLY_DISCARD_FACTOR = sim_params.get("early_discard_factor", 0.75)
+    EARLY_DISCARD_MIN_BEST_SHARPE = sim_params.get("early_discard_min_best_sharpe", 0.1)
+    DEBUG_MODE = sim_params.get("debug_mode", False)
+
     logger_instance.log("    Starting brute-force stock combination search...")
 
     available_stocks_for_search = [s for s in stocks_to_consider_list if s in source_stock_prices_df.columns]
@@ -673,7 +688,7 @@ def find_best_stock_combination(
 
             # Determine target simulations for this k if adaptive
             target_sims_for_k_progressive = SIM_RUNS # Fallback to fixed if not adaptive
-            logger.update_web_log("current_engine_phase", f"Brute-Force (k={num_stocks_in_combo})")
+            logger_instance.update_web_log("current_engine_phase", f"Brute-Force (k={num_stocks_in_combo})")
             if ADAPTIVE_SIM_ENABLED:
                 if num_stocks_in_combo < 2: # Min stocks for log formula
                     target_sims_for_k_progressive = PROGRESSIVE_MIN_SIMS
@@ -852,7 +867,8 @@ def find_best_stock_combination(
                 current_rf_rate,
                 logger_instance,
                 timer_instance,
-                SIM_RUNS # Pass SIM_RUNS for evaluating individuals
+                SIM_RUNS, # Pass SIM_RUNS for evaluating individuals
+                sim_params
                 # Add GA-specific parameters here (population size, generations, etc.)
             )
 
@@ -878,7 +894,7 @@ def find_best_stock_combination(
     # --- Refinement Phase ---
     if ADAPTIVE_SIM_ENABLED and TOP_N_PERCENT_REFINEMENT > 0 and all_combination_results_for_refinement:
         logger_instance.log(f"\n    --- Starting Refinement Phase for Top {TOP_N_PERCENT_REFINEMENT*100:.0f}% Combinations ---")
-        logger.update_web_log("current_engine_phase", "Refinement Phase")
+        logger_instance.update_web_log("current_engine_phase", "Refinement Phase")
         all_combination_results_for_refinement.sort(key=lambda x: x['sharpe'], reverse=True)
         num_to_refine = int(len(all_combination_results_for_refinement) * TOP_N_PERCENT_REFINEMENT)
         if num_to_refine == 0 and len(all_combination_results_for_refinement) > 0: # Ensure at least one if list is not empty
