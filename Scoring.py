@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import os
 import sys
+from json_utils import safe_update_json
 import json
 from datetime import datetime
 
@@ -54,46 +55,25 @@ class Logger:
         self.log_count += 1
 
         if web_data and self.web_log_path:
-            loaded_json_data = {}
-            if os.path.exists(self.web_log_path):
-                try:
-                    with open(self.web_log_path, 'r') as f_read:
-                        loaded_json_data = json.load(f_read)
-                except (json.JSONDecodeError, Exception) as e:
-                    print(f"{timestamp} - Warning: Could not read web log at {self.web_log_path}. Error: {e}")
-            
-            loaded_json_data.update(web_data)
-            
             try:
-                with open(self.web_log_path, 'w') as web_file:
-                    json.dump(loaded_json_data, web_file, indent=4)
+                safe_update_json(self.web_log_path, web_data)
             except Exception as e:
-                print(f"{timestamp} - Error writing to web log file {self.web_log_path}: {e}")
+                print(f"{timestamp} - Error safely updating web log file {self.web_log_path}: {e}")
 
         if self.log_count % self.flush_interval == 0:
             self.flush()
 
     def flush(self):
+        """Write logs to file in bulk and clear memory."""
         if self.messages:
             with open(self.log_path, 'a') as file:
                 file.write("\n".join(self.messages) + "\n")
-            self.messages = []
+            self.messages = []  # Clear memory
 
     def update_web_log(self, key, value):
         if self.web_log_path:
-            loaded_json_data = {}
-            if os.path.exists(self.web_log_path):
-                try:
-                    with open(self.web_log_path, 'r') as f_read:
-                        loaded_json_data = json.load(f_read)
-                except (json.JSONDecodeError, Exception) as e:
-                    print(f"Warning: Could not read web log for update at {self.web_log_path}. Error: {e}")
-            
-            loaded_json_data[key] = value
-            
             try:
-                with open(self.web_log_path, 'w') as web_file:
-                    json.dump(loaded_json_data, web_file, indent=4)
+                safe_update_json(self.web_log_path, {key: value})
             except Exception as e:
                 print(f"Error updating web log file {self.web_log_path}: {e}")
 
@@ -151,6 +131,12 @@ def load_input_stocks_with_sectors(filepath, logger_instance):
         # Strip whitespace from all string columns
         for col in stocks_df.select_dtypes(['object']):
             stocks_df[col] = stocks_df[col].str.strip()
+        
+        # Sanitize Sector and Industry fields to prevent potential HTML rendering issues
+        if 'Sector' in stocks_df.columns:
+            stocks_df['Sector'] = stocks_df['Sector'].str.replace('&', 'and', regex=False)
+        if 'Industry' in stocks_df.columns:
+            stocks_df['Industry'] = stocks_df['Industry'].str.replace('&', 'and', regex=False)
         
         # Drop rows where Ticker is missing and remove duplicates
         stocks_df.dropna(subset=['Ticker'], inplace=True)
@@ -229,7 +215,9 @@ def main():
         params = load_scoring_parameters(parameters_file_path, logger)
         logger.log("Successfully loaded parameters.")
     except FileNotFoundError:
-        logger.log(f"CRITICAL: Parameters file not found at '{parameters_file_path}'. Exiting.")
+        fail_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        logger.log(f"CRITICAL: Parameters file not found at '{parameters_file_path}'. Exiting.",
+                   web_data={"scoring_status": "Failed - No Params", "scoring_end_time": fail_time})
         sys.exit(1)
 
     # Assign global variables from loaded parameters
@@ -258,7 +246,9 @@ def main():
     # Validate that weights sum to 1.0, only if not using dynamic weighting
     total_static_weight = SHARPE_WEIGHT + UPSIDE_WEIGHT + (MOMENTUM_WEIGHT if MOMENTUM_ENABLED else 0)
     if not DYNAMIC_SCORE_WEIGHTING and not np.isclose(total_static_weight, 1.0):
-        logger.log(f"CRITICAL: Static score weights do not sum to 1.0 (Total: {total_static_weight}). Exiting.")
+        fail_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        logger.log(f"CRITICAL: Static score weights do not sum to 1.0 (Total: {total_static_weight}). Exiting.",
+                   web_data={"scoring_status": "Failed - Invalid Weights", "scoring_end_time": fail_time})
         sys.exit(1)
 
     # Update logger with paths from parameters
@@ -272,15 +262,16 @@ def main():
     
     start_time = datetime.now()
     run_id = start_time.strftime('%Y%m%d_%H%M%S')
-    logger.log(f"🚀 Scoring execution started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}", 
-               web_data={"scoring_status": "Running", "scoring_start_time": start_time.strftime('%Y-%m-%d %H:%M:%S')})
+    logger.log(f"🚀 Scoring execution started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}",
+               web_data={"scoring_status": "Running", "scoring_start_time": start_time.strftime('%Y-%m-%d %H:%M:%S'), "scoring_end_time": "N/A", "stocks_scored_count": 0})
 
     try:
         # 1. Load Input Stocks
         stocks_with_sectors_df = load_input_stocks_with_sectors(INPUT_STOCKS_FILE, logger)
         tickers = stocks_with_sectors_df['Stock'].tolist() if not stocks_with_sectors_df.empty else []
         if not tickers:
-            logger.log("No tickers loaded. Exiting.", web_data={"scoring_status": "Failed - No Tickers"})
+            fail_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            logger.log("No tickers loaded. Exiting.", web_data={"scoring_status": "Failed - No Tickers", "scoring_end_time": fail_time, "stocks_scored_count": 0})
             sys.exit(1)
 
         # 2. Load Historical Data and Calculate Sharpe
@@ -298,7 +289,8 @@ def main():
         # Check if we have enough data to proceed after calculating returns.
         # The first row of pct_change is always NaN, so we need at least 2 valid rows in the original data.
         if daily_returns.empty or len(daily_returns.dropna(how='all')) < 2:
-            logger.log("CRITICAL: Not enough historical data to calculate returns for any stock. Please check StockDataDB.csv.", web_data={"scoring_status": "Failed - Insufficient Data"})
+            fail_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            logger.log("CRITICAL: Not enough historical data to calculate returns for any stock. Please check StockDataDB.csv.", web_data={"scoring_status": "Failed - Insufficient Data", "scoring_end_time": fail_time, "stocks_scored_count": 0})
             sys.exit(1)
         logger.log(f"Successfully pivoted data and calculated daily returns for {len(tickers)} tickers.")
         
@@ -317,8 +309,9 @@ def main():
 
         # Add a check to ensure some stocks were processed
         if results_df.empty:
+            fail_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             logger.log("CRITICAL: No valid tickers were found in the historical data, or no returns could be calculated. The results will be empty. Please check your Tickers.txt and StockDataDB.csv.", 
-                       web_data={"scoring_status": "Failed - No Tickers Processed"})
+                       web_data={"scoring_status": "Failed - No Tickers Processed", "scoring_end_time": fail_time, "stocks_scored_count": 0})
             sys.exit(1)
 
         # 3. Load Financials (including Forward P/E) from file
@@ -432,6 +425,12 @@ def main():
             results_df['CompositeScore'] += (momentum_weight_used * results_df['Momentum_norm'])
         logger.log("Composite scoring complete.")
 
+        logger.log("Composite score calculation complete. Updating progress.", web_data={
+            "scoring_status": "Running - Finalizing Scores",
+            "scoring_progress_percent": 90,
+            "scoring_current_step": "Calculated Composite Score"
+        })
+
         # --- Add weights and audit columns to DataFrame ---
         results_df['run_id'] = run_id
         results_df['run_timestamp'] = start_time.strftime('%Y-%m-%d %H:%M:%S')
@@ -485,12 +484,18 @@ def main():
         end_time = datetime.now()
         duration = end_time - start_time
         logger.log(f"✅ Scoring execution finished successfully in {duration}.", 
-                   web_data={"scoring_status": "Completed", "scoring_end_time": end_time.strftime('%Y-%m-%d %H:%M:%S')})
+                   web_data={
+                       "scoring_status": "Completed", 
+                       "scoring_end_time": end_time.strftime('%Y-%m-%d %H:%M:%S'), 
+                       "stocks_scored_count": len(results_df),
+                       "scoring_progress_percent": 100,
+                       "scoring_current_step": "Finished"
+                   })
 
     except Exception as e:
         end_time = datetime.now()
         logger.log(f"CRITICAL ERROR: An unhandled exception occurred: {e}", 
-                   web_data={"scoring_status": "Failed", "scoring_end_time": end_time.strftime('%Y-%m-%d %H:%M:%S')})
+                   web_data={"scoring_status": "Failed", "scoring_end_time": end_time.strftime('%Y-%m-%d %H:%M:%S'), "stocks_scored_count": 0})
         import traceback
         logger.log(f"Traceback:\n{traceback.format_exc()}")
         logger.flush()

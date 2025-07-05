@@ -5,8 +5,13 @@ PROJECT_DIR="/home/gabrielcampos/PortfolioESG_Prod"
 LOG_DIR="$PROJECT_DIR/Logs"
 PIPELINE_LOG_FILE="$LOG_DIR/pipeline_execution.log"
 PROGRESS_JSON_FULL_PATH="/home/gabrielcampos/PortfolioESG_Prod/html/progress.json"
+# Define a directory to use for the lock.
+LOCK_DIR="$PROGRESS_JSON_FULL_PATH.lock"
 # Define the absolute path to jq.
 JQ_EXEC="/usr/bin/jq"
+
+# --- Cleanup Function for Exiting ---
+trap 'rm -rf "$LOCK_DIR"' EXIT INT TERM
 
 # --- Ensure Project and Log Directories Exist ---
 cd "$PROJECT_DIR" || {
@@ -103,40 +108,45 @@ update_progress_json() {
     local VALUE="$2"
     local TEMP_JSON_FILE="$PROGRESS_JSON_FULL_PATH.tmp"
 
-    log_message "DEBUG: update_progress_json: Attempting to update key '$KEY' with value '$VALUE'"
+    # --- Acquire Lock ---
+    # The loop will continue until mkdir succeeds. mkdir is an atomic operation.
+    while ! mkdir "$LOCK_DIR" 2>/dev/null; do
+        sleep 0.2
+    done
 
-    # Use a temporary file to avoid issues with jq modifying the file it's reading
-    # Capture jq's output (new JSON) and any errors.
+    # --- Critical Section: Read-Modify-Write ---
     local JQ_CMD_OUTPUT
     JQ_CMD_OUTPUT=$($JQ_EXEC --arg key "$KEY" --argjson value "$VALUE" '.[$key] = $value' "$PROGRESS_JSON_FULL_PATH" 2>&1)
     local JQ_REAL_EXIT_CODE=$?
 
     if [ $JQ_REAL_EXIT_CODE -eq 0 ]; then
-        # jq succeeded, JQ_CMD_OUTPUT contains the new JSON
         echo "$JQ_CMD_OUTPUT" > "$TEMP_JSON_FILE"
         if [ $? -ne 0 ]; then
             log_message "ERROR: Failed to write jq output to temporary file '$TEMP_JSON_FILE' for key '$KEY'."
-            rm -f "$TEMP_JSON_FILE" # Clean up partial write if any
-            return 1 # Indicate failure
+            rm -f "$TEMP_JSON_FILE"
+            rm -rf "$LOCK_DIR" # Release lock on error
+            return 1
         fi
 
         mv "$TEMP_JSON_FILE" "$PROGRESS_JSON_FULL_PATH"
         if [ $? -ne 0 ]; then
             log_message "ERROR: Failed to move temporary file '$TEMP_JSON_FILE' to '$PROGRESS_JSON_FULL_PATH' for key '$KEY'."
-            return 1 # Indicate failure
+            rm -rf "$LOCK_DIR" # Release lock on error
+            return 1
         fi
+        rm -rf "$LOCK_DIR" # Release lock on success
         return 0
     else
-        # jq failed
         log_message "ERROR: $JQ_EXEC command failed for key '$KEY'. Exit code: $JQ_REAL_EXIT_CODE."
         log_message "ERROR: Value passed to --argjson for key '$KEY' was: '$VALUE'"
         log_message "ERROR: jq output/error was: $JQ_CMD_OUTPUT"
+        rm -rf "$LOCK_DIR" # Release lock on error
         return $JQ_REAL_EXIT_CODE
     fi
 }
 
 # Update pipeline status in JSON
-update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Download.py..." }'
+update_progress_json "pipeline_run_status" '{ "status_message": "Pipeline is running.", "start_time": "'"$CURRENT_TIMESTAMP"'", "current_stage": "Starting Download.py...", "end_time": "N/A" }'
 
 
 # Define the Python interpreter from the pyenv environment

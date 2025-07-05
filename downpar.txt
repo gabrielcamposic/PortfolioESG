@@ -10,7 +10,7 @@ history_years = 10
 # Directory for individual daily stock data CSVs (per ticker)
 findata_directory = ~/Documents/Prog/PortfolioESG_Data/findata/
 # Directory for the consolidated stock database (StockDataDB.csv)
-findb_directory = ~/Documents/Prog/PortfolioESG_Data/finds/
+findb_directory = ~/Documents/Prog/PortfolioESG_Data/findb/
 # Full path to the file containing the list of tickers to download
 tickers_list_file = ~/Documents/Prog/PortfolioESG_Data/Tickers.txt
 # Full path for the download script's log file

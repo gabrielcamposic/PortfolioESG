@@ -4,231 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scoring</title>
-    <link rel="stylesheet" href="css/navbar_styles.css">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/navbar_styles.css"> <!-- Link to the new navbar CSS -->
+    <link rel="stylesheet" href="css/styles.css"> <!-- Link to the common stylesheet -->
 </head>
 <body>
-    <div id="navbar-placeholder"></div>
-    <div class="main-content">
+    <div id="navbar-placeholder"></div> <!-- Placeholder for the common navigation bar -->
+    
+    <div class="main-content"> <!-- Wrapper for content to the right of nav -->
         <h1>Scoring</h1>
-        <div class="summary-block" id="run-summary">
+
+        <!-- Latest Run Summary -->
+        <div class="stage-block" id="latest-run-summary">
             <h2>Latest Run Summary</h2>
-            <p><strong>Date/Time:</strong> <span id="run-timestamp">-</span></p>
-            <p><strong>Scoring Version:</strong> <span id="scoring-version">-</span></p>
+            <p><strong>Date/Time:</strong> <span id="summary-datetime">Loading...</span></p>
+            <p><strong>Scoring Version:</strong> <span id="summary-version">Loading...</span></p>
         </div>
+
+        <!-- Top 20 Stocks Table -->
         <div class="stage-block">
             <h2>Top 20 Stocks by Composite Score</h2>
-            <div id="top-stocks-table-container"><p>Loading...</p></div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Stock</th><th>Sector</th><th>Industry</th><th>CompositeScore</th><th>SharpeRatio</th><th>PotentialUpside_pct</th><th>Momentum</th><th>CurrentPrice</th><th>TargetPrice</th><th>forwardPE</th><th>SectorMedianPE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top-stocks-tbody">
+                        <tr><td colspan="11">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div class="stage-block">
-            <h2>Sector Breakdown</h2>
-            <div id="sector-breakdown-table-container"><p>Loading...</p></div>
+
+        <!-- Visualizations -->
+        <div class="stage-columns">
+            <div class="column">
+                <div class="stage-block">
+                    <h2>Sector Breakdown</h2>
+                    <div id="sector-breakdown-chart">Loading...</div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="stage-block">
+                    <h2>Correlations (Latest Run)</h2>
+                    <div id="correlation-matrix">Loading...</div>
+                </div>
+            </div>
         </div>
+
         <div class="stage-block">
             <h2>Historical Trends</h2>
-            <canvas id="compositeTrendChart" height="80"></canvas>
-            <canvas id="sectorAvgTrendChart" height="80"></canvas>
+            <div id="historical-trends-chart">Loading...</div>
         </div>
-        <div class="stage-block">
-            <h2>Correlations (Latest Run)</h2>
-            <canvas id="correlationChart" height="80"></canvas>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-    window.addEventListener('DOMContentLoaded', function() {
-        if (window.loadCommonNavbar) window.loadCommonNavbar();
-    });
 
-    function parseCSV(csv) {
-        const [header, ...lines] = csv.trim().split('\n');
-        const keys = header.split(',');
-        return lines.map(line => {
-            const values = line.split(',');
-            const obj = {};
-            keys.forEach((k, i) => obj[k] = values[i]);
-            return obj;
-        });
-    }
-
-    function renderTopStocksTable(rows, N = 20) {
-        if (!rows.length) return '<p>No data.</p>';
-        rows.sort((a, b) => parseFloat(b.CompositeScore) - parseFloat(a.CompositeScore));
-        const topRows = rows.slice(0, N);
-        const headers = ['Stock','Sector','Industry','CompositeScore','SharpeRatio','PotentialUpside_pct','Momentum','CurrentPrice','TargetPrice','forwardPE','SectorMedianPE'];
-        let html = '<table class="results-table"><thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
-        for (const row of topRows) {
-            html += '<tr>' + headers.map(h => `<td>${row[h]}</td>`).join('') + '</tr>';
-        }
-        html += '</tbody></table>';
-        return html;
-    }
-
-    function renderSectorBreakdown(rows) {
-        if (!rows.length) return '<p>No data.</p>';
-        const sectorMap = {};
-        for (const row of rows) {
-            const sector = row.Sector || 'Unknown';
-            if (!sectorMap[sector]) sectorMap[sector] = [];
-            sectorMap[sector].push(row);
-        }
-        const summary = Object.entries(sectorMap).map(([sector, stocks]) => {
-            const avg = (key) => stocks.reduce((sum, r) => sum + parseFloat(r[key] || 0), 0) / stocks.length;
-            return {
-                Sector: sector,
-                Count: stocks.length,
-                AvgComposite: avg('CompositeScore').toFixed(3),
-                AvgSharpe: avg('SharpeRatio').toFixed(3),
-                AvgUpside: avg('PotentialUpside_pct').toFixed(3)
-            };
-        });
-        let html = '<table class="results-table"><thead><tr><th>Sector</th><th>Count</th><th>Avg Composite</th><th>Avg Sharpe</th><th>Avg Upside (%)</th></tr></thead><tbody>';
-        for (const row of summary) {
-            html += `<tr><td>${row.Sector}</td><td>${row.Count}</td><td>${row.AvgComposite}</td><td>${row.AvgSharpe}</td><td>${row.AvgUpside}</td></tr>`;
-        }scored_runs
-        html += '</tbody></table>';
-        return html;
-    }
-
-    async function loadScoringResults() {
-        // Load latest run
-        const resp = await fetch('data/scored_runs.csv');
- if (!resp.ok) {
-            document.getElementById('top-stocks-table-container').innerHTML = '<p>No results found.</p>';
-            document.getElementById('sector-breakdown-table-container').innerHTML = '';
-            return;
-        }
-        const csv = await resp.text();
-        const rows = parseCSV(csv);
-        if (rows.length) {
-            document.getElementById('run-timestamp').textContent = rows[0].run_timestamp || '-';
-            document.getElementById('scoring-version').textContent = rows[0].scoring_version || '-';
-        }
-        document.getElementById('top-stocks-table-container').innerHTML = renderTopStocksTable(rows, 20);
-        document.getElementById('sector-breakdown-table-container').innerHTML = renderSectorBreakdown(rows);
-        renderCorrelationChart(rows);
-        await renderHistoricalCharts();
-    }
-
-    // --- Correlation Chart (Latest Run) ---
-    function renderCorrelationChart(rows) {
-        // Show correlation between CompositeScore, SharpeRatio, PotentialUpside_pct, Momentum
-        const metrics = ['CompositeScore','SharpeRatio','PotentialUpside_pct','Momentum'];
-        const dataArr = rows.map(r => metrics.map(m => parseFloat(r[m] || 0)));
-        // Compute correlation matrix
-        function corr(a, b) {
-            const n = a.length;
-            const meanA = a.reduce((s, v) => s+v, 0)/n;
-            const meanB = b.reduce((s, v) => s+v, 0)/n;
-            const cov = a.map((v,i) => (v-meanA)*(b[i]-meanB)).reduce((s,v) => s+v,0)/n;
-            const stdA = Math.sqrt(a.map(v => (v-meanA)**2).reduce((s,v) => s+v,0)/n);
-            const stdB = Math.sqrt(b.map(v => (v-meanB)**2).reduce((s,v) => s+v,0)/n);
-            return stdA && stdB ? cov/(stdA*stdB) : 0;
-        }
-        const corrMatrix = metrics.map((m1,i) => metrics.map((m2,j) => corr(dataArr.map(r=>r[i]), dataArr.map(r=>r[j]))));
-        // Chart.js heatmap
-        const ctx = document.getElementById('correlationChart').getContext('2d');
-        if (window.corrChart) window.corrChart.destroy();
-        window.corrChart = new Chart(ctx, {
-            type: 'matrix',
-            data: {
-                datasets: [{
-                    label: 'Correlation',
-                    data: metrics.flatMap((m1,i) => metrics.map((m2,j) => ({x:i,y:j,v:corrMatrix[i][j]}))),
-                    backgroundColor: ctx => {
-                        const v = ctx.dataset.data[ctx.dataIndex].v;
-                        return `rgba(${v>0?0:255},${v>0?128:0},${v<0?0:255},${Math.abs(v)})`;
-                    },
-                    width: ({chart}) => (chart.chartArea||{}).width/metrics.length-2,
-                    height: ({chart}) => (chart.chartArea||{}).height/metrics.length-2,
-                }],
-                labels: metrics
-            },
-            options: {
-                plugins: {
-                    legend: {display: false},
-                    tooltip: {
-                        callbacks: {
-                            title: ctx => metrics[ctx[0].raw.x],
-                            label: ctx => `Corr: ${ctx.raw.v.toFixed(2)}`
-                        }
-                    }
-                },
-                scales: {
-                    x: {type: 'category', labels: metrics, title: {display:true, text:'Metric'}},
-                    y: {type: 'category', labels: metrics, title: {display:true, text:'Metric'}},
-                }
-            }
-        });
-    }
-
-    // --- Historical Charts ---
-    async function renderHistoricalCharts() {
-        // Load all runs from scored_runs.csv
-        const resp = await fetch('data/scored_runs.csv');
- if (!resp.ok) return;
-        const csv = await resp.text();
-        const rows = parseCSV(csv);
-        // CompositeScore trend for top 1 stock per run
-        const runGroups = {};
-        for (const row of rows) {
-            if (!runGroups[row.run_id]) runGroups[row.run_id] = [];
-            runGroups[row.run_id].push(row);
-        }
-        const runIds = Object.keys(runGroups).sort();
-        const topScores = runIds.map(rid => {
-            const stocks = runGroups[rid];
-            stocks.sort((a,b) => parseFloat(b.CompositeScore)-parseFloat(a.CompositeScore));
-            return {run_id: rid, timestamp: stocks[0].run_timestamp, score: parseFloat(stocks[0].CompositeScore), stock: stocks[0].Stock};
-        });
-        // Chart: Top CompositeScore per run
-        const ctx1 = document.getElementById('compositeTrendChart').getContext('2d');
-        if (window.compTrendChart) window.compTrendChart.destroy();
-        window.compTrendChart = new Chart(ctx1, {
-            type: 'line',
-            data: {
-                labels: topScores.map(r => r.timestamp),
-                datasets: [{
-                    label: 'Top CompositeScore',
-                    data: topScores.map(r => r.score),
-                    borderColor: 'blue',
-                    fill: false
-                }]
-            },
-            options: {scales: {x: {title: {display:true, text:'Run Date'}}, y: {title: {display:true, text:'CompositeScore'}}}}
-        });
-        // Chart: Sector average CompositeScore per run (for first sector)
-        const sectorNames = Array.from(new Set(rows.map(r => r.Sector))).filter(Boolean);
-        const sectorAvg = sectorNames.map(sector => {
-            return {
-                sector,
-                avg: runIds.map(rid => {
-                    const stocks = runGroups[rid].filter(r => r.Sector === sector);
-                    if (!stocks.length) return null;
-                    return stocks.reduce((s,r) => s+parseFloat(r.CompositeScore),0)/stocks.length;
-                })
-            };
-        });
-        const ctx2 = document.getElementById('sectorAvgTrendChart').getContext('2d');
-        if (window.sectorAvgTrendChart) window.sectorAvgTrendChart.destroy();
-        window.sectorAvgTrendChart = new Chart(ctx2, {
-            type: 'line',
-            data: {
-                labels: runIds.map(rid => runGroups[rid][0].run_timestamp),
-                datasets: sectorAvg.map((s,i) => ({
-                    label: s.sector,
-                    data: s.avg,
-                    borderColor: `hsl(${i*360/sectorAvg.length},70%,50%)`,
-                    fill: false
-                }))
-            },
-            options: {scales: {x: {title: {display:true, text:'Run Date'}}, y: {title: {display:true, text:'Avg CompositeScore'}}}}
-        });
-    }
-
-    loadScoringResults();
+    </div> <!-- End of main-content wrapper -->
     </script>
-    <script src="js/common_utils.js"></script>
-    <script src="js/common_nav.js"></script>
+    <script src="js/common_utils.js"></script> <!-- Load common utility functions -->
+    <script src="js/common_nav.js"></script> <!-- Load the common navigation script -->
 </body>
 </html>

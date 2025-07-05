@@ -18,6 +18,7 @@ import itertools
 import sys  # Import sys module for logging
 import json # For logging to html readable
 import math 
+from json_utils import safe_update_json
 from collections import Counter # Import Counter for efficient counting
 import shutil # Add this import
 
@@ -95,62 +96,20 @@ class Logger:
         
         # Update web log file if web_data is provided
         if web_data and self.web_log_path: # web_data is the new data for *this* specific log call
-            loaded_json_data = {}
-            if os.path.exists(self.web_log_path):
-                try:
-                    with open(self.web_log_path, 'r') as f_read:
-                        loaded_json_data = json.load(f_read)
-                except json.JSONDecodeError:
-                    # Log to console as logger might be in a weird state or path is new
-                    print(f"{timestamp} - Warning: Malformed JSON in {self.web_log_path}. Will be overwritten by current update.")
-                except Exception as e:
-                    print(f"{timestamp} - Error reading {self.web_log_path} in log(): {e}")
-            
-            loaded_json_data.update(web_data) # Merge the new data from this specific log call
-            
             try:
-                with open(self.web_log_path, 'w') as web_file:
-                    json.dump(loaded_json_data, web_file, indent=4)
-                    web_file.flush()
-                    os.fsync(web_file.fileno())
-                self.web_data = loaded_json_data # Update internal state to match what was just written
+                safe_update_json(self.web_log_path, web_data)
             except Exception as e:
                 # Log to console as logger might be in a weird state
                 print(f"{timestamp} - Error writing to web log file {self.web_log_path} in log(): {e}")
 
-        
         if self.log_count % self.flush_interval == 0:
             self.flush()
-
-    def flush(self):
-        """Write logs to file in bulk and clear memory."""
-        if self.messages:
-            with open(self.log_path, 'a') as file:
-                file.write("\n".join(self.messages) + "\n") # Already adds timestamped messages
-            self.messages = []  # Clear memory
 
     def update_web_log(self, key, value):
         """Update a specific key in the web log JSON file."""
         if self.web_log_path:
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S') # For potential console logs
-            loaded_json_data = {}
-            if os.path.exists(self.web_log_path):
-                try:
-                    with open(self.web_log_path, 'r') as f_read:
-                        loaded_json_data = json.load(f_read)
-                except json.JSONDecodeError:
-                    print(f"{timestamp} - Warning: Malformed JSON in {self.web_log_path} for update_web_log. Will create new/overwrite with current key.")
-                except Exception as e:
-                    print(f"{timestamp} - Error reading {self.web_log_path} in update_web_log(): {e}")
-            
-            loaded_json_data[key] = value # Update the specific key in the loaded data
-            
             try:
-                with open(self.web_log_path, 'w') as web_file:
-                    json.dump(loaded_json_data, web_file, indent=4)
-                    web_file.flush()
-                    os.fsync(web_file.fileno())
-                self.web_data = loaded_json_data # Update internal state to match what was just written
+                safe_update_json(self.web_log_path, {key: value})
             except Exception as e:
                 print(f"{timestamp} - Error writing to web log file {self.web_log_path} in update_web_log(): {e}")
 

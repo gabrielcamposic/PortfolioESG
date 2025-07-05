@@ -10,8 +10,8 @@ scored_runs_file_path = ~/Documents/Prog/PortfolioESG_Data/Results/scored_runs.c
 top_n_stocks_from_score = 20
 
 # --- Target portfolio parameters
-min_stocks=5
-max_stocks=5
+min_stocks=10
+max_stocks=10
 initial_investment=1000
 rf=0.15
 

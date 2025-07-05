@@ -292,8 +292,8 @@
                 setText('scoring-start-time', formatDate(scoring.scoring_start_time));
                 setText('scoring-end-time', formatDate(scoring.scoring_end_time));
                 setText('scoring-overall-status', scoring.scoring_status, 'Pending');
-                setText('scoring-duration', getDurationBetweenTimestamps(scoring.scoring_start_time, scoring.scoring_end_time));
-                setText('scoring-stocks-scored', scoring.scoring_stocks_scored || '0');
+                setText('scoring-duration', getDurationBetweenTimestamps(scoring.scoring_start_time, scoring.scoring_end_time));                
+                setText('scoring-stocks-scored', scoring.stocks_scored_count || '0');
                 const scoringProgressPercent = scoring.scoring_progress_percent !== undefined ? parseFloat(scoring.scoring_progress_percent) : (scoring.scoring_status && scoring.scoring_status.toLowerCase().includes('completed') ? 100 : 0);
                 setText('scoring-progress-percent', scoringProgressPercent.toFixed(0));
                 setProgress('scoring-progress-bar', scoringProgressPercent);
