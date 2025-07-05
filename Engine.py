@@ -113,6 +113,13 @@ class Logger:
             except Exception as e:
                 print(f"{timestamp} - Error writing to web log file {self.web_log_path} in update_web_log(): {e}")
 
+    def flush(self):
+        """Write logs to file in bulk and clear memory."""
+        if self.messages:
+            with open(self.log_path, 'a') as file:
+                file.write("\n".join(self.messages) + "\n")
+            self.messages = []  # Clear memory
+
 # ----------------------------------------------------------- #
 #                        Basic Functions                      #
 # ----------------------------------------------------------- #
@@ -1288,7 +1295,7 @@ def run_genetic_algorithm(
                 best_final_val_overall_ga, best_roi_overall_ga, best_exp_ret_overall_ga,
                 best_vol_overall_ga)
 
-# --- GA Helper Functions (Stubs) ---
+# --- GA Helper Functions (Stubs) -----
 
 def select_parents(evaluated_population_details, logger_instance, sim_params_dict):
     """
@@ -1831,8 +1838,6 @@ try:
         except Exception as e:
             logger_instance.log(f"❌ Error logging optimal portfolio results to CSV {results_filepath}: {e}")
 
-
-
     # Log results to CSV
     if RESULTS_LOG_CSV_PATH and best_portfolio_stocks:
         # For logging, use the date range of the simulation pool
@@ -1862,7 +1867,7 @@ try:
     elif not RESULTS_LOG_CSV_PATH:
         logger.log("Info: results_log_csv_path not set in simpar.txt. Skipping CSV results log.")
     elif not best_portfolio_stocks:
-        # The persistent summary will be updated later to reflect no portfolio found for this run.
+        # The persistent summary will be updated later to reflect no portfolio found.
         logger.log("Info: No optimal portfolio found by Engine.py. Skipping CSV results log.")
     section_end_time = datetime.now()
     section_duration = section_end_time - section_start_time
@@ -1937,7 +1942,7 @@ try:
     # We need the duration string if available, or calculate from start/est_end
     # For simplicity, we'll log the estimated *completion timestamp* as a proxy for now,
     # or "Calculating..." if it was never updated.
-    data_wrangling_duration_from_log = logger.web_data.get("data_wrangling_duration", "0:00:00")
+    data_wrangling_duration_str = logger.web_data.get("data_wrangling_duration", "0:00:00")
 
     # --- Log Performance Summary ---
     def log_engine_performance_summary(
@@ -2070,7 +2075,7 @@ try:
     # --- Log Performance Summary ---
     performance_log_filepath = sim_params.get("performance_log_csv_path")
     initial_est_end_time_str = logger.web_data.get("estimated_completion_time", "N/A")
-    data_wrangling_duration_str_from_log = logger.web_data.get("data_wrangling_duration", "0:00:00")
+    data_wrangling_duration_str = logger.web_data.get("data_wrangling_duration", "0:00:00")
 
     # bf_ga_combined_sim_duration_seconds is sim_timer.total_time from the main search phase
     bf_ga_combined_sim_duration_seconds = sim_timer.total_time
@@ -2096,7 +2101,7 @@ try:
     log_engine_performance_summary(
         performance_log_filepath, overall_script_start_time, ENGINE_VERSION, sim_params,
         initial_est_end_time_str, str(actual_total_duration_for_log),
-        data_wrangling_duration_str_from_log, search_durations, logger
+        data_wrangling_duration_str, search_durations, logger
     )
 
 except Exception as e:
