@@ -108,6 +108,7 @@ class Logger:
     def update_web_log(self, key, value):
         """Update a specific key in the web log JSON file."""
         if self.web_log_path:
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             try:
                 safe_update_json(self.web_log_path, {key: value})
             except Exception as e:
@@ -1292,8 +1293,7 @@ def run_genetic_algorithm(
 
     # Return the best found for this k (even if it was -inf)
     return (best_combo_overall_ga, best_weights_overall_ga, best_sharpe_overall_ga,
-                best_final_val_overall_ga, best_roi_overall_ga, best_exp_ret_overall_ga,
-                best_vol_overall_ga)
+                best_final_val_overall_ga, best_roi_overall_ga, best_exp_ret_overall_ga)
 
 # --- GA Helper Functions (Stubs) -----
 
