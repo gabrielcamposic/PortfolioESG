@@ -63,8 +63,9 @@ function setNavPipelineBlockStatusClass(statusClassSuffix) {
 // --- Fetches progress.json and updates the navbar status section ---
 async function updateNavbarStatus() {
     // Determine the correct path to progress.json
-    const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html');
-    const progressJsonPath = isIndexPage ? 'html/progress.json' : 'progress.json';
+    // For all pages, we use "/progress.json" and web server paths are relative to root
+    // (even if common_nav.js itself is in a subdirectory of /html in the filesystem)
+    const progressJsonPath = '/html/progress.json'; // This should fix path resolution for all pages
 
     try {
         const response = await fetch(progressJsonPath + '?t=' + new Date().getTime());

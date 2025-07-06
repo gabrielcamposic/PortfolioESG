@@ -1195,3 +1195,92 @@ def mutate_portfolio(portfolio_stocks, available_stocks, logger_instance, sim_pa
     mutated = list(portfolio_stocks)
     mutated[mutated.index(out_stock)] = in_stock
     return mutated
+
+if __name__ == "__main__":
+    # === Restore original main execution block (pipeline) ===
+    import os, sys, time, math, pandas as pd, numpy as np, itertools, traceback
+    from datetime import datetime
+    print("Engine.py main execution block started.")
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    PARAMETERS_FILE_PATH = os.path.join(SCRIPT_DIR, "simpar.txt")
+    PRELIM_LOG_FILENAME = "engine_bootstrap.log"
+    PRELIM_WEB_LOG_FILENAME = "engine_bootstrap_progress.json"
+    PRELIM_LOG_PATH = os.path.join(SCRIPT_DIR, PRELIM_LOG_FILENAME)
+    PRELIM_WEB_LOG_PATH = os.path.join(SCRIPT_DIR, PRELIM_WEB_LOG_FILENAME)
+    logger = Logger(
+        log_path=PRELIM_LOG_PATH,
+        web_log_path=PRELIM_WEB_LOG_PATH
+    )
+    logger.log(f"Logger initialized with preliminary path: {PRELIM_LOG_PATH}")
+    logger.log(f"Attempting to load parameters from: {PARAMETERS_FILE_PATH}")
+    try:
+        sim_params = load_simulation_parameters(PARAMETERS_FILE_PATH, logger_instance=logger)
+        logger.log(f"Successfully loaded parameters from: {PARAMETERS_FILE_PATH}")
+    except FileNotFoundError:
+        logger.log(f"CRITICAL ERROR: Main parameters file not found at '{PARAMETERS_FILE_PATH}'. Exiting.")
+        sys.exit(1)
+    except Exception as e:
+        logger.log(f"CRITICAL ERROR: Failed to load parameters from '{PARAMETERS_FILE_PATH}'. Error: {e}. Exiting.")
+        sys.exit(1)
+    # --- EARLY PIPELINE STATUS LOGGING FOR UI MONITORING ---
+    # This ensures pipeline.html and progress.json reflect Engine.py status immediately
+    try:
+        logger.update_web_log("engine_script_start_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        logger.update_web_log("engine_overall_status", "Running")
+        logger.update_web_log("current_engine_phase", "Initializing - Data Loading")
+    except Exception as e:
+        logger.log(f"Warning: Could not update early engine status in progress.json: {e}")
+    # Assign operational variables
+    MIN_STOCKS = sim_params.get("min_stocks", 10)
+    MAX_STOCKS = sim_params.get("max_stocks", 20)
+    SIM_RUNS = sim_params.get("sim_runs", 100)
+    INITIAL_INVESTMENT = sim_params.get("initial_investment", 10000.0)
+    RF_RATE = sim_params.get("rf")
+    START_DATE_STR = sim_params.get("start_date")
+    SCORED_RUNS_FILE_PATH = sim_params.get("scored_runs_file_path")
+    TOP_N_STOCKS_FROM_SCORE = sim_params.get("top_n_stocks_from_score", 40)
+    MAX_STOCKS_PER_SECTOR = sim_params.get("max_stocks_per_sector", 99)
+    DEBUG_MODE = sim_params.get("debug_mode", False)
+    # Load top stocks
+    TOP_SCORED_STOCKS = []
+    STOCK_SECTOR_MAP = {}
+    if SCORED_RUNS_FILE_PATH:
+        try:
+            TOP_SCORED_STOCKS, STOCK_SECTOR_MAP = load_scored_stocks(SCORED_RUNS_FILE_PATH, TOP_N_STOCKS_FROM_SCORE, logger, sim_params)
+            logger.log(f"Top scored stocks loaded: {TOP_SCORED_STOCKS}")
+        except Exception as e:
+            logger.log(f"Error loading scored stocks: {e}")
+    else:
+        logger.log("Warning: 'scored_runs_file_path' not specified in simpar.txt. Stock list will be empty.")
+    # Load stock data
+    STOCK_DATA_FILE = sim_params.get("stock_data_file")
+    if not STOCK_DATA_FILE or not os.path.exists(STOCK_DATA_FILE):
+        logger.log(f"CRITICAL ERROR: Stock data file '{STOCK_DATA_FILE}' not found. Exiting.")
+        sys.exit(1)
+    StockDataDB_df = pd.read_csv(STOCK_DATA_FILE)
+    StockDataDB_df['Date'] = pd.to_datetime(StockDataDB_df['Date'], format='mixed', errors='coerce').dt.date
+    # Filter to top scored stocks
+    scored_stocks_in_db = [stock for stock in TOP_SCORED_STOCKS if stock in StockDataDB_df['Stock'].unique()]
+    if not scored_stocks_in_db:
+        logger.log("No scored stocks found in stock data DB. Exiting.")
+        sys.exit(1)
+    focused_df = StockDataDB_df[StockDataDB_df['Stock'].isin(scored_stocks_in_db)].copy()
+    StockClose_df_SimPool = focused_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
+    StockClose_df_SimPool.dropna(inplace=True)
+    StockClose_df_SimPool.reset_index(inplace=True)
+    sim_timer = ExecutionTimer(rolling_window=max(10, SIM_RUNS // 100))
+    # Run the main search
+    result = find_best_stock_combination(
+        StockClose_df_SimPool,
+        TOP_SCORED_STOCKS,
+        INITIAL_INVESTMENT,
+        MIN_STOCKS,
+        MAX_STOCKS,
+        RF_RATE,
+        logger,
+        sim_timer,
+        STOCK_SECTOR_MAP,
+        MAX_STOCKS_PER_SECTOR,
+        sim_params
+    )
+    print("Pipeline execution completed.")

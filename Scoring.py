@@ -87,9 +87,10 @@ def load_scoring_parameters(filepath, logger_instance=None):
         "debug_mode": bool, "risk_free_rate": float, "dynamic_score_weighting": bool, "momentum_enabled": bool,
         "stock_data_file": str, "input_stocks_file": str,
         "financials_db_file": str, "scored_stocks_output_file": str, "log_file_path": str, "web_log_path": str, 
-        "sharpe_weight": float, "upside_weight": float, "momentum_weight": float, "sector_pe_log_path": str, "momentum_period_days": int
+        "sharpe_weight": float, "upside_weight": float, "momentum_weight": float, "sector_pe_log_path": str, "momentum_period_days": int,
+        "web_accessible_data_folder": str  # Added web_accessible_data_folder to expected types
     }
-    try:
+    try: 
         with open(filepath, 'r') as f:
             for line in f:
                 line = line.strip()
@@ -102,8 +103,9 @@ def load_scoring_parameters(filepath, logger_instance=None):
                         if target_type == bool: value = value_str.lower() == 'true'
                         elif target_type == int: value = int(value_str)
                         elif target_type == float: value = float(value_str)
-                        else: value = os.path.expanduser(value_str) if value_str.startswith('~') else value_str
+                        else: value = os.path.expanduser(value_str) # expand tilde
                         parameters[key] = value
+                    
                     except ValueError:
                         if logger_instance: logger_instance.log(f"Warning: Could not convert '{value_str}' for key '{key}'. Storing as string.")
                         parameters[key] = value_str
@@ -239,6 +241,7 @@ def main():
     MOMENTUM_ENABLED = params.get("momentum_enabled", False)
     MOMENTUM_PERIOD_DAYS = params.get("momentum_period_days", 126)
     MOMENTUM_WEIGHT = params.get("momentum_weight", 0.0)
+    WEB_ACCESSIBLE_DATA_FOLDER = params.get("web_accessible_data_folder")
 
     # Debug: Log the actual input stocks file path being used
     logger.log(f"DEBUG: INPUT_STOCKS_FILE = {INPUT_STOCKS_FILE}")
@@ -258,7 +261,7 @@ def main():
     if WEB_LOG_PATH:
         logger.web_log_path = WEB_LOG_PATH
         os.makedirs(os.path.dirname(WEB_LOG_PATH), exist_ok=True)
-    logger.log("Logger paths updated from parameters.")
+    WEB_ACCESSIBLE_DATA_FOLDER = params.get("web_accessible_data_folder")
     
     start_time = datetime.now()
     run_id = start_time.strftime('%Y%m%d_%H%M%S')
@@ -459,7 +462,7 @@ def main():
         logger.log(f"Saving all {len(results_df)} scored stocks...")
         
         # Append the top stocks for this run to the historical scored runs database
-        if SCORED_STOCKS_OUTPUT_FILE:
+        if SCORED_STOCKS_OUTPUT_FILE: # The path is now already absolute
             os.makedirs(os.path.dirname(SCORED_STOCKS_OUTPUT_FILE), exist_ok=True)
             file_exists = os.path.isfile(SCORED_STOCKS_OUTPUT_FILE)
 
@@ -480,7 +483,52 @@ def main():
                 results_df.to_csv(SCORED_STOCKS_OUTPUT_FILE, index=False)
                 logger.log(f"Created new scored runs file: {os.path.basename(SCORED_STOCKS_OUTPUT_FILE)}")
             logger.log(f"✅ All {len(results_df)} scored stocks for run_id {run_id} saved to {SCORED_STOCKS_OUTPUT_FILE}")
+        
+        if SCORED_STOCKS_OUTPUT_FILE and WEB_ACCESSIBLE_DATA_FOLDER:
+            logger.log(f"DEBUG: Attempting to write web data. SCORED_STOCKS_OUTPUT_FILE = {SCORED_STOCKS_OUTPUT_FILE}, WEB_ACCESSIBLE_DATA_FOLDER = {WEB_ACCESSIBLE_DATA_FOLDER}")
+        
+            # --- Write Summary to Separate JSON ---
+            # Ensure the directory for the summary file exists
+            if not os.path.exists(WEB_ACCESSIBLE_DATA_FOLDER):
+                os.makedirs(WEB_ACCESSIBLE_DATA_FOLDER)
+            summary_file_path = os.path.join(WEB_ACCESSIBLE_DATA_FOLDER, "latest_run_summary.json")
+            os.makedirs(os.path.dirname(summary_file_path), exist_ok=True)  # Ensure dir exists
+            try:
+                summary_data = {
+                    "run_timestamp": results_df['run_timestamp'].iloc[0],  # Get timestamp from the first row.
+                    "scoring_version": SCORING_PY_VERSION
+                }
+                with open(summary_file_path, 'w') as f:
+                    json.dump(summary_data, f, indent=4)
+                logger.log(f"✅ Wrote scoring summary to {os.path.basename(summary_file_path)}.")
+                logger.log(f"DEBUG: Successfully wrote summary data to {summary_file_path}.")
+            except Exception as e: # Catch IO-related exceptions
+                logger.log(f"Warning: Could not write scoring summary. IO/OS Error: {e}. Path: {summary_file_path}")
+            except Exception as e:
+                logger.log(f"Warning: Could not write scoring summary. Error: {e}. Path: {summary_file_path}")
 
+            # --- Write Top 20 Stocks to JSON ---
+            # Ensure the directory for the top stocks file exists
+            # This was already done at the top level of "if" block, so it's redundant:
+            top_stocks_file_path = os.path.join(WEB_ACCESSIBLE_DATA_FOLDER, "top_stocks.json")
+            os.makedirs(os.path.dirname(top_stocks_file_path), exist_ok=True)
+            try:
+                top_20_stocks = results_df.head(20)  # Or however many you want to display
+                top_stocks_data = top_20_stocks.to_dict(orient='records')
+                with open(top_stocks_file_path, 'w') as f:
+                   json.dump(top_stocks_data, f, indent=4)
+                logger.log(f"✅ Wrote top 20 stocks to {os.path.basename(top_stocks_file_path)}.")
+                logger.log(f"DEBUG: Successfully wrote top 20 stocks data to {top_stocks_file_path}.")
+            except Exception as e:
+                logger.log(f"Warning: Could not write top stocks data. Error: {e}. Path: {top_stocks_file_path}")
+
+        # --- NEW: List directory contents after writing ---
+        if WEB_ACCESSIBLE_DATA_FOLDER:
+            try:
+                dir_contents = os.listdir(WEB_ACCESSIBLE_DATA_FOLDER)
+                logger.log(f"DEBUG: Contents of {WEB_ACCESSIBLE_DATA_FOLDER} after attempting to write web data: {dir_contents}")
+            except Exception as e:
+                logger.log(f"Warning: Could not list directory contents. Error: {e}")
         end_time = datetime.now()
         duration = end_time - start_time
         logger.log(f"✅ Scoring execution finished successfully in {duration}.", 

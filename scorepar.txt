@@ -23,18 +23,22 @@ sharpe_weight = 0.6
 upside_weight = 0.3
 momentum_weight = 0.2
 
-# --- File and Directory Paths ---
+# --- Working folders
 # Path to the consolidated historical stock data database from Download.py
 stock_data_file = ~/Documents/Prog/PortfolioESG_Data/findb/StockDataDB.csv
 # Path to the consolidated historical financials database from Download.py
 financials_db_file = ~/Documents/Prog/PortfolioESG_Data/findb/FinancialsDB.csv
-# Path to the input file containing the list of tickers to score (e.g., the master list)
+# Path to the input file containing the list of tickers to score (e.g., the master li>
 input_stocks_file = ~/Documents/Prog/PortfolioESG_Data/Tickers.txt
-# Path for the historical database of all scored runs. This is a primary result file.
-scored_stocks_output_file = ~/Documents/Prog/PortfolioESG_Data/Results/scored_runs.csv
 # Full path for the scoring script's log file
 log_file_path = ~/Documents/Prog/PortfolioESG_Prod/Logs/Scoring.log
-# Full path for the web-accessible progress JSON file (can be the same as Engine's)
+# Full path for the web-accessible progress JSON file
 web_log_path = ~/Documents/Prog/PortfolioESG_public/html/progress.json
+
+# --- Results Logging ---
+# Path for the historical database of all scored runs. This is a primary result file.
+scored_stocks_output_file = ~/Documents/Prog/PortfolioESG_Data/Results/scored_runs.csv
 # Path for the log of sector median P/E values from each run
 sector_pe_log_path = ~/Documents/Prog/PortfolioESG_Data/Results/Sector_Median_PE_Log.csv
+# Path for Scoring.html outputs
+web_accessible_data_folder = ~/Documents/Prog/PortfolioESG_public/html/data/

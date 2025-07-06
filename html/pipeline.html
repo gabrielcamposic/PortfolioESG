@@ -297,11 +297,18 @@
                 const scoringProgressPercent = scoring.scoring_progress_percent !== undefined ? parseFloat(scoring.scoring_progress_percent) : (scoring.scoring_status && scoring.scoring_status.toLowerCase().includes('completed') ? 100 : 0);
                 setText('scoring-progress-percent', scoringProgressPercent.toFixed(0));
                 setProgress('scoring-progress-bar', scoringProgressPercent);
+                // --- MODIFIED LOGIC FOR SCORING STATUS PROPAGATION ---
                 let scoringStageDisplayText = 'Pending';
-                if (scoring.scoring_status) {
+                // If Download.py is not done, show 'Waiting for Download.py'
+                if (!data.download_execution_end || data.download_execution_end === 'N/A') {
+                    scoringStageDisplayText = 'Waiting for Download.py';
+                } else if (scoring.scoring_status) {
                     if (scoring.scoring_status.toLowerCase().includes('running')) scoringStageDisplayText = 'Running';
                     else if (scoring.scoring_status.toLowerCase().includes('completed')) scoringStageDisplayText = 'Completed';
                     else if (scoring.scoring_status.toLowerCase().includes('failed')) scoringStageDisplayText = 'Failed';
+                    else if (scoring.scoring_status.toLowerCase().includes('pending')) scoringStageDisplayText = 'Pending';
+                } else {
+                    scoringStageDisplayText = 'Pending';
                 }
                 setStageStatus('scoring-stage', scoringStageDisplayText);
 
@@ -351,20 +358,19 @@
                 const engineStartTime = engine.engine_script_start_time;
                 const engineEndTime = engine.engine_script_end_time;
 
-                if (engineStartTime && engineStartTime !== "N/A") {
-                    if (!engineEndTime || engineEndTime === "N/A") {
+                // --- MODIFIED LOGIC FOR ENGINE STATUS PROPAGATION ---
+                if (!data.scoring_end_time || data.scoring_end_time === 'N/A') {
+                    engineOverallStatusText = 'Waiting for Scoring.py';
+                } else if (engineStartTime && engineStartTime !== 'N/A') {
+                    if (!engineEndTime || engineEndTime === 'N/A') {
                         engineOverallStatusText = 'Running...';
                     } else {
                         engineOverallStatusText = 'Completed';
                     }
-                } else if (data.download_execution_start && data.download_execution_start !== "N/A" && (!data.download_execution_end || data.download_execution_end === "N/A")) {
+                } else if (data.download_execution_start && data.download_execution_start !== 'N/A' && (!data.download_execution_end || data.download_execution_end === 'N/A')) {
                     engineOverallStatusText = 'Waiting for Download.py';
                 }
-                // Use setText for the overall engine status to ensure it uses default paragraph span styling
                 setText('engine-overall-status', engineOverallStatusText);
-                // Determine Engine stage CSS status
-                // The engineOverallStatusText already contains the descriptive status like "Running...", "Completed", "Pending"
-                // We can directly pass this to setStageStatus for the engine stage pill.
                 let engineDisplayStatusText = engineOverallStatusText;
                 if (engine.engine_overall_status && engine.engine_overall_status.toLowerCase().includes('failed')) engineDisplayStatusText = 'Failed';
                 else if (engine.current_engine_phase && engine.current_engine_phase.toLowerCase().includes('error')) engineDisplayStatusText = 'Error';
