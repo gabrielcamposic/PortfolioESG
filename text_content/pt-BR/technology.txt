@@ -1,0 +1,43 @@
+<p>Este projeto é construído usando Python, aproveitando várias bibliotecas padrão comumente usadas em análise de dados e computação científica. Aqui estão algumas das principais tecnologias e conceitos envolvidos:</p>
+<ul>
+    <li><strong>Linguagem Principal:</strong> Python 3.x</li>
+    <li><strong>Manuseio de Dados e Interação Externa:</strong>
+        <ul>
+            <li><code>yfinance</code>: Usado para buscar dados históricos de ações.</li>
+            <li><code>requests</code>: Para gerenciar conexões HTTP, incluindo o tratamento de novas tentativas para uma busca de dados mais confiável.</li>
+            <li><code>fake_useragent</code>: Ajuda na geração de user-agents para requisições, o que pode ser útil ao interagir com fontes web.</li>
+            <li><code>holidays</code>: Usado para identificar feriados de mercado específicos, garantindo que os dados sejam coletados para dias de negociação reais.</li>
+        </ul>
+    </li>
+    <li><strong>Manipulação e Análise de Dados:</strong>
+        <ul>
+            <li><code>pandas</code>: Fundamental para manusear e manipular os dados financeiros, incluindo leitura/escrita de CSVs e operações de séries temporais.</li>
+            <li><code>numpy</code>: Usado para cálculos numéricos, particularmente nos cálculos matemáticos para o desempenho da carteira (retornos, volatilidade).</li>
+        </ul>
+    </li>
+    <li><strong>Otimização e Algoritmos:</strong>
+        <ul>
+            <li>O projeto implementa conceitos da <strong>Teoria Moderna do Portfólio (MPT)</strong>.</li>
+            <li>A <strong>Simulação de Monte Carlo</strong> é usada para avaliar o desempenho potencial da carteira testando ponderações aleatórias.</li>
+            <li>Uma busca por <strong>Força Bruta</strong> personalizada é implementada para tamanhos de carteira menores.</li>
+            <li>Um <strong>Algoritmo Genético (AG)</strong> personalizado é usado como um método de busca heurística para tamanhos de carteira maiores, incluindo implementações básicas de seleção, cruzamento e mutação.</li>
+        </ul>
+    </li>
+    <li><strong>Estrutura de Código e Utilitários:</strong>
+        <ul>
+            <li><strong>Programação Orientada a Objetos (POO):</strong> Classes como <code>Logger</code> e <code>ExecutionTimer</code> são usadas para organizar funcionalidades específicas.</li>
+            <li><strong>Parametrização:</strong> Arquivos de texto externos são usados para configuração, facilitando a alteração de configurações sem editar o código.</li>
+            <li><strong>Logging:</strong> Logger personalizado para saída detalhada no console, logging em arquivo e atualizações JSON para monitoramento de progresso baseado na web.</li>
+            <li><code>json</code>: Para ler/escrever dados JSON, particularmente para atualizações de progresso e listas de exclusão.</li>
+            <li><code>datetime</code>, <code>time</code>: Para manusear datas, horas e medições de desempenho.</li>
+            <li><code>os</code>, <code>shutil</code>: Para operações de arquivo e diretório.</li>
+            <li><code>itertools</code>, <code>math</code>: Usado para cálculos combinatórios e outras necessidades matemáticas.</li>
+        </ul>
+    </li>
+    <li><strong>Abordagem de Desenvolvimento e Assistência de IA:</strong>
+        <ul>
+            <li>O desenvolvimento deste projeto foi significativamente acelerado e aprimorado com o uso de assistentes de codificação alimentados por IA, incluindo <strong>Gemini do Google</strong>, <strong>ChatGPT da OpenAI</strong> e <strong>Microsoft CoPilot</strong>. Essas ferramentas foram instrumentais no brainstorming de soluções, geração de código base, depuração e exploração de algoritmos complexos, demonstrando uma abordagem moderna à engenharia de software.</li>
+        </ul>
+    </li>
+</ul>
+<p>O design foca em manter o manuseio de dados separado do motor de análise, visando uma estrutura clara e modular que é mais fácil de entender e potencialmente modificar.</p>

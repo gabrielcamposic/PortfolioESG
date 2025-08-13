@@ -1,0 +1,24 @@
+<p>Este projeto é um trabalho em andamento, impulsionado principalmente pelos meus objetivos pessoais de aprendizado e interesse na área. Ele é compartilhado abertamente para qualquer pessoa interessada em explorar essas ideias mais a fundo.</p>
+
+<h4>Status Atual:</h4>
+<ul>
+    <li>A lógica central para baixar dados históricos e realizar a otimização de portfólio usando uma abordagem híbrida de Força Bruta/Algoritmo Genético (focada no Índice de Sharpe) está implementada.</li>
+    <li>O monitoramento de progresso baseado na web está ativo.</li>
+    <li>O projeto inclui logging para resultados e desempenho.</li>
+</ul>
+
+<h4>Funcionalidades Planejadas e Desenvolvimento Futuro:</h4>
+<p>Aqui estão algumas áreas que estou considerando para desenvolvimento futuro, ou que poderiam ser caminhos interessantes para colaboradores:</p>
+<ul>
+    <li>Uso de modelos de regressão para selecionar ações ESG alvo, com base em dados econômicos publicamente disponíveis e dados ESG</li>
+    <li>Integração de modelos de risco mais sofisticados (ex: Valor em Risco Condicional - CVaR).</li>
+    <li>Framework de backtesting para avaliar o desempenho da carteira com dados fora da amostra.</li>
+    <li>Operadores de Algoritmo Genético e critérios de convergência aprimorados.</li>
+    <li>Suporte para classes de ativos adicionais (ex: títulos do tesouro).</li>
+    <li>Visualização de dados mais avançada para análise de portfólio.</li>
+    <li>Explorar diferentes e mais modernos objetivos de otimização além do Índice de Sharpe.</li>
+    <li>Paralelização de tarefas computacionalmente intensivas.</li>
+    <li>Melhorias na flexibilidade e facilidade de uso da configuração de parâmetros.</li>
+</ul>
+<h4>Contribuindo:</h4>
+<p>Como um projeto de código aberto, contribuições são muito bem-vindas! Seja sugerindo novas funcionalidades, melhorando a eficiência do código, adicionando suporte para novas fontes de dados, aprimorando os algoritmos ou corrigindo bugs, sua contribuição é valiosa. Sinta-se à vontade para abrir issues ou pull requests no repositório do GitHub.</p>

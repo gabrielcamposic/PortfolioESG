@@ -1,0 +1,53 @@
+<p>The project's workflow is managed by three main Python scripts: <code>Download.py</code> for data acquisition, <code>Scoring.py</code> for ranking stocks, and <code>Engine.py</code> for portfolio optimization. They form a pipeline to go from raw data to diversified, optimized portfolio suggestions. A key consideration during development was ensuring these scripts could run efficiently, even on resource-constrained hardware like a Raspberry Pi, making the analysis accessible.</p>
+
+<h4><code>Download.py</code>: Fueling the Analysis with Data</h4>
+<p>Good analysis starts with good data. The <code>Download.py</code> script gathers the historical and fundamental financial information needed for the subsequent stages. Its main tasks include:</p>
+<ul>
+    <li><strong>Fetching Historical Prices:</strong> It systematically downloads historical stock data (daily open, high, low, close, volume) from Yahoo Finance using the <code>yfinance</code> library.</li>
+    <li><strong>Fetching Fundamental Data:</strong> It also retrieves key forward-looking metrics like Forward P/E and Forward EPS for each stock.</li>
+    <li><strong>Intelligent Data Management:</strong> It efficiently handles data gaps, respects market-specific holiday calendars, and maintains a "skip list" to avoid re-requesting unavailable data.</li>
+    <li><strong>Organizing Data:</strong> All price data is saved to <code>StockDataDB.csv</code> and fundamental data to <code>FinancialsDB.csv</code>, creating a clean, consolidated input for the next stage.</li>
+</ul>
+
+<h4><code>Scoring.py</code>: Identifying Promising Stocks</h4>
+<p>Instead of feeding every available stock into the computationally expensive engine, <code>Scoring.py</code> pre-filters and ranks them. This crucial step ensures the engine focuses its search on a pool of high-quality candidates. It calculates a <strong>Composite Score</strong> for each stock based on three distinct factors:</p>
+<ul>
+    <li><strong>Risk-Adjusted Return (Sharpe Ratio):</strong> A classic measure of historical performance adjusted for volatility. It answers, "How much return did I get for the risk I took?"</li>
+    <li><strong>Value (Potential Upside):</strong> A forward-looking estimate of value. It calculates a target price based on analyst earnings projections (Forward EPS) and the median P/E ratio of the stock's entire sector. This provides a robust, industry-normalized valuation.</li>
+    <li><strong>Momentum:</strong> A score that rewards stocks that have performed well recently (e.g., over the last 6 months), on the theory that "winners tend to keep winning."</li>
+</ul>
+<p>A key feature of this script is its <strong>dynamic, variance-based weighting</strong>. Instead of using fixed weights (e.g., 50% Sharpe, 30% Upside, 20% Momentum), the model automatically gives more influence to the metric that provides the most differentiation among the stocks in that specific run. The results, including the scores and weights used, are logged to <code>scored_runs.csv</code>.</p>
+
+<h4><code>Engine.py</code>: Crafting Optimized Portfolios</h4>
+<p>This is where the final portfolio is constructed. The engine takes the top-ranked stocks from <code>Scoring.py</code> and performs the computational heavy lifting to find the optimal combination and weighting. Here's how it works:</p>
+<ul>
+    <li><strong>Stock Selection:</strong> It first loads the top N stocks (e.g., top 20) from the latest run in <code>scored_runs.csv</code>. This ensures the search space is focused on high-quality candidates.</li>
+    <li><strong>Foundation in Financial Theory:</strong> The engine's logic is rooted in <strong>Modern Portfolio Theory (MPT)</strong>. The primary objective is to <strong>maximize the Sharpe Ratio</strong>, a key metric that measures return relative to risk.</li>
+    <li><strong>Diversification Constraints:</strong> To prevent over-concentration in a single hot sector, the engine applies a crucial constraint. You can configure the maximum number of stocks allowed from any single sector (e.g., no more than 2 tech stocks).</li>
+    <li><strong>Exploring Possibilities with Monte Carlo Simulation:</strong> For any given combination of stocks, the engine runs numerous simulations. In each simulation, it assigns random weights to the stocks in the portfolio and then calculates the portfolio's historical performance: Expected Annual Return, Expected Annual Volatility (Risk), and the Sharpe Ratio.</li>
+    <li><strong>A Hybrid Search Strategy:</strong>
+        <ul>
+            <li><em>Brute-Force (for smaller portfolios):</em> For portfolios with a small number of stocks (e.g., up to 9), the engine exhaustively evaluates every possible combination that meets the diversification criteria.</li>
+            <li><em>Genetic Algorithms (GA) (for larger portfolios):</em> When the number of possible combinations becomes too vast for brute-force, the engine switches to a Genetic Algorithm. GAs are powerful heuristic search methods inspired by natural evolution, intelligently exploring the solution space.</li>
+        </ul>
+    </li>
+    <li><strong>Adaptive Simulation:</strong> To manage computation time, the engine uses adaptive strategies. It might run fewer simulations for combinations that quickly show poor results and focus more effort on those that seem promising, or stop simulating a combination if its performance seems to have converged.</li>
+    <li><strong>Refinement Phase:</strong> After the initial search, the very best combinations found can optionally be put through a refinement phase, where they are simulated many more times to get a more precise estimate of their potential performance.</li>
+    <li><strong>Logging Results:</strong> The script logs the details of the best portfolio found (the stocks, how much to allocate to each, and its calculated performance metrics like Sharpe Ratio, expected return, and volatility).</li>
+</ul>
+
+<h4>Working in Harmony</h4>
+<p>The three scripts work sequentially:</p>
+<ol>
+    <li>Run <code>Download.py</code> to get the latest historical and fundamental data.</li>
+    <li>Run <code>Scoring.py</code> to analyze all stocks and rank them based on the 3-factor model.</li>
+    <li>Run <code>Engine.py</code>, which uses the scores to select the best candidates and then finds the optimal, diversified portfolio.</li>
+</ol>
+<p>This separation keeps the code organized and makes sure the optimization is always using the data prepared by the download script.</p>
+
+<h4>Monitoring and Results via Web Interface</h4>
+<p>To make the process transparent and the results easily accessible, I've set up a simple web interface using an Apache web server running on the Raspberry Pi. Both scripts generate status updates and results that are written to files (like <code>progress.json</code> and various CSVs) in a web-accessible directory. This allows for:</p>
+<ul>
+    <li><strong>Live Monitoring:</strong> You can check the progress of the data download and optimization processes through a set of HTML pages that read these status files.</li>
+    <li><strong>Results Viewing:</strong> The final optimized portfolio details, performance metrics, and historical value charts can also be viewed directly in your browser, providing a convenient way to analyze the outcome.</li>
+</ul>

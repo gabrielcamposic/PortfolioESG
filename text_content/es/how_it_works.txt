@@ -1,0 +1,53 @@
+<p>El flujo de trabajo del proyecto es gestionado por tres scripts principales de Python: <code>Download.py</code> para la adquisición de datos, <code>Scoring.py</code> para clasificar acciones y <code>Engine.py</code> para la optimización de carteras. Forman un pipeline para pasar de datos brutos a sugerencias de carteras diversificadas y optimizadas. Una consideración clave durante el desarrollo fue asegurar que estos scripts pudieran ejecutarse de manera eficiente, incluso en hardware con recursos limitados como una Raspberry Pi, haciendo el análisis accesible.</p>
+
+<h4><code>Download.py</code>: Alimentando el Análisis con Datos</h4>
+<p>Un buen análisis comienza con buenos datos. El script <code>Download.py</code> recopila la información financiera histórica y fundamental necesaria para las etapas posteriores. Sus tareas principales incluyen:</p>
+<ul>
+    <li><strong>Obtención de Precios Históricos:</strong> Descarga sistemáticamente datos históricos de acciones (precios de apertura, máximo, mínimo, cierre y volumen) de Yahoo Finance usando la librería <code>yfinance</code>.</li>
+    <li><strong>Obtención de Datos Fundamentales:</strong> También recupera métricas clave a futuro como el P/E a futuro (Forward P/E) y el BPA a futuro (Forward EPS) para cada acción.</li>
+    <li><strong>Gestión Inteligente de Datos:</strong> Maneja eficientemente los vacíos de datos, respeta los calendarios de festivos específicos del mercado y mantiene una "lista de omisión" para evitar solicitar de nuevo datos no disponibles.</li>
+    <li><strong>Organización de Datos:</strong> Todos los datos de precios se guardan en <code>StockDataDB.csv</code> y los datos fundamentales en <code>FinancialsDB.csv</code>, creando una entrada limpia y consolidada para la siguiente etapa.</li>
+</ul>
+
+<h4><code>Scoring.py</code>: Identificando Acciones Prometedoras</h4>
+<p>En lugar de introducir todas las acciones disponibles en el motor de cálculo, que es computacionalmente costoso, <code>Scoring.py</code> las pre-filtra y clasifica. Este paso crucial asegura que el motor enfoque su búsqueda en un grupo de candidatos de alta calidad. Calcula una <strong>Puntuación Compuesta</strong> para cada acción basada en tres factores distintos:</p>
+<ul>
+    <li><strong>Retorno Ajustado al Riesgo (Ratio de Sharpe):</strong> Una medida clásica del rendimiento histórico ajustado por la volatilidad. Responde a la pregunta: "¿Cuánto retorno obtuve por el riesgo que asumí?"</li>
+    <li><strong>Valor (Potencial de Subida):</strong> Una estimación de valor a futuro. Calcula un precio objetivo basado en las proyecciones de ganancias de los analistas (BPA a futuro) y la mediana del ratio P/E de todo el sector de la acción. Esto proporciona una valoración robusta y normalizada por la industria.</li>
+    <li><strong>Momento (Momentum):</strong> Una puntuación que premia a las acciones que han tenido un buen rendimiento recientemente (por ejemplo, en los últimos 6 meses), bajo la teoría de que "los ganadores tienden a seguir ganando".</li>
+</ul>
+<p>Una característica clave de este script es su <strong>ponderación dinámica basada en la varianza</strong>. En lugar de usar pesos fijos (ej: 50% Sharpe, 30% Potencial, 20% Momento), el modelo automáticamente da más influencia a la métrica que proporciona la mayor diferenciación entre las acciones en esa ejecución específica. Los resultados, incluyendo las puntuaciones y los pesos utilizados, se registran en <code>scored_runs.csv</code>.</p>
+
+<h4><code>Engine.py</code>: Creando Carteras Optimizadas</h4>
+<p>Aquí es donde se construye la cartera final. El motor toma las acciones mejor clasificadas de <code>Scoring.py</code> y realiza el trabajo computacional pesado para encontrar la combinación y ponderación óptimas. Así es como funciona:</p>
+<ul>
+    <li><strong>Selección de Acciones:</strong> Primero, carga las N mejores acciones (ej: las 20 mejores) de la última ejecución en <code>scored_runs.csv</code>. Esto asegura que el espacio de búsqueda se centre en candidatos de alta calidad.</li>
+    <li><strong>Fundamento en la Teoría Financiera:</strong> La lógica del motor se basa en la <strong>Teoría Moderna de Carteras (MPT)</strong>. El objetivo principal es <strong>maximizar el Ratio de Sharpe</strong>, una métrica clave que mide el retorno en relación con el riesgo.</li>
+    <li><strong>Restricciones de Diversificación:</strong> Para prevenir una concentración excesiva en un solo sector en auge, el motor aplica una restricción crucial. Puedes configurar el número máximo de acciones permitidas de un mismo sector (ej: no más de 2 acciones de tecnología).</li>
+    <li><strong>Explorando Posibilidades con Simulación de Monte Carlo:</strong> Para cualquier combinación de acciones, el motor ejecuta numerosas simulaciones. En cada simulación, asigna pesos aleatorios a las acciones en la cartera y luego calcula el rendimiento histórico de la cartera: Rendimiento Anual Esperado, Volatilidad Anual Esperada (Riesgo) y el Ratio de Sharpe.</li>
+    <li><strong>Una Estrategia de Búsqueda Híbrida:</strong>
+        <ul>
+            <li><em>Fuerza Bruta (para carteras más pequeñas):</em> Para carteras con un número reducido de acciones (ej: hasta 9), el motor evalúa exhaustivamente todas las combinaciones posibles que cumplen con los criterios de diversificación.</li>
+            <li><em>Algoritmos Genéticos (AG) (para carteras más grandes):</em> Cuando el número de combinaciones posibles se vuelve demasiado vasto para la fuerza bruta, el motor cambia a un Algoritmo Genético. Los AG son potentes métodos de búsqueda heurística inspirados en la evolución natural, que exploran inteligentemente el espacio de soluciones.</li>
+        </ul>
+    </li>
+    <li><strong>Simulación Adaptativa:</strong> Para gestionar el tiempo de computación, el motor utiliza estrategias adaptativas. Puede ejecutar menos simulaciones para combinaciones que rápidamente muestran malos resultados y enfocar más esfuerzo en aquellas que parecen prometedoras, o dejar de simular una combinación si su rendimiento parece haber convergido.</li>
+    <li><strong>Fase de Refinamiento:</strong> Después de la búsqueda inicial, las mejores combinaciones encontradas pueden pasar opcionalmente por una fase de refinamiento, donde se simulan muchas más veces para obtener una estimación más precisa de su rendimiento potencial.</li>
+    <li><strong>Registro de Resultados:</strong> El script registra los detalles de la mejor cartera encontrada (las acciones, cuánto asignar a cada una, y sus métricas de rendimiento calculadas como el Ratio de Sharpe, rendimiento esperado y volatilidad).</li>
+</ul>
+
+<h4>Trabajando en Armonía</h4>
+<p>Los tres scripts funcionan secuencialmente:</p>
+<ol>
+    <li>Ejecuta <code>Download.py</code> para obtener los datos históricos y fundamentales más recientes.</li>
+    <li>Ejecuta <code>Scoring.py</code> para analizar todas las acciones y clasificarlas según el modelo de 3 factores.</li>
+    <li>Ejecuta <code>Engine.py</code>, que utiliza las puntuaciones para seleccionar los mejores candidatos y luego encuentra la cartera óptima y diversificada.</li>
+</ol>
+<p>Esta separación mantiene el código organizado y asegura que la optimización siempre esté utilizando los datos preparados por el script de descarga.</p>
+
+<h4>Monitorización y Resultados vía Interfaz Web</h4>
+<p>Para hacer el proceso transparente y los resultados fácilmente accesibles, he configurado una interfaz web simple usando un servidor web Apache ejecutándose en la Raspberry Pi. Ambos scripts generan actualizaciones de estado y resultados que se escriben en archivos (como <code>progress.json</code> y varios CSVs) en un directorio accesible por la web. Esto permite:</p>
+<ul>
+    <li><strong>Monitorización en Vivo:</strong> Puedes verificar el progreso de los procesos de descarga de datos y optimización a través de un conjunto de páginas HTML que leen estos archivos de estado.</li>
+    <li><strong>Visualización de Resultados:</strong> Los detalles de la cartera optimizada final, las métricas de rendimiento y los gráficos de valor histórico también se pueden visualizar directamente en tu navegador, proporcionando una forma conveniente de analizar el resultado.</li>
+</ul>

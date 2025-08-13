@@ -1,0 +1,1 @@
+This is a personal project to find out whether it makes sense to use stocks to incentivize actual ESG oriented companies. I'm trying to figure out a way to achieve balance between great publicly available ESG metrics and profitability.

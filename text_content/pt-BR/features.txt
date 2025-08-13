@@ -1,0 +1,25 @@
+<ul>
+    <li><strong>Abordagem Orientada a Dados:</strong> A análise e as sugestões de carteira são baseadas em dados históricos de mercado.</li>
+    <li><strong>Configuração Flexível:</strong> Utiliza arquivos de texto externos simples (<code>downpar.txt</code>, <code>simpar.txt</code>) para permitir que você ajuste facilmente configurações como a lista de ações a considerar (ex: sua lista ESG escolhida), o intervalo de datas, limites de tamanho da carteira, taxa livre de risco e parâmetros de otimização sem alterar o código Python.</li>
+    <li><strong>Foco no Retorno Ajustado ao Risco:</strong> O objetivo principal é encontrar carteiras que ofereçam um bom equilíbrio entre retorno potencial e risco, usando o Índice de Sharpe como principal métrica.</li>
+    <li><strong>Métodos de Otimização Híbridos:</strong>
+        <ul>
+            <li>Combina uma busca por <strong>Força Bruta</strong> mais completa para carteiras menores.</li>
+            <li>Muda para um <strong>Algoritmo Genético (AG)</strong> para carteiras maiores para encontrar boas soluções de forma mais eficiente.</li>
+            <li>Usa <strong>simulações de Monte Carlo</strong> para avaliar o desempenho potencial de diferentes combinações de ações com várias ponderações.</li>
+        </ul>
+    </li>
+    <li><strong>Lógica de Simulação Adaptativa:</strong> Inclui recursos para potencialmente acelerar o processo, concentrando o esforço computacional onde é mais provável encontrar melhores resultados.</li>
+    <li><strong>Logging Detalhado e Monitoramento Web:</strong> Fornece vários logs para entender a execução do script, acompanhar o progresso e revisar o desempenho. Atualizações de status chave e resultados também são disponibilizados através de uma interface web (servida por Apache em um Raspberry Pi na minha configuração) para monitoramento ao vivo e fácil acesso aos resultados.
+        <ul>
+            <li>Logs de texto padrão para progresso geral e erros.</li>
+            <li>Logs de desempenho para ver quanto tempo diferentes partes do processo levaram.</li>
+            <li>Arquivos JSON (<code>progress.json</code>) e CSV acessíveis pela web para conteúdo dinâmico nas páginas de monitoramento HTML.</li>
+            <li>Arquivos CSV contendo os detalhes da melhor carteira encontrada, seu valor histórico durante o período de dados e dados relacionados à execução do Algoritmo Genético.</li>
+        </ul>
+    </li>
+    <li><strong>Estrutura Modular:</strong> Separar o tratamento de dados da lógica de otimização torna o código mais fácil de entender, modificar e potencialmente estender.</li>
+    <li><strong>Consciência do Calendário de Mercado:</strong> O script de download de dados considera feriados de mercado específicos e dias úteis para uma coleta de dados históricos mais precisa.</li>
+    <li><strong>Coleta de Dados Robusta:</strong> Inclui recursos como novas tentativas e rotação de user-agent para lidar com possíveis problemas ao baixar dados de fontes online.</li>
+</ul>
+<p>Essas funcionalidades, incluindo a otimização para rodar em um Raspberry Pi 3B, fazem parte do meu desenvolvimento e exploração contínuos nesta área.</p>
