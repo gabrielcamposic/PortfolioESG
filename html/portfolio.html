@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESG Portfolio</title>
+    <link rel="stylesheet" href="css/navbar_styles.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Use Plotly for modern, interactive charts -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="main-content">
+        <h1>ESG Portfolio</h1>
+
+        <div class="stage-block">
+            <h2>Last Portfolio Details</h2>
+            <div id="bestPortfolioDetails" class="table-container">
+                <table id="bestPortfolioTable">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="2" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="stage-block">
+            <h2>Optimal Portfolios (Last 12 Months)</h2>
+            <div class="chart-container">
+                <div id="optimalPortfoliosStackedBarChart">Loading...</div>
+            </div>
+        </div>
+
+        <div class="stage-block">
+            <h2>Portfolio Historical Values (Last 12 Months)</h2>
+            <div class="chart-container">
+                <div id="multiPortfolioHistoryChart">Loading...</div>
+            </div>
+        </div>
+
+        <div class="stage-block">
+            <h2>Sharpe Ratio & Final Value (Last 12 Months)</h2>
+            <div class="chart-container">
+                <div id="sharpeFinalValueScatterChart">Loading...</div>
+            </div>
+        </div>
+
+        <div class="stage-block">
+            <h2>Logged Portfolio Results</h2>
+            <div class="table-container">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Run ID</th>
+                            <th>Timestamp</th>
+                            <th>Engine Version</th>
+                            <th>Min Stocks</th>
+                            <th>Max Stocks</th>
+                            <th>Optimal Stocks</th>
+                            <th>Optimal Weights</th>
+                            <th>Sharpe Ratio</th>
+                            <th>Exp. Return (%)</th>
+                            <th>Exp. Volatility (%)</th>
+                            <th>ROI (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="12" style="text-align: center;">Loading results...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link to the common and page-specific JavaScript files -->
+    <script src="js/common_utils.js"></script>
+    <script src="js/common_nav.js"></script>
+    <script src="js/portfolio.js"></script>
+</body>
+</html>

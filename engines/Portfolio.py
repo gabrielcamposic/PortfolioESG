@@ -1,0 +1,976 @@
+#!/usr/bin/env python
+
+# --- Script Version ---
+PORTFOLIO_PY_VERSION = "2.0.0"  # Refactored for shared_utils and standardized pipeline integration.
+
+# ----------------------------------------------------------- #
+#                           Libraries                         #
+# ----------------------------------------------------------- #
+import pandas as pd
+import numpy as np
+import os, sys, time, json, shutil, logging, itertools, random
+from datetime import datetime, timedelta
+from collections import Counter
+from typing import Dict, Any, List
+import math
+
+# --- Import Shared Utilities ---
+from shared_tools.shared_utils import (
+    setup_logger,
+    load_parameters_from_file,
+)
+
+# ----------------------------------------------------------- #
+#                           Classes                           #
+# ----------------------------------------------------------- #
+
+# -------- (I) Time tracking --------
+class ExecutionTimer:
+    def __init__(self, rolling_window=10):
+        self.start_time = None
+        self.total_time = 0  # Total accumulated time
+        self.run_count = 0  # Number of times the timer has been started and stopped
+        self.avg_time = 0  # Rolling average execution time
+        self.rolling_window = rolling_window  # Number of recent simulations to consider
+    def start(self):
+        """Start a new timing session."""
+        if self.start_time is not None:  # Ensure the timer is not already running
+            raise RuntimeError("Timer is already running. Call stop() before starting again.")  # Raise error if already running
+        self.start_time = time.time()
+
+    def stop(self):
+        """Stop timing, update rolling average execution time."""
+        if self.start_time is None:  # Ensure the timer is running
+            raise RuntimeError("Timer is not running. Call start() before stopping.")  # Raise error if not running
+        elapsed = time.time() - self.start_time
+        self.start_time = None
+        self.total_time += elapsed  # Accumulate total time of timed operations
+        self.run_count += 1        # Increment the count of timed operations
+
+        return elapsed
+
+    def estimate_remaining(self, total_runs, completed_runs):
+        """Estimate remaining time based on rolling average execution time."""
+        if completed_runs == 0:  # Avoid division by zero
+            return None  # Avoid division by zero
+        remaining_runs = total_runs - completed_runs
+        remaining_time = remaining_runs * self.avg_time
+        return timedelta(seconds=remaining_time)
+    
+    def update_rolling_average(self, elapsed_time):
+        """Update rolling average execution time."""
+        self.avg_time = (self.avg_time * (self.run_count -1 ) + elapsed_time) / self.run_count if self.run_count > 1 else elapsed_time
+    def reset(self):
+        self.avg_time = 0
+
+# ----------------------------------------------------------- #
+#                        Helper Functions                     #
+# ----------------------------------------------------------- #
+
+def initialize_performance_data(script_version: str) -> Dict[str, Any]:
+    """Creates and initializes a dictionary to track script performance metrics."""
+    return {
+        "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "portfolio_py_version": script_version,
+        "param_load_duration_s": 0.0,
+        "data_load_duration_s": 0.0,
+        "data_wrangling_duration_s": 0.0,
+        "bf_phase_duration_s": 0.0,
+        "ga_phase_duration_s": 0.0,
+        "refinement_phase_duration_s": 0.0,
+        "results_save_duration_s": 0.0,
+        "overall_script_duration_s": 0.0,
+    }
+
+def log_performance_data(perf_data: Dict, params: Dict, logger: logging.Logger):
+    """Logs the script's performance metrics to a CSV file."""
+    log_path = params.get("PORTFOLIO_PERFORMANCE_FILE")
+    if not log_path:
+        logger.warning("'PORTFOLIO_PERFORMANCE_FILE' not in params. Skipping performance logging.")
+        return
+    try:
+        df = pd.DataFrame([perf_data])
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        df.to_csv(log_path, mode='a', header=not os.path.exists(log_path), index=False)
+        logger.info(f"Successfully logged performance data to: {log_path}")
+    except Exception as e:
+        logger.error(f"Failed to log performance data to '{log_path}': {e}")
+
+def copy_file_to_web_accessible_location(source_param_key: str, params: Dict, logger: logging.Logger):
+    """Copies a file to the web-accessible data directory."""
+    source_path = params.get(source_param_key)
+    dest_folder = params.get("WEB_ACCESSIBLE_DATA_PATH")
+    if not isinstance(source_path, str) or not source_path:
+        logger.warning(f"Parameter '{source_param_key}' is missing or invalid. Cannot copy file.")
+        return
+    if not isinstance(dest_folder, str) or not dest_folder:
+        logger.warning("'WEB_ACCESSIBLE_DATA_PATH' is missing or invalid. Cannot copy file.")
+        return
+    if not os.path.exists(source_path):
+        logger.warning(f"Source file for '{source_param_key}' not found at '{source_path}'.")
+        return
+    try:
+        os.makedirs(dest_folder, exist_ok=True)
+        destination_path = os.path.join(dest_folder, os.path.basename(source_path))
+        shutil.copy2(source_path, destination_path)
+        logger.info(f"Copied '{os.path.basename(source_path)}' to web-accessible location.")
+    except Exception as e:
+        logger.error(f"Failed to copy file from '{source_path}' to '{dest_folder}': {e}")
+
+def load_scored_stocks(params: Dict, logger: logging.Logger) -> (List[str], Dict[str, str]):
+    """Loads the top N scored stocks from the most recent scoring run."""
+    filepath = params.get("SCORED_STOCKS_DB_FILE")
+    top_n = params.get("top_n_stocks_from_score", 50)
+    if not filepath:
+        logger.critical("'SCORED_STOCKS_DB_FILE' not defined in parameters.")
+        raise FileNotFoundError("Scored stocks file path is not configured.")
+
+    if not os.path.exists(filepath):
+        logger.critical(f"Scored stocks file not found at '{filepath}'.")
+        raise FileNotFoundError(f"Scored stocks file not found at '{filepath}'.")
+
+    try:
+        df = pd.read_csv(filepath)
+        required_cols = ['run_id', 'CompositeScore', 'Stock', 'Sector']
+        if not all(col in df.columns for col in required_cols):
+            raise ValueError(f"Scored stocks file is missing one or more required columns: {required_cols}")
+
+        latest_run_id = df['run_id'].max()
+        latest_run_df = df[df['run_id'] == latest_run_id].copy()
+        latest_run_df.sort_values(by='CompositeScore', ascending=False, inplace=True)
+        top_stocks_df = latest_run_df.head(top_n)
+        top_stocks = top_stocks_df['Stock'].tolist()
+        stock_to_sector_map = pd.Series(top_stocks_df.Sector.values, index=top_stocks_df.Stock).to_dict()
+
+        logger.info(f"Loaded {len(top_stocks)} top stocks from run '{latest_run_id}'.")
+        if params.get('debug_mode'):
+            logger.debug(f"Top stocks: {', '.join(top_stocks)}")
+        return top_stocks, stock_to_sector_map
+    except Exception as e:
+        logger.critical(f"Failed to read or parse scored stocks file '{filepath}': {e}", exc_info=True)
+        raise
+
+def calculate_individual_sharpe_ratios(stock_daily_returns, risk_free_rate):
+    """
+    Calculate the Sharpe Ratio for each stock individually.
+
+    Args:
+        stock_daily_returns (pd.DataFrame): DataFrame with daily returns for each stock.
+                                            Assumes the first column might be 'Date' or an index
+                                            and actual stock returns start from the second column.
+        risk_free_rate (float): Risk-free rate as a decimal (e.g., 0.05 for 5%).
+
+    Returns:
+        pd.Series: Sharpe Ratios for each stock.
+    """
+    mean_returns = stock_daily_returns.mean() * 252 # Annualize mean daily returns
+    std_devs = stock_daily_returns.std() * np.sqrt(252) # Annualize standard deviation of daily returns
+    sharpe_ratios = (mean_returns - risk_free_rate) / std_devs # Risk-free rate should be annual
+    return sharpe_ratios
+
+# ----------------------------------------------------------- #
+#                  Portfolio Analysis Functions               #
+# ----------------------------------------------------------- #
+
+def price_scaling(raw_prices_df):
+    """Scales stock prices relative to their first available price."""
+    scaled_prices_df = raw_prices_df.copy()
+    for col in raw_prices_df.columns[1:]:  # Assumes Date is the first column
+        first_price = raw_prices_df[col].iloc[0]
+        if pd.isna(first_price) or first_price == 0:
+            # Handle cases where first price is NaN or zero to avoid division errors
+            # Option 1: Set scaled prices to NaN or 0
+            scaled_prices_df[col] = np.nan # or 0
+            # Option 2: Or skip scaling for this stock, keeping original values (or a copy)
+            # scaled_prices_df[col] = raw_prices_df[col] # if you want to keep original values
+        else:
+            scaled_prices_df[col] = raw_prices_df[col] / first_price
+    return scaled_prices_df
+
+def generate_portfolio_weights(n, seed=None):
+    """Generates random portfolio weights that sum to 1."""
+    if seed is not None:
+        np.random.seed(seed)
+    weights = np.random.rand(n) # Use np.random.rand for [0,1)
+    sum_weights = np.sum(weights)
+    if sum_weights == 0:  # Highly unlikely, but handles division by zero
+        return np.ones(n) / n  # Return equal weights
+    return weights / sum_weights
+
+def asset_allocation(df_subset, weights, current_initial_investment, logger_instance):
+    """
+    Computes portfolio allocation and daily returns for a given subset of stocks and weights.
+    df_subset should contain 'Date' as the first column, followed by stock price columns.
+    """
+
+    try:
+        portfolio_df = df_subset[['Date']].copy()
+        scaled_df = price_scaling(df_subset)
+
+        for i, stock_col_name in enumerate(scaled_df.columns[1:]):
+            if i < len(weights):
+                portfolio_df[stock_col_name] = scaled_df[stock_col_name] * weights[i] * current_initial_investment
+            else:
+                logger_instance.info(f"Warning: Mismatch in number of stocks and weights in asset_allocation for {stock_col_name}")
+                portfolio_df[stock_col_name] = 0
+
+        numeric_cols = portfolio_df.select_dtypes(include=[np.number]).columns
+
+        if not list(numeric_cols):
+            logger_instance.info("❌ Error in asset_allocation: No numeric columns available for portfolio value calculation.")
+            return pd.DataFrame()
+        elif len(numeric_cols) < len(scaled_df.columns[1:]):
+            logger_instance.info(f"❌ Warning in asset_allocation: Fewer numeric columns ({len(numeric_cols)}) than stocks ({len(scaled_df.columns[1:])}).")
+
+        portfolio_df['Portfolio Value [$]'] = portfolio_df[numeric_cols].sum(axis=1)
+
+        if 'Portfolio Value [$]' in portfolio_df.columns:
+            portfolio_df['Portfolio Daily Return [%]'] = portfolio_df['Portfolio Value [$]'].pct_change() * 100
+        else:
+            logger_instance.info("⚠️ 'Portfolio Value [$]' missing in portfolio_df. Skipping daily return calculation.")
+
+        portfolio_df.fillna(0, inplace=True)
+        return portfolio_df
+
+    except Exception as e:
+        logger_instance.info(f"❌ Error in asset_allocation: {e} for stocks {list(df_subset.columns[1:])}")
+        return pd.DataFrame()
+
+def simulation_engine_calc(
+    stock_combo_prices_df,  # DataFrame with 'Date' and prices for the selected stock combo
+    weights_list,
+    current_initial_investment,
+    current_rf_rate,  # Annual decimal risk-free rate
+    logger_instance
+):
+    """Runs a simulation for a given portfolio allocation."""
+    try:
+        # Calculate portfolio value over time and daily returns of the portfolio
+        portfolio_df = asset_allocation(stock_combo_prices_df, weights_list, current_initial_investment, logger_instance)
+
+        if portfolio_df.empty or portfolio_df['Portfolio Value [$]'].iloc[0] == 0 : # Check if allocation failed or started with 0 value
+            return np.nan, np.nan, np.nan, np.nan, np.nan
+
+        # Calculate returns of the individual assets in the combo
+        # Assumes stock_combo_prices_df has 'Date' as first column
+        asset_returns_df = stock_combo_prices_df.iloc[:, 1:].pct_change().fillna(0)
+
+        # Expected portfolio return (annualized decimal)
+        mean_asset_returns_annualized = asset_returns_df.mean() * 252
+        expected_portfolio_return_decimal = np.sum(np.array(weights_list) * mean_asset_returns_annualized)
+
+        # Covariance matrix (annualized)
+        covariance_matrix_annualized = asset_returns_df.cov() * 252
+
+        # Expected portfolio volatility (annualized decimal)
+        expected_volatility_decimal = np.sqrt(np.dot(np.array(weights_list).T, np.dot(covariance_matrix_annualized, np.array(weights_list))))
+
+        # Sharpe Ratio
+        if expected_volatility_decimal == 0:
+            sharpe_ratio = np.nan # or 0, or handle as per financial convention
+        else:
+            sharpe_ratio = (expected_portfolio_return_decimal - current_rf_rate) / expected_volatility_decimal
+
+        final_value = portfolio_df['Portfolio Value [$]'].iloc[-1]
+        if current_initial_investment == 0: # Avoid division by zero for ROI
+            return_on_investment_percent = np.nan if final_value !=0 else 0
+        else:
+            return_on_investment_percent = ((final_value - current_initial_investment) / current_initial_investment) * 100
+
+        return expected_portfolio_return_decimal, expected_volatility_decimal, sharpe_ratio, final_value, return_on_investment_percent
+
+    except Exception as e:
+        # Log more specific error if possible
+        stock_names = list(stock_combo_prices_df.columns[1:]) if not stock_combo_prices_df.empty else "N/A"
+        logger_instance.info(f"❌ Error in simulation_engine_calc: {e} for stocks {stock_names}")
+        return np.nan, np.nan, np.nan, np.nan, np.nan
+
+# ----------------------------------------------
+# 1. Extract Simulation Parameters
+# ----------------------------------------------
+def extract_simulation_parameters(sim_params):
+    return {
+        "SIM_RUNS": sim_params.get("sim_runs", 100),
+        "ADAPTIVE_SIM_ENABLED": sim_params.get("adaptive_sim_enabled", True),
+        "PROGRESSIVE_MIN_SIMS": sim_params.get("progressive_min_sims", 200),
+        "PROGRESSIVE_BASE_LOG_K": sim_params.get("progressive_base_log_k", 500),
+        "PROGRESSIVE_MAX_SIMS_CAP": sim_params.get("progressive_max_sims_cap", 3000),
+        "PROGRESSIVE_CONVERGENCE_WINDOW": sim_params.get("progressive_convergence_window", 50),
+        "PROGRESSIVE_CONVERGENCE_DELTA": sim_params.get("progressive_convergence_delta", 0.005),
+        "PROGRESSIVE_CHECK_INTERVAL": sim_params.get("progressive_check_interval", 50),
+        "TOP_N_PERCENT_REFINEMENT": sim_params.get("top_n_percent_refinement", 0.10),
+        "HEURISTIC_THRESHOLD_K": sim_params.get("heuristic_threshold_k", 9),
+        "INITIAL_SCAN_SIMS": sim_params.get("initial_scan_sims", 200),
+        "EARLY_DISCARD_FACTOR": sim_params.get("early_discard_factor", 0.75),
+        "EARLY_DISCARD_MIN_BEST_SHARPE": sim_params.get("early_discard_min_best_sharpe", 0.1),
+        "DEBUG_MODE": sim_params.get("debug_mode", False),
+        "GA_POPULATION_SIZE": sim_params.get("ga_population_size", 50),
+        "GA_NUM_GENERATIONS": sim_params.get("ga_num_generations", 30),
+        "GA_MUTATION_RATE": sim_params.get("ga_mutation_rate", 0.02),
+        "GA_CROSSOVER_RATE": sim_params.get("ga_crossover_rate", 0.8),
+        "GA_ELITISM_COUNT": sim_params.get("ga_elitism_count", 2),
+        "GA_TOURNAMENT_SIZE": sim_params.get("ga_tournament_size", 3),
+        "GA_CONVERGENCE_GENERATIONS": sim_params.get("ga_convergence_generations", 10),
+        "GA_CONVERGENCE_TOLERANCE": sim_params.get("ga_convergence_tolerance", 0.0001),
+        "BF_PROGRESS_LOG_STEP": float(sim_params.get("bf_progress_log_step", 5)),
+        "GA_INIT_POP_MAX_ATTEMPTS_MULTIPLIER": sim_params.get("ga_init_pop_max_attempts_multiplier", 5)
+    }
+
+# ----------------------------------------------
+# 2. Filter Available Stocks
+# ----------------------------------------------
+def filter_available_stocks(source_df, stock_list):
+    return [s for s in stock_list if s in source_df.columns]
+
+# ----------------------------------------------
+# 3. Simulate Portfolio Combination
+# ----------------------------------------------
+def simulate_portfolio_combo(df_subset, num_sims, investment, rf_rate, logger):
+    best_sharpe = -float("inf")
+    best_result = None
+    for _ in range(num_sims):
+        weights = generate_portfolio_weights(len(df_subset.columns) - 1)  # Exclude 'Date'
+        exp_ret, vol, sharpe, final_val, roi = simulation_engine_calc(
+            df_subset, weights, investment, rf_rate, logger
+        )
+        if not pd.isna(sharpe) and sharpe > best_sharpe:
+            best_sharpe = sharpe
+            best_result = {
+                'sharpe': sharpe, 'weights': weights, 'exp_ret': exp_ret,
+                'vol': vol, 'final_val': final_val, 'roi': roi
+            }
+    return best_result
+
+# ----------------------------------------------
+# 6. Convergence Helper
+# ----------------------------------------------
+def should_continue_sampling(sharpes, min_sims, max_sims, window, delta):
+    if len(sharpes) < window:
+        return True
+    window_data = sharpes[-window:]
+    return (max(window_data) - min(window_data)) >= delta
+
+# ----------------------------------------------
+# 7. Genetic Algorithm Logic
+# ----------------------------------------------
+
+def select_parents(evaluated_population: List[Dict], tournament_size: int) -> Dict:
+    """Selects a parent from the population using tournament selection."""
+    if not evaluated_population:
+        raise ValueError("Cannot select parents from an empty population.")
+
+    # Ensure tournament size is not larger than the population itself
+    actual_tournament_size = min(tournament_size, len(evaluated_population))
+
+    # Randomly select contenders for the tournament
+    tournament_contenders = random.sample(evaluated_population, actual_tournament_size)
+
+    # The winner is the one with the highest fitness (Sharpe ratio)
+    winner = max(tournament_contenders, key=lambda x: x['fitness'])
+    return winner
+
+def crossover_portfolios(parent1: List[str], parent2: List[str], available_stocks: List[str], k: int,
+                         crossover_rate: float) -> (List[str], List[str]):
+    """Performs crossover between two parent portfolios."""
+    if random.random() > crossover_rate:
+        return parent1[:], parent2[:]  # Return copies of parents if no crossover
+
+    # Single-point crossover
+    point = random.randint(1, k - 1)
+    child1_set = set(parent1[:point] + parent2[point:])
+    child2_set = set(parent2[:point] + parent1[point:])
+
+    # Repair: Ensure children have the correct number of unique stocks (k)
+    def repair_child(child_set: set) -> List[str]:
+        while len(child_set) < k:
+            add_stock = random.choice(available_stocks)
+            if add_stock not in child_set:
+                child_set.add(add_stock)
+        return random.sample(list(child_set), k)
+
+    return repair_child(child1_set), repair_child(child2_set)
+
+def mutate_portfolio(portfolio: List[str], available_stocks: List[str], mutation_rate: float) -> List[str]:
+    """Performs mutation on a single portfolio."""
+    if random.random() > mutation_rate:
+        return portfolio
+
+    mutated_portfolio = portfolio[:]
+    # Select a random gene (stock) to mutate
+    idx_to_mutate = random.randint(0, len(mutated_portfolio) - 1)
+
+    # Find a new stock that is not already in the portfolio
+    possible_new_stocks = [s for s in available_stocks if s not in mutated_portfolio]
+    if not possible_new_stocks:
+        return mutated_portfolio  # Cannot mutate if no other stocks are available
+
+    new_stock = random.choice(possible_new_stocks)
+    mutated_portfolio[idx_to_mutate] = new_stock
+
+    return mutated_portfolio
+
+# ----------------------------------------------
+# 8. Final Portfolio Search Function
+# ----------------------------------------------
+
+def _run_brute_force_iteration(
+    k, available_stocks, stock_sector_map, max_stocks_per_sector,
+    source_stock_prices_df, sim, timer_instance, current_initial_investment,
+    current_rf_rate, logger_instance, best_sharpe_overall
+):
+    """Helper to run one iteration of the brute-force search for a given k."""
+    combos = list(itertools.combinations(available_stocks, k))
+    diversified = [c for c in combos if max(Counter(
+        stock_sector_map.get(s, 'Unknown') for s in c).values()) <= max_stocks_per_sector]
+    total = len(diversified)
+    last_logged_progress = -1
+
+    best_result_for_k = {
+        'combo': None, 'weights': None, 'sharpe': -float("inf"),
+        'final_val': None, 'roi': None, 'exp_ret': None, 'vol': None
+    }
+    all_results_for_k = []
+
+    for i, combo in enumerate(diversified):
+        combo_list = list(combo)
+        df_subset = source_stock_prices_df[['Date'] + combo_list]
+
+        best_sharpe_this, best_weights_this = -float("inf"), None
+        best_exp_ret_this, best_vol_this = np.nan, np.nan
+        best_final_val_this, best_roi_this = np.nan, np.nan
+        sharpes = []
+        sims_run = 0
+
+        if k < 2:
+            max_sims = sim["PROGRESSIVE_MIN_SIMS"]
+        else:
+            log_k_sq = math.log(float(k)) ** 2
+            calc_sims = int(sim["PROGRESSIVE_BASE_LOG_K"] * log_k_sq)
+            max_sims = max(min(calc_sims, sim["PROGRESSIVE_MAX_SIMS_CAP"]), sim["PROGRESSIVE_MIN_SIMS"])
+
+        for _ in range(max_sims):
+            timer_instance.start()
+            weights = generate_portfolio_weights(k)
+            exp_ret, vol, sharpe, final_val, roi = simulation_engine_calc(
+                df_subset, weights, current_initial_investment, current_rf_rate, logger_instance
+            )
+            timer_instance.stop()
+            sims_run += 1
+
+            if not pd.isna(sharpe) and sharpe > best_sharpe_this:
+                best_sharpe_this, best_weights_this = sharpe, weights
+                best_exp_ret_this, best_vol_this = exp_ret, vol
+                best_final_val_this, best_roi_this = final_val, roi
+
+            sharpes.append(sharpe if not pd.isna(sharpe) else -float("inf"))
+            if sims_run == sim["INITIAL_SCAN_SIMS"]:
+                if best_sharpe_overall > sim["EARLY_DISCARD_MIN_BEST_SHARPE"] and best_sharpe_this < best_sharpe_overall * sim["EARLY_DISCARD_FACTOR"]:
+                    break
+            if sims_run >= sim["PROGRESSIVE_MIN_SIMS"] and sims_run % sim["PROGRESSIVE_CHECK_INTERVAL"] == 0:
+                if not should_continue_sampling(sharpes, sim["PROGRESSIVE_MIN_SIMS"], max_sims, sim["PROGRESSIVE_CONVERGENCE_WINDOW"], sim["PROGRESSIVE_CONVERGENCE_DELTA"]):
+                    break
+
+        percent = ((i + 1) / total) * 100
+        if percent - last_logged_progress >= sim["BF_PROGRESS_LOG_STEP"] or percent == 100.0:
+            bf_progress_payload = {
+                "current_phase": f"Brute-Force (k={k})",
+                "overall_progress": percent
+            }
+            logger_instance.info(
+                f"Brute-force progress for k={k}: {percent:.2f}% ({i + 1}/{total})",
+                extra={'web_data': {"progress": bf_progress_payload,
+                                    "status_message": f"Evaluating combo {i + 1} of {total} for k={k}"}}
+            )
+            last_logged_progress = percent
+
+        if not pd.isna(best_sharpe_this) and best_sharpe_this > best_result_for_k['sharpe']:
+            best_result_for_k.update({
+                'combo': combo_list, 'weights': best_weights_this, 'sharpe': best_sharpe_this,
+                'final_val': best_final_val_this, 'roi': best_roi_this,
+                'exp_ret': best_exp_ret_this, 'vol': best_vol_this
+            })
+
+        if not pd.isna(best_sharpe_this):
+            all_results_for_k.append({
+                'sharpe': best_sharpe_this, 'weights': best_weights_this, 'stocks': combo_list,
+                'roi': best_roi_this, 'exp_ret': best_exp_ret_this, 'vol': best_vol_this,
+                'sims_run': sims_run
+            })
+
+    return best_result_for_k, all_results_for_k
+
+def _run_refinement_phase(
+    all_results, source_stock_prices_df, sim, current_initial_investment,
+    current_rf_rate, logger_instance, current_best_result
+):
+    """Helper to run the refinement phase on the top brute-force results."""
+    logger_instance.info("Starting refinement phase")
+    all_results.sort(key=lambda x: x['sharpe'], reverse=True)
+    top_n = max(1, int(len(all_results) * sim["TOP_N_PERCENT_REFINEMENT"]))
+    top_refine = all_results[:top_n]
+
+    refined_best_result = current_best_result.copy()
+
+    for combo_data in top_refine:
+        df_subset = source_stock_prices_df[['Date'] + combo_data['stocks']]
+        result = simulate_portfolio_combo(
+            df_subset, sim["SIM_RUNS"], current_initial_investment, current_rf_rate, logger_instance
+        )
+        if result and result['sharpe'] > refined_best_result['sharpe']:
+            refined_best_result.update({
+                'combo': combo_data['stocks'], 'weights': result['weights'], 'sharpe': result['sharpe'],
+                'final_val': result['final_val'], 'roi': result['roi'],
+                'exp_ret': result['exp_ret'], 'vol': result['vol']
+            })
+    return refined_best_result
+
+def find_best_stock_combination(
+    source_stock_prices_df,
+    stocks_to_consider_list,
+    current_initial_investment,
+    min_portfolio_size,
+    max_portfolio_size,
+    current_rf_rate,
+    logger_instance,
+    timer_instance,
+    stock_sector_map,
+    max_stocks_per_sector,
+    sim_params
+):
+    sim = extract_simulation_parameters(sim_params)
+    logger_instance.info("Starting portfolio combination search...")
+
+    available_stocks = [s for s in stocks_to_consider_list if s in source_stock_prices_df.columns]
+    if not available_stocks:
+        logger_instance.error("No stocks from 'stocks_to_consider_list' found. Skipping search.")
+        return None
+
+    max_portfolio_size = min(max_portfolio_size, len(available_stocks))
+
+    best_result = {
+        'combo': None, 'weights': None, 'sharpe': -float("inf"),
+        'final_val': None, 'roi': None, 'exp_ret': None, 'vol': None
+    }
+    ga_fitness_history = []
+    all_bf_results = []
+
+    for k in range(min_portfolio_size, max_portfolio_size + 1):
+        logger_instance.info(f"Evaluating k={k} portfolio size")
+        k_result = None
+
+        if k <= sim["HEURISTIC_THRESHOLD_K"]:
+            k_result, bf_results_for_k = _run_brute_force_iteration(
+                k, available_stocks, stock_sector_map, max_stocks_per_sector,
+                source_stock_prices_df, sim, timer_instance, current_initial_investment,
+                current_rf_rate, logger_instance, best_result['sharpe']
+            )
+            if sim["ADAPTIVE_SIM_ENABLED"]:
+                all_bf_results.extend(bf_results_for_k)
+        else:
+            (
+                combo_h, weights_h, sharpe_h, final_val_h, roi_h, exp_ret_h, vol_h, ga_history_for_k
+            ) = run_genetic_algorithm(
+                source_stock_prices_df, available_stocks, k,
+                current_initial_investment, current_rf_rate,
+                logger_instance, timer_instance, sim["SIM_RUNS"], sim_params
+            )
+            if not pd.isna(sharpe_h):
+                k_result = {
+                    'combo': combo_h, 'weights': weights_h, 'sharpe': sharpe_h,
+                    'final_val': final_val_h, 'roi': roi_h,
+                    'exp_ret': exp_ret_h, 'vol': vol_h
+                }
+                ga_fitness_history = ga_history_for_k
+
+        if k_result and k_result['sharpe'] > best_result['sharpe']:
+            best_result = k_result
+
+    if sim["ADAPTIVE_SIM_ENABLED"] and sim["TOP_N_PERCENT_REFINEMENT"] > 0 and all_bf_results:
+        best_result = _run_refinement_phase(
+            all_bf_results, source_stock_prices_df, sim, current_initial_investment,
+            current_rf_rate, logger_instance, best_result
+        )
+
+    # Add the GA history to the final result dictionary
+    best_result['ga_fitness_history'] = ga_fitness_history
+    return best_result
+
+def run_genetic_algorithm(
+        source_stock_prices_df,
+        available_stocks_for_search,
+        num_stocks_in_combo,
+        current_initial_investment,
+        current_rf_rate,
+        logger_instance,
+        timer_instance,
+        num_simulation_runs,
+        sim_params
+):
+    """
+    Performs portfolio optimization using a Genetic Algorithm.
+    Uses custom crossover and mutation functions defined by the user.
+    """
+    # Extract GA parameters
+    POPULATION_SIZE = sim_params.get("ga_population_size", 50)
+    NUM_GENERATIONS = sim_params.get("ga_num_generations", 30)
+    MUTATION_RATE = sim_params.get("ga_mutation_rate", 0.02)
+    CROSSOVER_RATE = sim_params.get("ga_crossover_rate", 0.8)
+    ELITISM_COUNT = sim_params.get("ga_elitism_count", 2)
+    TOURNAMENT_SIZE = sim_params.get("ga_tournament_size", 3)
+    CONVERGENCE_GENERATIONS = sim_params.get("ga_convergence_generations", 10)
+    CONVERGENCE_TOLERANCE = sim_params.get("ga_convergence_tolerance", 0.0001)
+    MAX_ATTEMPTS = POPULATION_SIZE * sim_params.get("ga_init_pop_max_attempts_multiplier", 5)
+
+    if len(available_stocks_for_search) < num_stocks_in_combo:
+        logger_instance.warning(
+            f"GA Warning: Not enough stocks ({len(available_stocks_for_search)}) for k={num_stocks_in_combo}. Skipping.")
+        return None, None, -float("inf"), None, None, None, None, []
+
+    # --- Initial Population ---
+    population = []
+    seen_combos = set()
+    for _ in range(MAX_ATTEMPTS):
+        if len(population) >= POPULATION_SIZE:
+            break
+        combo = tuple(sorted(random.sample(available_stocks_for_search, num_stocks_in_combo)))
+        if combo not in seen_combos:
+            population.append(list(combo))
+            seen_combos.add(combo)
+
+    if not population:
+        logger_instance.error(f"GA Error: Failed to initialize population for k={num_stocks_in_combo}.")
+        return None, None, -float("inf"), None, None, None, None, []
+
+    best_sharpe_overall = -float("inf")
+    best_combo, best_weights = None, None
+    best_final_val, best_roi = None, None
+    best_exp_ret, best_vol = None, None
+    best_sharpe_history = []
+
+    # --- GA Main Loop ---
+    for generation in range(NUM_GENERATIONS):
+        logger_instance.info(
+            f"GA Gen {generation + 1}/{NUM_GENERATIONS} for k={num_stocks_in_combo}",
+            extra={'web_data': {
+                "progress": {
+                    "current_phase": f"Genetic Algorithm (k={num_stocks_in_combo})",
+                    "overall_progress": (generation + 1) / NUM_GENERATIONS * 100
+                },
+                "status_message": f"Running GA Generation {generation + 1}"
+            }}
+        )
+
+        evaluated_population = []
+        for combo in population:
+            df_subset = source_stock_prices_df[["Date"] + combo]
+            result = simulate_portfolio_combo(
+                df_subset, num_simulation_runs, current_initial_investment, current_rf_rate, logger_instance
+            )
+            if result:
+                evaluated_population.append({
+                    'combo': combo,
+                    'weights': result['weights'],
+                    'fitness': result['sharpe'],
+                    'exp_ret': result['exp_ret'],
+                    'vol': result['vol'],
+                    'final_val': result['final_val'],
+                    'roi': result['roi']
+                })
+
+        if not evaluated_population:
+            logger_instance.warning(f"GA Warning: No valid individuals in generation {generation + 1}.")
+            continue
+
+        evaluated_population.sort(key=lambda x: x['fitness'], reverse=True)
+
+        # Update best result
+        top_result = evaluated_population[0]
+        if top_result['fitness'] > best_sharpe_overall:
+            best_sharpe_overall = top_result['fitness']
+            best_combo = top_result['combo']
+            best_weights = top_result['weights']
+            best_final_val = top_result['final_val']
+            best_roi = top_result['roi']
+            best_exp_ret = top_result['exp_ret']
+            best_vol = top_result['vol']
+
+        # Elitism: carry over best individuals
+        next_population = [ind['combo'] for ind in evaluated_population[:ELITISM_COUNT]]
+
+        # Generate new individuals
+        while len(next_population) < POPULATION_SIZE:
+            parent1 = select_parents(evaluated_population, TOURNAMENT_SIZE)
+            parent2 = select_parents(evaluated_population, TOURNAMENT_SIZE)
+            child1, child2 = crossover_portfolios(
+                parent1['combo'], parent2['combo'],
+                available_stocks=available_stocks_for_search,
+                k=num_stocks_in_combo,
+                crossover_rate=CROSSOVER_RATE
+            )
+            next_population.append(mutate_portfolio(child1, available_stocks_for_search, MUTATION_RATE))
+            if len(next_population) < POPULATION_SIZE:
+                next_population.append(mutate_portfolio(child2, available_stocks_for_search, MUTATION_RATE))
+
+        population = next_population
+
+        # Convergence check
+        best_sharpe_history.append(best_sharpe_overall)
+        if len(best_sharpe_history) > CONVERGENCE_GENERATIONS:
+            best_sharpe_history.pop(0)
+            if (max(best_sharpe_history) - min(best_sharpe_history)) < CONVERGENCE_TOLERANCE:
+                logger_instance.info(f"\n    GA Converged after {generation + 1} generations.")
+                break
+
+    return best_combo, best_weights, best_sharpe_overall, best_final_val, best_roi, best_exp_ret, best_vol, best_sharpe_history
+
+# ----------------------------------------------------------- #
+#                     Execution Pipeline                      #
+# ----------------------------------------------------------- #
+
+def main():
+    """Main execution function for the Portfolio script."""
+    # 1. --- Initial Setup ---
+    overall_start_time = time.time()
+    # --- FIX: Add a run_id for logging and file naming ---
+    run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    expected_params = {
+        # From paths.txt
+        "FINDB_FILE": str, "WEB_ACCESSIBLE_DATA_PATH": str, "PORTFOLIO_PROGRESS_JSON_FILE": str,
+        # From portpar.txt
+        "PORTFOLIO_LOG_FILE": str, "PORTFOLIO_PERFORMANCE_FILE": str, "SCORED_STOCKS_DB_FILE": str,
+        "PORTFOLIO_RESULTS_DB_FILE": str, "GA_FITNESS_NOISE_DB_FILE": str, "PORTFOLIO_VALUE_DB_FILE": str,
+        "debug_mode": bool, "start_date": str, "top_n_stocks_from_score": int,
+        "min_stocks": int, "max_stocks": int, "initial_investment": float, "rf": float,
+        "max_stocks_per_sector": int, "heuristic_threshold_k": int, "adaptive_sim_enabled": bool,
+        "initial_scan_sims": int, "early_discard_factor": float, "early_discard_min_best_sharpe": float,
+        "progressive_min_sims": int, "progressive_base_log_k": int, "progressive_max_sims_cap": int,
+        "progressive_convergence_window": int, "progressive_convergence_delta": float,
+        "progressive_check_interval": int, "top_n_percent_refinement": float, "sim_runs": int,
+        "ga_population_size": int, "ga_num_generations": int, "ga_mutation_rate": float,
+        "ga_crossover_rate": float, "ga_elitism_count": int, "ga_tournament_size": int,
+        "ga_convergence_generations": int, "ga_convergence_tolerance": float,
+        "ga_init_pop_max_attempts_multiplier": int, "auto_curate_threshold": float,
+    }
+
+    # 2. --- Load Parameters ---
+    try:
+        paths_file = os.path.join(script_dir, '..', 'parameters', 'paths.txt')
+        portpar_file = os.path.join(script_dir, '..', 'parameters', 'portpar.txt')
+        params = load_parameters_from_file(
+            filepaths=[paths_file, portpar_file],
+            expected_parameters=expected_params
+        )
+    except (FileNotFoundError, Exception) as e:
+        temp_logger = setup_logger("PortfolioStartupLogger", "portfolio_startup_error.log", None)
+        temp_logger.critical(f"Could not load parameters. Exiting. Error: {e}", exc_info=True)
+        sys.exit(1)
+
+    # 3. --- Setup Logger and Performance Tracking ---
+    progress_file = params.get("PORTFOLIO_PROGRESS_JSON_FILE")
+    initial_progress_data = {
+        "portfolio_status": "Running: Initializing...",
+        "start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "end_time": "N/A",
+        "status_message": "Loading parameters and setting up logger.",
+        "progress": {"current_phase": "Initialization"}
+    }
+    try:
+        if progress_file:
+            os.makedirs(os.path.dirname(progress_file), exist_ok=True)
+            with open(progress_file, 'w') as f:
+                json.dump(initial_progress_data, f, indent=4)
+    except Exception as e:
+        print(f"CRITICAL: Could not initialize progress file {progress_file}. Error: {e}")
+
+    logger = setup_logger(
+        "PortfolioRunner",
+        log_file=params.get("PORTFOLIO_LOG_FILE"),
+        web_log_file=progress_file,
+        level=logging.DEBUG if params.get("debug_mode") else logging.INFO
+    )
+    perf_data = initialize_performance_data(PORTFOLIO_PY_VERSION)
+    perf_data["param_load_duration_s"] = time.time() - overall_start_time
+
+    logger.info("Starting Portfolio.py execution pipeline.",
+                extra={'web_data': {"status_message": "Parameters loaded."}})
+
+    # --- FIX: Initialize result variables to None before the try block ---\n    best_combo, best_weights, best_sharpe, best_final_val, best_roi, best_exp_ret, best_vol = [None] * 7
+    best_combo, best_weights, best_sharpe, best_final_val, best_roi, best_exp_ret, best_vol = [None] * 7
+    ga_fitness_history = []
+    stock_close_df_sim_pool = pd.DataFrame()
+
+    try:
+        # 4. --- Main Execution Block ---
+        data_load_start = time.time()
+        top_scored_stocks, stock_sector_map = load_scored_stocks(params, logger)
+        stock_data_file = params.get("FINDB_FILE")
+        if not stock_data_file or not os.path.exists(stock_data_file):
+            raise FileNotFoundError(f"Master stock data file not found at '{stock_data_file}'.")
+        stock_data_db_df = pd.read_csv(stock_data_file)
+        stock_data_db_df['Date'] = pd.to_datetime(stock_data_db_df['Date'], format='mixed', errors='coerce').dt.date
+        perf_data["data_load_duration_s"] = time.time() - data_load_start
+
+        data_wrangling_start = time.time()
+        scored_stocks_in_db = [stock for stock in top_scored_stocks if stock in stock_data_db_df['Stock'].unique()]
+        if not scored_stocks_in_db:
+            raise ValueError("None of the top scored stocks were found in the stock data DB.")
+        focused_df = stock_data_db_df[stock_data_db_df['Stock'].isin(scored_stocks_in_db)].copy()
+        stock_close_df_sim_pool = focused_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan)
+        stock_close_df_sim_pool.dropna(inplace=True)
+        stock_close_df_sim_pool.reset_index(inplace=True)
+        perf_data["data_wrangling_duration_s"] = time.time() - data_wrangling_start
+
+        sim_timer = ExecutionTimer()
+
+        # Call the refactored function that returns a dictionary
+        best_portfolio_result = find_best_stock_combination(
+            stock_close_df_sim_pool,
+            top_scored_stocks,
+            params.get("initial_investment"),
+            params.get("min_stocks"),
+            params.get("max_stocks"),
+            params.get("rf"),
+            logger,
+            sim_timer,
+            stock_sector_map,
+            params.get("max_stocks_per_sector"),
+            params
+        )
+
+        # Correctly unpack the dictionary into the script's main variables
+        if best_portfolio_result and best_portfolio_result.get('combo'):
+            best_combo = best_portfolio_result['combo']
+            best_weights = best_portfolio_result['weights']
+            best_sharpe = best_portfolio_result['sharpe']
+            best_final_val = best_portfolio_result['final_val']
+            best_roi = best_portfolio_result['roi']
+            best_exp_ret = best_portfolio_result['exp_ret']
+            best_vol = best_portfolio_result['vol']
+            # Use .get() for safety, providing a default empty list
+            ga_fitness_history = best_portfolio_result.get('ga_fitness_history', [])
+
+    except Exception as e:
+        logger.critical(f"An unhandled exception occurred: {e}", exc_info=True,
+                        extra={'web_data': {"portfolio_status": "Failed", "status_message": str(e)}})
+        # In /Users/gabrielcampos/PortfolioESG/engines/Portfolio.py
+
+        # ... inside the main() function, after the 'except' block ...
+
+    finally:
+        # 5. --- Finalization and Logging ---
+        perf_data["overall_script_duration_s"] = time.time() - overall_start_time
+        log_performance_data(perf_data, params, logger)
+
+        # Consolidate result saving and add explicit type checks to resolve IDE warnings.
+        # This ensures that if a valid combo is found, its associated data is also valid.
+        if isinstance(best_combo, list) and best_combo and isinstance(best_weights, (list, np.ndarray)):
+            # 1. Save portfolio results
+            results_df = pd.DataFrame([{
+                "run_id": run_id,
+                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "engine_version": PORTFOLIO_PY_VERSION,
+                "min_stocks": params.get("min_stocks"),
+                "max_stocks": params.get("max_stocks"),
+                "stocks": ','.join(best_combo),
+                "weights": ','.join(map(str, [round(w, 4) for w in best_weights])),
+                "sharpe_ratio": round(best_sharpe, 4),
+                "final_value": round(best_final_val, 2),
+                "roi_percent": round(best_roi, 2),
+                "expected_return_annual_pct": round(best_exp_ret * 100, 2),
+                "expected_volatility_annual_pct": round(best_vol * 100, 2),
+            }])
+            results_db_path = params.get("PORTFOLIO_RESULTS_DB_FILE")
+            if results_db_path:
+                try:
+                    os.makedirs(os.path.dirname(results_db_path), exist_ok=True)
+                    results_df.to_csv(results_db_path, mode='a', header=not os.path.exists(results_db_path),
+                                      index=False)
+                    logger.info(f"Successfully appended results to {results_db_path}")
+                except Exception as e:
+                    logger.error(f"Failed to save portfolio results to {results_db_path}: {e}")
+
+            # 2. Save portfolio value history
+            if not stock_close_df_sim_pool.empty:
+                df_subset = stock_close_df_sim_pool[['Date'] + best_combo]
+                portfolio_value_df = asset_allocation(
+                    df_subset, best_weights, params.get("initial_investment"), logger
+                )
+                if not portfolio_value_df.empty:
+                    portfolio_value_df['run_id'] = run_id
+                    value_history_df = portfolio_value_df[['run_id', 'Date', 'Portfolio Value [$]']].rename(
+                        columns={'Portfolio Value [$]': 'value'}
+                    )
+                    value_db_path = params.get("PORTFOLIO_VALUE_DB_FILE")
+                    if value_db_path:
+                        try:
+                            os.makedirs(os.path.dirname(value_db_path), exist_ok=True)
+                            value_history_df.to_csv(value_db_path, mode='a', header=not os.path.exists(value_db_path),
+                                                    index=False)
+                            logger.info(f"Successfully appended portfolio value to {value_db_path}")
+                        except Exception as e:
+                            logger.error(f"Failed to save portfolio value to {value_db_path}: {e}")
+
+            # 3. Save GA fitness history
+            if ga_fitness_history:
+                ga_df = pd.DataFrame({
+                    'run_id': run_id,
+                    'generation': range(1, len(ga_fitness_history) + 1),
+                    'best_sharpe': ga_fitness_history
+                })
+                ga_db_path = params.get("GA_FITNESS_NOISE_DB_FILE")
+                if ga_db_path:
+                    try:
+                        os.makedirs(os.path.dirname(ga_db_path), exist_ok=True)
+                        ga_df.to_csv(ga_db_path, mode='a', header=not os.path.exists(ga_db_path), index=False)
+                        logger.info(f"Successfully appended GA fitness to {ga_db_path}")
+                    except Exception as e:
+                        logger.error(f"Failed to save GA fitness to {ga_db_path}: {e}")
+
+            # 4. Create the latest_run_summary.json file for the main portfolio page
+            latest_summary = {
+                "last_updated_run_id": run_id,
+                "last_updated_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "best_portfolio_details": {
+                    "stocks": best_combo,
+                    "weights": [round(w, 4) for w in best_weights],
+                    "sharpe_ratio": round(best_sharpe, 4),
+                    "final_value": round(best_final_val, 2),
+                    "roi_percent": round(best_roi, 2),
+                    "expected_return_annual_pct": round(best_exp_ret * 100, 2),
+                    "expected_volatility_annual_pct": round(best_vol * 100, 2),
+                    "initial_investment": params.get("initial_investment")
+                }
+            }
+            latest_summary_path = os.path.join(params.get("WEB_ACCESSIBLE_DATA_PATH"), "latest_run_summary.json")
+            try:
+                with open(latest_summary_path, 'w') as f:
+                    json.dump(latest_summary, f, indent=4)
+                logger.info(f"Successfully created latest run summary at {latest_summary_path}")
+            except Exception as e:
+                logger.error(f"Failed to create latest run summary: {e}")
+
+        # Copy all result files so the webpage can access them
+        copy_file_to_web_accessible_location("PORTFOLIO_PERFORMANCE_FILE", params, logger)
+        copy_file_to_web_accessible_location("PORTFOLIO_RESULTS_DB_FILE", params, logger)
+        copy_file_to_web_accessible_location("PORTFOLIO_VALUE_DB_FILE", params, logger)
+        copy_file_to_web_accessible_location("GA_FITNESS_NOISE_DB_FILE", params, logger)
+
+        final_web_payload = {
+            "portfolio_status": "Completed",
+            "end_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "status_message": "Portfolio optimization finished successfully.",
+            "progress": {
+                "current_phase": "Completed",
+                "overall_progress": 100
+            }
+        }
+        logger.info(
+            f"Portfolio script finished in {perf_data['overall_script_duration_s']:.2f} seconds.",
+            extra={'web_data': final_web_payload}
+        )
+        logger.info("Execution complete.")
+
+if __name__ == "__main__":
+    main()

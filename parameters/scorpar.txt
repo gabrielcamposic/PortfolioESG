@@ -1,0 +1,31 @@
+# Scoring Script Parameters for PortfolioESG
+
+# --- Files and paths used by Scoring.py
+SCORING_LOG_FILE = ~/PortfolioESG/logs/scoring.log
+SCORED_STOCKS_DB_FILE = ~/PortfolioESG/data/results/scored_stocks.csv
+SECTOR_PE_DB_FILE = ~/PortfolioESG/data/results/sector_pe.csv
+CORRELATION_MATRIX_FILE = ~/PortfolioESG/data/results/correlation_matrix.csv
+SCORING_PERFORMANCE_FILE = ~/PortfolioESG/data/Results/scoring_performance.csv
+
+# --- General Settings ---
+# Enable extensive debug logging (true/false)
+debug_mode = false
+# Annual risk-free rate for Sharpe Ratio calculation (e.g., 0.05 for 5%)
+risk_free_rate = 0.15
+
+# --- Dynamic Score Weighting ---
+# Set to true to dynamically calculate weights based on metric variance.
+# If false, the static weights below will be used.
+dynamic_score_weighting = true
+
+# --- Momentum Factor ---
+# Set to true to include a momentum score in the composite calculation.
+momentum_enabled = true
+# The lookback period (in trading days) for calculating momentum. 126 days is approx. 6 months.
+momentum_period_days = 126
+
+# --- Composite Score Weights ---
+# (Used only if dynamic_score_weighting is false). Must sum to 1.0.
+sharpe_weight = 0.6
+upside_weight = 0.3
+momentum_weight = 0.1

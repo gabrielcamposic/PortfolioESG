@@ -1,23 +1,122 @@
-// /Users/gabrielcampos/Documents/Prog/PortfolioESG_public/html/js/common_utils.js
+/**
+ * A collection of common utility functions used across the project's frontend.
+ * This is the single source of truth for formatting and DOM manipulation.
+ */
+
+// --- DOM Manipulation ---
+
+/**
+ * Safely sets the text content of an element by its ID.
+ * @param {string} id The ID of the element.
+ * @param {string|number|null|undefined} text The text to set. Defaults to 'N/A'.
+ */
+function setText(id, text) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = (text === null || text === undefined || text === '') ? 'N/A' : text;
+    } else {
+        console.warn(`Element with ID '${id}' not found.`);
+    }
+}
+
+/**
+ * Updates the status pill for a pipeline stage.
+ * @param {string} elementId The ID of the status pill element.
+ * @param {string} status The status string (e.g., "Running", "Completed", "Failed").
+ */
+function setStageStatus(elementId, status) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+        console.warn(`Status pill with ID '${elementId}' not found.`);
+        return;
+    }
+    const statusText = status || 'Pending';
+    element.textContent = statusText;
+    // Remove all potential status classes before adding the new one
+    element.classList.remove('status-running', 'status-completed', 'status-failed', 'status-pending');
+    // Add the appropriate class based on the status text (e.g., "Running: Initializing..." becomes "status-running")
+    element.classList.add(`status-${statusText.toLowerCase().split(':')[0].trim()}`);
+}
+
+/**
+ * Updates the width of a progress bar.
+ * @param {string} elementId The ID of the inner progress bar element.
+ * @param {number} percentage The progress percentage (0-100).
+ */
+function updateProgressBar(elementId, percentage) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const validPercentage = Math.max(0, Math.min(100, percentage || 0));
+        element.style.width = `${validPercentage}%`;
+    } else {
+        console.warn(`Progress bar with ID '${elementId}' not found.`);
+    }
+}
+
+// --- Data Fetching ---
+
+/**
+ * Fetches and parses a CSV file into an array of objects.
+ * Handles quoted fields containing commas.
+ * @param {string} filePath The path to the CSV file.
+ * @returns {Promise<Array<Object>>} A promise that resolves to the parsed data.
+ */
+async function fetchAndParseCsv(filePath) {
+    const response = await fetch(`${filePath}?t=${new Date().getTime()}`);
+    if (!response.ok) {
+        throw new Error(`Failed to load ${filePath}. Status: ${response.status}`);
+    }
+    const csvData = await response.text();
+    const lines = csvData.trim().split('\n');
+    if (lines.length < 2) return []; // Return empty if only header or empty file
+
+    const header = lines[0].split(',').map(h => h.trim());
+    // This regex correctly handles commas inside of quoted fields.
+    const csvRowRegex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+
+    return lines.slice(1).map(line => {
+        const values = line.split(csvRowRegex);
+        const obj = {};
+        header.forEach((key, i) => {
+            let value = values[i] ? values[i].trim() : '';
+            // Remove quotes from the start and end of the value if they exist
+            if (value.startsWith('"') && value.endsWith('"')) {
+                value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            obj[key] = value;
+        });
+        return obj;
+    });
+}
+
+// --- Formatting Functions ---
+
+/**
+ * Formats a number to a fixed number of decimal places.
+ * @param {string|number|null|undefined} value The value to format.
+ * @param {number} [decimals=2] The number of decimal places.
+ * @returns {string} The formatted number as a string, or 'N/A'.
+ */
+function formatNumber(value, decimals = 2) {
+    if (value === null || value === undefined || value === '') return 'N/A';
+    const num = parseFloat(value);
+    if (isNaN(num)) return 'N/A';
+    return num.toFixed(decimals);
+}
 
 /**
  * Formats a date string into a readable format (e.g., "Mon, 01/Jan/2024 - 14:30").
- * Handles various input date string formats, including those with/without time, and UTC/local indicators.
  * @param {string} dateString - The date string to format.
- * @returns {string} The formatted date string, or the original string if formatting fails or input is invalid.
+ * @returns {string} The formatted date string.
  */
 function formatDate(dateString) {
     if (!dateString || dateString === "N/A" || dateString.toLowerCase() === "calculating...") return dateString;
     try {
-        // Attempt to parse the date string. Handles "YYYY-MM-DD HH:MM:SS" by replacing space with 'T'.
-        // Assumes UTC if only date is provided (e.g., "YYYY-MM-DD" becomes "YYYY-MM-DDT00:00:00Z").
         const dateObj = new Date(dateString.includes(' ') && !dateString.includes('T') ? dateString.replace(' ', 'T') : dateString.includes('T') || dateString.includes('Z') ? dateString : dateString + 'T00:00:00Z');
         if (isNaN(dateObj.getTime())) return dateString;
 
         const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-        // Determine if to use local or UTC getters based on original string format
         const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/);
 
         const dayName = useLocalGetters ? days[dateObj.getDay()] : days[dateObj.getUTCDay()];
@@ -34,16 +133,13 @@ function formatDate(dateString) {
 }
 
 /**
- * Formats a duration string (e.g., "HH:MM:SS.micros" or "X days and HH:MM:SS") into a standardized "X day(s) and HH:MM:SS" format.
+ * Formats a duration string (e.g., "HH:MM:SS.micros") into "X day(s) and HH:MM:SS".
  * @param {string} durationString - The duration string to format.
- * @returns {string} The formatted duration string, or "N/A" if input is invalid.
+ * @returns {string} The formatted duration string.
  */
 function formatDuration(durationString) {
     if (!durationString || durationString === "N/A") return "N/A";
-    
-    if (durationString.includes("day")) { // Already well-formatted
-        return durationString;
-    }
+    if (durationString.includes("day")) return durationString; // Already formatted
 
     if (durationString.includes(':')) {
          const parts = durationString.split(':');
@@ -55,17 +151,18 @@ function formatDuration(durationString) {
             const finalDays = Math.floor(totalSeconds / 86400);
             let remSec = totalSeconds % 86400;
             const finalHours = Math.floor(remSec / 3600); remSec %= 3600;
-            const finalMinutes = Math.floor(remSec / 60); const finalSeconds = Math.floor(remSec % 60);
+            const finalMinutes = Math.floor(remSec / 60);
+            const finalSeconds = Math.floor(remSec % 60);
             return `${finalDays > 0 ? `${finalDays} day${finalDays > 1 ? 's' : ''} and ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
          }
     }
-    return durationString; 
+    return durationString;
 }
 
 /**
- * Formats a duration given in seconds (as a string or number) into "Xd HH:MM:SS" format.
+ * Formats a duration in seconds into "Xd HH:MM:SS" format.
  * @param {string|number} secondsStr - The duration in seconds.
- * @returns {string} The formatted duration string, or "N/A" if input is invalid.
+ * @returns {string} The formatted duration string.
  */
 function formatSecondsToHMS(secondsStr) {
     if (!secondsStr || secondsStr === "N/A" || isNaN(parseFloat(secondsStr))) return "N/A";
@@ -73,14 +170,15 @@ function formatSecondsToHMS(secondsStr) {
     const finalDays = Math.floor(totalSeconds / 86400);
     let remSec = totalSeconds % 86400;
     const finalHours = Math.floor(remSec / 3600); remSec %= 3600;
-    const finalMinutes = Math.floor(remSec / 60); const finalSeconds = Math.floor(remSec % 60);
+    const finalMinutes = Math.floor(remSec / 60);
+    const finalSeconds = Math.floor(remSec % 60);
     return `${finalDays > 0 ? `${finalDays}d ` : ''}${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}:${String(finalSeconds).padStart(2, '0')}`;
 }
 
 /**
  * Formats a number (representing seconds) to a string with two decimal places.
  * @param {string|number} secondsStr - The number of seconds.
- * @returns {string} The formatted string, or "N/A" if input is invalid.
+ * @returns {string} The formatted string.
  */
 function formatSeconds(secondsStr) {
     if (!secondsStr || secondsStr === "N/A" || isNaN(parseFloat(secondsStr))) return "N/A";
@@ -90,7 +188,7 @@ function formatSeconds(secondsStr) {
 /**
  * Generates a random RGB color string.
  * @param {number} [alpha=1] - The alpha transparency value (0 to 1).
- * @returns {string} An RGBA color string (e.g., "rgba(123, 234, 56, 0.5)").
+ * @returns {string} An RGBA color string.
  */
 function getRandomColor(alpha = 1) {
     return `rgba(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${alpha})`;

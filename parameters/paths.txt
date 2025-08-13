@@ -1,0 +1,12 @@
+# --- --- --- --- --- --- --- --- --- --- ---
+# --- Files and paths used by all scripts ---
+# --- --- --- --- --- --- --- --- --- --- ---
+PIPELINE_PROGRESS_JSON_FILE = ~/PortfolioESG/html/pipeline_progress.json
+DOWNLOAD_PROGRESS_JSON_FILE = ~/PortfolioESG/html/download_progress.json
+SCORING_PROGRESS_JSON_FILE = ~/PortfolioESG/html/scoring_progress.json
+PORTFOLIO_PROGRESS_JSON_FILE = ~/PortfolioESG/html/portfolio_progress.json
+WEB_ACCESSIBLE_DATA_PATH = ~/PortfolioESG/html/data/
+FINDATA_PATH = ~/PortfolioESG/data/findata/
+FINDB_FILE = ~/PortfolioESG/data/findb/stock_data_db.csv
+FINANCIALS_DB_FILE = ~/PortfolioESG/data/findb/financials_db.csv
+TICKERS_FILE = ~/PortfolioESG/parameters/tickers.txt

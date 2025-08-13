@@ -1,48 +1,38 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scoring</title>
-    <link rel="stylesheet" href="css/navbar_styles.css"> <!-- Link to the new navbar CSS -->
-    <link rel="stylesheet" href="css/styles.css"> <!-- Link to the common stylesheet -->
+    <link rel="stylesheet" href="css/navbar_styles.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Add Plotly.js for charting -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Add a style for better error visibility -->
+    <style>
+        .status-error-row td {
+            color: #D8000C;
+            background-color: #FFD2D2;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <div id="navbar-placeholder"></div> <!-- Placeholder for the common navigation bar -->
-    
-    <div class="main-content"> <!-- Wrapper for content to the right of nav -->
+    <div id="navbar-placeholder"></div>
+
+    <div class="main-content">
         <h1>Scoring</h1>
 
-        <!-- Latest Run Summary -->
-        <div class="stage-block" id="latest-run-summary">
-            <h2>Latest Run Summary</h2>
-            <p><strong>Date/Time:</strong> <span id="summary-datetime">Loading...</span></p>
-            <p><strong>Scoring Version:</strong> <span id="summary-version">Loading...</span></p>
-        </div>
-
-        <!-- Top 20 Stocks Table -->
-        <div class="stage-block">
-            <h2>Top 20 Stocks by Composite Score</h2>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Stock</th><th>Sector</th><th>Industry</th><th>CompositeScore</th><th>SharpeRatio</th><th>PotentialUpside_pct</th><th>Momentum</th><th>CurrentPrice</th><th>TargetPrice</th><th>forwardPE</th><th>SectorMedianPE</th>
-                        </tr>
-                    </thead>
-                    <tbody id="top-stocks-tbody">
-                        <tr><td colspan="11">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Visualizations -->
+        <!-- NEW: Two-column layout for summary and latest-run correlation -->
         <div class="stage-columns">
             <div class="column">
-                <div class="stage-block">
-                    <h2>Sector Breakdown</h2>
-                    <div id="sector-breakdown-chart">Loading...</div>
+                <div class="stage-block" id="latest-run-summary">
+                    <h2>Latest Run Summary</h2>
+                    <p><strong>Date/Time:</strong> <span id="summary-datetime">Loading...</span></p>
+                    <p><strong>Scoring Version:</strong> <span id="summary-version">Loading...</span></p>
                 </div>
             </div>
             <div class="column">
@@ -53,15 +43,56 @@
             </div>
         </div>
 
+        <!-- Top 20 Stocks Table (remains full-width) -->
+        <div class="stage-block">
+            <h2>Top 20 Stocks by Composite Score</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Stock</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Sector</th>
+                            <th scope="col">Industry</th>
+                            <th scope="col">CompositeScore</th>
+                            <th scope="col">SharpeRatio</th>
+                            <th scope="col">PotentialUpside_pct</th>
+                            <th scope="col">Momentum</th>
+                            <th scope="col">CurrentPrice</th>
+                            <th scope="col">TargetPrice</th>
+                            <th scope="col">forwardPE</th>
+                            <th scope="col">SectorMedianPE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top-stocks-tbody">
+                        <tr><td colspan="12">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Historical Trends -->
         <div class="stage-block">
             <h2>Historical Trends</h2>
             <div id="historical-trends-chart">Loading...</div>
         </div>
 
-    </div> <!-- End of main-content wrapper -->
-    
-    <script src="js/common_utils.js"></script> <!-- Load common utility functions -->
-    <script src="js/common_nav.js"></script> <!-- Load the common navigation script -->
-    <script src="js/scoring.js"></script> <!-- Load the scoring-specific JavaScript -->
+        <!-- Sector Breakdown -->
+        <div class="stage-block">
+            <h2>Sector Breakdown</h2>
+            <div id="sector-breakdown-chart">Loading...</div>
+        </div>
+
+        <!-- NEW: Historical Sector P/E Chart -->
+        <div class="stage-block">
+            <h2>Historical Sector P/E Ratios (Last 6 Months)</h2>
+            <div id="historical-sector-pe-chart">Loading...</div>
+        </div>
+
+    </div>
+
+    <script src="js/common_utils.js"></script>
+    <script src="js/common_nav.js"></script>
+    <script src="js/scoring.js"></script>
 </body>
 </html>

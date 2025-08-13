@@ -1,0 +1,10 @@
+{
+    "portfolio_status": "Completed",
+    "start_time": "2025-08-12 05:09:36",
+    "end_time": "2025-08-12 06:55:48",
+    "status_message": "Portfolio optimization finished successfully.",
+    "progress": {
+        "current_phase": "Completed",
+        "overall_progress": 100
+    }
+}

@@ -1,0 +1,29 @@
+# Download Script Parameters for PortfolioESG
+
+# --- Files and paths used by Download.py ---
+YFINANCE_SKIP_FILE = ~/PortfolioESG/data/findb/yfinance_skip.json
+DOWNLOAD_LOG_FILE = ~/PortfolioESG/logs/download.log
+DOWNLOAD_PERFORMANCE_FILE = ~/PortfolioESG/data/Results/download_performance.csv
+
+# --- General Settings ---
+# Enable extensive debug logging (true/false)
+debug_mode = false
+# Number of past years of data to consider for downloads (e.g., for calculating start_date)
+history_years = 5
+
+# --- Optional User-Agent Settings ---
+# Enable dynamic user agent generation (true/false) - Currently uses fake-useragent library
+dynamic_user_agents_enabled = true
+
+# A comma-separated list of user agents to use as a fallback
+FALLBACK_USER_AGENTS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36,Mozilla/5.0 (Macintosh; Intel Mac OS X 11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36,Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36,Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0,Mozilla/5.0 (Macintosh; Intel Mac OS X 12.3; rv:118.0) Gecko/20100101 Firefox/118.0,Mozilla/5.0 (X11; Linux x86_64; rv:115.0) Gecko/20100101 Firefox/115.0,Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15,Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.76,Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36,Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1"
+
+# --- API Endpoints ---
+
+# The API endpoint for fetching dynamic user agents.
+USER_AGENT_API_URL = "https://useragentapi.com/api/v4/json/f7afb3be4db1a4fd3f67cea1c225fadc/user_agents"
+
+# --- Holiday Settings ---
+# A comma-separated list of special, one-off market closures.
+# Format: YYYY-MM-DD:Holiday Name,YYYY-MM-DD:Another Holiday Name
+SPECIAL_MARKET_CLOSURES = "2016-12-30:Encerramento B3,2022-12-30:Encerramento B3,2023-12-29:Encerramento B3,2024-12-29:Encerramento B3,2025-12-29:Encerramento B3"

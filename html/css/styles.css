@@ -1,4 +1,3 @@
-/* /Users/gabrielcampos/Documents/Prog/PortfolioESG_public/html/css/main_styles.css */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     padding-right: 20px; 
@@ -280,4 +279,48 @@ tr:nth-child(even) {
         font-size: 0.9em;
         margin: 2px;
     }
+}
+
+/* --- Accordion Styles (for collapsible sections) --- */
+.accordion-button {
+    background-color: #f1f3f4; /* Lighter, Google-style grey */
+    color: #3c4043;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: 1px solid #dadce0; /* Subtle border */
+    text-align: left;
+    outline: none;
+    font-size: 1em; /* Match paragraph font size */
+    font-weight: 500; /* Medium weight */
+    transition: background-color 0.4s;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.accordion-button.active, .accordion-button:hover {
+    background-color: #e8eaed; /* Slightly darker hover/active state */
+}
+
+.accordion-button:after {
+    content: '\002B'; /* Unicode for "plus" sign (+) */
+    color: #5f6368;
+    font-weight: bold;
+    float: right;
+    margin-left: 5px;
+}
+
+.accordion-button.active:after {
+    content: "\2212"; /* Unicode for "minus" sign (-) */
+}
+
+.accordion-content {
+    padding: 0 18px;
+    background-color: #ffffff;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    border: 1px solid #dadce0;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
 }

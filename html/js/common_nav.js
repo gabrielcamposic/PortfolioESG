@@ -68,7 +68,7 @@ async function updateNavbarStatus() {
     const progressJsonPath = '/html/progress.json'; // This should fix path resolution for all pages
 
     try {
-        const response = await fetch(progressJsonPath + '?t=' + new Date().getTime());
+        const response = await fetch('pipeline_progress.json?t=' + new Date().getTime());
         if (!response.ok) {
             console.warn(`Failed to fetch ${progressJsonPath} for navbar: ${response.status}`);
             setTextAndStatusClassForNav('pipeline-status-message', 'Error fetching status', 'status-error');

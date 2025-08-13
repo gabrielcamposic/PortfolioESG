@@ -1,0 +1,99 @@
+# --- Portfolio Script Parameters for PortfolioESG
+
+# --- Files and paths used by Porftolio.py
+PORTFOLIO_RESULTS_DB_FILE = ~/PortfolioESG/data/results/portfolio_results_db.csv
+GA_FITNESS_NOISE_DB_FILE = ~/PortfolioESG/data/results/ga_fitness_noise_db.csv
+PORTFOLIO_VALUE_DB_FILE = ~/PortfolioESG/data/results/portfolio_value_db.csv
+PORTFOLIO_LOG_FILE=~/PortfolioESG/logs/portfolio.log
+PORTFOLIO_PERFORMANCE_FILE = ~/PortfolioESG/data/Results/portfolio_performance.csv
+SCORED_STOCKS_DB_FILE = ~/PortfolioESG/data/results/scored_stocks.csv
+
+# --- General Settings
+# Enable extensive debug logging (true/false)
+debug_mode = false
+start_date=2024-01-01
+
+# --- Stock Selection from Scoring ---
+# Number of top stocks to select from the latest scoring run based on CompositeScore
+top_n_stocks_from_score = 20
+
+# --- Target portfolio parameters
+min_stocks=5
+max_stocks=5
+initial_investment=1000
+rf=0.15
+
+# --- Diversification Constraints ---
+# The maximum number of stocks allowed from any single sector in a portfolio.
+# Set to a high number (e.g., 99) to disable this constraint.
+max_stocks_per_sector = 4
+
+# --- Threshold for switching from brute-force to heuristic (Genetic Algorithm)
+# If target portfolio size (k) is <= this value, brute-force is used.
+# If k > this value, the Genetic Algorithm is used.
+# Example: Use brute-force for k=1 to 9, GA for k=10+
+heuristic_threshold_k = 4
+
+# --- Genetic Algorithm Parameters ---
+# Population size for the GA
+ga_population_size = 50
+# Number of generations for the GA to run
+ga_num_generations = 30
+# Probability of mutation for an individual (0.0 to 1.0)
+ga_mutation_rate = 0.02
+# Probability of crossover between two parents (0.0 to 1.0)
+ga_crossover_rate = 0.8
+# Number of best individuals to carry over to the next generation (elitism)
+ga_elitism_count = 2
+# Size of the tournament for parent selection
+ga_tournament_size = 3
+
+# --- Genetic Algorithm Convergence Parameters ---
+# Number of generations to check for convergence (if no significant improvement)
+ga_convergence_generations = 10
+# Minimum change in best Sharpe ratio to be considered an improvement
+ga_convergence_tolerance = 0.0001
+
+# --- Adaptive Simulation Parameters
+# Set to false to use the fixed sim_runs from this file for all combinations
+adaptive_sim_enabled = true
+# Initial number of simulations for a quick scan of a combination's potential
+initial_scan_sims = 200
+# If a combo's sharpe is below (best_overall_sharpe * early_discard_factor)
+# after initial_scan_sims, and best_overall_sharpe is meaningful (>0.1),
+# stop simulating this combo early.
+early_discard_factor = 0.75
+early_discard_min_best_sharpe = 0.2
+# Minimum simulations for the progressive phase before convergence checks start
+progressive_min_sims = 150
+# Base number for logarithmic scaling: sims = base * log(k)^2
+progressive_base_log_k = 200
+# Overall cap for simulations in the progressive phase for a single combination
+progressive_max_sims_cap = 1500
+# How many recent Sharpe ratios to consider for convergence
+progressive_convergence_window = 50
+# If max-min of recent sharpes is below this, consider it converged
+progressive_convergence_delta = 0.005
+# Interval (in simulations) at which to check for convergence
+progressive_check_interval = 50
+# Percentage of top combinations to re-run with full simulations for refinement
+top_n_percent_refinement = 0.05
+# Number of simulations for the refinement phase, or for all combinations if adaptive_sim_enabled is false.
+sim_runs=1000
+
+# --- Stock Pool Sizing for Initial Sharpe Ratio Filtering ---
+# Defines how many top stocks (by Sharpe ratio) are initially filtered based on the MAX_STOCKS setting.
+# Format: min_max_portfolio_stocks:num_stocks_to_filter, e.g., "3-5:50,6-10:75,11-20:100"
+pool_size_tiers = 3-5:50,6-10:75,11-20:100
+pool_size_default_num_stocks = 40
+
+# --- Simulation Feedback & Advanced GA Settings ---
+# Brute-force progress logging percentage step increase (e.g., 5, 10, 50)
+bf_progress_log_step = 5
+# Multiplier for POPULATION_SIZE to determine max attempts for unique GA initial population generation
+ga_init_pop_max_attempts_multiplier = 5
+
+# --- Data Quality Parameters ---
+# Threshold for auto-curating the stock pool. A stock is considered a "culprit" and removed
+# if it has fewer data points than (median_data_points * this_threshold).
+auto_curate_threshold = 0.75

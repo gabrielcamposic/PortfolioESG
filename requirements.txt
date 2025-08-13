@@ -1,8 +1,0 @@
-pandas
-numpy
-matplotlib
-yfinance
-requests
-holidays
-fake-useragent
-python-dateutil
