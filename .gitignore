@@ -36,8 +36,15 @@ ENV/
 # Data files - Add your specific data files/folders here
 data/findata/
 data/findb/
+data/results/
+html/data/
+logs/
+*.logs
 test_tools/
 
 # IDE files
 .idea/
 .vscode/
+
+# macOS specific files
+.DS_Store
