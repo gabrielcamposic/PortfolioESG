@@ -17,18 +17,24 @@
 
         <div class="stage-block">
             <h2>Last Portfolio Details</h2>
-            <div id="bestPortfolioDetails" class="table-container">
-                <table id="bestPortfolioTable">
-                    <thead>
-                        <tr>
-                            <th>Metric</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td colspan="2" style="text-align: center;">Loading...</td></tr>
-                    </tbody>
-                </table>
+            <!-- Reusing the existing 'stage-columns' class for consistency -->
+            <div class="stage-columns">
+                <div id="bestPortfolioDetails" class="table-container column">
+                    <table id="bestPortfolioTable">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="2" style="text-align: center;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="chart-container column">
+                    <div id="lastPortfolioPieChart"></div>
+                </div>
             </div>
         </div>
 

@@ -26,21 +26,10 @@
     <div class="main-content">
         <h1>Scoring</h1>
 
-        <!-- NEW: Two-column layout for summary and latest-run correlation -->
-        <div class="stage-columns">
-            <div class="column">
-                <div class="stage-block" id="latest-run-summary">
-                    <h2>Latest Run Summary</h2>
-                    <p><strong>Date/Time:</strong> <span id="summary-datetime">Loading...</span></p>
-                    <p><strong>Scoring Version:</strong> <span id="summary-version">Loading...</span></p>
-                </div>
-            </div>
-            <div class="column">
-                <div class="stage-block">
-                    <h2>Correlations (Latest Run)</h2>
-                    <div id="correlation-matrix">Loading...</div>
-                </div>
-            </div>
+        <!-- Correlations Chart (Full Width) -->
+        <div class="stage-block">
+            <h2>Correlations (Latest Run)</h2>
+            <div id="correlation-matrix">Loading...</div>
         </div>
 
         <!-- Top 20 Stocks Table (remains full-width) -->
@@ -71,21 +60,11 @@
             </div>
         </div>
 
-        <!-- Historical Trends -->
+        <!-- Historical Trends (Consolidated Section) -->
         <div class="stage-block">
             <h2>Historical Trends</h2>
             <div id="historical-trends-chart">Loading...</div>
-        </div>
-
-        <!-- Sector Breakdown -->
-        <div class="stage-block">
-            <h2>Sector Breakdown</h2>
             <div id="sector-breakdown-chart">Loading...</div>
-        </div>
-
-        <!-- NEW: Historical Sector P/E Chart -->
-        <div class="stage-block">
-            <h2>Historical Sector P/E Ratios (Last 6 Months)</h2>
             <div id="historical-sector-pe-chart">Loading...</div>
         </div>
 

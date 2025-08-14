@@ -11,7 +11,7 @@ SCORED_STOCKS_DB_FILE = ~/PortfolioESG/data/results/scored_stocks.csv
 # --- General Settings
 # Enable extensive debug logging (true/false)
 debug_mode = false
-start_date=2024-01-01
+start_date=2023-01-01
 
 # --- Stock Selection from Scoring ---
 # Number of top stocks to select from the latest scoring run based on CompositeScore
@@ -19,7 +19,7 @@ top_n_stocks_from_score = 20
 
 # --- Target portfolio parameters
 min_stocks=5
-max_stocks=5
+max_stocks=7
 initial_investment=1000
 rf=0.15
 

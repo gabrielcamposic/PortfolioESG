@@ -36,6 +36,7 @@ async function main() {
 
         // --- Render all components on the page ---
         displayLastPortfolioDetails(latestRunJson.best_portfolio_details, latestRunJson.last_updated_run_id);
+        createLastPortfolioPieChart(latestRunJson.best_portfolio_details); // <-- ADD THIS LINE
         renderOptimalPortfoliosStackedBarChart(filteredSummaryData);
         renderMultiPortfolioHistoryChart(filteredSummaryData, allPortfolioHistoryData);
         renderSharpeFinalValueScatterChart(filteredSummaryData);
@@ -115,7 +116,48 @@ function displayLastPortfolioDetails(details, runId) {
 }
 
 
-// --- CHARTING FUNCTIONS ---
+// --- CHARTING HELPERS & FUNCTIONS ---
+
+/**
+ * A shared configuration object for Plotly charts to ensure a consistent look and feel.
+ */
+const PLOTLY_COMMON_LAYOUT = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    height: 450,
+    showlegend: false // Most charts have legends disabled or customized by default
+};
+
+function createLastPortfolioPieChart(details) {
+    const chartDiv = document.getElementById('lastPortfolioPieChart');
+    const stocks = details.stocks;
+    // The weights in the JSON are fractions (e.g., 0.25), which Plotly's 'pie' chart type correctly interprets as percentages.
+    const weights = details.weights;
+
+    if (!stocks || !weights || stocks.length === 0) {
+        chartDiv.innerText = 'No allocation data to display.';
+        return;
+    }
+
+    const data = [{
+        values: weights,
+        labels: stocks,
+        type: 'pie',
+        hole: .4, // This turns the pie chart into a donut chart
+        textinfo: "label+percent",
+        textposition: "inside",
+        automargin: true,
+        insidetextorientation: 'radial'
+    }];
+
+    const layout = {
+        ...PLOTLY_COMMON_LAYOUT,
+        title: 'Latest Portfolio Allocation',
+        margin: { t: 50, b: 20, l: 20, r: 20 }
+    };
+
+    Plotly.newPlot(chartDiv, data, layout, {responsive: true});
+}
 
 function renderOptimalPortfoliosStackedBarChart(summaryData) {
     const chartDiv = document.getElementById('optimalPortfoliosStackedBarChart');
@@ -126,8 +168,8 @@ function renderOptimalPortfoliosStackedBarChart(summaryData) {
         return;
     }
 
-    // FIX: Use correct property names 'timestamp', 'stocks', and 'weights'.
-    const labels = summaryData.map(row => formatDate(row.timestamp).split(' - ')[0]);
+    // **THE FIX**: Use the unique run_id for the x-axis categories.
+    const runIds = summaryData.map(row => row.run_id);
     const allStocks = new Set();
     summaryData.forEach(row => {
         if (row.stocks) row.stocks.split(',').forEach(s => allStocks.add(s.trim()));
@@ -135,25 +177,34 @@ function renderOptimalPortfoliosStackedBarChart(summaryData) {
 
     const sortedStocks = Array.from(allStocks).sort();
     const traces = sortedStocks.map(stock => {
-        const y_values = summaryData.map(row => {
+        // Initialize a y-array of zeros with the same length as our runIds
+        const y_values = Array(runIds.length).fill(0);
+
+        // Map each run's data to the correct index in the y_values array
+        summaryData.forEach((row, runIndex) => {
             const stocks = row.stocks ? row.stocks.split(',').map(s => s.trim()) : [];
             const weights = row.weights ? row.weights.split(',').map(w => parseFloat(w.trim())) : [];
             const stockIndex = stocks.indexOf(stock);
-            return stockIndex !== -1 ? weights[stockIndex] * 100 : 0;
+            if (stockIndex !== -1) {
+                y_values[runIndex] = weights[stockIndex] * 100; // Convert to percentage
+            }
         });
-        return { x: labels, y: y_values, name: stock, type: 'bar' };
+        return { x: runIds, y: y_values, name: stock, type: 'bar' };
     });
 
     const layout = {
-        title: 'Optimal Portfolios Composition (Last 12 Months)',
+        ...PLOTLY_COMMON_LAYOUT,
+        title: 'Portfolio Composition per Run (Last 12 Months)',
         barmode: 'stack',
-        height: 400,
-        margin: { t: 50, b: 80, l: 60, r: 30 },
-        xaxis: { title: 'Run Date' },
+        margin: { t: 50, b: 150, l: 60, r: 30 }, // Increased bottom margin
+        xaxis: {
+            title: 'Run ID',
+            type: 'category', // Treat each run_id as a distinct column
+            tickangle: -45    // Angle the labels to prevent overlap
+        },
         yaxis: { title: 'Weight (%)', ticksuffix: '%' },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        legend: { orientation: 'h', yanchor: 'bottom', y: -0.4, xanchor: 'center', x: 0.5 }
+        showlegend: true,
+        legend: { orientation: 'h', yanchor: 'bottom', y: -0.5, xanchor: 'center', x: 0.5 },
     };
 
     Plotly.newPlot(chartDiv, traces, layout, { responsive: true });
@@ -200,14 +251,12 @@ function renderMultiPortfolioHistoryChart(summaryData, historyData) {
     });
 
     const layout = {
+        ...PLOTLY_COMMON_LAYOUT,
         title: 'Portfolio Historical Values (Last 12 Months)',
-        height: 400,
         margin: { t: 50, b: 80, l: 60, r: 30 },
         xaxis: { title: 'Date', type: 'date' },
         yaxis: { title: 'Portfolio Value ($)', tickprefix: '$' },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        showlegend: true
+        showlegend: true,
     };
 
     Plotly.newPlot(chartDiv, traces, layout, { responsive: true });
@@ -240,14 +289,11 @@ function renderSharpeFinalValueScatterChart(summaryData) {
     }];
 
     const layout = {
+        ...PLOTLY_COMMON_LAYOUT,
         title: 'Portfolio Final Value vs. Sharpe Ratio (Last 12 Months)',
-        height: 400,
         margin: { t: 50, b: 80, l: 80, r: 30 },
         xaxis: { title: 'Sharpe Ratio' },
         yaxis: { title: 'Final Portfolio Value ($)', tickprefix: '$' },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        showlegend: false
     };
 
     Plotly.newPlot(chartDiv, traces, layout, { responsive: true });

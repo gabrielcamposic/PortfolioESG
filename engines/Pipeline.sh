@@ -53,19 +53,20 @@ run_stage() {
     local script_path="$2"
     local script_filename=$(basename "$script_path")
 
-    log_message "Starting ${stage_name} stage (${script_filename})..."
+    log_message "Starting ${stage_name} stage (${script_filename})..." 
     update_pipeline_status "${stage_name}" "${script_filename} is running"
 
     # Use the virtual environment's Python if it exists, otherwise fall back.
     # This makes the script robust, especially when run from cron.
+    local python_executable
     if [ -f "$VENV_PYTHON" ]; then
-         "$VENV_PYTHON" "$script_path"
+        python_executable="$VENV_PYTHON"
     else
-         log_message "WARNING: Virtual environment python not found at '$VENV_PYTHON'. Using system 'python3'."
-         python3 "$script_path"
+        log_message "WARNING: Virtual environment python not found at '$VENV_PYTHON'. Using system 'python3'."
+        python_executable="python3"
     fi
 
-    if [ $? -ne 0 ]; then
+    if ! "$python_executable" "$script_path"; then
         log_message "${stage_name} stage (${script_filename}) failed. Aborting pipeline."
         update_pipeline_status "Failed" "${script_filename} encountered an error."
         exit 1
@@ -92,7 +93,6 @@ jq -n --arg startTime "$(date '+%Y-%m-%d %H:%M:%S')" '{
 
 # 2. Run the Data Download script
 run_stage "Data Download" "$DOWNLOAD_SCRIPT"
-# --- IMPROVEMENT: Update status between stages for better UI feedback ---
 update_pipeline_status "Awaiting Next Stage" "Data Download completed successfully."
 
 # 3. Run the Stock Scoring script
