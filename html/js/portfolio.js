@@ -32,7 +32,7 @@ async function main() {
         const filteredSummaryData = allSummaryData.filter(row => {
             const timestamp = new Date(row.timestamp);
             return timestamp && timestamp >= twelveMonthsAgo;
-        }).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort descending (newest first)
 
         // --- Render all components on the page ---
         displayLastPortfolioDetails(latestRunJson.best_portfolio_details, latestRunJson.last_updated_run_id);
@@ -80,7 +80,7 @@ function populateResultsTable(summaryData) {
             <td>${formatNumber(row.expected_volatility_annual_pct, 2)}%</td>
             <td>${formatNumber(row.roi_percent, 2)}%</td>
         </tr>
-    `).reverse().join(''); // Show most recent first
+    `).join('');
     tableBody.innerHTML = rowsHtml;
 }
 
