@@ -19,7 +19,7 @@ top_n_stocks_from_score = 20
 
 # --- Target portfolio parameters
 min_stocks=5
-max_stocks=7
+max_stocks=5
 initial_investment=1000
 rf=0.15
 
@@ -97,3 +97,6 @@ ga_init_pop_max_attempts_multiplier = 5
 # Threshold for auto-curating the stock pool. A stock is considered a "culprit" and removed
 # if it has fewer data points than (median_data_points * this_threshold).
 auto_curate_threshold = 0.75
+
+# The ticker symbol for the market benchmark, which must exist in tickers.txt
+BENCHMARK_TICKER: ^BVSP

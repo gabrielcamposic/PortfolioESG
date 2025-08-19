@@ -1,8 +1,8 @@
 {
   "pipeline_run_status": {
-    "status_message": "Portfolio.py is running",
-    "start_time": "2025-08-13 21:12:29",
-    "current_stage": "Portfolio Optimization",
-    "end_time": "N/A"
+    "status_message": "Completed",
+    "start_time": "2025-08-14 16:36:42",
+    "current_stage": "Completed",
+    "end_time": "2025-08-14 16:40:53"
   }
 }

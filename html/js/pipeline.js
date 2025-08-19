@@ -10,12 +10,14 @@ const POLLING_INTERVAL_MS = 5000; // 5 seconds
 const PROGRESS_FILES = {
     download: 'download_progress.json',
     scoring: 'scoring_progress.json',
-    portfolio: 'portfolio_progress.json'
+    portfolio: 'portfolio_progress.json',
+    backtesting: 'backtesting_progress.json'
 };
 const PERFORMANCE_FILES = {
     download: 'data/download_performance.csv',
     scoring: 'data/scoring_performance.csv',
     portfolio: 'data/portfolio_performance.csv',
+    backtesting: 'data/backtesting_performance.csv',
     ga_fitness: 'data/ga_fitness_noise_db.csv'
 };
 
@@ -33,15 +35,17 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function fetchAndUpdateAll() {
     try {
-        const [downloadData, scoringData, portfolioData] = await Promise.all([
+        const [downloadData, scoringData, portfolioData, backtestingData] = await Promise.all([
             fetchProgress(PROGRESS_FILES.download),
             fetchProgress(PROGRESS_FILES.scoring),
-            fetchProgress(PROGRESS_FILES.portfolio)
+            fetchProgress(PROGRESS_FILES.portfolio),
+            fetchProgress(PROGRESS_FILES.backtesting)
         ]);
 
         updateDownloadStatus(downloadData);
         updateScoringStatus(scoringData);
         updatePortfolioStatus(portfolioData);
+        updateBacktestingStatus(backtestingData);
 
     } catch (error) {
         console.error("Error during periodic update:", error);
@@ -116,31 +120,45 @@ function updatePortfolioStatus(data) {
     updateProgressBar('portfolio-progress-bar-inner', progress.overall_progress || (status.toLowerCase() === 'completed' ? 100 : 0));
 }
 
+function updateBacktestingStatus(data) {
+    const status = data?.backtesting_status || 'Pending';
+    const startTime = data?.start_time || 'N/A';
+    const endTime = data?.end_time || 'N/A';
+    const message = data?.status_message || 'Awaiting previous stages...';
+    const progress = data?.progress || 0;
+
+    setStageStatus('backtesting-stage-status-pill', status);
+    setText('backtesting-overall-status', status);
+    setText('backtesting-start-time', formatDate(startTime));
+    setText('backtesting-end-time', formatDate(endTime));
+    setText('backtesting-duration', calculateDuration(startTime, endTime));
+    setText('backtesting-status-message', message);
+    updateProgressBar('backtesting-progress-bar-inner', progress || (status.toLowerCase() === 'completed' ? 100 : 0));
+}
+
 
 // --- Historical Performance and Logging ---
 
-// In /Users/gabrielcampos/PortfolioESG/html/js/pipeline.js
-
 async function displayHistoricalPerformance() {
     try {
-        const [downloadPerfData, scoringPerfData, portfolioPerfData, gaFitnessData] = await Promise.all([
+        const [downloadPerfData, scoringPerfData, portfolioPerfData, backtestingPerfData, gaFitnessData] = await Promise.all([
             fetchAndParseCsv(PERFORMANCE_FILES.download).catch(e => { console.error(e); return []; }),
             fetchAndParseCsv(PERFORMANCE_FILES.scoring).catch(e => { console.error(e); return []; }),
             fetchAndParseCsv(PERFORMANCE_FILES.portfolio).catch(e => { console.error(e); return []; }),
+            fetchAndParseCsv(PERFORMANCE_FILES.backtesting).catch(e => { console.error(e); return []; }),
             fetchAndParseCsv(PERFORMANCE_FILES.ga_fitness).catch(e => { console.error(e); return []; })
         ]);
 
-        // --- FIX: Pass the desired time unit for each chart ---
         createPerformanceChart(downloadPerfData, 'download-perf-chart', 'Download.py Duration', 'overall_script_duration_s', 'run_start_timestamp', 'minutes');
         createPerformanceChart(scoringPerfData, 'scoring-perf-chart', 'Scoring.py Duration', 'overall_script_duration_s', 'run_start_timestamp', 'seconds');
         createPerformanceChart(portfolioPerfData, 'portfolio-perf-chart', 'Portfolio.py Duration', 'overall_script_duration_s', 'run_start_timestamp', 'hours');
+        createPerformanceChart(backtestingPerfData, 'backtesting-perf-chart', 'Backtesting.py Duration', 'overall_script_duration_s', 'run_start_timestamp', 'seconds');
 
-        // Performance Log Tables
         populatePerformanceTable(downloadPerfData, 'downloadPerformanceTable');
         populatePerformanceTable(scoringPerfData, 'scoringPerformanceTable');
         populatePerformanceTable(portfolioPerfData, 'portfolioPerformanceTable');
+        populatePerformanceTable(backtestingPerfData, 'backtestingPerformanceTable');
 
-        // GA-specific analysis
         createGAFitnessChart(gaFitnessData, 'ga-fitness-chart');
         populateGATable(gaFitnessData, 'gaFitnessTable');
 
@@ -149,11 +167,10 @@ async function displayHistoricalPerformance() {
         document.getElementById('download-perf-chart').textContent = 'Error loading data.';
         document.getElementById('scoring-perf-chart').textContent = 'Error loading data.';
         document.getElementById('portfolio-perf-chart').textContent = 'Error loading data.';
+        document.getElementById('backtesting-perf-chart').textContent = 'Error loading data.';
         document.getElementById('ga-fitness-chart').textContent = 'Error loading data.';
     }
 }
-
-// In /Users/gabrielcampos/PortfolioESG/html/js/pipeline.js
 
 function createPerformanceChart(data, elementId, title, valueKey, timeKey, unit = 'seconds') {
     const chartDiv = document.getElementById(elementId);
@@ -174,7 +191,6 @@ function createPerformanceChart(data, elementId, title, valueKey, timeKey, unit 
     let yAxisTitle;
     let yValues;
 
-    // --- FIX: Convert duration based on the specified unit ---
     switch (unit) {
         case 'minutes':
             yAxisTitle = 'Duration (minutes)';
@@ -228,7 +244,6 @@ function populatePerformanceTable(data, tableId) {
 function createGAFitnessChart(data, elementId) {
     const chartDiv = document.getElementById(elementId);
     if (!chartDiv) return;
-    // --- FIX: Clear the placeholder text before drawing the chart ---
     chartDiv.innerHTML = '';
 
     if (!data || data.length === 0) {

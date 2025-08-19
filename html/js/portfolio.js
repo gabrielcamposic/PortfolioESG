@@ -13,8 +13,6 @@ document.addEventListener('DOMContentLoaded', main);
 
 async function main() {
     try {
-        // FIX: Call the fetchAndParseCsv utility directly with the file paths.
-        // This corrects the 404 error by letting the utility handle both fetching and parsing.
         const [allSummaryData, allPortfolioHistoryData, latestRunJson] = await Promise.all([
             fetchAndParseCsv(SUMMARY_CSV_PATH + '?t=' + new Date().getTime()),
             fetchAndParseCsv(HISTORY_CSV_PATH + '?t=' + new Date().getTime()),
@@ -28,29 +26,25 @@ async function main() {
         twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1);
         twelveMonthsAgo.setHours(0, 0, 0, 0);
 
-        // FIX: Filter by the correct 'timestamp' column.
+        // Sort the chart data in ascending order by date
         const filteredSummaryData = allSummaryData.filter(row => {
             const timestamp = new Date(row.timestamp);
             return timestamp && timestamp >= twelveMonthsAgo;
-        }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort descending (newest first)
+        }).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); // Sort ascending (oldest first)
 
         // --- Render all components on the page ---
         displayLastPortfolioDetails(latestRunJson.best_portfolio_details, latestRunJson.last_updated_run_id);
-        createLastPortfolioPieChart(latestRunJson.best_portfolio_details); // <-- ADD THIS LINE
+        createLastPortfolioPieChart(latestRunJson.best_portfolio_details);
         renderOptimalPortfoliosStackedBarChart(filteredSummaryData);
-        renderMultiPortfolioHistoryChart(filteredSummaryData, allPortfolioHistoryData);
-        renderSharpeFinalValueScatterChart(filteredSummaryData);
-        populateResultsTable(filteredSummaryData);
+        // For the main table, sort descending to show newest first
+        populateResultsTable(filteredSummaryData.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
 
     } catch (error) {
         console.error('Error in main function:', error);
         const errorMessage = `Error loading data: ${error.message}. Check console.`;
-        document.getElementById('resultsTable').getElementsByTagName('tbody')[0].innerHTML = `<tr><td colspan="11" class="status-error-row">${errorMessage}</td></tr>`;
+        document.getElementById('resultsTable').getElementsByTagName('tbody')[0].innerHTML = `<tr><td colspan="10" class="status-error-row">${errorMessage}</td></tr>`;
         document.getElementById('bestPortfolioTable').getElementsByTagName('tbody')[0].innerHTML = `<tr><td colspan="2" class="status-error-row">Error loading last portfolio details.</td></tr>`;
-        // Clear loading text from charts
         document.getElementById('optimalPortfoliosStackedBarChart').textContent = 'Error loading chart data.';
-        document.getElementById('multiPortfolioHistoryChart').textContent = 'Error loading chart data.';
-        document.getElementById('sharpeFinalValueScatterChart').textContent = 'Error loading chart data.';
     }
 }
 
@@ -61,11 +55,10 @@ function populateResultsTable(summaryData) {
     tableBody.innerHTML = '';
 
     if (!summaryData || summaryData.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="11" style="text-align:center;">No portfolio data found for the last 12 months.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;">No portfolio data found for the last 12 months.</td></tr>`;
         return;
     }
 
-    // FIX: Use the correct property names from the CSV file.
     const rowsHtml = summaryData.map(row => `
         <tr>
             <td>${row.run_id || 'N/A'}</td>
@@ -78,7 +71,6 @@ function populateResultsTable(summaryData) {
             <td>${formatNumber(row.sharpe_ratio, 4)}</td>
             <td>${formatNumber(row.expected_return_annual_pct, 2)}%</td>
             <td>${formatNumber(row.expected_volatility_annual_pct, 2)}%</td>
-            <td>${formatNumber(row.roi_percent, 2)}%</td>
         </tr>
     `).join('');
     tableBody.innerHTML = rowsHtml;
@@ -93,17 +85,14 @@ function displayLastPortfolioDetails(details, runId) {
         return;
     }
 
-    // FIX: Use the correct property names from the JSON file.
+    // Removed Final Value, ROI, and Initial Investment
     const detailsMap = {
         "Run ID": runId || 'N/A',
         "Sharpe Ratio": formatNumber(details.sharpe_ratio, 4),
         "Optimal Stocks": details.stocks ? details.stocks.join(', ') : 'N/A',
         "Optimal Weights": details.weights ? details.weights.map(w => formatNumber(w, 4)).join(', ') : 'N/A',
         "Expected Annual Return": `${formatNumber(details.expected_return_annual_pct, 2)}%`,
-        "Expected Annual Volatility": `${formatNumber(details.expected_volatility_annual_pct, 2)}%`,
-        "Final Value": `$${formatNumber(details.final_value, 2)}`,
-        "ROI": `${formatNumber(details.roi_percent, 2)}%`,
-        "Initial Investment": `$${formatNumber(details.initial_investment, 2)}`
+        "Expected Annual Volatility": `${formatNumber(details.expected_volatility_annual_pct, 2)}%`
     };
 
     const rowsHtml = Object.entries(detailsMap).map(([metric, value]) => `
@@ -131,7 +120,6 @@ const PLOTLY_COMMON_LAYOUT = {
 function createLastPortfolioPieChart(details) {
     const chartDiv = document.getElementById('lastPortfolioPieChart');
     const stocks = details.stocks;
-    // The weights in the JSON are fractions (e.g., 0.25), which Plotly's 'pie' chart type correctly interprets as percentages.
     const weights = details.weights;
 
     if (!stocks || !weights || stocks.length === 0) {
@@ -168,7 +156,6 @@ function renderOptimalPortfoliosStackedBarChart(summaryData) {
         return;
     }
 
-    // **THE FIX**: Use the unique run_id for the x-axis categories.
     const runIds = summaryData.map(row => row.run_id);
     const allStocks = new Set();
     summaryData.forEach(row => {
@@ -177,10 +164,8 @@ function renderOptimalPortfoliosStackedBarChart(summaryData) {
 
     const sortedStocks = Array.from(allStocks).sort();
     const traces = sortedStocks.map(stock => {
-        // Initialize a y-array of zeros with the same length as our runIds
         const y_values = Array(runIds.length).fill(0);
 
-        // Map each run's data to the correct index in the y_values array
         summaryData.forEach((row, runIndex) => {
             const stocks = row.stocks ? row.stocks.split(',').map(s => s.trim()) : [];
             const weights = row.weights ? row.weights.split(',').map(w => parseFloat(w.trim())) : [];
@@ -199,101 +184,12 @@ function renderOptimalPortfoliosStackedBarChart(summaryData) {
         margin: { t: 50, b: 150, l: 60, r: 30 }, // Increased bottom margin
         xaxis: {
             title: 'Run ID',
-            type: 'category', // Treat each run_id as a distinct column
-            tickangle: -45    // Angle the labels to prevent overlap
+            type: 'category',
+            tickangle: -45
         },
         yaxis: { title: 'Weight (%)', ticksuffix: '%' },
         showlegend: true,
         legend: { orientation: 'h', yanchor: 'bottom', y: -0.5, xanchor: 'center', x: 0.5 },
-    };
-
-    Plotly.newPlot(chartDiv, traces, layout, { responsive: true });
-}
-
-function renderMultiPortfolioHistoryChart(summaryData, historyData) {
-    const chartDiv = document.getElementById('multiPortfolioHistoryChart');
-    chartDiv.innerHTML = '';
-
-    if (typeof Plotly === 'undefined' || !summaryData.length || !historyData.length) {
-        chartDiv.textContent = 'No historical value data available.';
-        return;
-    }
-
-    const runIds = new Set(summaryData.map(row => row.run_id));
-    const relevantHistory = historyData.filter(row => row.run_id && runIds.has(row.run_id));
-    const latestRunId = summaryData.length > 0 ? summaryData[summaryData.length - 1].run_id : null;
-
-    const historyByRunId = relevantHistory.reduce((acc, row) => {
-        const runId = row.run_id;
-        if (!acc[runId]) acc[runId] = [];
-
-        // FIX: Use correct property names 'Date' (capitalized) and 'value'.
-        const date = new Date(row.Date);
-        const value = parseFloat(row.value);
-
-        if (date && !isNaN(value)) {
-            acc[runId].push({ x: date, y: value });
-        }
-        return acc;
-    }, {});
-
-    const traces = Object.keys(historyByRunId).map(runId => {
-        const dataPoints = historyByRunId[runId].sort((a, b) => a.x - b.x);
-        const isLatest = runId === latestRunId;
-        return {
-            x: dataPoints.map(p => p.x),
-            y: dataPoints.map(p => p.y),
-            mode: 'lines',
-            type: 'scatter',
-            name: `Run ${runId}` + (isLatest ? ' (Latest)' : ''),
-            line: { width: isLatest ? 3 : 1.5, color: isLatest ? '#ff6384' : undefined }
-        };
-    });
-
-    const layout = {
-        ...PLOTLY_COMMON_LAYOUT,
-        title: 'Portfolio Historical Values (Last 12 Months)',
-        margin: { t: 50, b: 80, l: 60, r: 30 },
-        xaxis: { title: 'Date', type: 'date' },
-        yaxis: { title: 'Portfolio Value ($)', tickprefix: '$' },
-        showlegend: true,
-    };
-
-    Plotly.newPlot(chartDiv, traces, layout, { responsive: true });
-}
-
-function renderSharpeFinalValueScatterChart(summaryData) {
-    const chartDiv = document.getElementById('sharpeFinalValueScatterChart');
-    chartDiv.innerHTML = '';
-
-    if (typeof Plotly === 'undefined' || !summaryData || summaryData.length === 0) {
-        chartDiv.textContent = 'No data available for this chart.';
-        return;
-    }
-
-    const latestRunId = summaryData.length > 0 ? summaryData[summaryData.length - 1].run_id : null;
-
-    // FIX: Use correct property name 'stocks'.
-    const traces = [{
-        x: summaryData.map(row => parseFloat(row.sharpe_ratio)),
-        y: summaryData.map(row => parseFloat(row.final_value)),
-        mode: 'markers',
-        type: 'scatter',
-        text: summaryData.map(row => `Run: ${row.run_id}<br>Stocks: ${row.stocks}`),
-        hoverinfo: 'text+x+y',
-        marker: {
-            size: summaryData.map(row => row.run_id === latestRunId ? 12 : 7),
-            color: summaryData.map(row => row.run_id === latestRunId ? '#ff6384' : '#36a2eb'),
-            opacity: 0.7
-        }
-    }];
-
-    const layout = {
-        ...PLOTLY_COMMON_LAYOUT,
-        title: 'Portfolio Final Value vs. Sharpe Ratio (Last 12 Months)',
-        margin: { t: 50, b: 80, l: 80, r: 30 },
-        xaxis: { title: 'Sharpe Ratio' },
-        yaxis: { title: 'Final Portfolio Value ($)', tickprefix: '$' },
     };
 
     Plotly.newPlot(chartDiv, traces, layout, { responsive: true });

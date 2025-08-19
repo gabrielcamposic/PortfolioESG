@@ -9,7 +9,7 @@ DOWNLOAD_PERFORMANCE_FILE = ~/PortfolioESG/data/Results/download_performance.csv
 # Enable extensive debug logging (true/false)
 debug_mode = false
 # Number of past years of data to consider for downloads (e.g., for calculating start_date)
-history_years = 5
+history_years = 10
 
 # --- Optional User-Agent Settings ---
 # Enable dynamic user agent generation (true/false) - Currently uses fake-useragent library

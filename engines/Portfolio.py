@@ -165,21 +165,6 @@ def calculate_individual_sharpe_ratios(stock_daily_returns, risk_free_rate):
 #                  Portfolio Analysis Functions               #
 # ----------------------------------------------------------- #
 
-def price_scaling(raw_prices_df):
-    """Scales stock prices relative to their first available price."""
-    scaled_prices_df = raw_prices_df.copy()
-    for col in raw_prices_df.columns[1:]:  # Assumes Date is the first column
-        first_price = raw_prices_df[col].iloc[0]
-        if pd.isna(first_price) or first_price == 0:
-            # Handle cases where first price is NaN or zero to avoid division errors
-            # Option 1: Set scaled prices to NaN or 0
-            scaled_prices_df[col] = np.nan # or 0
-            # Option 2: Or skip scaling for this stock, keeping original values (or a copy)
-            # scaled_prices_df[col] = raw_prices_df[col] # if you want to keep original values
-        else:
-            scaled_prices_df[col] = raw_prices_df[col] / first_price
-    return scaled_prices_df
-
 def generate_portfolio_weights(n, seed=None):
     """Generates random portfolio weights that sum to 1."""
     if seed is not None:
@@ -189,45 +174,6 @@ def generate_portfolio_weights(n, seed=None):
     if sum_weights == 0:  # Highly unlikely, but handles division by zero
         return np.ones(n) / n  # Return equal weights
     return weights / sum_weights
-
-def asset_allocation(df_subset, weights, current_initial_investment, logger_instance):
-    """
-    Computes portfolio allocation and daily returns for a given subset of stocks and weights.
-    df_subset should contain 'Date' as the first column, followed by stock price columns.
-    """
-
-    try:
-        portfolio_df = df_subset[['Date']].copy()
-        scaled_df = price_scaling(df_subset)
-
-        for i, stock_col_name in enumerate(scaled_df.columns[1:]):
-            if i < len(weights):
-                portfolio_df[stock_col_name] = scaled_df[stock_col_name] * weights[i] * current_initial_investment
-            else:
-                logger_instance.info(f"Warning: Mismatch in number of stocks and weights in asset_allocation for {stock_col_name}")
-                portfolio_df[stock_col_name] = 0
-
-        numeric_cols = portfolio_df.select_dtypes(include=[np.number]).columns
-
-        if not list(numeric_cols):
-            logger_instance.info("❌ Error in asset_allocation: No numeric columns available for portfolio value calculation.")
-            return pd.DataFrame()
-        elif len(numeric_cols) < len(scaled_df.columns[1:]):
-            logger_instance.info(f"❌ Warning in asset_allocation: Fewer numeric columns ({len(numeric_cols)}) than stocks ({len(scaled_df.columns[1:])}).")
-
-        portfolio_df['Portfolio Value [$]'] = portfolio_df[numeric_cols].sum(axis=1)
-
-        if 'Portfolio Value [$]' in portfolio_df.columns:
-            portfolio_df['Portfolio Daily Return [%]'] = portfolio_df['Portfolio Value [$]'].pct_change() * 100
-        else:
-            logger_instance.info("⚠️ 'Portfolio Value [$]' missing in portfolio_df. Skipping daily return calculation.")
-
-        portfolio_df.fillna(0, inplace=True)
-        return portfolio_df
-
-    except Exception as e:
-        logger_instance.info(f"❌ Error in asset_allocation: {e} for stocks {list(df_subset.columns[1:])}")
-        return pd.DataFrame()
 
 def _calculate_portfolio_metrics_from_precomputed(
     weights: np.ndarray,
@@ -249,19 +195,15 @@ def _calculate_portfolio_metrics_from_precomputed(
 
 def simulation_engine_calc(
     stock_combo_prices_df,  # DataFrame with 'Date' and prices for the selected stock combo
-    weights_list,
-    current_initial_investment,
+    weights,
     current_rf_rate,  # Annual decimal risk-free rate
     logger_instance
 ):
-    """Runs a full, all-in-one simulation for a given portfolio allocation."""
+    """
+    Calculates forward-looking (ex-ante) portfolio metrics for optimization.
+    This is now a thin wrapper aroung the core vectorized calculation.
+    """
     try:
-        # Calculate portfolio value over time and daily returns of the portfolio
-        portfolio_df = asset_allocation(stock_combo_prices_df, weights_list, current_initial_investment, logger_instance)
-
-        if portfolio_df.empty or portfolio_df['Portfolio Value [$]'].iloc[0] == 0 : # Check if allocation failed or started with 0 value
-            return np.nan, np.nan, np.nan, np.nan, np.nan
-
         # Calculate returns of the individual assets in the combo
         # Assumes stock_combo_prices_df has 'Date' as first column
         asset_returns_df = stock_combo_prices_df.iloc[:, 1:].pct_change().fillna(0)
@@ -273,23 +215,17 @@ def simulation_engine_calc(
         # Use the centralized, vectorized calculation function
         expected_portfolio_return_decimal, expected_volatility_decimal, sharpe_ratio = \
             _calculate_portfolio_metrics_from_precomputed(
-                weights_list, mean_asset_returns_annualized,
+                weights, mean_asset_returns_annualized,
                 covariance_matrix_annualized, current_rf_rate
             )
 
-        final_value = portfolio_df['Portfolio Value [$]'].iloc[-1]
-        if current_initial_investment == 0: # Avoid division by zero for ROI
-            return_on_investment_percent = np.nan if final_value !=0 else 0
-        else:
-            return_on_investment_percent = ((final_value - current_initial_investment) / current_initial_investment) * 100
-
-        return expected_portfolio_return_decimal, expected_volatility_decimal, sharpe_ratio, final_value, return_on_investment_percent
+        return expected_portfolio_return_decimal, expected_volatility_decimal, sharpe_ratio
 
     except Exception as e:
         # Log more specific error if possible
         stock_names = list(stock_combo_prices_df.columns[1:]) if not stock_combo_prices_df.empty else "N/A"
         logger_instance.info(f"❌ Error in simulation_engine_calc: {e} for stocks {stock_names}")
-        return np.nan, np.nan, np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan
 
 # ----------------------------------------------
 # 1. Extract Simulation Parameters
@@ -331,7 +267,7 @@ def filter_available_stocks(source_df, stock_list):
 # ----------------------------------------------
 # 3. Simulate Portfolio Combination
 # ----------------------------------------------
-def simulate_portfolio_combo(df_subset, num_sims, investment, rf_rate, logger):
+def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger):
     """
     Optimized simulation for a single stock combination.
     Used by the Genetic Algorithm and Refinement phases.
@@ -360,12 +296,12 @@ def simulate_portfolio_combo(df_subset, num_sims, investment, rf_rate, logger):
             
     # After the loop, if we found a valid portfolio, run the full calculation once.
     if best_weights is not None:
-        exp_ret, vol, sharpe, final_val, roi = simulation_engine_calc(
-            df_subset, best_weights, investment, rf_rate, logger
+        exp_ret, vol, sharpe  = simulation_engine_calc(
+            df_subset, best_weights, rf_rate, logger
         )
         return {
             'sharpe': sharpe, 'weights': best_weights, 'exp_ret': exp_ret,
-            'vol': vol, 'final_val': final_val, 'roi': roi
+            'vol': vol
         }
 
     return None # No valid portfolio found
@@ -456,7 +392,7 @@ def _run_brute_force_iteration(
 
     best_result_for_k = {
         'combo': None, 'weights': None, 'sharpe': -float("inf"),
-        'final_val': None, 'roi': None, 'exp_ret': None, 'vol': None
+        'exp_ret': None, 'vol': None
     }
     all_results_for_k = []
 
@@ -521,23 +457,21 @@ def _run_brute_force_iteration(
 
         # After the simulation loop for a combo, calculate full metrics ONCE using the best weights found.
         if best_weights_this is not None:
-            (exp_ret_final, vol_final, sharpe_final,
-             final_val_this, roi_this) = simulation_engine_calc(
-                df_subset, best_weights_this, current_initial_investment, current_rf_rate, logger_instance
+            (exp_ret_final, vol_final, sharpe_final) = simulation_engine_calc(
+                df_subset, best_weights_this, current_rf_rate, logger_instance
             )
 
             # Check if this combo is the best for the current k
             if not pd.isna(sharpe_final) and sharpe_final > best_result_for_k['sharpe']:
                 best_result_for_k.update({
                     'combo': combo_list, 'weights': best_weights_this, 'sharpe': sharpe_final,
-                    'final_val': final_val_this, 'roi': roi_this,
                     'exp_ret': exp_ret_final, 'vol': vol_final
                 })
 
             # Add the full results to the list for the refinement phase
             all_results_for_k.append({
                 'sharpe': sharpe_final, 'weights': best_weights_this, 'stocks': combo_list,
-                'roi': roi_this, 'exp_ret': exp_ret_final, 'vol': vol_final,
+                'exp_ret': exp_ret_final, 'vol': vol_final,
                 'sims_run': sims_run
             })
 
@@ -558,12 +492,11 @@ def _run_refinement_phase(
     for combo_data in top_refine:
         df_subset = source_stock_prices_df[['Date'] + combo_data['stocks']]
         result = simulate_portfolio_combo(
-            df_subset, sim["SIM_RUNS"], current_initial_investment, current_rf_rate, logger_instance
+            df_subset, sim["SIM_RUNS"], current_rf_rate, logger_instance
         )
         if result and result['sharpe'] > refined_best_result['sharpe']:
             refined_best_result.update({
                 'combo': combo_data['stocks'], 'weights': result['weights'], 'sharpe': result['sharpe'],
-                'final_val': result['final_val'], 'roi': result['roi'],
                 'exp_ret': result['exp_ret'], 'vol': result['vol']
             })
     return refined_best_result
@@ -593,7 +526,7 @@ def find_best_stock_combination(
 
     best_result = {
         'combo': None, 'weights': None, 'sharpe': -float("inf"),
-        'final_val': None, 'roi': None, 'exp_ret': None, 'vol': None
+        'exp_ret': None, 'vol': None
     }
     ga_fitness_history = []
     all_bf_results = []
@@ -615,8 +548,7 @@ def find_best_stock_combination(
         else:
             # Refactored call: Assign the returned dictionary directly to k_result.
             k_result = run_genetic_algorithm(
-                source_stock_prices_df, available_stocks, k,
-                current_initial_investment, current_rf_rate,
+                source_stock_prices_df, available_stocks, k, current_rf_rate,
                 logger_instance, timer_instance, sim["SIM_RUNS"], sim_params
             )
             # Extract the fitness history from the result dictionary.
@@ -644,7 +576,6 @@ def run_genetic_algorithm(
         source_stock_prices_df,
         available_stocks_for_search,
         num_stocks_in_combo,
-        current_initial_investment,
         current_rf_rate,
         logger_instance,
         timer_instance,
@@ -671,7 +602,7 @@ def run_genetic_algorithm(
             f"GA Warning: Not enough stocks ({len(available_stocks_for_search)}) for k={num_stocks_in_combo}. Skipping.")
         return {
             'combo': None, 'weights': None, 'sharpe': -float("inf"),
-            'final_val': None, 'roi': None, 'exp_ret': None, 'vol': None,
+            'exp_ret': None, 'vol': None,
             'ga_fitness_history': []
         }
 
@@ -690,13 +621,12 @@ def run_genetic_algorithm(
         logger_instance.error(f"GA Error: Failed to initialize population for k={num_stocks_in_combo}.")
         return {
             'combo': None, 'weights': None, 'sharpe': -float("inf"),
-            'final_val': None, 'roi': None, 'exp_ret': None, 'vol': None,
+            'exp_ret': None, 'vol': None,
             'ga_fitness_history': []
         }
 
     best_sharpe_overall = -float("inf")
     best_combo, best_weights = None, None
-    best_final_val, best_roi = None, None
     best_exp_ret, best_vol = None, None
     best_sharpe_history = []
 
@@ -717,7 +647,7 @@ def run_genetic_algorithm(
         for combo in population:
             df_subset = source_stock_prices_df[["Date"] + combo]
             result = simulate_portfolio_combo(
-                df_subset, num_simulation_runs, current_initial_investment, current_rf_rate, logger_instance
+                df_subset, num_simulation_runs, current_rf_rate, logger_instance
             )
             if result:
                 evaluated_population.append({
@@ -725,9 +655,7 @@ def run_genetic_algorithm(
                     'weights': result['weights'],
                     'fitness': result['sharpe'],
                     'exp_ret': result['exp_ret'],
-                    'vol': result['vol'],
-                    'final_val': result['final_val'],
-                    'roi': result['roi']
+                    'vol': result['vol']
                 })
 
         if not evaluated_population:
@@ -742,8 +670,6 @@ def run_genetic_algorithm(
             best_sharpe_overall = top_result['fitness']
             best_combo = top_result['combo']
             best_weights = top_result['weights']
-            best_final_val = top_result['final_val']
-            best_roi = top_result['roi']
             best_exp_ret = top_result['exp_ret']
             best_vol = top_result['vol']
 
@@ -776,64 +702,9 @@ def run_genetic_algorithm(
 
     return {
         'combo': best_combo, 'weights': best_weights, 'sharpe': best_sharpe_overall,
-        'final_val': best_final_val, 'roi': best_roi, 'exp_ret': best_exp_ret,
-        'vol': best_vol, 'ga_fitness_history': best_sharpe_history
-    }
-
-def verify_final_results(
-    best_result: Dict[str, Any],
-    source_prices_df: pd.DataFrame,
-    initial_investment: float,
-    rf_rate: float,
-    logger: logging.Logger
-):
-    """
-    Performs an independent, step-by-step recalculation of the final best portfolio's metrics
-    to serve as a sanity check.
-    """
-    logger.info("--- Starting Final Results Verification ---")
-
-    combo = best_result.get('combo')
-    weights = best_result.get('weights')
-    if not combo or weights is None:
-        logger.warning("Verification skipped: No valid best portfolio found.")
-        return
-
-    # 1. Independent Data Preparation
-    df_subset = source_prices_df[['Date'] + combo]
-    asset_returns_df = df_subset.iloc[:, 1:].pct_change().fillna(0)
-    mean_returns_annualized = asset_returns_df.mean() * 252
-    covariance_matrix_annualized = asset_returns_df.cov() * 252
-
-    # 2. Independent Metric Calculation (using the previously created helper)
-    ver_exp_ret, ver_vol, ver_sharpe = _calculate_portfolio_metrics_from_precomputed(
-        weights, mean_returns_annualized, covariance_matrix_annualized, rf_rate
-    )
-
-    # 3. Independent Final Value & ROI Calculation
-    portfolio_value_df = asset_allocation(df_subset, weights, initial_investment, logger)
-    ver_final_val = portfolio_value_df['Portfolio Value [$]'].iloc[-1] if not portfolio_value_df.empty else np.nan
-    ver_roi = ((ver_final_val - initial_investment) / initial_investment) * 100 if initial_investment != 0 and not pd.isna(ver_final_val) else np.nan
-
-    # 4. Print Comparison Report
-    report = f"""
-    Verification Report for Best Portfolio:
-    --------------------------------------------------
-    Metric                  | Script Result | Verified Value  | Match
-    --------------------------------------------------
-    Sharpe Ratio            | {best_result['sharpe']:.4f}        | {ver_sharpe:.4f}        | {np.isclose(best_result['sharpe'], ver_sharpe)}
-    Expected Return (Ann. %) | {best_result['exp_ret']*100:.2f}       | {ver_exp_ret*100:.2f}       | {np.isclose(best_result['exp_ret'], ver_exp_ret)}
-    Volatility (Ann. %)     | {best_result['vol']*100:.2f}       | {ver_vol*100:.2f}       | {np.isclose(best_result['vol'], ver_vol)}
-    Final Value [$]         | {best_result['final_val']:.2f}     | {ver_final_val:.2f}     | {np.isclose(best_result['final_val'], ver_final_val)}
-    ROI [%]                 | {best_result['roi']:.2f}       | {ver_roi:.2f}       | {np.isclose(best_result['roi'], ver_roi)}
-    --------------------------------------------------
-    """
-    logger.info(report)
-    logger.info("--- Final Results Verification Complete ---")
-
-# ----------------------------------------------------------- #
-#                     Execution Pipeline                      #
-# ----------------------------------------------------------- #
+        'exp_ret': best_exp_ret, 'vol': best_vol,
+        'ga_fitness_history': best_sharpe_history
+            }
 
 def main():
     """Main execution function for the Portfolio script."""
@@ -903,7 +774,7 @@ def main():
     logger.info("Starting Portfolio.py execution pipeline.",
                 extra={'web_data': {"status_message": "Parameters loaded."}})
 
-    best_combo, best_weights, best_sharpe, best_final_val, best_roi, best_exp_ret, best_vol = [None] * 7    
+    best_combo, best_weights, best_sharpe, best_exp_ret, best_vol = [None] * 5
     ga_fitness_history = []
     stock_close_df_sim_pool = pd.DataFrame()
 
@@ -950,8 +821,6 @@ def main():
             best_combo = best_portfolio_result['combo']
             best_weights = best_portfolio_result['weights']
             best_sharpe = best_portfolio_result['sharpe']
-            best_final_val = best_portfolio_result['final_val']
-            best_roi = best_portfolio_result['roi']
             best_exp_ret = best_portfolio_result['exp_ret']
             best_vol = best_portfolio_result['vol']
             # Use .get() for safety, providing a default empty list
@@ -972,21 +841,6 @@ def main():
         # Consolidate result saving and add explicit type checks to resolve IDE warnings.
         # This ensures that if a valid combo is found, its associated data is also valid.
         if isinstance(best_combo, list) and best_combo and isinstance(best_weights, (list, np.ndarray)):
-            # Create a dictionary from the final variables for verification
-            final_result_dict = {
-                'combo': best_combo, 'weights': best_weights, 'sharpe': best_sharpe,
-                'final_val': best_final_val, 'roi': best_roi,
-                'exp_ret': best_exp_ret, 'vol': best_vol
-            }
-            # Run the verification step to double-check the final calculations
-            verify_final_results(
-                final_result_dict,
-                stock_close_df_sim_pool,
-                params.get("initial_investment"),
-                params.get("rf"),
-                logger
-            )
-
             # 1. Save portfolio results
             results_df = pd.DataFrame([{
                 "run_id": run_id,
@@ -997,8 +851,6 @@ def main():
                 "stocks": ','.join(best_combo),
                 "weights": ','.join(map(str, [round(w, 4) for w in best_weights])),
                 "sharpe_ratio": round(best_sharpe, 4),
-                "final_value": round(best_final_val, 2),
-                "roi_percent": round(best_roi, 2),
                 "expected_return_annual_pct": round(best_exp_ret * 100, 2),
                 "expected_volatility_annual_pct": round(best_vol * 100, 2),
             }])
@@ -1011,27 +863,6 @@ def main():
                     logger.info(f"Successfully appended results to {results_db_path}")
                 except Exception as e:
                     logger.error(f"Failed to save portfolio results to {results_db_path}: {e}")
-
-            # 2. Save portfolio value history
-            if not stock_close_df_sim_pool.empty:
-                df_subset = stock_close_df_sim_pool[['Date'] + best_combo]
-                portfolio_value_df = asset_allocation(
-                    df_subset, best_weights, params.get("initial_investment"), logger
-                )
-                if not portfolio_value_df.empty:
-                    portfolio_value_df['run_id'] = run_id
-                    value_history_df = portfolio_value_df[['run_id', 'Date', 'Portfolio Value [$]']].rename(
-                        columns={'Portfolio Value [$]': 'value'}
-                    )
-                    value_db_path = params.get("PORTFOLIO_VALUE_DB_FILE")
-                    if value_db_path:
-                        try:
-                            os.makedirs(os.path.dirname(value_db_path), exist_ok=True)
-                            value_history_df.to_csv(value_db_path, mode='a', header=not os.path.exists(value_db_path),
-                                                    index=False)
-                            logger.info(f"Successfully appended portfolio value to {value_db_path}")
-                        except Exception as e:
-                            logger.error(f"Failed to save portfolio value to {value_db_path}: {e}")
 
             # 3. Save GA fitness history
             if ga_fitness_history:
@@ -1057,8 +888,6 @@ def main():
                     "stocks": best_combo,
                     "weights": [round(w, 4) for w in best_weights],
                     "sharpe_ratio": round(best_sharpe, 4),
-                    "final_value": round(best_final_val, 2),
-                    "roi_percent": round(best_roi, 2),
                     "expected_return_annual_pct": round(best_exp_ret * 100, 2),
                     "expected_volatility_annual_pct": round(best_vol * 100, 2),
                     "initial_investment": params.get("initial_investment")
@@ -1075,7 +904,6 @@ def main():
         # Copy all result files so the webpage can access them
         copy_file_to_web_accessible_location("PORTFOLIO_PERFORMANCE_FILE", params, logger)
         copy_file_to_web_accessible_location("PORTFOLIO_RESULTS_DB_FILE", params, logger)
-        copy_file_to_web_accessible_location("PORTFOLIO_VALUE_DB_FILE", params, logger)
         copy_file_to_web_accessible_location("GA_FITNESS_NOISE_DB_FILE", params, logger)
 
         final_web_payload = {

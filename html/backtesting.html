@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Backtesting</title>
+    <link rel="stylesheet" href="css/navbar_styles.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Use Plotly for modern, interactive charts -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="main-content">
+        <h1>Portfolio Backtesting Analysis</h1>
+
+        <div class="stage-block">
+            <h2 id="equityCurveChartTitle">Performance vs. Benchmark</h2>
+            <div class="chart-container">
+                <div id="equityCurveChart">Loading...</div>
+            </div>
+        </div>
+
+        <div class="stage-block">
+            <h2 id="kpiSectionTitle">Key Performance Indicators (KPIs)</h2>
+            <div id="kpiTableContainer" class="table-container">
+                <table id="kpiTable">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Portfolio</th>
+                            <th>Benchmark</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="3" style="text-align: center;">Loading KPIs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="stage-block">
+            <h2>Logged Backtesting Results</h2>
+            <div class="chart-container">
+                <div id="backtestHistoryScatterChart">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/common_utils.js"></script>
+    <script src="js/common_nav.js"></script>
+    <script src="js/backtesting.js"></script>
+</body>
+</html>

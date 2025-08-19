@@ -19,6 +19,7 @@ export PYTHONPATH="$PROJECT_ROOT"
 DOWNLOAD_SCRIPT="$PROJECT_ROOT/engines/Download.py"
 SCORING_SCRIPT="$PROJECT_ROOT/engines/Scoring.py"
 PORTFOLIO_SCRIPT="$PROJECT_ROOT/engines/Portfolio.py"
+BACKTESTING_SCRIPT="$PROJECT_ROOT/engines/Backtesting.py"
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 PIPELINE_JSON_FILE="$PROJECT_ROOT/html/pipeline_progress.json"
 
@@ -101,6 +102,10 @@ update_pipeline_status "Awaiting Next Stage" "Stock Scoring completed successful
 
 # 4. Run the Portfolio Optimization script
 run_stage "Portfolio Optimization" "$PORTFOLIO_SCRIPT"
+update_pipeline_status "Awaiting Next Stage" "Portfolio Optimization completed successfully."
+
+# 5. Run the Backtesting script
+run_stage "Portfolio Backtesting" "$BACKTESTING_SCRIPT"
 
 # 5. Finalize the pipeline status
 log_message "Pipeline execution completed successfully."

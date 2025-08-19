@@ -14,7 +14,7 @@
     <div class="main-content">
         <h1>Pipeline Status and Performance</h1>
 
-        <!-- Live Status Blocks (Unchanged) -->
+        <!-- Live Status Blocks -->
         <div class="stage-block" id="download-stage">
             <h2>Stock Database Update <span class="stage-status-pill" id="download-stage-status-pill">Pending</span></h2>
             <div class="stage-columns">
@@ -79,6 +79,26 @@
             </div>
         </div>
 
+        <div class="stage-block" id="backtesting-stage">
+            <h2>Portfolio Backtesting <span class="stage-status-pill" id="backtesting-stage-status-pill">Pending</span></h2>
+            <div class="stage-columns">
+                <div class="column">
+                    <h3>Overall Details</h3>
+                    <p><strong>Status:</strong> <span id="backtesting-overall-status">Pending</span></p>
+                    <p><strong>Started:</strong> <span id="backtesting-start-time">N/A</span></p>
+                    <p><strong>Ended:</strong> <span id="backtesting-end-time">N/A</span></p>
+                    <p><strong>Duration:</strong> <span id="backtesting-duration">N/A</span></p>
+                </div>
+                <div class="column">
+                    <h3>Current Progress</h3>
+                    <p><strong>Status:</strong> <span id="backtesting-status-message">Awaiting previous stages...</span></p>
+                </div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-inner" id="backtesting-progress-bar-inner" style="width: 0%;"></div>
+            </div>
+        </div>
+
         <!-- Historical Performance Section -->
         <div class="stage-block">
             <h2>Historical Performance Trends</h2>
@@ -91,10 +111,15 @@
                     <h3>Scoring.py Duration</h3>
                     <div id="scoring-perf-chart">Loading...</div>
                 </div>
-                <!-- --- NEW: Added column for Portfolio performance chart --- -->
+            </div>
+            <div class="stage-columns">
                 <div class="column">
                     <h3>Portfolio.py Duration</h3>
                     <div id="portfolio-perf-chart">Loading...</div>
+                </div>
+                <div class="column">
+                    <h3>Backtesting.py Duration</h3>
+                    <div id="backtesting-perf-chart">Loading...</div>
                 </div>
             </div>
         </div>
@@ -119,7 +144,6 @@
                         </table>
                     </div>
                 </div>
-                <!-- --- NEW: Added block for Portfolio performance table --- -->
                 <div class="stage-block">
                     <h2>Logged Portfolio Performance Metrics</h2>
                     <div class="table-container">
@@ -128,7 +152,14 @@
                         </table>
                     </div>
                 </div>
-                <!-- --- NEW: Added blocks for GA analysis from bkp_engine.html --- -->
+                <div class="stage-block">
+                    <h2>Logged Backtesting Performance Metrics</h2>
+                    <div class="table-container">
+                        <table id="backtestingPerformanceTable">
+                            <!-- Headers will be populated by JS -->
+                        </table>
+                    </div>
+                </div>
                 <div class="stage-block">
                     <h2>GA Fitness History</h2>
                     <div id="ga-fitness-chart">Loading...</div>

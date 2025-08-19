@@ -1,13 +1,13 @@
 {
     "download_overall_status": "Completed",
-    "download_execution_start": "2025-08-13 21:12:30",
-    "download_execution_end": "2025-08-13 21:14:20",
+    "download_execution_start": "2025-08-18 15:26:35",
+    "download_execution_end": "2025-08-18 15:29:24",
     "ticker_download": {
         "current_ticker": "Finished",
-        "completed_tickers": 183,
-        "total_tickers": 183,
+        "completed_tickers": 181,
+        "total_tickers": 181,
         "progress": 100,
-        "date_range": "2020-08-13 to 2025-08-12",
-        "rows": 0
+        "date_range": "2015-08-18 to 2025-08-15",
+        "rows": 2844
     }
 }
