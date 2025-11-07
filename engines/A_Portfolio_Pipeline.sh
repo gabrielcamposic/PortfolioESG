@@ -16,12 +16,16 @@ PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
 export PYTHONPATH="$PROJECT_ROOT"
 
 # Define paths to the scripts and the main progress file
-DOWNLOAD_SCRIPT="$PROJECT_ROOT/engines/Download.py"
-SCORING_SCRIPT="$PROJECT_ROOT/engines/Scoring.py"
-PORTFOLIO_SCRIPT="$PROJECT_ROOT/engines/Portfolio.py"
-BACKTESTING_SCRIPT="$PROJECT_ROOT/engines/Backtesting.py"
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
+DOWNLOAD_SCRIPT="$PROJECT_ROOT/engines/A1_Download.py"
+SCORING_SCRIPT="$PROJECT_ROOT/engines/A2_Scoring.py"
+PORTFOLIO_SCRIPT="$PROJECT_ROOT/engines/A3_Portfolio.py"
+ANALYSIS_SCRIPT="$PROJECT_ROOT/engines/A4_Analysis.py"
 PIPELINE_JSON_FILE="$PROJECT_ROOT/html/pipeline_progress.json"
+
+# Path to the script that generates frontend JSON assets (ledger/pipeline/scored targets)
+# This was missing previously and caused an 'unbound variable' error when referenced later.
+GENERATE_ASSETS_SCRIPT="$PROJECT_ROOT/engines/B3_Generate_json.py"
 
 # --- Cleanup Trap ---
 # This function is registered to run automatically when the script exits,
@@ -52,7 +56,8 @@ update_pipeline_status() {
 run_stage() {
     local stage_name="$1"
     local script_path="$2"
-    local script_filename=$(basename "$script_path")
+    local script_filename
+    script_filename=$(basename "$script_path")
 
     log_message "Starting ${stage_name} stage (${script_filename})..." 
     update_pipeline_status "${stage_name}" "${script_filename} is running"
@@ -67,7 +72,7 @@ run_stage() {
         python_executable="python3"
     fi
 
-    if ! "$python_executable" "$script_path"; then
+    if ! (cd "$PROJECT_ROOT" && "$python_executable" "$script_path"); then
         log_message "${stage_name} stage (${script_filename}) failed. Aborting pipeline."
         update_pipeline_status "Failed" "${script_filename} encountered an error."
         exit 1
@@ -75,7 +80,6 @@ run_stage() {
 
     log_message "${stage_name} stage completed successfully."
 }
-
 
 # --- Pipeline Execution ---
 log_message "Pipeline execution started."
@@ -104,10 +108,15 @@ update_pipeline_status "Awaiting Next Stage" "Stock Scoring completed successful
 run_stage "Portfolio Optimization" "$PORTFOLIO_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Portfolio Optimization completed successfully."
 
-# 5. Run the Backtesting script
-run_stage "Portfolio Backtesting" "$BACKTESTING_SCRIPT"
+# 5. Run the Analysis KPIs script
+run_stage "Analysis" "$ANALYSIS_SCRIPT"
+update_pipeline_status "Awaiting Next Stage" "Analysis completed successfully."
 
-# 5. Finalize the pipeline status
+# 5.5 Generate frontend assets JSON (ledger/pipeline) so UI can fetch precomputed JSON
+run_stage "Generate Assets JSON" "$GENERATE_ASSETS_SCRIPT"
+update_pipeline_status "Awaiting Next Stage" "Generated assets JSON for frontend."
+
+# 7. Finalize the pipeline status
 log_message "Pipeline execution completed successfully."
 jq --arg endTime "$(date '+%Y-%m-%d %H:%M:%S')" \
    '.pipeline_run_status.status_message = "Completed" | .pipeline_run_status.current_stage = "Completed" | .pipeline_run_status.end_time = $endTime' \

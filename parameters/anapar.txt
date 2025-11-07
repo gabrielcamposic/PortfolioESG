@@ -1,0 +1,2 @@
+OUTPUT_CSV=~/PortfolioESG/data/findb/portfolio_timeseries.csv
+BENCHMARK_TICKERS=^BVSP,ISUS11.SA

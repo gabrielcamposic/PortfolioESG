@@ -1,2 +1,7 @@
 Ticker,Name,Sector,Industry
 ^BVSP,IBOVESPA,Benchmark,Index
+ESGB11.SA,Btg Pactual Esg Fundo De Indice S P Brazil Esg,Factor,ETF
+^GSPC,S&P 500,Benchmark,Index
+SMAL11.SA,iShares Small Cap Fundo de Indice,Factor,ETF
+IDIV.SA,It Now Indice de Dividendos Fundo de Indice,Factor,ETF
+ISUS11.SA, It Now ISE Investimento Sustentável Fundo de Índice,Factor,ETF

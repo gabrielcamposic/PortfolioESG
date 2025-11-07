@@ -3,6 +3,24 @@
  * This is the single source of truth for formatting and DOM manipulation.
  */
 
+// --- Global Chart Colors ---
+const CHART_COLORS_SOLID = [
+    'rgba(54, 162, 235, 1)',   // Blue
+    'rgba(255, 99, 132, 1)',    // Red
+    'rgba(75, 192, 192, 1)',    // Green
+    'rgba(255, 206, 86, 1)',    // Yellow
+    'rgba(153, 102, 255, 1)',  // Purple
+    'rgba(255, 159, 64, 1)',   // Orange
+    'rgba(99, 255, 132, 1)',   // Lime
+    'rgba(235, 54, 162, 1)',   // Pink
+    'rgba(86, 255, 206, 1)',   // Aqua
+    'rgba(102, 153, 255, 1)',  // Light Blue
+    'rgba(255, 64, 159, 1)',   // Magenta
+    'rgba(192, 75, 192, 1)'    // Violet
+];
+
+const CHART_COLORS_ALPHA = CHART_COLORS_SOLID.map(color => color.replace(', 1)', ', 0.7)'));
+
 // --- DOM Manipulation ---
 
 /**
@@ -92,6 +110,28 @@ async function fetchAndParseCsv(filePath) {
 // --- Formatting Functions ---
 
 /**
+ * A generic value formatter that dispatches to specific formatting functions.
+ * @param {string|number|null|undefined} value The value to format.
+ * @param {string} [format='decimal'] The format type ('percent', 'decimal', etc.).
+ * @param {string} [defaultValue='--'] The default value to return for invalid inputs.
+ * @returns {string} The formatted value as a string.
+ */
+function formatValue(value, format = 'decimal', defaultValue = '--') {
+    if (value === null || value === undefined || value === '' || isNaN(parseFloat(value))) {
+        return defaultValue;
+    }
+    const num = parseFloat(value);
+    switch (format) {
+        case 'percent':
+            return `${(num * 100).toFixed(2)}%`;
+        case 'decimal':
+            return num.toFixed(2);
+        default:
+            return num.toFixed(2); // Default to decimal format
+    }
+}
+
+/**
  * Formats a number to a fixed number of decimal places.
  * @param {string|number|null|undefined} value The value to format.
  * @param {number} [decimals=2] The number of decimal places.
@@ -117,7 +157,7 @@ function formatDate(dateString) {
 
         const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/);
+        const useLocalGetters = dateString.includes(' ') && !dateString.endsWith('Z') && !dateString.match(/[+-]\\d{2}:\\d{2}$/);
 
         const dayName = useLocalGetters ? days[dateObj.getDay()] : days[dateObj.getUTCDay()];
         const dayOfMonth = String(useLocalGetters ? dateObj.getDate() : dateObj.getUTCDate()).padStart(2, '0');

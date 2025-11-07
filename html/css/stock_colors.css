@@ -1,0 +1,29 @@
+/* Standardized stock color palette for all HTML pages */
+:root {
+  --stock-color-1: #1f77b4;
+  --stock-color-2: #ff7f0e;
+  --stock-color-3: #2ca02c;
+  --stock-color-4: #d62728;
+  --stock-color-5: #9467bd;
+  --stock-color-6: #8c564b;
+  --stock-color-7: #e377c2;
+  --stock-color-8: #7f7f7f;
+  --stock-color-9: #bcbd22;
+  --stock-color-10: #17becf;
+  /* Add more as needed */
+}
+
+/* Example: assign color classes for up to 10 stocks */
+.stock-color-1 { color: var(--stock-color-1) !important; }
+.stock-color-2 { color: var(--stock-color-2) !important; }
+.stock-color-3 { color: var(--stock-color-3) !important; }
+.stock-color-4 { color: var(--stock-color-4) !important; }
+.stock-color-5 { color: var(--stock-color-5) !important; }
+.stock-color-6 { color: var(--stock-color-6) !important; }
+.stock-color-7 { color: var(--stock-color-7) !important; }
+.stock-color-8 { color: var(--stock-color-8) !important; }
+.stock-color-9 { color: var(--stock-color-9) !important; }
+.stock-color-10 { color: var(--stock-color-10) !important; }
+
+/* For chart backgrounds, use lighter variants if needed */
+

@@ -1,326 +1,240 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     padding-right: 20px; 
-    padding-bottom: 40px; /* More space at the bottom */
+    padding-bottom: 40px; 
     padding-left: 20px;  
-    background-color: #ffffff; 
-    color: #3c4043; /* Google's primary text color */
-    font-size: 1rem;
-    line-height: 1.6; /* Improved line height for readability */
+    background-color: #f4f6fa;
+    color: #23272f;
+    font-size: 0.97rem;
+    line-height: 1.4;
+    padding-top: 0;
+    max-width: none;
 }
 
-h1 {
-    color: #202124; /* Darker, more modern heading color */
-    text-align: left;
-    margin-top: 15px; 
-    margin-bottom: 10px; 
-    font-size: 2.5em; 
-    font-weight: 700; /* Bolder */
-    letter-spacing: -0.5px;
-}
-
-.page-subtitle { /* Style for the new subtitle on index.html */
-    font-size: 1.5em; /* Slightly larger */
-    color: #5f6368; /* Softer subtitle color */
-    margin-top: 0; 
-    margin-bottom: 40px; 
-    font-weight: 400; 
-    text-align: left;
-    line-height: 1.5;
-}
-
-/* REMOVE OLD NAV STYLES: The styles for the old left-hand navigation (generic 'nav' selector, .nav-section-title, nav h2, nav a, #nav-pipeline-status-details, .nav-divider, .nav-footer, etc.) should be removed or commented out as they conflict with the new top navbar styled by css/navbar_styles.css */
-
-/* Common Content Block Styles */
-.stage-block {
-    background-color: #fff;
-    /* border: 1px solid #e0e0e0; */ /* Removed border */
-    padding: 20px 0; 
-    margin-bottom: 30px; 
-    /* border-radius: 6px; */ /* Removed border-radius for a flatter look */
-    /* box-shadow: 0 2px 4px rgba(0,0,0,0.05); */ /* Removed shadow */
-    /* transition: border-color 0.3s ease, box-shadow 0.3s ease; */ /* No longer needed */
-    scroll-margin-top: 70px; /* Offset for fixed navbar when scrolling to an ID */
-}
-
-/* .stage-block:hover {
-     border-color: #bdc3c7;
-     box-shadow: 0 3px 6px rgba(0,0,0,0.07);
-} */ /* Removed hover effect */
-
-.stage-block h2 { /* Main title for a stage block */
-    margin-top: 0;
-    color: #202124;
-    border-bottom: 1px solid #dadce0; /* Softer border color */
-    padding-bottom: 8px;
-    margin-bottom: 20px; 
-    font-size: 2em; /* Slightly larger */
-    font-weight: 500; /* Medium weight */
-    text-align: left;
-}
-
-.stage-block h3 { /* Sub-headings within a stage block */
-    margin-top: 20px;
-    margin-bottom: 10px;
-    color: #3c4043; 
-    font-size: 1.5em;
-    font-weight: 500;
-    padding-bottom: 5px;
-    /* border-bottom: 1px solid #eee; */ /* Optional: remove for even cleaner look */
-    text-align: left;
-}
-
-.stage-block p {
-    margin-bottom: 1em; 
-    font-size: 1em; /* Standardize paragraph font size */
-    color: #5f6368; /* Softer paragraph text color */
-    line-height: 1.7; /* Increased line-height for paragraphs */
-}
-
-.stage-block strong {
-    color: #3c4043; /* Match heading text color */
-    font-weight: bold;
-}
-
-/* Table Styles */
-table {
+.main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 70px 32px 24px 32px;
+    box-sizing: border-box;
     width: 100%;
+}
+
+@media (max-width: 1200px) {
+    .main-content { padding: 88px 8px 36px 8px; }
+}
+
+/* --- Table Styles: Compact, Yahoo Finance Inspired --- */
+table, .table-container table, .compact-table {
     border-collapse: collapse;
-    margin-top: 25px; /* More space above table */
-    font-size: 0.9em; /* Standardized table font size */
-}
-
-th, td {
-    border: 1px solid #dadce0; /* Softer border */
-    padding: 6px; /* Standardized padding */
-    text-align: left;
-    white-space: nowrap;
-}
-
-th {
-    background-color: #f2f2f2;
-    font-weight: 500; /* Medium weight for table headers */
-}
-
-tr:nth-child(even) {
-    background-color: #f8f9fa; /* Slightly different even row color */
-}
-
-.table-container {
-    overflow-x: auto;
-}
-
-/* Chart Styles */
-.chart-container {
-    width: 80%;
-    max-width: 900px;
-    margin: 30px auto;
-}
-
-/* Status Text Colors (used in nav and pipeline.html main content) */
-.status-text.status-pending { color: #f39c12; font-weight: 600; }
-.status-text.status-running { color: #3498db; font-weight: 600; }
-.status-text.status-completed { color: #27ae60; font-weight: 600; }
-.status-text.status-error { color: #e74c3c; font-weight: 600; }
-.status-text.status-inactive { color: #6c757d; font-weight: normal; }
-
-/* Styles specific to pipeline.html structure (can be generalized if needed) */
-.stage-details, .phase-details { /* Used in pipeline.html */
-    margin-top: 15px;
-    padding-top: 15px;
-}
-
-.progress-bar { /* Used in pipeline.html */
     width: 100%;
-    background-color: #e0e0e0;
-    border-radius: 5px;
-    margin-top: 5px;
+    background: #fff;
+    font-size: 0.97em;
+    margin-bottom: 0;
+    table-layout: fixed;
+}
+th, td {
+    padding: 3px 6px;
+    border: none;
+    vertical-align: middle;
+    font-size: 0.93em;
+    font-weight: 400;
+    text-align: left;
+    background: none;
+}
+th {
+    font-weight: 600;
+    color: #23272f;
+    font-size: 1.05em;
+    border-bottom: 1px solid #e3e8ee;
+    background: #f7fafd;
+}
+td {
+    color: #23272f;
+    font-size: 1em;
+    background: #fff;
+}
+tr {
+    border-bottom: 1px solid #eceef1;
+}
+tr:last-child { border-bottom: none; }
+
+/* Remove alternating row backgrounds for a cleaner look */
+tr:nth-child(even) td, tr:nth-child(odd) td {
+    background: #fff;
+}
+
+/* --- Box/Card/Section Consistency --- */
+.stage-block, .section-card, .metrics-section {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(60,64,67,0.06);
+    border: 1px solid #e3e8ee;
+    padding: 12px 12px 12px 12px;
+    margin-bottom: 28px;
+}
+
+/* Remove colored left border/highlight from .section-card */
+.section-card {
+    border-left: none;
+}
+
+/* --- Chart/Container Fit --- */
+.chart-container {
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    margin-bottom: 0;
+    width: 100%;
+    min-width: 0;
+    overflow: visible; /* Allow charts to expand naturally */
+    display: block;
+}
+.chart-inner {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 140px;
+    max-height: none;
+    aspect-ratio: unset;
+    display: block;
+    overflow: visible;
+}
+
+/* Chart card: boxed small card used for compact charts and metric blocks */
+.chart-card {
+    margin-bottom: 6px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #e6eef5;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+/* Utility helpers */
+.hidden { display: none !important; }
+
+/* Muted stage block variant used for small inner sections */
+.stage-block.muted { background: #f9fafb; border: none; }
+.stage-block.muted.mt-8 { margin-top: 8px; }
+
+/* Small spacing helper for subtle paragraphs */
+p.subtle { margin-bottom: 8px; }
+
+/* Narrow table container helper (used for fixed-width metric boxes) */
+.table-container.narrow { max-width: 480px; }
+
+/* Specific min-height for the compact composition chart (moved from inline) */
+#portfolioCompositionStackedBarChart.chart-inner { min-height: 120px; }
+
+/* Responsive tweaks for compact chart-cards */
+@media (max-width: 600px) {
+    .chart-card { padding: 4px; }
+    #portfolioCompositionStackedBarChart.chart-inner { min-height: 90px; }
+}
+
+/* Small legend paragraph variant used in attribution block */
+.legend { margin-top: 6px; font-size: 0.9em; color: inherit; }
+
+/* Divider top used for emphasized table rows */
+.divider-top { border-top: 2px solid #333; }
+
+/* --- Headings & Font Consistency --- */
+h1, .main-content h1 {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: #0d133d;
+    margin-top: 0;
+    margin-bottom: 18px;
+    letter-spacing: -1px;
+    text-align: left;
+}
+h2, .main-content h2, .stage-block h2, .section-card h2 {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #23272f;
+    margin-top: 0;
     margin-bottom: 12px;
-    overflow: hidden;
-    height: 20px;
+    letter-spacing: -0.5px;
+    text-align: left;
+    border-bottom: none;
+    padding-bottom: 0;
 }
-
-.progress-bar-inner { /* Used in pipeline.html */
-    height: 100%;
-    background-color: #27ae60;
-    width: 0%;
-    text-align: center;
-    line-height: 20px;
-    color: #ffffff;
-    font-size: 0.8em;
-}
-
-/* Remove old Stage Block Status Borders */
-/* .stage-block.status-pending { border-left: 5px solid #f39c12; }
-.stage-block.status-running { border-left: 5px solid #3498db; box-shadow: 0 2px 6px rgba(52, 152, 219, 0.15); }
-.stage-block.status-completed { border-left: 5px solid #27ae60; }
-.stage-block.status-error { border-left: 5px solid #e74c3c; box-shadow: 0 2px 6px rgba(231, 76, 60, 0.15); }
-.stage-block.status-inactive { border-left: 5px solid #bdc3c7; } */
-
-/* New Stage Status Pill Styles */
-.stage-status-pill {
-    display: inline-block;
-    padding: 3px 10px;
-    margin-left: 15px;
-    border-radius: 12px; /* Pill shape */
-    font-size: 0.75em;   /* Smaller font size relative to h2 */
-    font-weight: bold;
-    color: #fff; /* Default text color, background will provide contrast */
-    vertical-align: middle; /* Align nicely with h2 text */
-}
-
-.stage-status-pill.status-pending { background-color: #fdc65a; color: #3c4043; }
-.stage-status-pill.status-running { background-color: #89b9e1; color: #fff; }
-.stage-status-pill.status-completed { background-color: #81c995; color: #fff; }
-.stage-status-pill.status-error { background-color: #f28b82; color: #fff; }
-.stage-status-pill.status-inactive { background-color: #dadce0; color: #3c4043; }
-
-/* Specific text styling from pipeline.html */
-.stage-block p span:not(.status-text) { /* Ensure non-status spans are normal */
-    color: #495057;
-    font-weight: normal;
-}
-
-.phase-details h4, .phase-details h5 { /* Used in pipeline.html */
-    margin-top: 0px;
-    margin-bottom: 0px;
-    color: #6c757d;
-    padding-bottom: 5px;
-    font-size: 1.15em;
+h3, .main-content h3, .stage-block h3, .section-card h3 {
+    font-size: 1.08em;
     font-weight: 500;
+    color: #5f6368;
+    margin-top: 0;
+    margin-bottom: 6px;
+    text-align: left;
 }
 
-.phase-details h5 .status-text { /* Used in pipeline.html */
-    font-weight: normal;
-    color: #6c757d;
-    font-size: 0.9em;
-    margin-left: 5px;
+/* --- Remove extra spacing below/above --- */
+.stage-block, .section-card, .metrics-section {
+    margin-top: 0;
+    margin-bottom: 24px;
+    padding-top: 18px;
+    padding-bottom: 18px;
 }
 
-.stage-columns { /* Used in pipeline.html */
+/* --- Miscellaneous --- */
+.header-container {
+    margin-bottom: 16px;
+}
+
+.metric-card {
+    background: #f4f6fa;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 1em;
     display: flex;
     justify-content: space-between;
-    gap: 20px;
+    align-items: center;
+    transition: background 0.18s;
+}
+.metric-card:hover {
+    background: #e3e8ee;
 }
 
-.column { /* Used in pipeline.html */
-    flex: 1;
-    text-align: left;
-}
-
-/* Styles for the project previews section */
-.project-previews-container {
-    display: flex;
-    flex-wrap: wrap; /* Allow images to wrap to the next line on smaller screens */
-    justify-content: space-around; /* Distribute space around items */
-    gap: 30px; /* Increased space between images */
-    margin-top: 25px; /* Space above the container */
-}
-
-.preview-item {
-    flex-basis: calc(50% - 30px); /* Aim for two items per row, accounting for new gap */
-    max-width: calc(50% - 30px); 
-    text-align: center;
-    /* box-shadow: 0 2px 5px rgba(0,0,0,0.1); */ /* Removed shadow for cleaner look */
-    padding: 0; /* Remove padding, rely on image margin and caption margin */
-    /* border-radius: 8px; */ /* Removed border-radius */
-    /* background-color: #fdfdfd; */ /* Removed background color */
-    box-sizing: border-box; /* Include padding and border in the element's total width and height */
-}
-
-.preview-item img {
-    max-width: 100%;
-    height: auto; /* Maintain aspect ratio */
-    border-radius: 8px; /* Slightly larger radius for images */
-    border: 1px solid #dadce0; /* Softer border around images */
-    display: block; /* To remove any extra space below image if it's inline */
-}
-
-.preview-item p { /* Caption styling */
-    /* margin-top: 10px; */ /* Original when caption was below */
-    margin-bottom: 12px;   /* Increased margin below the caption, above the image */
-    font-weight: bold;
-    color: #333;
-    font-size: 0.9em;
-}
-
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-    .preview-item {
-        flex-basis: calc(100% - 30px); /* One item per row on smaller screens, accounting for new gap */
-        max-width: calc(100% - 30px);
-    }
-    body {
-        padding-left: 15px;
-        padding-right: 15px;
-        font-size: 0.95rem; /* Slightly smaller base font for mobile */
-    }
-    h1 {
-        font-size: 2em;
-        margin-top: 10px;
-    }
-    .page-subtitle {
-        font-size: 1.2em;
-        margin-bottom: 30px;
-    }
-    .stage-block h2 {
-        font-size: 1.6em;
-        margin-bottom: 15px;
-    }
-    .stage-block h3 {
-        font-size: 1.3em;
-    }
-    .stage-block {
-        padding: 15px 0;
-        margin-bottom: 25px;
-    }
-    .language-switcher button { /* Style language switcher buttons for mobile */
-        padding: 6px 10px;
-        font-size: 0.9em;
-        margin: 2px;
-    }
-}
-
-/* --- Accordion Styles (for collapsible sections) --- */
-.accordion-button {
-    background-color: #f1f3f4; /* Lighter, Google-style grey */
-    color: #3c4043;
-    cursor: pointer;
-    padding: 18px;
+.table-helper-row td {
+    text-align: center !important;
+    color: #7a8599;
+    font-style: italic;
+    background: #fff !important;
+    border: none !important;
+    padding: 14px 0 !important;
+    font-size: 1em;
     width: 100%;
-    border: 1px solid #dadce0; /* Subtle border */
-    text-align: left;
-    outline: none;
-    font-size: 1em; /* Match paragraph font size */
-    font-weight: 500; /* Medium weight */
-    transition: background-color 0.4s;
-    border-radius: 4px;
-    margin-top: 20px;
 }
 
-.accordion-button.active, .accordion-button:hover {
-    background-color: #e8eaed; /* Slightly darker hover/active state */
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .main-content { padding: 8px 1vw; }
+    .stage-columns { flex-direction: column; gap: 10px; }
+}
+@media (max-width: 600px) {
+    .main-content { padding: 2px 0; }
+    .stage-block, .section-card, .metrics-section { padding: 8px 2px; }
+    .table-container, .chart-container { padding: 2px 0; }
 }
 
-.accordion-button:after {
-    content: '\002B'; /* Unicode for "plus" sign (+) */
-    color: #5f6368;
-    font-weight: bold;
-    float: right;
-    margin-left: 5px;
+.stage-columns {
+    display: flex;
+    flex-direction: row;
+    gap: 18px;
+    align-items: flex-start;
 }
-
-.accordion-button.active:after {
-    content: "\2212"; /* Unicode for "minus" sign (-) */
+.table-container {
+    flex: 1 1 0;
+    min-width: 220px;
+    width: 100%;
+    box-sizing: border-box;
 }
-
-.accordion-content {
-    padding: 0 18px;
-    background-color: #ffffff;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.2s ease-out;
-    border: 1px solid #dadce0;
-    border-top: none;
-    border-radius: 0 0 4px 4px;
+.column {
+    flex: 1 1 0;
+    min-width: 220px;
+    width: 100%;
+    box-sizing: border-box;
 }

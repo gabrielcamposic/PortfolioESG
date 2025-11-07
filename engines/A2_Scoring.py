@@ -134,7 +134,7 @@ def load_financials_data(params: Dict[str, Any], logger: logging.Logger) -> pd.D
     filepath = params.get("FINANCIALS_DB_FILE")
     if not filepath:
         logger.warning("'FINANCIALS_DB_FILE' not in params. Scoring will proceed without P/E data.")
-        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEps'])
+        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEPS'])
 
     try:
         logger.info(f"Loading financial data from {filepath}...")
@@ -142,10 +142,10 @@ def load_financials_data(params: Dict[str, Any], logger: logging.Logger) -> pd.D
         financials_df['LastUpdated'] = pd.to_datetime(financials_df['LastUpdated'])
         latest_financials = financials_df.sort_values('LastUpdated').drop_duplicates(subset='Stock', keep='last')
         logger.info(f"Found latest financial data for {len(latest_financials)} stocks.")
-        return latest_financials[['Stock', 'forwardPE', 'forwardEps']]
+        return latest_financials[['Stock', 'forwardPE', 'forwardEPS']]
     except FileNotFoundError:
         logger.warning(f"Financials data file not found at '{filepath}'. Scoring will proceed without P/E data.")
-        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEps'])
+        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEPS'])
 
 
 def calculate_individual_sharpe_ratios(stock_daily_returns: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
@@ -219,7 +219,7 @@ def main():
     perf_data = initialize_performance_data(SCORING_PY_VERSION)
     perf_data["param_load_duration_s"] = time.time() - overall_start_time
 
-    logger.info("Starting Scoring.py execution pipeline.")
+    logger.info("Starting A2_Scoring.py execution pipeline.")
 
     try:
         # 4. --- Data Loading ---
@@ -331,40 +331,50 @@ def main():
         sector_pe_file = params.get("SECTOR_PE_DB_FILE")
         correlation_matrix_file = params.get("CORRELATION_MATRIX_FILE")
 
-        # In /Users/gabrielcampos/PortfolioESG/engines/Scoring.py
+        # In /Users/gabrielcampos/PortfolioESG/engines/A2_Scoring.py
         # ... inside the main() function, replacing the block that starts with rename_map ...
 
         # --- PROPOSED REPLACEMENT ---
-
+        # Only rename columns once, just before saving
         rename_map = {
             'UpsidePotential': 'PotentialUpside_pct', 'MomentumScore': 'Momentum',
             'SharpeNorm': 'SharpeRatio_norm', 'UpsideNorm': 'PotentialUpside_pct_norm',
             'MomentumNorm': 'Momentum_norm'
         }
-        scored_df.rename(columns=rename_map, inplace=True)
+        # Only keep columns that exist in the DataFrame
+        columns_to_rename = {k: v for k, v in rename_map.items() if k in scored_df.columns}
+        scored_df.rename(columns=columns_to_rename, inplace=True)
 
-        # --- MODIFICATION START ---
-        # Add the hard filter to remove any stocks with 0% or negative upside potential.
-        # This ensures that only undervalued stocks are passed to the portfolio engine.
-        initial_count = len(scored_df)
-        # We filter on the newly renamed 'PotentialUpside_pct' column.
-        filtered_df = scored_df[scored_df['PotentialUpside_pct'] > 0].copy()
-        filtered_count = len(filtered_df)
+        # Filter out stocks with zero or negative upside potential (after renaming)
+        if 'PotentialUpside_pct' in scored_df.columns:
+            initial_count = len(scored_df)
+            filtered_df = scored_df[scored_df['PotentialUpside_pct'] > 0].copy()
+            filtered_count = len(filtered_df)
+            logger.info(f"Filtered out {initial_count - filtered_count} stocks with zero or negative upside potential.")
+            logger.info(f"Passing {filtered_count} high-scoring, undervalued stocks to the portfolio stage.")
+        else:
+            filtered_df = scored_df.copy()
+            logger.warning("Column 'PotentialUpside_pct' not found after renaming. No upside filter applied.")
 
-        logger.info(f"Filtered out {initial_count - filtered_count} stocks with zero or negative upside potential.")
-        logger.info(f"Passing {filtered_count} high-scoring, undervalued stocks to the portfolio stage.")
-        # --- MODIFICATION END ---
-
-        final_column_order = [
+        # Validate required columns for downstream use
+        required_columns = [
             'run_id', 'run_timestamp', 'scoring_version', 'Stock', 'Name', 'Sector', 'Industry',
             'CompositeScore', 'SharpeRatio', 'PotentialUpside_pct', 'Momentum',
             'SharpeRatio_norm', 'PotentialUpside_pct_norm', 'Momentum_norm',
             'sharpe_weight_used', 'upside_weight_used', 'momentum_weight_used',
             'AnnualizedMeanReturn', 'AnnualizedStdDev', 'CurrentPrice', 'TargetPrice',
-            'forwardPE', 'forwardEps', 'SectorMedianPE'
+            'forwardPE', 'forwardEPS', 'SectorMedianPE'
         ]
-        # Use the newly filtered_df to create the final DataFrame
-        final_df_to_save = filtered_df[[col for col in final_column_order if col in filtered_df.columns]]
+        missing_columns = [col for col in required_columns if col not in filtered_df.columns]
+        if missing_columns:
+            logger.warning(f"The following required columns are missing in the output: {missing_columns}")
+        final_df_to_save = filtered_df[[col for col in required_columns if col in filtered_df.columns]]
+
+        # Only sort and drop duplicates if necessary
+        if 'CompositeScore' in final_df_to_save.columns:
+            final_df_to_save.sort_values(by='CompositeScore', ascending=False, inplace=True)
+        if 'Stock' in final_df_to_save.columns:
+            final_df_to_save.drop_duplicates(subset=['Stock'], keep='first', inplace=True)
 
         # --- END OF REPLACEMENT ---
         # The rest of the file (saving logic) remains the same.

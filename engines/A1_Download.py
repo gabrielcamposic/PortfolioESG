@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
 # --- Script Version ---
-DOWNLOAD_PY_VERSION = "2.1.0"  # Added benchmark tickers to download process
+DOWNLOAD_PY_VERSION = "2.4.0"  # Separated benchmark metrics from stock financials
 
 # ----------------------------------------------------------- #
 #                           Libraries                         #
 # ----------------------------------------------------------- #
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta, date
 import logging, time, json, os, shutil
-from typing import Any
+from typing import Any, Tuple
 import yfinance as yfin
 from shared_tools.shared_utils import (
     setup_logger,
@@ -25,36 +26,47 @@ logging.getLogger('yfinance').setLevel(logging.ERROR)
 #                        Helper Functions                     #
 # ----------------------------------------------------------- #
 
+def get_ticker_skip_file(ticker: str, params: dict[str, Any]) -> str:
+    """Return the path to the skip file for a given ticker."""
+    findata_dir = params.get("findata_directory")
+    return os.path.join(findata_dir, ticker, "skip.json")
+
+
+def load_ticker_skip_data(ticker: str, params: dict[str, Any], logger: logging.Logger) -> list:
+    """Load skip data for a ticker from its skip.json file."""
+    skip_file = get_ticker_skip_file(ticker, params)
+    if os.path.exists(skip_file):
+        try:
+            with open(skip_file, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            logger.error(f"Could not decode skip file for {ticker} at {skip_file}. Ignoring skips for this ticker.")
+            return []
+    return []
+
+
+def save_ticker_skip_data(ticker: str, skip_data: list, params: dict[str, Any], logger: logging.Logger):
+    """Save skip data for a ticker to its skip.json file."""
+    skip_file = get_ticker_skip_file(ticker, params)
+    os.makedirs(os.path.dirname(skip_file), exist_ok=True)
+    try:
+        with open(skip_file, 'w') as f:
+            json.dump(skip_data, f, indent=4)
+        logger.info(f"Saved skip data for {ticker} to {skip_file}")
+    except Exception as e:
+        logger.error(f"Failed to save skip data for {ticker}: {e}")
+
+
 def get_missing_dates(
         ticker: str,
         start_date: datetime,
         end_date: datetime,
         params: dict[str, Any],
-        yfinance_skip_data: dict,
         all_holidays: dict,
         logger: logging.Logger
 ) -> list[datetime]:
-    """
-    Identifies missing daily data files for a stock ticker within a date range.
-
-    This function determines which business days (excluding weekends and pre-computed
-    holidays) do not have a corresponding data file in the findata directory. It also
-    respects a list of dates to explicitly skip for a given ticker.
-
-    Args:
-        ticker: The stock ticker symbol (e.g., "AALR3.SA").
-        start_date: The beginning of the date range to check.
-        end_date: The end of the date range to check.
-        params: Dictionary of loaded parameters, must contain 'findata_directory'.
-        yfinance_skip_data: A dictionary mapping tickers to a list of date strings
-                            ("YYYY-MM-DD") that should be ignored.
-        all_holidays: A pre-computed dictionary of all market holidays.
-        logger: The configured logger instance.
-
-    Returns:
-        A sorted list of datetime objects representing the missing dates.
-    """
-    if yfinance_skip_data.get(ticker) == ["ALL"]:
+    skip_data = load_ticker_skip_data(ticker, params, logger)
+    if skip_data == ["ALL"]:
         logger.info(f"Ticker {ticker} is marked for permanent skip. No missing dates will be calculated.")
         return []
 
@@ -93,7 +105,7 @@ def get_missing_dates(
     if debug_mode:
         logger.debug(f"Found {len(existing_dates)} existing data files for {ticker}.")
 
-    skipped_dates_str = yfinance_skip_data.get(ticker, [])
+    skipped_dates_str = skip_data
     skipped_dates = {datetime.strptime(d_str, "%Y-%m-%d").date() for d_str in skipped_dates_str}
     if debug_mode and skipped_dates:
         logger.debug(f"Found {len(skipped_dates)} dates to explicitly skip for {ticker}.")
@@ -115,9 +127,6 @@ def get_missing_dates(
     return missing_datetimes
 
 def initialize_performance_data(script_version: str) -> dict[str, Any]:
-    """
-    Creates and initializes a dictionary to track script performance metrics.
-    """
     timer_keys = [
         "param_load_duration_s",
         "user_agent_setup_duration_s",
@@ -137,9 +146,6 @@ def initialize_performance_data(script_version: str) -> dict[str, Any]:
     return perf_data
 
 def load_tickers_data(params: dict[str, Any], logger: logging.Logger) -> pd.DataFrame:
-    """
-    Loads tickers, names, sectors, and industries from the configured tickers file.
-    """
     tickers_file_path = params.get("TICKERS_FILE")
     if not tickers_file_path:
         logger.critical("'TICKERS_FILE' not found in parameters. Cannot load tickers.")
@@ -173,9 +179,6 @@ def load_tickers_data(params: dict[str, Any], logger: logging.Logger) -> pd.Data
         return pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry'])
 
 def save_ticker_data_to_csv(ticker: str, data: pd.DataFrame, params: dict, logger: logging.Logger) -> int:
-    """
-    Saves fetched historical data for a ticker into individual daily CSV files.
-    """
     findata_dir = params.get("findata_directory")
     debug_mode = params.get("debug_mode", False)
     if not findata_dir:
@@ -185,36 +188,55 @@ def save_ticker_data_to_csv(ticker: str, data: pd.DataFrame, params: dict, logge
         if debug_mode:
             logger.debug(f"No data provided for ticker: {ticker}. Nothing to save.")
         return 0
+    
     data_to_save = data.copy()
     if 'Date' not in data_to_save.columns:
         logger.error(f"DataFrame for {ticker} is missing the required 'Date' column. Cannot save.")
         return 0
+    
     data_to_save['Date'] = pd.to_datetime(data_to_save['Date'], errors='coerce')
     data_to_save.dropna(subset=['Date'], inplace=True)
+
     ticker_folder = os.path.join(findata_dir, ticker)
-    try:
-        os.makedirs(ticker_folder, exist_ok=True)
-    except OSError as e:
-        logger.error(f"Failed to create directory '{ticker_folder}': {e}")
-        return 0
+    os.makedirs(ticker_folder, exist_ok=True)
+
     files_saved_count = 0
     for date_obj, group in data_to_save.groupby(data_to_save['Date'].dt.date):
         if not isinstance(date_obj, date):
             logger.warning(f"Skipping group with unexpected key type: {type(date_obj)}")
             continue
+
+        # --- Data Validation and Cleaning ---
+        clean_group = group.copy()
+        numeric_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
+        for col in numeric_cols:
+            if col in clean_group.columns:
+                clean_group[col] = pd.to_numeric(clean_group[col], errors='coerce')
+        
+        clean_group.dropna(subset=numeric_cols, how='all', inplace=True)
+        
+        if clean_group.empty:
+            if debug_mode:
+                logger.debug(f"No valid numeric data for {ticker} on {date_obj}. Skipping file save.")
+            continue
+        # --- End Validation ---
+
         file_name = f"StockData_{ticker}_{date_obj.strftime('%Y-%m-%d')}.csv"
         file_path = os.path.join(ticker_folder, file_name)
         try:
-            group.to_csv(file_path, index=False)
+            # Save with explicit date format to ensure consistency
+            clean_group.to_csv(file_path, index=False, date_format='%Y-%m-%d')
             files_saved_count += 1
             if debug_mode:
                 logger.debug(f"Saved data for {ticker} on {date_obj} to {file_path}")
         except Exception as e:
             logger.warning(f"Error saving data for {ticker} on {date_obj}: {e}")
+            
     if files_saved_count > 0:
         logger.info(f"Successfully saved {files_saved_count} daily data files for {ticker}.")
     elif debug_mode:
         logger.debug(f"No new daily files were written for {ticker}.")
+        
     return files_saved_count
 
 def fetch_historical_data_for_dates(
@@ -223,9 +245,6 @@ def fetch_historical_data_for_dates(
         params: dict,
         logger: logging.Logger
 ) -> pd.DataFrame:
-    """
-    Fetches historical data from yfinance for a specific list of missing dates.
-    """
     if not missing_dates:
         return pd.DataFrame()
     start_date = min(missing_dates)
@@ -253,8 +272,11 @@ def fetch_historical_data_for_dates(
         data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
         data['Stock'] = ticker
         required_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Stock']
-        data = data[[col for col in required_cols if col in data.columns]]
-        return data
+        # Ensure all required columns exist, fill with NaN if not
+        for col in required_cols:
+            if col not in data.columns:
+                data[col] = np.nan
+        return data[required_cols]
     except Exception as e:
         logger.error(f"An error occurred during yfinance download for {ticker}: {e}")
         return pd.DataFrame()
@@ -263,25 +285,14 @@ def download_and_process_data(
         tickers_df: pd.DataFrame,
         params: dict[str, Any],
         perf_data: dict,
-        logger: logging.Logger
-) -> (dict, dict, str, int):
-    """
-    The main data processing pipeline.
-    """
+        logger: logging.Logger,
+        benchmark_tickers: list
+) -> Tuple[dict, dict, str, int]:
     logger.info("Starting main data download and processing pipeline.")
     loop_start_time = time.time()
     tickers_to_process = tickers_df['Ticker'].tolist()
     total_tickers = len(tickers_to_process)
     all_financials_data = []
-    yfinance_skip_file = params.get("YFINANCE_SKIP_FILE")
-    skip_data = {}
-    if yfinance_skip_file and os.path.exists(yfinance_skip_file):
-        try:
-            with open(yfinance_skip_file, 'r') as f:
-                skip_data = json.load(f)
-            logger.info(f"Loaded yfinance skip data for {len(skip_data)} tickers.")
-        except json.JSONDecodeError:
-            logger.error(f"Could not decode JSON from {yfinance_skip_file}. Starting with empty skip data.")
     end_date = datetime.strptime(get_previous_business_day(params, logger), '%Y-%m-%d')
     history_years = params.get("history_years", 10)
     start_date = end_date - timedelta(days=365 * history_years)
@@ -313,22 +324,32 @@ def download_and_process_data(
             info = stock.info
             if not info or 'symbol' not in info:
                 logger.warning(f"Ticker {ticker} seems invalid or delisted. Marking to skip.")
-                skip_data[ticker] = ["ALL"]
+                save_ticker_skip_data(ticker, ["ALL"], params, logger)
                 continue
+            
             forward_pe = info.get('forwardPE')
             forward_eps = info.get('forwardEps')
-            if isinstance(forward_pe, (int, float)) and forward_pe > 0 and isinstance(forward_eps, (int, float)):
+            dividend_yield = info.get('dividendYield')
+            avg_volume = info.get('averageVolume')
+
+            if forward_pe or forward_eps or dividend_yield or avg_volume:
                 all_financials_data.append({
-                    'Stock': ticker, 'forwardPE': forward_pe, 'forwardEps': forward_eps,
-                    'LastUpdated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    'Stock': ticker,
+                    'forwardPE': forward_pe,
+                    'forwardEPS': forward_eps,
+                    'dividendYield': dividend_yield,
+                    'averageVolume': avg_volume,
+                    'LastUpdated': datetime.now()
                 })
+            else:
+                logger.warning(f"Could not retrieve any key financial metrics for {ticker}.")
+
         except Exception as e:
             logger.error(f"Could not fetch .info for {ticker}: {e}. Skipping all data for this ticker.")
             continue
         missing_dates = get_missing_dates(
             ticker=ticker, start_date=start_date, end_date=end_date,
-            params=params, yfinance_skip_data=skip_data,
-            all_holidays=all_holidays, logger=logger
+            params=params, all_holidays=all_holidays, logger=logger
         )
         if not missing_dates:
             logger.debug(f"Ticker {ticker} is up-to-date. No price download needed.")
@@ -338,9 +359,12 @@ def download_and_process_data(
         failed_dates = [d.strftime('%Y-%m-%d') for d in missing_dates if d.date() not in downloaded_dates]
         if failed_dates:
             logger.warning(f"For {ticker}, {len(failed_dates)} dates failed to download. Adding to skip list.")
-            current_skips = skip_data.get(ticker, [])
+            current_skips = load_ticker_skip_data(ticker, params, logger)
+            if current_skips == ["ALL"]:
+                continue  # Already permanently skipped
             current_skips.extend(failed_dates)
-            skip_data[ticker] = sorted(list(set(current_skips)))
+            current_skips = sorted(list(set(current_skips)))
+            save_ticker_skip_data(ticker, current_skips, params, logger)
         if new_data_df.empty:
             continue
         save_ticker_data_to_csv(ticker, new_data_df, params, logger)
@@ -361,42 +385,56 @@ def download_and_process_data(
         f"Pipeline finished. Downloaded {total_rows_downloaded} new price rows for {tickers_with_new_data} tickers.",
         extra={'web_data': final_web_payload}
     )
+    # --- Save Financials Data ---
     financials_filepath = params.get("FINANCIALS_DB_FILE")
-    if all_financials_data and financials_filepath:
-        logger.info(f"Saving financial data for {len(all_financials_data)} tickers.")
+    if financials_filepath:
+        logger.info(f"Consolidating financial data for stocks. Found {len(all_financials_data)} new records.")
         new_financials_df = pd.DataFrame(all_financials_data)
-        new_financials_df['FetchDate'] = pd.to_datetime(new_financials_df['LastUpdated']).dt.date
         try:
+            existing_df = pd.DataFrame()
             if os.path.exists(financials_filepath):
-                existing_df = pd.read_csv(financials_filepath)
-                existing_df['FetchDate'] = pd.to_datetime(existing_df['LastUpdated']).dt.date
-                combined_df = pd.concat([existing_df, new_financials_df], ignore_index=True)
+                try:
+                    existing_df = pd.read_csv(financials_filepath, parse_dates=['LastUpdated'])
+                except (pd.errors.EmptyDataError, ValueError):
+                    logger.warning(f"Financials DB file '{financials_filepath}' is empty or invalid. It will be overwritten.")
+                    existing_df = pd.DataFrame()
+
+            final_cols = ['Stock', 'forwardPE', 'forwardEPS', 'dividendYield', 'averageVolume', 'LastUpdated']
+
+            if new_financials_df.empty and existing_df.empty:
+                 logger.info("No existing or new financial data. Creating an empty financials DB.")
+                 final_df_to_save = pd.DataFrame(columns=final_cols)
+            elif new_financials_df.empty:
+                logger.info("No new financial data downloaded. Verifying existing database integrity.")
+                final_df_to_save = existing_df
             else:
-                combined_df = new_financials_df
-            combined_df.sort_values(by='LastUpdated', inplace=True)
-            combined_df.drop_duplicates(subset=['Stock', 'FetchDate'], keep='last', inplace=True)
-            final_df_to_save = combined_df.drop(columns=['FetchDate'])
+                combined_df = pd.concat([existing_df, new_financials_df], ignore_index=True)
+                combined_df['LastUpdated'] = pd.to_datetime(combined_df['LastUpdated'], errors='coerce')
+                combined_df.dropna(subset=['LastUpdated'], inplace=True)
+                combined_df['FetchDate'] = combined_df['LastUpdated'].dt.date
+                combined_df.sort_values(by='LastUpdated', inplace=True)
+                combined_df.drop_duplicates(subset=['Stock', 'FetchDate'], keep='last', inplace=True)
+                final_df_to_save = combined_df.drop(columns=['FetchDate'])
+
+            for col in final_cols:
+                if col not in final_df_to_save.columns:
+                    final_df_to_save[col] = np.nan
+            
+            final_df_to_save = final_df_to_save[final_cols]
+
             os.makedirs(os.path.dirname(financials_filepath), exist_ok=True)
             final_df_to_save.to_csv(financials_filepath, index=False)
-            logger.info(
-                f"Successfully saved financial data to {financials_filepath}. Total records: {len(final_df_to_save)}.")
+            logger.info(f"Successfully saved financial data to {financials_filepath}. Total records: {len(final_df_to_save)}.")
+
         except Exception as e:
-            logger.critical(f"Failed to save financial data to '{financials_filepath}': {e}")
-    elif not financials_filepath:
-        logger.warning("'FINANCIALS_DB_FILE' not found in parameters. Cannot save financials.")
+            logger.critical(f"Failed to save financial data to '{financials_filepath}': {e}", exc_info=True)
     else:
-        logger.info("No new financial data was fetched to be saved.")
-    if yfinance_skip_file:
-        try:
-            with open(yfinance_skip_file, 'w') as f:
-                json.dump(skip_data, f, indent=4)
-            logger.info(f"Successfully saved updated yfinance skip data to {yfinance_skip_file}")
-        except Exception as e:
-            logger.error(f"Failed to save yfinance skip data: {e}")
+        logger.warning("'FINANCIALS_DB_FILE' not found in parameters. Cannot save financials.")
+
     perf_data["new_data_download_loop_duration_s"] = time.time() - loop_start_time
     perf_data["tickers_with_new_data_downloaded"] = tickers_with_new_data
     perf_data["total_tickers_processed"] = total_tickers
-    return perf_data, skip_data, date_range_str, total_rows_downloaded
+    return perf_data, None, date_range_str, total_rows_downloaded
 
 def update_master_db(
         params: dict[str, Any],
@@ -404,9 +442,6 @@ def update_master_db(
         date_range: str,
         rows_downloaded: int
 ):
-    """
-    Efficiently updates the master database by scanning for new daily files.
-    """
     findb_file = params.get("FINDB_FILE")
     findata_dir = params.get("findata_directory")
     if not findb_file or not findata_dir:
@@ -422,19 +457,25 @@ def update_master_db(
     }
     logger.info("Starting master database synchronization scan...", extra={'web_data': web_payload})
     start_time = time.time()
-    existing_records = set()
+    
     master_df = pd.DataFrame()
     if os.path.exists(findb_file):
         try:
-            master_df = pd.read_csv(findb_file, parse_dates=['Date'])
-            master_df['Date'] = pd.to_datetime(master_df['Date']).dt.date
-            existing_records = set(zip(master_df['Stock'], master_df['Date']))
+            # Dates will be parsed correctly later, so read as is.
+            master_df = pd.read_csv(findb_file)
             logger.info(f"Loaded {len(master_df)} records from existing master database.")
         except Exception as e:
             logger.critical(f"Failed to load or parse master DB at '{findb_file}': {e}. Aborting update.")
             return
     else:
         logger.info("No existing master database found. Will create a new one.")
+
+    existing_records = set()
+    if not master_df.empty:
+        # This conversion is now safe because the source files are clean.
+        temp_dates = pd.to_datetime(master_df['Date'], errors='coerce').dt.date
+        existing_records = set(zip(master_df['Stock'], temp_dates))
+
     files_to_add = []
     logger.info(f"Scanning '{findata_dir}' for new daily data files...")
     if not os.path.exists(findata_dir):
@@ -452,26 +493,44 @@ def update_master_db(
                                 files_to_add.append(os.path.join(ticker_path, filename))
                         except (ValueError, IndexError):
                             logger.warning(f"Could not parse date from filename: {filename}. Skipping.")
-    if not files_to_add:
-        logger.info("Master database is already in sync with all daily files. No update needed.")
+    
+    if not files_to_add and master_df.empty:
+        logger.info("Master database is empty and no new files to add.")
         return
+    elif not files_to_add:
+        logger.info("Master database is already in sync with all daily files. No update needed.")
+        # Save the master_df even if no new files, to apply cleaning to existing file.
+        if not master_df.empty:
+            master_df['Date'] = pd.to_datetime(master_df['Date'], errors='coerce').dt.date
+            master_df.dropna(subset=['Date'], inplace=True)
+            master_df.to_csv(findb_file, index=False, date_format='%Y-%m-%d')
+        return
+
     logger.info(f"Found {len(files_to_add)} new daily files to add to the master database.")
     new_data_frames = []
     for file_path in files_to_add:
         try:
-            df = pd.read_csv(file_path, dtype={'Stock Splits': float, 'Dividends': float})
+            df = pd.read_csv(file_path)
             new_data_frames.append(df)
         except Exception as e:
             logger.error(f"Failed to read new data file '{file_path}': {e}")
+    
     if not new_data_frames:
         logger.warning("No data could be read from the identified new files. Aborting update.")
         return
+
     try:
         new_data_df = pd.concat(new_data_frames, ignore_index=True)
         combined_df = pd.concat([master_df, new_data_df], ignore_index=True)
+        
+        # Centralized cleaning and type enforcement
+        combined_df['Date'] = pd.to_datetime(combined_df['Date'], errors='coerce').dt.date
+        combined_df.dropna(subset=['Date'], inplace=True)
+
         combined_df.sort_values(by=['Stock', 'Date'], inplace=True)
         combined_df.drop_duplicates(subset=['Stock', 'Date'], keep='last', inplace=True)
-        combined_df.to_csv(findb_file, index=False)
+        
+        combined_df.to_csv(findb_file, index=False, date_format='%Y-%m-%d')
         duration = time.time() - start_time
         logger.info(
             f"Successfully synchronized master database. Added {len(new_data_df)} new records. "
@@ -481,9 +540,6 @@ def update_master_db(
         logger.critical(f"An error occurred while saving the updated master database to '{findb_file}': {e}")
 
 def log_performance_data(perf_data: dict[str, Any], params: dict[str, Any], logger: logging.Logger):
-    """
-    Logs the script's performance metrics to a CSV file.
-    """
     log_path = params.get("DOWNLOAD_PERFORMANCE_FILE")
     if not log_path:
         logger.warning("'DOWNLOAD_PERFORMANCE_FILE' not found in parameters. Skipping performance logging.")
@@ -500,9 +556,6 @@ def log_performance_data(perf_data: dict[str, Any], params: dict[str, Any], logg
         logger.error(f"Failed to log performance data to '{log_path}': {e}")
 
 def copy_file_to_web_accessible_location(source_param_key: str, params: dict[str, Any], logger: logging.Logger):
-    """
-    Copies a file to the web-accessible data directory.
-    """
     source_path = params.get(source_param_key)
     dest_folder = params.get("WEB_ACCESSIBLE_DATA_PATH")
     if not isinstance(source_path, str) or not source_path:
@@ -527,9 +580,6 @@ def copy_file_to_web_accessible_location(source_param_key: str, params: dict[str
 # ----------------------------------------------------------- #
 
 def main():
-    """
-    The main execution pipeline for the Download.py script.
-    """
     overall_start_time = time.time()
     script_dir = os.path.dirname(os.path.abspath(__file__))
     expected_params = {
@@ -538,7 +588,7 @@ def main():
         "PIPELINE_PROGRESS_JSON_FILE": str,
         "DOWNLOAD_PROGRESS_JSON_FILE": str,
         "WEB_ACCESSIBLE_DATA_PATH": str, "FINDATA_PATH": str,
-        "FINDB_FILE": str, "FINANCIALS_DB_FILE": str, "TICKERS_FILE": str,
+        "FINDB_FILE": str, "FINANCIALS_DB_FILE": str, "BENCHMARKS_DB_FILE": str, "TICKERS_FILE": str,
         "YFINANCE_SKIP_FILE": str, "DOWNLOAD_LOG_FILE": str, "DOWNLOAD_PERFORMANCE_FILE": str,
     }
     try:
@@ -587,10 +637,9 @@ def main():
     perf_data = initialize_performance_data(DOWNLOAD_PY_VERSION)
     perf_data["param_load_duration_s"] = time.time() - overall_start_time
 
-    logger.info("Starting Download.py execution pipeline.")
+    logger.info("Starting A1_Download.py execution pipeline.")
 
     try:
-        # --- MODIFICATION START ---
         logger.info("Loading primary tickers...")
         tickers_df = load_tickers_data(params, logger)
         if tickers_df.empty:
@@ -621,10 +670,10 @@ def main():
         except Exception as e:
             logger.error(f"An error occurred while reading the benchmark tickers file: {e}")
 
+        benchmark_tickers_list = benchmarks_df['Ticker'].tolist()
         combined_tickers_df = pd.concat([tickers_df, benchmarks_df], ignore_index=True)
         combined_tickers_df.drop_duplicates(subset=['Ticker'], keep='last', inplace=True)
         logger.info(f"Total unique tickers to process (including benchmarks): {len(combined_tickers_df)}")
-        # --- MODIFICATION END ---
 
         if combined_tickers_df.empty:
             logger.critical("No valid tickers were loaded. Aborting pipeline.",
@@ -636,7 +685,8 @@ def main():
             tickers_df=combined_tickers_df,
             params=params,
             perf_data=perf_data,
-            logger=logger
+            logger=logger,
+            benchmark_tickers=benchmark_tickers_list
         )
 
         update_master_db(params, logger, date_range_str, total_rows_downloaded)
@@ -671,13 +721,13 @@ def main():
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1].lower() == 'test':
-        print("--- Running Test Suite for Download.py Functions (using shared_utils) ---")
+        print("--- Running Test Suite for A1_Download.py Functions (using shared_utils) ---")
         start_time = time.time()
         EXPECTED_PARAMS = {
             "debug_mode": bool, "history_years": int, "dynamic_user_agents_enabled": bool,
             "FALLBACK_USER_AGENTS": str, "USER_AGENT_API_URL": str, "SPECIAL_MARKET_CLOSURES": str,
             "PIPELINE_JSON_FILE": str, "DOWNLOAD_JSON_FILE": str, "WEB_ACCESSIBLE_DATA_PATH": str, "FINDATA_PATH": str,
-            "FINDB_FILE": str, "FINANCIALS_DB_FILE": str, "TICKERS_FILE": str,
+            "FINDB_FILE": str, "FINANCIALS_DB_FILE": str, "BENCHMARKS_DB_FILE": str, "TICKERS_FILE": str,
             "YFINANCE_SKIP_FILE": str, "DOWNLOAD_LOG_FILE": str, "DOWNLOAD_PERFORMANCE_FILE": str,
         }
         SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -717,6 +767,7 @@ if __name__ == "__main__":
             live_test_params["TICKERS_FILE"] = temp_tickers_file
             live_test_params["findata_directory"] = temp_findata_path
             live_test_params["FINANCIALS_DB_FILE"] = os.path.join(temp_findb_path, "financials_db_test.csv")
+            live_test_params["BENCHMARKS_DB_FILE"] = os.path.join(temp_findb_path, "benchmarks_db_test.csv")
             live_test_params["YFINANCE_SKIP_FILE"] = os.path.join(temp_findb_path, "yfinance_skip_test.json")
             live_test_params["DOWNLOAD_PERFORMANCE_FILE"] = os.path.join(temp_findb_path, "perf_test.csv")
             live_test_params["WEB_ACCESSIBLE_DATA_PATH"] = temp_web_path
@@ -725,7 +776,7 @@ if __name__ == "__main__":
             initial_perf_data = initialize_performance_data(DOWNLOAD_PY_VERSION)
             final_perf_data, final_skip_data, _, _ = download_and_process_data(
                 tickers_df=test_tickers_df, params=live_test_params,
-                perf_data=initial_perf_data, logger=test_logger
+                perf_data=initial_perf_data, logger=test_logger, benchmark_tickers=[]
             )
             log_performance_data(final_perf_data, live_test_params, test_logger)
             copy_file_to_web_accessible_location("DOWNLOAD_PERFORMANCE_FILE", live_test_params, test_logger)

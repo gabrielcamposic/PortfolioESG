@@ -50,7 +50,7 @@ CPLE3.SA,Companhia Paranaense de Energia - COPEL,Utilities,Utilities - Regulated
 CPLE6.SA,Companhia Paranaense de Energia - COPEL,Utilities,Utilities - Regulated Electric
 CSAN3.SA,Cosan S.A.,Energy,Oil & Gas Refining & Marketing
 CSED3.SA,Cruzeiro do Sul Educacional S.A.,Consumer Defensive,Education & Training Services
-CSMG3.SA,Companhia de Saneamento de Minas Gerais,Utilities,Utilities - Regulated Water
+CSMG3.SA,COPASA ON NM,Utilities,Utilities - Regulated Water
 CSNA3.SA,Companhia Siderúrgica Nacional,Basic Materials,Steel
 CURY3.SA,Cury Construtora e Incorporadora S.A.,Real Estate,Real Estate - Development
 CXSE3.SA,Caixa Seguridade Participações S.A.,Financial Services,Insurance - Diversified
@@ -138,7 +138,7 @@ PETR3.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated
 PETR4.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated
 PETZ3.SA,Pet Center Comércio e Participações S.A.,Consumer Cyclical,Specialty Retail
 PGMN3.SA,Empreendimentos Pague Menos S.A.,Healthcare,Pharmaceutical Retailers
-PLPL3.SA,Plano & Plano Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate - Development
+PLPL3.SA,PLANOEPLANO ON NM,Real Estate,Real Estate - Development
 PNVL3.SA,Dimed S.A. Distribuidora de Medicamentos,Healthcare,Drug Manufacturers - General
 PORT3.SA,Wilson Sons S.A.,Industrials,Marine Shipping
 POSI3.SA,Positivo Tecnologia S.A.,Technology,Computer Hardware
@@ -184,8 +184,11 @@ VITT3.SA,Vittia S.A.,Basic Materials,Agricultural Inputs
 VIVA3.SA,Vivara Participações S.A.,Consumer Cyclical,Luxury Goods
 VIVT3.SA,Telefônica Brasil S.A.,Communication Services,Telecom Services
 VLID3.SA,Valid Soluções S.A.,Industrials,Specialty Business Services
-VULC3.SA,Vulcabras S.A.,Consumer Cyclical,Footwear & Accessories
+VULC3.SA,VULCABRAS ON NM,Consumer Cyclical,Footwear & Accessories
 VVAR3.SA,N/A,Unknown,Unknown
 VVEO3.SA,CM Hospitalar S/A,Healthcare,Medical Distribution
 WEGE3.SA,WEG S.A.,Industrials,Electrical Equipment & Parts
 YDUQ3.SA,Yduqs Participações S.A.,Consumer Defensive,Education & Training Services
+
+
+

@@ -1,6 +1,5 @@
 /* navbar_styles.css */
 body {
-    margin-top: 70px; /* Adjust based on navbar height to prevent content overlap */
     padding-top: 0;
 }
 
@@ -10,27 +9,33 @@ body {
     left: 0;
     width: 100%;
     z-index: 1000;
-    background-color: #ffffff; /* White background for the navbar */
-    border-bottom: 1px solid #dadce0; /* Subtle border like Google's headers */
-    /* box-shadow: 0 2px 4px rgba(0,0,0,0.1); */ /* Optional: remove or soften shadow */
+    background: rgba(255,255,255,0.97); /* Subtle transparency */
+    border-bottom: 1px solid #dadce0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07); /* Soft shadow */
+    transition: box-shadow 0.2s;
 }
 
 #top-navbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 32px;
     height: 60px;
-    max-width: 1200px; 
-    margin: 0 auto; 
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .nav-logo a {
-    color: #202124; /* Darker text color for logo, matching h1 */
-    font-size: 1.5em;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Consistent font */
-    font-weight: bold;
+    color: #202124;
+    font-size: 1.7em;
+    font-weight: 800;
+    letter-spacing: -1px;
     text-decoration: none;
+    transition: color 0.2s;
+}
+
+.nav-logo a:hover {
+    color: #3a7bd5;
 }
 
 .nav-links {
@@ -38,40 +43,31 @@ body {
     margin: 0;
     padding: 0;
     display: flex;
+    gap: 22px;
 }
 
 .nav-links li {
-    margin-left: 15px;
-    flex-shrink: 0; /* Prevent list items from shrinking too much */
-}
-
-.nav-links li:first-child {
-    margin-left: 0;
+    flex-shrink: 0;
 }
 
 .nav-links a {
-    color: #5f6368; /* Softer link color, matching page subtitle */
+    color: #23272f;
+    font-size: 1.13em;
+    font-weight: 500;
     text-decoration: none;
-    font-size: 1em;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Consistent font */
-    padding: 10px 15px;
+    padding: 6px 10px;
     border-radius: 4px;
-    transition: background-color 0.3s ease, color 0.3s ease;
-    white-space: nowrap; /* Prevent text within a link from wrapping */
-    font-weight: 500; /* Medium weight for nav links */
+    transition: background 0.18s, color 0.18s;
 }
 
-/* Style for hovered links */
-.nav-links a:hover {
-    background-color: #f1f3f4; /* Lighter hover background */
-    color: #202124; /* Darker text on hover */
+.nav-links a:hover, .nav-links a:focus {
+    background: #f0f4fa;
+    color: #3a7bd5;
 }
 
-/* Style for the currently active page link */
-#top-navbar .nav-links a.active { /* Increased specificity by adding the parent ID */
-    background-color: #e8f0fe; /* Light blue background for active, Google-like */
-    color: #1967d2; /* Blue text for active, Google-like */
-    font-weight: 600;
+.nav-links a.active {
+    color: #3a7bd5;
+    background: #e3e8ee;
 }
 
 .nav-status-widget {
@@ -129,89 +125,64 @@ body {
 
 /* Hamburger Menu Styles */
 .nav-toggle {
-    display: none; /* Hidden by default, shown on mobile */
-    background: transparent;
-    border: 0;
+    display: none;
+    background: none;
+    border: none;
     cursor: pointer;
-    padding: 0.5em;
-    position: relative; 
-    z-index: 1001; 
+    margin-left: 18px;
 }
 
 .hamburger-icon {
+    width: 28px;
+    height: 3px;
+    background: #23272f;
     display: block;
     position: relative;
-    width: 25px; 
-    height: 3px; 
-    background: #5f6368; 
     border-radius: 2px;
-    transition: all 0.2s ease-in-out;
+    transition: background 0.2s;
 }
 
-.hamburger-icon::before,
-.hamburger-icon::after {
+.hamburger-icon::before, .hamburger-icon::after {
     content: '';
     position: absolute;
     left: 0;
-    width: 100%;
-    height: 3px; 
-    background: #5f6368; 
+    width: 28px;
+    height: 3px;
+    background: #23272f;
     border-radius: 2px;
-    transition: all 0.2s ease-in-out;
+    transition: transform 0.2s;
 }
 
-.hamburger-icon::before {
-    top: -8px; 
-}
-
-.hamburger-icon::after {
-    bottom: -8px; 
-}
+.hamburger-icon::before { top: -9px; }
+.hamburger-icon::after { top: 9px; }
 
 /* Mobile Navigation Styles */
-@media (max-width: 768px) {
-    .nav-toggle {
-        display: block; /* Show hamburger on mobile */
-    }
+@media (max-width: 900px) {
+    #top-navbar { padding: 0 10px; }
+    .nav-links { gap: 10px; }
+}
 
+@media (max-width: 700px) {
     .nav-links {
-        display: none; /* Hide links by default on mobile */
         position: absolute;
-        top: 60px; /* Position below the navbar (assuming navbar height is 60px) */
-        left: 0;
+        top: 60px;
         right: 0;
-        background-color: #ffffff; /* Background for mobile menu */
+        background: #fff;
         flex-direction: column;
-        width: 100%;
-        text-align: center;
-        box-shadow: 0 2px 2px rgba(0,0,0,0.1);
-        border-top: 1px solid #dadce0;
+        width: 180px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        border-radius: 0 0 8px 8px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-10px);
+        transition: opacity 0.2s, transform 0.2s;
     }
-
     .nav-links.nav-links-active {
-        display: flex; /* Show when active */
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
     }
-
-    .nav-links li {
-        margin: 0;
-    }
-
-    .nav-links a {
+    .nav-toggle {
         display: block;
-        padding: 1em; /* Larger touch target */
-        border-bottom: 1px solid #f1f3f4; /* Separator for links */
-    }
-    .nav-links li:last-child a {
-        border-bottom: none;
-    }
-
-    .nav-status-widget {
-        /* Hide status widget on small screens if it causes layout issues, or adjust its position */
-        /* display: none; */
-        margin-left: auto; /* Push to right if nav-links are hidden */
-        margin-right: 5px; /* Space from hamburger */
-    }
-    #top-navbar {
-        padding: 0 15px; /* Reduce navbar padding on mobile */
     }
 }

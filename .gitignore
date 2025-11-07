@@ -41,6 +41,9 @@ html/data/
 logs/
 *.logs
 test_tools/
+*.json
+old_*.*
+Notas_Negociação/
 
 # IDE files
 .idea/

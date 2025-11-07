@@ -35,7 +35,7 @@ class JsonWebLogHandler(logging.Handler):
                     with open(self.filename, 'r') as f:
                         data = json.load(f)
                 except (FileNotFoundError, json.JSONDecodeError):
-                    # This is a fallback. Pipeline.sh should have created the file.
+                    # This is a fallback. A_Portfolio_Pipeline.sh should have created the file.
                     # If it's missing mid-run, something is very wrong, but we
                     # shouldn't crash the logger. We'll start fresh and log a warning.
                     print(f"WARNING: JsonWebLogHandler could not read '{self.filename}'. Starting with a new dictionary.")

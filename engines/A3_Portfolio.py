@@ -771,7 +771,7 @@ def main():
     perf_data = initialize_performance_data(PORTFOLIO_PY_VERSION)
     perf_data["param_load_duration_s"] = time.time() - overall_start_time
 
-    logger.info("Starting Portfolio.py execution pipeline.",
+    logger.info("Starting A3_Portfolio.py execution pipeline.",
                 extra={'web_data': {"status_message": "Parameters loaded."}})
 
     best_combo, best_weights, best_sharpe, best_exp_ret, best_vol = [None] * 5
@@ -829,7 +829,7 @@ def main():
     except Exception as e:
         logger.critical(f"An unhandled exception occurred: {e}", exc_info=True,
                         extra={'web_data': {"portfolio_status": "Failed", "status_message": str(e)}})
-        # In /Users/gabrielcampos/PortfolioESG/engines/Portfolio.py
+        # In /Users/gabrielcampos/PortfolioESG/engines/A3_Portfolio.py
 
         # ... inside the main() function, after the 'except' block ...
 
@@ -848,8 +848,8 @@ def main():
                 "engine_version": PORTFOLIO_PY_VERSION,
                 "min_stocks": params.get("min_stocks"),
                 "max_stocks": params.get("max_stocks"),
-                "stocks": ','.join(best_combo),
-                "weights": ','.join(map(str, [round(w, 4) for w in best_weights])),
+                "stocks": ', '.join(best_combo),
+                "weights": ', '.join(map(str, [round(w, 4) for w in best_weights])),
                 "sharpe_ratio": round(best_sharpe, 4),
                 "expected_return_annual_pct": round(best_exp_ret * 100, 2),
                 "expected_volatility_annual_pct": round(best_vol * 100, 2),
@@ -881,6 +881,94 @@ def main():
                         logger.error(f"Failed to save GA fitness to {ga_db_path}: {e}")
 
             # 4. Create the latest_run_summary.json file for the main portfolio page
+            # Calculate additional metrics for Factor & Style Diagnostics
+
+            # 4.1 Sector Exposure - Calculate percentage allocation by sector
+            sector_exposure = {}
+            for stock, weight in zip(best_combo, best_weights):
+                sector = stock_sector_map.get(stock, 'Unknown')
+                sector_exposure[sector] = sector_exposure.get(sector, 0) + weight
+            sector_exposure = {k: round(v, 4) for k, v in sector_exposure.items()}
+
+            # 4.2 Concentration Risk - Calculate HHI and Top 5 holdings
+            hhi = sum(w ** 2 for w in best_weights)
+            sorted_holdings = sorted(zip(best_combo, best_weights), key=lambda x: x[1], reverse=True)
+            top_5_holdings = sorted_holdings[:5]
+            top_5_pct = sum(h[1] for h in top_5_holdings)
+
+            # 4.3 Portfolio-weighted Forward P/E & Momentum & Valuation Metrics
+            # Load scored stocks to get forwardPE and Momentum
+            scored_stocks_file = params.get("SCORED_STOCKS_DB_FILE")
+            financials_file = params.get("FINANCIALS_FILE")
+
+            portfolio_weighted_pe = None
+            portfolio_momentum = None
+            portfolio_dividend_yield = None
+            benchmark_weighted_pe = None
+
+            if scored_stocks_file and os.path.exists(scored_stocks_file):
+                try:
+                    scored_df = pd.read_csv(scored_stocks_file)
+                    latest_run_id_scored = scored_df['run_id'].max()
+                    latest_scored = scored_df[scored_df['run_id'] == latest_run_id_scored]
+
+                    # Calculate portfolio-weighted Forward P/E
+                    weighted_pe_sum = 0
+                    total_weight_with_pe = 0
+                    for stock, weight in zip(best_combo, best_weights):
+                        stock_data = latest_scored[latest_scored['Stock'] == stock]
+                        if not stock_data.empty:
+                            forward_pe = stock_data['forwardPE'].values[0]
+                            if pd.notna(forward_pe) and forward_pe > 0:
+                                weighted_pe_sum += forward_pe * weight
+                                total_weight_with_pe += weight
+
+                    if total_weight_with_pe > 0:
+                        portfolio_weighted_pe = round(weighted_pe_sum / total_weight_with_pe, 2)
+
+                    # Calculate portfolio-weighted Momentum
+                    weighted_momentum_sum = 0
+                    total_weight_with_momentum = 0
+                    for stock, weight in zip(best_combo, best_weights):
+                        stock_data = latest_scored[latest_scored['Stock'] == stock]
+                        if not stock_data.empty:
+                            momentum = stock_data['Momentum'].values[0]
+                            if pd.notna(momentum):
+                                weighted_momentum_sum += momentum * weight
+                                total_weight_with_momentum += weight
+
+                    if total_weight_with_momentum > 0:
+                        portfolio_momentum = round(weighted_momentum_sum / total_weight_with_momentum, 4)
+
+                    # Calculate benchmark-weighted Forward P/E (using top scored stocks as proxy)
+                    benchmark_stocks = latest_scored.head(50)  # Use top 50 as benchmark proxy
+                    valid_pes = benchmark_stocks[benchmark_stocks['forwardPE'].notna() & (benchmark_stocks['forwardPE'] > 0)]
+                    if not valid_pes.empty:
+                        benchmark_weighted_pe = round(valid_pes['forwardPE'].mean(), 2)
+
+                except Exception as e:
+                    logger.warning(f"Could not calculate portfolio metrics: {e}")
+
+            # Calculate portfolio-weighted Dividend Yield
+            if financials_file and os.path.exists(financials_file):
+                try:
+                    financials_df = pd.read_csv(financials_file)
+
+                    weighted_div_yield_sum = 0
+                    total_weight_with_div = 0
+                    for stock, weight in zip(best_combo, best_weights):
+                        stock_fin = financials_df[financials_df['Stock'] == stock]
+                        if not stock_fin.empty:
+                            div_yield = stock_fin['dividendYield'].values[0]
+                            if pd.notna(div_yield) and div_yield > 0:
+                                weighted_div_yield_sum += div_yield * weight
+                                total_weight_with_div += weight
+
+                    if total_weight_with_div > 0:
+                        portfolio_dividend_yield = round(weighted_div_yield_sum / total_weight_with_div, 2)
+                except Exception as e:
+                    logger.warning(f"Could not calculate portfolio dividend yield: {e}")
+
             latest_summary = {
                 "last_updated_run_id": run_id,
                 "last_updated_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -890,7 +978,20 @@ def main():
                     "sharpe_ratio": round(best_sharpe, 4),
                     "expected_return_annual_pct": round(best_exp_ret * 100, 2),
                     "expected_volatility_annual_pct": round(best_vol * 100, 2),
-                    "initial_investment": params.get("initial_investment")
+                    "initial_investment": params.get("initial_investment"),
+                    "sector_exposure": sector_exposure,
+                    "concentration_risk": {
+                        "hhi": round(hhi, 4),
+                        "top_5_holdings_pct": round(top_5_pct, 4),
+                        "top_5_holdings": [{"stock": h[0], "weight": round(h[1], 4)} for h in top_5_holdings]
+                    },
+                    "portfolio_weighted_pe": portfolio_weighted_pe,
+                    "momentum_valuation": {
+                        "portfolio_momentum": portfolio_momentum,
+                        "portfolio_forward_pe": portfolio_weighted_pe,
+                        "benchmark_forward_pe": benchmark_weighted_pe,
+                        "portfolio_dividend_yield": portfolio_dividend_yield
+                    }
                 }
             }
             latest_summary_path = os.path.join(params.get("WEB_ACCESSIBLE_DATA_PATH"), "latest_run_summary.json")
