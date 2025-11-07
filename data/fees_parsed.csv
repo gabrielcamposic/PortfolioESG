@@ -1,0 +1,11 @@
+transaction_id,category,kind,fee_type,amount,currency,description
+15030227,Clearing,fee,Taxa de liquidação/CCP,0.22,BRL,Taxa de liquidação/CCP
+15030227,Clearing,fee,Taxa de registro,0.00,BRL,Taxa de registro
+15030227,Bolsa,fee,Taxa de termo/opções,0.00,BRL,Taxa de termo/opções
+15030227,Bolsa,fee,Emolumentos,0.04,BRL,Emolumentos
+15030227,Depositária,fee,Taxa de Transferência de Ativos,0.02,BRL,Taxa de Transferência de Ativos
+15088606,Clearing,fee,Taxa de liquidação/CCP,0.20,BRL,Taxa de liquidação/CCP
+15088606,Clearing,fee,Taxa de registro,0.00,BRL,Taxa de registro
+15088606,Bolsa,fee,Taxa de termo/opções,0.00,BRL,Taxa de termo/opções
+15088606,Bolsa,fee,Emolumentos,0.04,BRL,Emolumentos
+15088606,Depositária,fee,Taxa de Transferência de Ativos,0.02,BRL,Taxa de Transferência de Ativos
