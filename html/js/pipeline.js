@@ -8,7 +8,7 @@
 // --- Configuration ---
 const POLLING_INTERVAL_MS = 5000; // 5 seconds
 const PROGRESS_FILES = {
-    download: 'download_progress.json',
+    download: 'data/download_progress.json',
     scoring: 'scoring_progress.json',
     portfolio: 'portfolio_progress.json',
     backtesting: 'backtesting_progress.json'

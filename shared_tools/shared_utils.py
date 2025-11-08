@@ -3,6 +3,7 @@
 import json
 import os
 import logging
+import tempfile
 from datetime import datetime, timedelta
 from dateutil.easter import easter
 from holidays.countries.brazil import Brazil as BrazilHolidays
@@ -29,19 +30,15 @@ class JsonWebLogHandler(logging.Handler):
             web_data_to_log = record.web_data
 
             try:
-                # Atomically read, update, and write the JSON file.
-                # Step 1: Read the current state of the JSON file.
+                # Read current state of the JSON file.
                 try:
-                    with open(self.filename, 'r') as f:
+                    with open(self.filename, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                 except (FileNotFoundError, json.JSONDecodeError):
-                    # This is a fallback. A_Portfolio_Pipeline.sh should have created the file.
-                    # If it's missing mid-run, something is very wrong, but we
-                    # shouldn't crash the logger. We'll start fresh and log a warning.
                     print(f"WARNING: JsonWebLogHandler could not read '{self.filename}'. Starting with a new dictionary.")
                     data = {}
 
-                # Step 2: Recursively update the dictionary. This handles nested updates correctly.
+                # recursive update
                 def recursive_update(d, u):
                     for k, v in u.items():
                         if isinstance(v, dict) and k in d and isinstance(d[k], dict):
@@ -52,13 +49,43 @@ class JsonWebLogHandler(logging.Handler):
 
                 data = recursive_update(data, web_data_to_log)
 
-                # Step 3: Write the entire updated dictionary back to the file.
-                with open(self.filename, 'w') as f:
+                # Write updated dictionary back to file using standard json.dump (non-atomic for now)
+                dir_name = os.path.dirname(self.filename) or '.'
+                os.makedirs(dir_name, exist_ok=True)
+                with open(self.filename, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=4)
 
             except Exception as e:
-                # Use a print statement as a last resort.
                 print(f"CRITICAL: JsonWebLogHandler failed to write to '{self.filename}': {e}")
+
+# Keep write_json_atomic available here for centralized use by A1_Download.py
+def write_json_atomic(path: str, data: Dict[str, Any]) -> None:
+    """
+    Write a JSON file atomically: write to a temp file in the same directory and replace.
+    Keeps UTF-8 and pretty formatting and ensures the directory exists.
+    """
+    if not path:
+        raise ValueError("No path provided for write_json_atomic")
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd = None
+    tmp_path = None
+    try:
+        fd, tmp_path = tempfile.mkstemp(prefix='.tmp_json_', dir=directory)
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            fd = None
+            json.dump(data, f, indent=4, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, path)
+    except Exception:
+        # Ensure tmp file is removed on failure
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+        raise
 
 def setup_logger(logger_name, log_file, web_log_file, level=logging.INFO):
     """

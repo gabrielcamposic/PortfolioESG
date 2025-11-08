@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Generate JSON files consumed by html/assets.js:
+Generate JSON files consumed by html/ledger.js:
  - data/ledger_positions.json   : array { positions: [...] }
  - data/pipeline_latest.json    : latest pipeline composition + computed projected quantities and totals
  - data/scored_targets.json     : mapping of normalized ticker -> target price and symbol map
 
-This script mirrors logic from html/js/assets.js but runs server-side so the frontend can fetch ready-made JSON.
+This script mirrors logic from html/js/ledger.js but runs server-side so the frontend can fetch ready-made JSON.
 """
 
 import csv

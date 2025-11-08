@@ -18,6 +18,8 @@ from shared_tools.shared_utils import (
     get_previous_business_day,
     get_sao_paulo_holidays
 )
+import tempfile
+from shared_tools.shared_utils import write_json_atomic
 
 # Suppress yfinance's own logs to clean up the console output.
 logging.getLogger('yfinance').setLevel(logging.ERROR)
@@ -287,7 +289,7 @@ def download_and_process_data(
         perf_data: dict,
         logger: logging.Logger,
         benchmark_tickers: list
-) -> Tuple[dict, dict, str, int]:
+) -> Tuple[dict, Any, str, int]:
     logger.info("Starting main data download and processing pipeline.")
     loop_start_time = time.time()
     tickers_to_process = tickers_df['Ticker'].tolist()
@@ -319,6 +321,23 @@ def download_and_process_data(
         if i == 0:
             web_payload["download_execution_start"] = perf_data.get("run_start_timestamp")
         logger.info(f"Processing {ticker} ({i + 1}/{total_tickers})", extra={'web_data': web_payload})
+        # --- write progress JSON atomically (safe for frontend consumption) ---
+        try:
+            download_progress_file = params.get("DOWNLOAD_PROGRESS_JSON_FILE")
+            if download_progress_file:
+                write_json_atomic(download_progress_file, web_payload)
+                # also write into web-accessible data folder if configured
+                web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
+                if web_folder:
+                    try:
+                        os.makedirs(web_folder, exist_ok=True)
+                        web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
+                        write_json_atomic(web_path, web_payload)
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.debug(f"Could not write download progress JSON for {ticker}: {e}")
+
         try:
             stock = yfin.Ticker(ticker)
             info = stock.info
@@ -381,6 +400,22 @@ def download_and_process_data(
             "date_range": date_range_str
         }
     }
+    # write final progress payload atomically
+    try:
+        download_progress_file = params.get("DOWNLOAD_PROGRESS_JSON_FILE")
+        if download_progress_file:
+            write_json_atomic(download_progress_file, final_web_payload)
+            web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
+            if web_folder:
+                try:
+                    os.makedirs(web_folder, exist_ok=True)
+                    web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
+                    write_json_atomic(web_path, final_web_payload)
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.debug(f"Could not write final download progress JSON: {e}")
+
     logger.info(
         f"Pipeline finished. Downloaded {total_rows_downloaded} new price rows for {tickers_with_new_data} tickers.",
         extra={'web_data': final_web_payload}
@@ -622,9 +657,17 @@ def main():
     }
     try:
         if download_progress_file:
-            os.makedirs(os.path.dirname(download_progress_file), exist_ok=True)
-            with open(download_progress_file, 'w') as f:
-                json.dump(initial_progress_data, f, indent=4)
+            # Use atomic writer to create initial progress JSON for the frontend
+            write_json_atomic(download_progress_file, initial_progress_data)
+            # Also write a copy into the web-accessible data folder if configured
+            web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH') if 'params' in locals() else None
+            if web_folder:
+                try:
+                    os.makedirs(web_folder, exist_ok=True)
+                    web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
+                    write_json_atomic(web_path, initial_progress_data)
+                except Exception:
+                    pass
     except Exception as e:
         print(f"CRITICAL: Could not initialize progress file {download_progress_file}. Error: {e}")
 
