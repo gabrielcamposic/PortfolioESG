@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Composition</title>
+    <link rel="stylesheet" href="css/navbar_styles.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        .two-column {
+            display: block;
+            /* single-column stacked layout for simpler mobile/desktop readability */
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .two-column > .stage-block { margin-bottom: 20px; }
+        .stage-block { padding: 16px; background: #fff; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .table-container { overflow-x: auto; }
+        /* slightly reduce font size so tables fit better */
+        .table-container table { font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px 6px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f7f7f7; }
+        .summary-row { font-weight: bold; }
+        /* highlight total rows */
+        .summary-row { background: #eef6ff; }
+        .chart-small { height: 320px; }
+        .chart-large { height: 420px; }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="main-content">
+        <h1>Portfolio Composition</h1>
+
+        <div class="two-column">
+            <!-- Left: Ledger / Current Positions -->
+            <div class="stage-block">
+                <h2>Current position</h2>
+                <div class="table-container">
+                    <table aria-describedby="ledger-summary">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Unit Cost</th>
+                                <th>Holdings #</th>
+                                <th>Holdings $</th>
+                                <th>Composition</th>
+                                <th>Latest Price</th>
+                                <th>Latest Holdings</th>
+                                <th>Target Price</th>
+                                <th>Target Holdings</th>
+                                <th>Target Gain/Loss</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-tbody">
+                            <tr><td colspan="10">Loading...</td></tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="summary-row">
+                                <td>Total</td>
+                                <td id="ledger-total-unitcost">-</td>
+                                <td id="ledger-total-qty">-</td>
+                                <td id="ledger-total-invested">-</td>
+                                <td id="ledger-total-pct">100%</td>
+                                <td>-</td>
+                                <td id="ledger-total-current-position">-</td>
+                                <td>-</td>
+                                <td id="ledger-total-projected">-</td>
+                                <td id="ledger-total-diff">-</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right: Pipeline / Recommended Composition -->
+            <div class="stage-block">
+                <h2>Proposed position</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Latest Price</th>
+                                <th>Holdings #</th>
+                                <th>Holdings $</th>
+                                <th>Composition</th>
+                                <th>Target Price</th>
+                                <th>Target Holdings</th>
+                                <th>Target Gain/Loss</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pipeline-tbody">
+                            <tr><td colspan="8">Loading...</td></tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="summary-row">
+                                <td>Total</td>
+                                <td id="pipeline-total-current">-</td>
+                                <td id="pipeline-total-qty-projected">-</td>
+                                <td id="pipeline-total-projected-invested">-</td>
+                                <td id="pipeline-total-pct">-</td>
+                                <td id="pipeline-total-target">-</td>
+                                <td id="pipeline-total-projected">-</td>
+                                <td id="pipeline-total-gainloss">-</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Backwards compatibility: ensure the legacy global name exists for cached/legacy scripts
+        window.SCORED_STOCKS_CANDIDATES = window.SCORED_STOCKS_CANDIDATES || ['/data/results/scored_stocks.csv','/html/data/scored_stocks.csv','/data/scored_stocks.csv','../data/results/scored_stocks.csv'];
+        window.SCORED_STOCKS_CSV_CANDIDATES = window.SCORED_STOCKS_CSV_CANDIDATES || window.SCORED_STOCKS_CANDIDATES;
+    </script>
+    <script src="js/common_utils.js?t=20251028"></script>
+    <script src="js/common_nav.js?t=20251028"></script>
+            <script src="./js/ledger.js?t=20251030"></script>
+</body>
+</html>
