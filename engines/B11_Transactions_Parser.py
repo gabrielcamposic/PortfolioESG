@@ -20,8 +20,9 @@ except Exception:
     PDFPLUMBER_AVAILABLE = False
 
 try:
-    from PIL import Image
-    import pytesseract
+    # PIL may be optional on machines that don't need OCR; only set flag if import succeeds
+    from PIL import Image  # noqa: F401
+    import pytesseract  # noqa: F401
     OCR_AVAILABLE = True
 except Exception:
     OCR_AVAILABLE = False

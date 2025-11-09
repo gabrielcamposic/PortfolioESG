@@ -6,9 +6,20 @@ SCORING_PY_VERSION = "3.0.0"  # Refactored to use shared_utils and new parameter
 # ----------------------------------------------------------- #
 #                           Libraries                         #
 # ----------------------------------------------------------- #
+import os
+import sys
+# Ensure project root is on sys.path so imports like `shared_tools` work when
+# running engine scripts directly (python engines/A2_Scoring.py). When Python
+# executes a script, sys.path[0] is the script's containing folder (engines/),
+# which prevents sibling packages from being importable without this fix.
+script_dir_boot = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir_boot, '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import pandas as pd
 import numpy as np
-import os, sys, time, logging, shutil
+import time, logging, shutil
 from datetime import datetime
 from typing import Any, Dict
 
@@ -17,6 +28,7 @@ from shared_tools.shared_utils import (
     setup_logger,
     load_parameters_from_file,
 )
+from shared_tools.path_utils import resolve_paths_in_params
 
 # ----------------------------------------------------------- #
 #                        Helper Functions                     #
@@ -202,6 +214,8 @@ def main():
             filepaths=[paths_file, scorpar_file],
             expected_parameters=expected_params
         )
+        # Normalize paths so they work on this machine/repo
+        params = resolve_paths_in_params(params, script_dir, None)
     except (FileNotFoundError, Exception) as e:
         temp_logger = setup_logger("ScoringStartupLogger", "scoring_startup_error.log", None)
         temp_logger.critical(f"Could not load parameters. Exiting. Error: {e}", exc_info=True)

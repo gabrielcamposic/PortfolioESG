@@ -1,4 +1,11 @@
+# Core dependencies used by engines/
 pandas
+numpy
 yfinance
 holidays
 python-dateutil
+
+# Optional dependencies for PDF parsing / OCR (install only if you need automatic broker note parsing)
+pdfplumber
+Pillow
+pytesseract

@@ -10,7 +10,7 @@ Consolidated orchestrator to process broker-note PDFs in `Notas_Negociação/`:
 - rebuild ledger (uses transactions_ledger utilities)
 - maintain a small `data/processed_notes.json` manifest to avoid reprocessing files
 
-This is intended to be run by the main pipeline (A_Portfolio_Pipeline.sh) after price download
+This is intended to be run by the main pipeline (A_Portfolio.sh) after price download
 and before scoring/portfolio stages.
 """
 

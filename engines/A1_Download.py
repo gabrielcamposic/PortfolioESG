@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta, date
 import logging, time, json, os, shutil
-from typing import Any, Tuple
+from typing import Any, Tuple, Optional
 import yfinance as yfin
 from shared_tools.shared_utils import (
     setup_logger,
@@ -18,8 +18,9 @@ from shared_tools.shared_utils import (
     get_previous_business_day,
     get_sao_paulo_holidays
 )
-import tempfile
 from shared_tools.shared_utils import write_json_atomic
+from shared_tools.path_utils import resolve_paths_in_params
+import re
 
 # Suppress yfinance's own logs to clean up the console output.
 logging.getLogger('yfinance').setLevel(logging.ERROR)
@@ -633,6 +634,8 @@ def main():
             filepaths=[paths_file, downpar_file],
             expected_parameters=expected_params
         )
+        # Normalize any paths so they point to this machine / repo if possible
+        params = resolve_paths_in_params(params, script_dir, None)
         params['findata_directory'] = params.get('FINDATA_PATH')
     except (FileNotFoundError, Exception) as e:
         temp_logger = setup_logger("StartupLogger", "startup_error.log", None)
@@ -677,6 +680,9 @@ def main():
         web_log_file=download_progress_file,
         level=logging.DEBUG if params.get("debug_mode") else logging.INFO
     )
+
+    # Re-run normalization now that logger exists so we can log details about resolution
+    params = resolve_paths_in_params(params, script_dir, logger)
     perf_data = initialize_performance_data(DOWNLOAD_PY_VERSION)
     perf_data["param_load_duration_s"] = time.time() - overall_start_time
 

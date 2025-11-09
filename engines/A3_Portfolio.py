@@ -407,7 +407,8 @@ def _run_brute_force_iteration(
         mean_returns_annualized = asset_returns_df.mean() * 252
         covariance_matrix_annualized = asset_returns_df.cov() * 252
 
-        best_sharpe_this, best_weights_this, best_exp_ret_this, best_vol_this = -float("inf"), None, np.nan, np.nan
+        best_sharpe_this, best_weights_this = -float("inf"), None
+        best_exp_ret_this = best_vol_this = np.nan
         sharpes = []
         sims_run = 0
 

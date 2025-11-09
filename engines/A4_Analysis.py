@@ -2,6 +2,7 @@ import os
 import json
 import pandas as pd
 
+
 def load_param_value(param_file, param_name):
     with open(param_file, 'r') as f:
         for line in f:
@@ -13,10 +14,14 @@ def load_param_value(param_file, param_name):
                 return os.path.expanduser(value.strip())
     raise KeyError(f"{param_name} not found in {param_file}")
 
-# Parameter files
-ANAPAR_FILE = os.path.expanduser('~/PortfolioESG/parameters/anapar.txt')
-PORTPAR_FILE = os.path.expanduser('~/PortfolioESG/parameters/portpar.txt')
-PATHS_FILE = os.path.expanduser('~/PortfolioESG/parameters/paths.txt')
+
+# Parameter files - resolve relative to repository (script) root so engines work
+# regardless of where the repo is cloned (no hard-coded /Users/... paths).
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+ANAPAR_FILE = os.path.join(REPO_ROOT, 'parameters', 'anapar.txt')
+PORTPAR_FILE = os.path.join(REPO_ROOT, 'parameters', 'portpar.txt')
+PATHS_FILE = os.path.join(REPO_ROOT, 'parameters', 'paths.txt')
 
 # Load parameters
 PORTFOLIO_DB = load_param_value(PORTPAR_FILE, 'PORTFOLIO_RESULTS_DB_FILE')
@@ -169,8 +174,24 @@ try:
             for sector, stocks_list in bench_sector_stocks.items():
                 available_stocks = [s for s in stocks_list if s in stock_returns.columns]
                 if available_stocks:
-                    sector_returns = stock_returns.loc[recent_dates, available_stocks].mean(axis=1)
-                    bench_sector_returns[sector] = sector_returns.mean()
+                    try:
+                        # Select only available columns to avoid unexpected errors
+                        cols = [c for c in available_stocks if c in stock_returns.columns]
+                        if not cols:
+                            bench_sector_returns[sector] = 0.0
+                        else:
+                            # Reindex to recent_dates to ensure alignment, then compute row-wise mean
+                            df_cols = stock_returns[cols]
+                            df_slice = df_cols.reindex(index=recent_dates)
+                            if df_slice.dropna(how='all').empty:
+                                bench_sector_returns[sector] = 0.0
+                            else:
+                                sector_returns = df_slice.mean(axis=1)
+                                mean_val = sector_returns.mean()
+                                bench_sector_returns[sector] = float(mean_val) if not pd.isna(mean_val) else 0.0
+                    except Exception:
+                        # On any unexpected error, fall back to zero for robustness
+                        bench_sector_returns[sector] = 0.0
 
             # Calculate portfolio and benchmark total returns
             portfolio_return = portfolio_daily_return.loc[recent_dates].mean() * 252  # Annualized
@@ -227,7 +248,8 @@ output = pd.DataFrame({
 })
 
 # === Momentum & Valuation Metrics ===
-import numpy as np
+# numpy is already imported above via pandas/numpy in other modules; import once here
+import numpy as np  # explicit local import kept for clarity in this module
 
 def compute_momentum_val_metrics(stock_df, portfolio, benchmark_df, financials_df, logger):
     metrics = {}
@@ -253,8 +275,8 @@ def compute_momentum_val_metrics(stock_df, portfolio, benchmark_df, financials_d
             metrics['weighted_dividend_yield'] = dy_portfolio
         else:
             metrics['weighted_dividend_yield'] = np.nan
-    except Exception as e:
-        logger.warning(f"Failed to compute momentum/valuation metrics: {e}")
+    except Exception:
+        logger.warning("Failed to compute momentum/valuation metrics")
     return metrics
 
 
@@ -282,8 +304,8 @@ def compute_practical_diagnostics(portfolio_df, portfolio_timeseries, benchmark_
         excess_returns = merged['portfolio'] - merged['benchmark']
         metrics['tracking_error'] = excess_returns.std() * np.sqrt(252)
         metrics['information_ratio'] = excess_returns.mean() / metrics['tracking_error']
-    except Exception as e:
-        logger.warning(f"Failed to compute diagnostics metrics: {e}")
+    except Exception:
+        logger.warning("Failed to compute diagnostics metrics")
     return metrics
 
 output.to_csv(OUTPUT_CSV, index=False)
@@ -300,6 +322,7 @@ if attribution_results is not None:
     print(f"Performance attribution saved to {attribution_file}")
 
 # === Portfolio Diagnostics & Metrics ===
+# numpy already in use above; keep single import
 import numpy as np
 
 # Load financials and liquidity data
@@ -320,7 +343,7 @@ try:
     # Only use stocks in portfolio
     momentum_signal = momentum_signal[weights_series.index]
     momentum_signal_strength = float(np.nansum(momentum_signal * weights_series))
-except Exception as e:
+except Exception:
     momentum_signal_strength = None
 
 # --- Forward P/E Implied Upside (portfolio vs. benchmark) ---
@@ -329,7 +352,7 @@ try:
     # Use all stocks in financials as benchmark proxy
     pe_benchmark = financials_df['forwardPE'].mean()
     forward_pe_implied_upside = float((pe_benchmark - pe_portfolio) / pe_portfolio) if pe_portfolio else None
-except Exception as e:
+except Exception:
     forward_pe_implied_upside = None
 
 # --- Weighted Dividend Yield ---
@@ -339,7 +362,7 @@ try:
         weighted_dividend_yield = float(dy_portfolio)
     else:
         weighted_dividend_yield = None
-except Exception as e:
+except Exception:
     weighted_dividend_yield = None
 
 # --- Turnover (between last two portfolio weights) ---
@@ -352,14 +375,14 @@ try:
         turnover = float(0.5 * np.sum(np.abs(weights_series - prev_weights)))
     else:
         turnover = 0.0
-except Exception as e:
+except Exception:
     turnover = None
 
 # --- Liquidity Screen (portfolio weight vs. average daily volume) ---
 try:
     avg_volumes = financials_df.loc[weights_series.index]['averageVolume']
     liquidity_score = float((avg_volumes / weights_series).mean()) if not weights_series.isnull().all() else None
-except Exception as e:
+except Exception:
     liquidity_score = None
 
 # --- Tracking Error & Information Ratio (vs. benchmark) ---
@@ -372,7 +395,7 @@ try:
     excess_returns = merged['portfolio'] - merged['benchmark']
     tracking_error = float(excess_returns.std() * np.sqrt(252))
     information_ratio = float(excess_returns.mean() / tracking_error) if tracking_error != 0 else None
-except Exception as e:
+except Exception:
     tracking_error = None
     information_ratio = None
 
