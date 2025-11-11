@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta, date
 import logging, time, json, os, shutil
-from typing import Any, Tuple, Optional
+from typing import Any, Tuple
 import yfinance as yfin
 from shared_tools.shared_utils import (
     setup_logger,
@@ -20,7 +20,6 @@ from shared_tools.shared_utils import (
 )
 from shared_tools.shared_utils import write_json_atomic
 from shared_tools.path_utils import resolve_paths_in_params
-import re
 
 # Suppress yfinance's own logs to clean up the console output.
 logging.getLogger('yfinance').setLevel(logging.ERROR)
@@ -326,7 +325,9 @@ def download_and_process_data(
         try:
             download_progress_file = params.get("DOWNLOAD_PROGRESS_JSON_FILE")
             if download_progress_file:
-                write_json_atomic(download_progress_file, web_payload)
+                # Normalize and ensure we pass a plain `str` to the writer
+                download_progress_file_str = str(os.fspath(download_progress_file))
+                write_json_atomic(download_progress_file_str, web_payload)
                 # also write into web-accessible data folder if configured
                 web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
                 if web_folder:
@@ -405,7 +406,8 @@ def download_and_process_data(
     try:
         download_progress_file = params.get("DOWNLOAD_PROGRESS_JSON_FILE")
         if download_progress_file:
-            write_json_atomic(download_progress_file, final_web_payload)
+            download_progress_file_str = str(os.fspath(download_progress_file))
+            write_json_atomic(download_progress_file_str, final_web_payload)
             web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
             if web_folder:
                 try:
@@ -661,7 +663,8 @@ def main():
     try:
         if download_progress_file:
             # Use atomic writer to create initial progress JSON for the frontend
-            write_json_atomic(download_progress_file, initial_progress_data)
+            download_progress_file_str = str(os.fspath(download_progress_file))
+            write_json_atomic(download_progress_file_str, initial_progress_data)
             # Also write a copy into the web-accessible data folder if configured
             web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH') if 'params' in locals() else None
             if web_folder:

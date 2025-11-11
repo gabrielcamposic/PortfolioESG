@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from dateutil.easter import easter
 from holidays.countries.brazil import Brazil as BrazilHolidays
 from typing import List, Dict, Any, Union
+from os import PathLike
 
 class JsonWebLogHandler(logging.Handler):
     """
@@ -59,14 +60,16 @@ class JsonWebLogHandler(logging.Handler):
                 print(f"CRITICAL: JsonWebLogHandler failed to write to '{self.filename}': {e}")
 
 # Keep write_json_atomic available here for centralized use by A1_Download.py
-def write_json_atomic(path: str, data: Dict[str, Any]) -> None:
+def write_json_atomic(path: Union[str, PathLike[str], bytes], data: Dict[str, Any]) -> None:
     """
     Write a JSON file atomically: write to a temp file in the same directory and replace.
     Keeps UTF-8 and pretty formatting and ensures the directory exists.
     """
-    if not path:
+    # Expect incoming path as a plain string; normalize with os.fspath for safety
+    path_str = os.fspath(path)
+    if not path_str:
         raise ValueError("No path provided for write_json_atomic")
-    directory = os.path.dirname(path) or "."
+    directory = os.path.dirname(path_str) or "."
     os.makedirs(directory, exist_ok=True)
     fd = None
     tmp_path = None
@@ -77,7 +80,7 @@ def write_json_atomic(path: str, data: Dict[str, Any]) -> None:
             json.dump(data, f, indent=4, ensure_ascii=False)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp_path, path)
+        os.replace(tmp_path, path_str)
     except Exception:
         # Ensure tmp file is removed on failure
         if tmp_path and os.path.exists(tmp_path):
