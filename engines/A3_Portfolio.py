@@ -11,7 +11,8 @@ import numpy as np
 import os, sys, time, json, shutil, logging, itertools, random
 from datetime import datetime, timedelta
 from collections import Counter
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
+from numbers import Real
 import math
 
 # --- Import Shared Utilities ---
@@ -110,7 +111,7 @@ def copy_file_to_web_accessible_location(source_param_key: str, params: Dict, lo
     except Exception as e:
         logger.error(f"Failed to copy file from '{source_path}' to '{dest_folder}': {e}")
 
-def load_scored_stocks(params: Dict, logger: logging.Logger) -> (List[str], Dict[str, str]):
+def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str], Dict[str, str]]:
     """Loads the top N scored stocks from the most recent scoring run."""
     filepath = params.get("SCORED_STOCKS_DB_FILE")
     top_n = params.get("top_n_stocks_from_score", 50)
@@ -123,17 +124,20 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> (List[str], Dict
         raise FileNotFoundError(f"Scored stocks file not found at '{filepath}'.")
 
     try:
-        df = pd.read_csv(filepath)
+        df: pd.DataFrame = pd.read_csv(filepath)
         required_cols = ['run_id', 'CompositeScore', 'Stock', 'Sector']
         if not all(col in df.columns for col in required_cols):
             raise ValueError(f"Scored stocks file is missing one or more required columns: {required_cols}")
 
         latest_run_id = df['run_id'].max()
-        latest_run_df = df[df['run_id'] == latest_run_id].copy()
-        latest_run_df.sort_values(by='CompositeScore', ascending=False, inplace=True)
+        # Explicitly construct a DataFrame view to help static analysis infer the correct type
+        latest_run_df = pd.DataFrame(df.loc[df['run_id'] == latest_run_id]).copy()
+        # Use non-inplace sort to avoid type-narrowing issues with Series.sort_values
+        latest_run_df = latest_run_df.sort_values(by=['CompositeScore'], ascending=False)
         top_stocks_df = latest_run_df.head(top_n)
         top_stocks = top_stocks_df['Stock'].tolist()
-        stock_to_sector_map = pd.Series(top_stocks_df.Sector.values, index=top_stocks_df.Stock).to_dict()
+        # Use set_index/to_dict to build a mapping; avoids use of .values which can confuse type inference
+        stock_to_sector_map = top_stocks_df.set_index('Stock')['Sector'].to_dict()
 
         logger.info(f"Loaded {len(top_stocks)} top stocks from run '{latest_run_id}'.")
         if params.get('debug_mode'):
@@ -180,7 +184,7 @@ def _calculate_portfolio_metrics_from_precomputed(
     mean_returns_annualized: pd.Series,
     covariance_matrix_annualized: pd.DataFrame,
     rf_rate: float
-) -> (float, float, float):
+) -> Tuple[float, float, float]:
     """
     Calculates core portfolio metrics using pre-computed returns and covariance.
     This is the fast, vectorized core of the simulation engine.
@@ -290,7 +294,8 @@ def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger):
         vol = np.sqrt(np.dot(weights.T, np.dot(covariance_matrix_annualized, weights)))
         sharpe = (exp_ret - rf_rate) / vol if vol != 0 else -np.inf
     
-        if not pd.isna(sharpe) and sharpe > best_sharpe:
+        # Ensure sharpe is a scalar number before comparing
+        if isinstance(sharpe, Real) and pd.notna(sharpe) and sharpe > best_sharpe:
             best_sharpe = sharpe
             best_weights = weights
             
@@ -335,7 +340,7 @@ def select_parents(evaluated_population: List[Dict], tournament_size: int) -> Di
     return winner
 
 def crossover_portfolios(parent1: List[str], parent2: List[str], available_stocks: List[str], k: int,
-                         crossover_rate: float) -> (List[str], List[str]):
+                         crossover_rate: float) -> Tuple[List[str], List[str]]:
     """Performs crossover between two parent portfolios."""
     if random.random() > crossover_rate:
         return parent1[:], parent2[:]  # Return copies of parents if no crossover
@@ -390,11 +395,11 @@ def _run_brute_force_iteration(
     total = len(diversified)
     last_logged_progress = -1
 
-    best_result_for_k = {
+    best_result_for_k: Dict[str, Any] = {
         'combo': None, 'weights': None, 'sharpe': -float("inf"),
         'exp_ret': None, 'vol': None
     }
-    all_results_for_k = []
+    all_results_for_k: List[Dict[str, Any]] = []
 
     for i, combo in enumerate(diversified):
         combo_list = list(combo)
@@ -431,7 +436,7 @@ def _run_brute_force_iteration(
             # timer_instance.stop()
             sims_run += 1
 
-            if not pd.isna(sharpe) and sharpe > best_sharpe_this:
+            if isinstance(sharpe, Real) and pd.notna(sharpe) and sharpe > best_sharpe_this:
                 best_sharpe_this, best_weights_this = sharpe, weights
                 best_exp_ret_this, best_vol_this = exp_ret, vol
 
@@ -462,8 +467,8 @@ def _run_brute_force_iteration(
                 df_subset, best_weights_this, current_rf_rate, logger_instance
             )
 
-            # Check if this combo is the best for the current k
-            if not pd.isna(sharpe_final) and sharpe_final > best_result_for_k['sharpe']:
+            # Check if this combo is the best for the current k (ensure sharpe_final is scalar)
+            if isinstance(sharpe_final, Real) and pd.notna(sharpe_final) and sharpe_final > best_result_for_k['sharpe']:
                 best_result_for_k.update({
                     'combo': combo_list, 'weights': best_weights_this, 'sharpe': sharpe_final,
                     'exp_ret': exp_ret_final, 'vol': vol_final
@@ -778,6 +783,8 @@ def main():
     best_combo, best_weights, best_sharpe, best_exp_ret, best_vol = [None] * 5
     ga_fitness_history = []
     stock_close_df_sim_pool = pd.DataFrame()
+    # Ensure stock_sector_map exists even if load_scored_stocks fails or raises
+    stock_sector_map: Dict[str, str] = {}
 
     try:
         # 4. --- Main Execution Block ---
@@ -886,8 +893,10 @@ def main():
 
             # 4.1 Sector Exposure - Calculate percentage allocation by sector
             sector_exposure = {}
+            # Use a local copy to avoid static analysis confusion about variable initialization
+            sector_map_for_output = stock_sector_map if isinstance(stock_sector_map, dict) else {}
             for stock, weight in zip(best_combo, best_weights):
-                sector = stock_sector_map.get(stock, 'Unknown')
+                sector = sector_map_for_output.get(stock, 'Unknown')
                 sector_exposure[sector] = sector_exposure.get(sector, 0) + weight
             sector_exposure = {k: round(v, 4) for k, v in sector_exposure.items()}
 

@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LEDGER_CSV = os.path.join(ROOT, 'data', 'ledger.csv')
-OUT_JSON = os.path.join(ROOT, 'data', 'ledger_positions.json')
+OUT_JSON = os.path.join(ROOT, 'html', 'data', 'ledger_positions.json')
 TICKERS_TXT = os.path.join(ROOT, 'parameters', 'tickers.txt')
 
 CSV_CANDIDATES = [LEDGER_CSV]
@@ -322,7 +322,7 @@ def find_latest_prices_for_symbols(symbols, candidates):
                     continue
                 # direct uppercase match
                 if stock.upper() in match_map and match_map[stock.upper()] not in found:
-                    found[match_map[stock.upper()]] = safe_float(close_raw)
+                    found[match_map[stock.upper]] = safe_float(close_raw)
                     continue
     except Exception:
         pass
@@ -388,20 +388,10 @@ def main():
         'source': os.path.relpath(src),
         'positions': positions
     }
-    # write JSON
-    # ensure parent dir exists and write main JSON
+    # write JSON directly into web-accessible html/data directory (don't write to repo-level data/)
     os.makedirs(os.path.dirname(OUT_JSON) or '.', exist_ok=True)
     with open(OUT_JSON, 'w', encoding='utf-8') as fh:
         json.dump(out, fh, ensure_ascii=False, indent=2)
-    # also write a copy into html/data so the frontend served from /html/ can access it
-    try:
-        html_path = os.path.join(ROOT, 'html', 'data', os.path.basename(OUT_JSON))
-        os.makedirs(os.path.dirname(html_path), exist_ok=True)
-        with open(html_path, 'w', encoding='utf-8') as fh2:
-            json.dump(out, fh2, ensure_ascii=False, indent=2)
-    except Exception:
-        # non-fatal
-        pass
 
     print(f'Wrote {OUT_JSON} with {len(positions)} positions (generated_at={out["generated_at"]})')
     return 0

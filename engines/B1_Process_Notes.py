@@ -46,7 +46,7 @@ NOTAS_DIR = _resolve_path(NOTAS_DIR)
 TX_FILE = _resolve_path(TX_FILE)
 FEES_FILE = _resolve_path(FEES_FILE)
 LEDGER_FILE = _resolve_path(LEDGER_FILE)
-PROCESSED_MANIFEST = ROOT / 'data' / 'processed_notes.json'
+PROCESSED_MANIFEST = ROOT / 'html' / 'data' / 'processed_notes.json'
 
 
 def find_pdfs_to_process():
@@ -215,4 +215,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

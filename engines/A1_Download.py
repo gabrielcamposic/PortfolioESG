@@ -29,14 +29,45 @@ logging.getLogger('yfinance').setLevel(logging.ERROR)
 # ----------------------------------------------------------- #
 
 def get_ticker_skip_file(ticker: str, params: dict[str, Any]) -> str:
-    """Return the path to the skip file for a given ticker."""
-    findata_dir = params.get("findata_directory")
-    return os.path.join(findata_dir, ticker, "skip.json")
+    """Return the path to the skip file for a given ticker.
+
+    New behavior: keep all JSON under the web-accessible data folder configured by
+    'WEB_ACCESSIBLE_DATA_PATH' to avoid producing any JSON under repo-level data/.
+
+    Falling back: if WEB_ACCESSIBLE_DATA_PATH is not configured, fall back to
+    params['findata_directory'] for backwards compatibility.
+    """
+    web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
+    if web_folder:
+        return os.path.join(web_folder, 'findata', ticker, 'skip.json')
+    # legacy fallback
+    findata_dir = params.get('findata_directory') or params.get('FINDATA_PATH')
+    return os.path.join(findata_dir, ticker, 'skip.json')
 
 
 def load_ticker_skip_data(ticker: str, params: dict[str, Any], logger: logging.Logger) -> list:
-    """Load skip data for a ticker from its skip.json file."""
+    """Load skip data for a ticker from its skip.json file.
+
+    If a legacy skip file exists under the findata directory but not under the
+    web-accessible path, attempt to migrate it into the web folder (move) so
+    further writes only happen under html/data.
+    """
     skip_file = get_ticker_skip_file(ticker, params)
+    # If using web path, also check legacy location and migrate if needed
+    web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
+    if web_folder:
+        legacy_findata = params.get('findata_directory') or params.get('FINDATA_PATH')
+        if legacy_findata:
+            legacy_path = os.path.join(legacy_findata, ticker, 'skip.json')
+            if os.path.exists(legacy_path) and not os.path.exists(skip_file):
+                try:
+                    os.makedirs(os.path.dirname(skip_file), exist_ok=True)
+                    shutil.copy2(legacy_path, skip_file)
+                    # Optionally remove legacy to enforce single JSON location; keep copy to be safe
+                    # os.remove(legacy_path)
+                    logger.info(f"Migrated skip file for {ticker} from legacy location to web data folder.")
+                except Exception as e:
+                    logger.warning(f"Failed to migrate legacy skip file for {ticker}: {e}")
     if os.path.exists(skip_file):
         try:
             with open(skip_file, 'r') as f:
@@ -48,7 +79,12 @@ def load_ticker_skip_data(ticker: str, params: dict[str, Any], logger: logging.L
 
 
 def save_ticker_skip_data(ticker: str, skip_data: list, params: dict[str, Any], logger: logging.Logger):
-    """Save skip data for a ticker to its skip.json file."""
+    """Save skip data for a ticker to its skip.json file.
+
+    Ensures the JSON file is written under the web-accessible data path (html/data)
+    when configured. This prevents any JSON outputs from being created under the
+    top-level repo `data/` folder.
+    """
     skip_file = get_ticker_skip_file(ticker, params)
     os.makedirs(os.path.dirname(skip_file), exist_ok=True)
     try:

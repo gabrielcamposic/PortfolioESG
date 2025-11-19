@@ -21,7 +21,7 @@ DOWNLOAD_SCRIPT="$PROJECT_ROOT/engines/A1_Download.py"
 SCORING_SCRIPT="$PROJECT_ROOT/engines/A2_Scoring.py"
 PORTFOLIO_SCRIPT="$PROJECT_ROOT/engines/A3_Portfolio.py"
 ANALYSIS_SCRIPT="$PROJECT_ROOT/engines/A4_Analysis.py"
-PIPELINE_JSON_FILE="$PROJECT_ROOT/html/pipeline_progress.json"
+PIPELINE_JSON_FILE="$PROJECT_ROOT/html/data/pipeline_progress.json"
 
 # Path to the script that generates frontend JSON assets (ledger/pipeline/scored targets)
 # This was missing previously and caused an 'unbound variable' error when referenced later.

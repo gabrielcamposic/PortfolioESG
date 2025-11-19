@@ -1,6 +1,7 @@
 import os
 import json
 import pandas as pd
+import numpy as np
 
 
 def load_param_value(param_file, param_name):
@@ -109,9 +110,11 @@ portfolio_compositions = []
 for idx, date in enumerate(dates):
     comp = {}
     for stock in portfolio.keys():
+        # Use .at for explicit scalar access so static type checkers see a scalar (not a DataFrame)
+        val = portfolio_prices.at[date, stock] if (date in portfolio_prices.index and stock in portfolio_prices.columns) else None
         comp[stock] = {
             "weight": portfolio[stock],
-            "value": float(portfolio_prices.loc[date, stock]) if not pd.isna(portfolio_prices.loc[date, stock]) else None
+            "value": float(val) if pd.notna(val) else None
         }
     portfolio_compositions.append(json.dumps(comp))
 
@@ -248,9 +251,6 @@ output = pd.DataFrame({
 })
 
 # === Momentum & Valuation Metrics ===
-# numpy is already imported above via pandas/numpy in other modules; import once here
-import numpy as np  # explicit local import kept for clarity in this module
-
 def compute_momentum_val_metrics(stock_df, portfolio, benchmark_df, financials_df, logger):
     metrics = {}
 
@@ -322,8 +322,7 @@ if attribution_results is not None:
     print(f"Performance attribution saved to {attribution_file}")
 
 # === Portfolio Diagnostics & Metrics ===
-# numpy already in use above; keep single import
-import numpy as np
+# numpy already imported at module level
 
 # Load financials and liquidity data
 financials_path = os.path.expanduser('~/PortfolioESG/data/findb/FinancialsDB.csv')

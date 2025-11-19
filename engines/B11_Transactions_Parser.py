@@ -15,6 +15,7 @@ NOTAS_DIR = Path('Notas_Negociação')
 # Optional PDF/OCR libraries
 try:
     import pdfplumber
+    from pdfplumber.utils.exceptions import PdfminerException
     PDFPLUMBER_AVAILABLE = True
 except Exception:
     PDFPLUMBER_AVAILABLE = False
@@ -26,6 +27,8 @@ try:
     OCR_AVAILABLE = True
 except Exception:
     OCR_AVAILABLE = False
+
+# NOTE: decryption attempts removed per user request (no automatic unlocking)
 
 
 def parse_decimal(s):
@@ -67,8 +70,14 @@ def normalize_text(t: str) -> str:
 
 
 def extract_text_from_pdf(path: Path) -> str:
+    """Extract text from PDF using pdfplumber; if text extraction yields empty text, fall back to OCR (pytesseract) when available.
+
+    Per user request, do not attempt to decrypt or unlock PDFs automatically.
+    """
     text_pages = []
-    if PDFPLUMBER_AVAILABLE:
+    if not PDFPLUMBER_AVAILABLE:
+        return ''
+    try:
         with pdfplumber.open(path) as pdf:
             for p in pdf.pages:
                 try:
@@ -76,23 +85,34 @@ def extract_text_from_pdf(path: Path) -> str:
                 except Exception:
                     t = ''
                 text_pages.append(t)
+    except Exception as e:
+        # If pdfplumber can't open the file, report and do not attempt unlocking
+        print(f"pdfplumber failed to open {path}: {e}")
+        return ''
+
     full = '\n'.join(text_pages)
     full = normalize_text(full)
     if full.strip():
         return full
+
     # fallback to OCR if text empty and OCR available
-    if OCR_AVAILABLE and PDFPLUMBER_AVAILABLE:
+    if OCR_AVAILABLE:
         ocr_texts = []
-        with pdfplumber.open(path) as pdf:
-            for p in pdf.pages:
-                try:
-                    img = p.to_image(resolution=300).original
-                    txt = pytesseract.image_to_string(img, lang='por+eng')
-                except Exception:
-                    txt = ''
-                ocr_texts.append(txt)
+        try:
+            with pdfplumber.open(path) as pdf:
+                for p in pdf.pages:
+                    try:
+                        img = p.to_image(resolution=300).original
+                        txt = pytesseract.image_to_string(img, lang='por+eng')
+                    except Exception:
+                        txt = ''
+                    ocr_texts.append(txt)
+        except Exception as e:
+            print(f"OCR fallback failed for {path}: {e}")
+            return ''
         full_ocr = '\n'.join(ocr_texts)
         return normalize_text(full_ocr)
+
     return full
 
 

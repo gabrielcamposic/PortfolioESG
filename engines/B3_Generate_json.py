@@ -22,9 +22,9 @@ FINDB_STOCKDB = os.path.join('data', 'findb', 'StockDataDB.csv')
 SCORED_STOCKS = os.path.join('data', 'results', 'scored_stocks.csv')
 LATEST_RUN_SUMMARY = os.path.join('html', 'data', 'latest_run_summary.json')
 
-OUTPUT_LEDGER_JSON = os.path.join('data','ledger_positions.json')
-OUTPUT_PIPELINE_JSON = os.path.join('data','pipeline_latest.json')
-OUTPUT_SCORED_JSON = os.path.join('data','scored_targets.json')
+OUTPUT_LEDGER_JSON = os.path.join('html','data','ledger_positions.json')
+OUTPUT_PIPELINE_JSON = os.path.join('html','data','pipeline_latest.json')
+OUTPUT_SCORED_JSON = os.path.join('html','data','scored_targets.json')
 
 CSV_ENCODING = 'utf-8'
 
@@ -445,12 +445,6 @@ def main():
             with open(OUTPUT_LEDGER_JSON, 'w', encoding='utf-8') as fh:
                 json.dump(ledger_out, fh, ensure_ascii=False, indent=2)
             print('Wrote', OUTPUT_LEDGER_JSON)
-            # also write a copy under html/data for frontend paths that serve from /html/
-            html_out = os.path.join('html', 'data', os.path.basename(OUTPUT_LEDGER_JSON))
-            os.makedirs(os.path.dirname(html_out) or '.', exist_ok=True)
-            with open(html_out, 'w', encoding='utf-8') as fh2:
-                json.dump(ledger_out, fh2, ensure_ascii=False, indent=2)
-            print('Wrote', html_out)
         except Exception as e:
             print('Failed to write ledger json:', e)
 
@@ -478,12 +472,7 @@ def main():
         with open(OUTPUT_PIPELINE_JSON, 'w', encoding='utf-8') as fh:
             json.dump(pipeline_out, fh, ensure_ascii=False, indent=2)
         print('Wrote', OUTPUT_PIPELINE_JSON)
-        # also write copy under html/data
-        html_out = os.path.join('html', 'data', os.path.basename(OUTPUT_PIPELINE_JSON))
-        os.makedirs(os.path.dirname(html_out) or '.', exist_ok=True)
-        with open(html_out, 'w', encoding='utf-8') as fh3:
-            json.dump(pipeline_out, fh3, ensure_ascii=False, indent=2)
-        print('Wrote', html_out)
+        # No secondary copy needed; OUTPUT_PIPELINE_JSON already points to html/data
     except Exception as e:
         print('Failed to write pipeline json:', e)
 
@@ -495,12 +484,7 @@ def main():
         with open(OUTPUT_SCORED_JSON, 'w', encoding='utf-8') as fh:
             json.dump(scored_out, fh, ensure_ascii=False, indent=2)
         print('Wrote', OUTPUT_SCORED_JSON)
-        # also write copy under html/data
-        html_out = os.path.join('html', 'data', os.path.basename(OUTPUT_SCORED_JSON))
-        os.makedirs(os.path.dirname(html_out) or '.', exist_ok=True)
-        with open(html_out, 'w', encoding='utf-8') as fh4:
-            json.dump(scored_out, fh4, ensure_ascii=False, indent=2)
-        print('Wrote', html_out)
+        # No secondary copy needed; OUTPUT_SCORED_JSON already points to html/data
     except Exception as e:
         print('Failed to write scored json:', e)
 

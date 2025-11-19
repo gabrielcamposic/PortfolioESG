@@ -1,7 +1,7 @@
 # Download Script Parameters for PortfolioESG
 
 # --- Files and paths used by Download.py ---
-YFINANCE_SKIP_FILE = ~/PortfolioESG/data/findb/yfinance_skip.json
+YFINANCE_SKIP_FILE = ~/PortfolioESG/html/data/findb/yfinance_skip.json
 DOWNLOAD_LOG_FILE = ~/PortfolioESG/logs/download.log
 DOWNLOAD_PERFORMANCE_FILE = ~/PortfolioESG/data/Results/download_performance.csv
 
