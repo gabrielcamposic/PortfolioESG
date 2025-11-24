@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Performance Attribution</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <script src="./js/load_nav.js"></script>
+
+  <main class="wrap">
+    <header class="top">
+      <h1>Performance Attribution</h1>
+      <div class="controls">
+        <button id="refresh">Refresh</button>
+        <a id="download" href="./data/performance_attribution.json" download>Download JSON</a>
+      </div>
+    </header>
+
+    <section class="summary card">
+      <div class="summary-row"><strong>Total active return</strong><span id="total">—</span></div>
+      <div class="summary-row small"><em>Values shown are the raw attribution numbers from the JSON file.</em></div>
+    </section>
+
+    <section class="breakdown card">
+      <h2>Breakdown</h2>
+      <div id="bars" class="bars"></div>
+      <ul id="list" class="list"></ul>
+    </section>
+
+    <footer class="foot">
+      <small>Auto-refresh every <span id="interval">10</span>s. Last fetch: <span id="lastFetch">—</span></small>
+    </footer>
+  </main>
+
+  <script src="./js/performance_attribution.js"></script>
+</body>
+</html>

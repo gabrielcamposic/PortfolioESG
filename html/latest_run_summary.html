@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Latest Run Summary</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <script src="./js/load_nav.js"></script>
+
+  <main class="container">
+    <header class="header">
+      <h1>Latest Run Summary</h1>
+      <div class="controls">
+        <button id="refreshBtn">Refresh now</button>
+        <a id="downloadJson" href="data/latest_run_summary.json" download>Download JSON</a>
+      </div>
+    </header>
+
+    <section id="meta" class="card">
+      <div class="meta-row"><strong>Run ID:</strong> <span id="runId">—</span></div>
+      <div class="meta-row"><strong>Last updated:</strong> <span id="lastUpdated">—</span></div>
+      <div class="meta-row"><strong>Sharpe Ratio:</strong> <span id="sharpe">—</span></div>
+      <div class="meta-row"><strong>Expected Return (annual %):</strong> <span id="expRet">—</span></div>
+      <div class="meta-row"><strong>Volatility (annual %):</strong> <span id="vol">—</span></div>
+    </section>
+
+    <section id="portfolio" class="card">
+      <h2>Portfolio</h2>
+      <table id="stocksTable">
+        <thead>
+          <tr><th>#</th><th>Stock</th><th>Weight</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="peMomentum" class="mini-grid">
+        <div><strong>Portfolio weighted P/E</strong><div id="pe">—</div></div>
+        <div><strong>Portfolio momentum</strong><div id="momentum">—</div></div>
+        <div><strong>Benchmark forward P/E</strong><div id="bpe">—</div></div>
+      </div>
+    </section>
+
+    <section id="exposures" class="card">
+      <h2>Sector Exposure</h2>
+      <ul id="sectorList" class="list"></ul>
+    </section>
+
+    <section id="concentration" class="card">
+      <h2>Concentration Risk</h2>
+      <ul id="concentrationList" class="list"></ul>
+    </section>
+
+    <footer class="footer">
+      <small>Auto-refresh every <span id="interval">10</span>s. Last fetch: <span id="lastFetch">—</span></small>
+    </footer>
+  </main>
+
+  <script src="./js/latest_run_summary.js"></script>
+</body>
+</html>
