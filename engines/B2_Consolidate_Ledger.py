@@ -233,35 +233,89 @@ def match_target_for_ticker(ticker, scored_maps):
 
 
 def load_tickers_map(path):
-    """Load parameters/tickers.txt (CSV with header Ticker,Name,...) and return two maps:
-       - name_to_symbol: normalized name -> symbol
+    """Load parameters/tickers.txt (CSV with header Ticker,Name,Sector,Industry,BrokerName) and return two maps:
+       - name_to_symbol: normalized name -> symbol (uses both Name and BrokerName columns)
        - symbol_to_name: normalized symbol -> name
+
+    BrokerName is the name as it appears in broker notes, which may differ from the official Name.
+    Also creates partial mappings for common name variations found in broker notes.
     """
     name_to_symbol = {}
     symbol_to_name = {}
+    entries_list = []  # Store all entries for fuzzy matching later
     if not os.path.exists(path):
-        return name_to_symbol, symbol_to_name
+        return name_to_symbol, symbol_to_name, entries_list
     try:
         with open(path, newline='', encoding='utf-8') as fh:
             import csv
+            import re
             reader = csv.DictReader(fh)
             for row in reader:
-                sym = (row.get('Ticker') or row.get('Ticker'.lower()) or row.get('ticker') or '').strip()
+                sym = (row.get('Ticker') or row.get('ticker') or '').strip()
                 name = (row.get('Name') or row.get('name') or '').strip()
+                broker_name = (row.get('BrokerName') or row.get('brokername') or '').strip()
+
                 if not sym and not name:
                     continue
-                nk = normalize_key(name) if name else ''
-                na = normalize_alpha(name) if name else ''
+
                 ks = normalize_key(sym) if sym else ''
-                if nk:
-                    name_to_symbol[nk] = sym
-                if na:
-                    name_to_symbol['ALPHA|' + na] = sym
+
+                # Store entry for fuzzy matching (include broker_name)
+                entries_list.append({'symbol': sym, 'name': name, 'broker_name': broker_name})
+
+                # Map symbol to name
                 if ks:
                     symbol_to_name[ks] = name
+
+                # Map the ticker symbol without .SA suffix
+                if sym and sym.endswith('.SA'):
+                    base_sym = sym[:-3]
+                    base_key = normalize_key(base_sym)
+                    if base_key:
+                        name_to_symbol[base_key] = sym
+
+                # Priority 1: Map BrokerName (exact match from broker notes)
+                if broker_name:
+                    bn_key = normalize_key(broker_name)
+                    bn_alpha = normalize_alpha(broker_name)
+                    if bn_key:
+                        name_to_symbol[bn_key] = sym
+                    if bn_alpha:
+                        name_to_symbol['ALPHA|' + bn_alpha] = sym
+                    # Also map partial broker names
+                    words = broker_name.upper().split()
+                    for i in range(len(words)):
+                        partial = ' '.join(words[:i+1])
+                        partial_key = normalize_key(partial)
+                        if partial_key and len(partial_key) >= 4 and partial_key not in name_to_symbol:
+                            name_to_symbol[partial_key] = sym
+
+                # Priority 2: Map official Name
+                if name:
+                    nk = normalize_key(name)
+                    na = normalize_alpha(name)
+                    if nk and nk not in name_to_symbol:
+                        name_to_symbol[nk] = sym
+                    if na and ('ALPHA|' + na) not in name_to_symbol:
+                        name_to_symbol['ALPHA|' + na] = sym
+
+                    # Create partial mappings from official name
+                    words = name.upper().split()
+                    if words:
+                        first_word = words[0]
+                        first_key = normalize_key(first_word)
+                        if first_key and len(first_key) >= 4 and first_key not in name_to_symbol:
+                            name_to_symbol[first_key] = sym
+
+                        for i in range(1, min(len(words), 4)):
+                            partial = ' '.join(words[:i+1])
+                            partial_key = normalize_key(partial)
+                            if partial_key and partial_key not in name_to_symbol:
+                                name_to_symbol[partial_key] = sym
+
     except Exception:
         pass
-    return name_to_symbol, symbol_to_name
+    return name_to_symbol, symbol_to_name, entries_list
 
 
 def find_latest_prices_for_symbols(symbols, candidates):
@@ -338,7 +392,7 @@ def main():
     positions = consolidate_from_csv(src)
 
     # Load tickers.txt to map ledger "ticker" (often a full name) to actual symbol
-    name_to_symbol, symbol_to_name = load_tickers_map(TICKERS_TXT)
+    name_to_symbol, symbol_to_name, tickers_entries = load_tickers_map(TICKERS_TXT)
 
     # Attempt to enrich positions with target prices from scored_stocks.csv
     scored_maps = load_scored_targets(SCORED_STOCKS_CANDIDATES)
@@ -349,10 +403,38 @@ def main():
         sym = None
         nk = normalize_key(ledger_label)
         na = normalize_alpha(ledger_label)
+
+        # Strategy 1: Direct key match
         if nk and nk in name_to_symbol:
             sym = name_to_symbol[nk]
+        # Strategy 2: Alpha-only match
         elif na and ('ALPHA|' + na) in name_to_symbol:
             sym = name_to_symbol['ALPHA|' + na]
+        # Strategy 3: Partial/substring match - check if ledger_label is contained in any key
+        if not sym:
+            for key, symbol in name_to_symbol.items():
+                if key.startswith('ALPHA|'):
+                    continue
+                # Check if the ledger label (normalized) is a substring of the key or vice versa
+                if nk and len(nk) >= 4 and (nk in key or key in nk):
+                    sym = symbol
+                    break
+        # Strategy 4: Token-based fuzzy match against tickers_entries
+        if not sym and tickers_entries:
+            import re
+            ledger_tokens = set([t.upper() for t in re.split(r'[^A-Za-z0-9]+', ledger_label) if len(t) >= 3])
+            best_match = None
+            best_score = 0
+            for entry in tickers_entries:
+                entry_name = entry.get('name', '')
+                entry_tokens = set([t.upper() for t in re.split(r'[^A-Za-z0-9]+', entry_name) if len(t) >= 3])
+                # Score = number of matching tokens
+                score = len(ledger_tokens & entry_tokens)
+                if score > best_score:
+                    best_score = score
+                    best_match = entry
+            if best_score >= 1 and best_match:
+                sym = best_match.get('symbol')
 
         # If we found symbol via tickers.txt, prefer it for scored lookup
         tp = None

@@ -1,20 +1,21 @@
-Ticker,Name,Sector,Industry
-AALR3.SA,Alliança Saúde e Participações S.A.,Healthcare,Diagnostics & Research
-ABCB4.SA,Banco ABC Brasil S.A.,Financial Services,Banks - Regional
-ABEV3.SA,Ambev S.A.,Consumer Defensive,Beverages - Brewers
-AERI3.SA,Aeris Indústria e Comércio de Equipamentos para Geração de Energia S.A.,Industrials,Specialty Industrial Machinery
-AGRO3.SA,BrasilAgro - Companhia Brasileira de Propriedades Agrícolas,Consumer Defensive,Farm Products
-AGXY3.SA,AgroGalaxy Participações S.A.,Basic Materials,Agricultural Inputs
-ALOS3.SA,Allos S.A.,Real Estate,Real Estate Services
-ALPA4.SA,Alpargatas S.A.,Consumer Cyclical,Footwear & Accessories
-ALUP11.SA,Alupar Investimento S.A.,Utilities,Utilities - Renewable
-ALUP3.SA,Alupar Investimento S.A.,Utilities,Utilities - Renewable
-AMBP3.SA,Ambipar Participações e Empreendimentos S.A.,Industrials,Waste Management
-ANIM3.SA,Ânima Holding S.A.,Consumer Defensive,Education & Training Services
-ASAI3.SA,Sendas Distribuidora S.A.,Consumer Defensive,Grocery Stores
-AURA33.SA,Aura Minerals Inc.,Basic Materials,Gold
-AURE3.SA,Auren Energia S.A.,Utilities,Utilities - Renewable
-AZUL4.SA,Azul S.A.,Industrials,Airlines
+Ticker,Name,Sector,Industry,BrokerName
+AALR3.SA,Alliança Saúde e Participações S.A.,Healthcare,Diagnostics & Research,
+ABCB4.SA,Banco ABC Brasil S.A.,Financial Services,Banks - Regional,
+ABEV3.SA,Ambev S.A.,Consumer Defensive,Beverages - Brewers,
+AERI3.SA,Aeris Indústria e Comércio de Equipamentos para Geração de Energia S.A.,Industrials,Specialty Industrial Machinery,
+AGRO3.SA,BrasilAgro - Companhia Brasileira de Propriedades Agrícolas,Consumer Defensive,Farm Products,
+AGXY3.SA,AgroGalaxy Participações S.A.,Basic Materials,Agricultural Inputs,
+ALOS3.SA,Allos S.A.,Real Estate,Real Estate Services,
+ALPA4.SA,Alpargatas S.A.,Consumer Cyclical,Footwear & Accessories,
+ALUP11.SA,Alupar Investimento S.A.,Utilities,Utilities - Renewable,
+ALUP3.SA,Alupar Investimento S.A.,Utilities,Utilities - Renewable,
+AMBP3.SA,Ambipar Participações e Empreendimentos S.A.,Industrials,Waste Management,
+ANIM3.SA,Ânima Holding S.A.,Consumer Defensive,Education & Training Services,
+ASAI3.SA,Sendas Distribuidora S.A.,Consumer Defensive,Grocery Stores,
+AURA33.SA,Aura Minerals Inc.,Basic Materials,Gold,AURA 360 DR3
+AURE3.SA,Auren Energia S.A.,Utilities,Utilities - Renewable,
+AXPE11.SA,Axia Energia S.A.,Utilities,Utilities - Regulated Electric,AXIA ENERGIAPNB EX N1
+AZUL4.SA,Azul S.A.,Industrials,Airlines,
 AZZA3.SA,Azzas 2154 S.A.,Consumer Cyclical,Footwear & Accessories
 B3SA3.SA,"B3 S.A. - Brasil, Bolsa, Balcão",Financial Services,Financial Data & Stock Exchanges
 B3SA4.SA,N/A,Error,HTTP Error 404:
@@ -50,7 +51,7 @@ CPLE3.SA,Companhia Paranaense de Energia - COPEL,Utilities,Utilities - Regulated
 CPLE6.SA,Companhia Paranaense de Energia - COPEL,Utilities,Utilities - Regulated Electric
 CSAN3.SA,Cosan S.A.,Energy,Oil & Gas Refining & Marketing
 CSED3.SA,Cruzeiro do Sul Educacional S.A.,Consumer Defensive,Education & Training Services
-CSMG3.SA,COPASA ON NM,Utilities,Utilities - Regulated Water
+CSMG3.SA,Companhia de Saneamento de Minas Gerais - COPASA,Utilities,Utilities - Regulated Water,COPASA ON NM
 CSNA3.SA,Companhia Siderúrgica Nacional,Basic Materials,Steel
 CURY3.SA,Cury Construtora e Incorporadora S.A.,Real Estate,Real Estate - Development
 CXSE3.SA,Caixa Seguridade Participações S.A.,Financial Services,Insurance - Diversified
@@ -111,7 +112,7 @@ LREN3.SA,Lojas Renner S.A.,Consumer Cyclical,Department Stores
 LWSA3.SA,Locaweb Serviços de Internet S.A.,Technology,Software - Infrastructure
 MATD3.SA,Hospital Mater Dei S.A.,Healthcare,Medical Care Facilities
 MDIA3.SA,M. Dias Branco S.A. Indústria e Comércio de Alimentos,Consumer Defensive,Packaged Foods
-MDNE3.SA,Moura Dubeux Engenharia S.A.,Real Estate,Real Estate Services
+MDNE3.SA,Moura Dubeux Engenharia S.A.,Real Estate,Real Estate Services,MOURA DUBEUXON ED NM
 MEAL3.SA,International Meal Company Alimentação S.A.,Consumer Cyclical,Restaurants
 MEGA3.SA,N/A,Unknown,Unknown
 MELK3.SA,Melnick Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate Services
@@ -138,7 +139,7 @@ PETR3.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated
 PETR4.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated
 PETZ3.SA,Pet Center Comércio e Participações S.A.,Consumer Cyclical,Specialty Retail
 PGMN3.SA,Empreendimentos Pague Menos S.A.,Healthcare,Pharmaceutical Retailers
-PLPL3.SA,PLANOEPLANO ON NM,Real Estate,Real Estate - Development
+PLPL3.SA,Plano & Plano Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate - Development,PLANOEPLANO ON NM
 PNVL3.SA,Dimed S.A. Distribuidora de Medicamentos,Healthcare,Drug Manufacturers - General
 PORT3.SA,Wilson Sons S.A.,Industrials,Marine Shipping
 POSI3.SA,Positivo Tecnologia S.A.,Technology,Computer Hardware
@@ -169,7 +170,7 @@ SOMA3.SA,N/A,Unknown,Unknown
 SRNA3.SA,Serena Energia S.A.,Utilities,Utilities - Renewable
 STBP3.SA,Santos Brasil Participações S.A.,Industrials,Marine Shipping
 SUZB3.SA,Suzano S.A.,Basic Materials,Paper & Paper Products
-TEND3.SA,Construtora Tenda S.A.,Real Estate,Real Estate - Development
+TEND3.SA,Construtora Tenda S.A.,Real Estate,Real Estate - Development,TENDA ON ED NM
 TFCO4.SA,Track & Field Co S.A.,Consumer Cyclical,Apparel Retail
 TIMS3.SA,TIM S.A.,Communication Services,Telecom Services
 TOTS3.SA,TOTVS S.A.,Technology,Software - Application
@@ -184,7 +185,7 @@ VITT3.SA,Vittia S.A.,Basic Materials,Agricultural Inputs
 VIVA3.SA,Vivara Participações S.A.,Consumer Cyclical,Luxury Goods
 VIVT3.SA,Telefônica Brasil S.A.,Communication Services,Telecom Services
 VLID3.SA,Valid Soluções S.A.,Industrials,Specialty Business Services
-VULC3.SA,VULCABRAS ON NM,Consumer Cyclical,Footwear & Accessories
+VULC3.SA,Vulcabras S.A.,Consumer Cyclical,Footwear & Accessories,VULCABRAS ON NM
 VVAR3.SA,N/A,Unknown,Unknown
 VVEO3.SA,CM Hospitalar S/A,Healthcare,Medical Distribution
 WEGE3.SA,WEG S.A.,Industrials,Electrical Equipment & Parts

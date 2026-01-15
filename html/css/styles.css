@@ -37,7 +37,7 @@ a{color:var(--accent-2);text-decoration:none;padding:8px 12px;background:transpa
 .nav-toggle .hamburger:after,
 .nav-toggle .hamburger div{content:'';position:absolute;left:0;right:0;height:2px;background:var(--muted);border-radius:2px}
 .nav-toggle .hamburger:before{top:0}
-.nav-toggle .hamburger div{top:6px}
+.nav-toggle .hamburger div{top=6px}
 .nav-toggle .hamburger:after{bottom:0}
 
 /* mobile behavior */
@@ -58,3 +58,185 @@ a{color:var(--accent-2);text-decoration:none;padding:8px 12px;background:transpa
   .metric-row{flex-direction:column;align-items:flex-start}
   .metric-bar-wrap{width:100%}
 }
+
+/* Dashboard row and chart sizing */
+.dashboard-row{display:flex;gap:12px;align-items:flex-start}
+.chart-card{flex:1;min-width:200px;min-height:180px;display:flex;flex-direction:column;align-items:stretch}
+.chart-card canvas{width:100%;height:auto;display:block;max-height:480px}
+
+/* small sparkline canvas inside table */
+.spark-canvas{width:120px;height:28px;max-width:120px;display:block}
+
+/* ensure table rows have some spacing for sparkline */
+#stocksTable td{vertical-align:middle;padding:6px 8px}
+
+/* Option B: Grid layout — portfolio full width above, two small charts side-by-side below */
+.dashboard-row{
+  display:grid;
+  gap:12px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "portfolio portfolio"
+    "sector concentration";
+  align-items:stretch;
+}
+
+/* map children by DOM order: first chart-card is portfolio (spans both columns) */
+.dashboard-row > .chart-card:first-child{
+  grid-area: portfolio;
+  min-height: 320px; /* give the portfolio chart room */
+}
+
+/* remove obsolete second chart-card rules (donut/concentration removed) */
+
+/* momentum arrow indicators */
+.mom-up{ color:#2b8a3e; font-weight:700; margin-left:4px }
+.mom-down{ color:#d9534f; font-weight:700; margin-left:4px }
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:12px}
+.kpi{background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.01));padding:12px;border-radius:8px;text-align:center}
+.kpi-val{font-size:20px;font-weight:700;color:var(--accent)}
+.kpi-label{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* mini KPI cards under holdings table */
+#peMomentum.mini-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:12px }
+.kpi.mini-kpi{ background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.01)); padding:10px; border-radius:8px; text-align:center }
+.kpi.mini-kpi .kpi-val{ font-size:18px; color:var(--accent); font-weight:700 }
+.kpi.mini-kpi .kpi-label{ font-size:12px; color:var(--muted); margin-top:6px }
+
+@media (max-width:800px){
+  #peMomentum.mini-grid{ grid-template-columns: repeat(2,1fr) }
+}
+@media (max-width:520px){
+  #peMomentum.mini-grid{ grid-template-columns: 1fr }
+}
+
+/* range buttons */
+.range-buttons{display:flex;gap:8px}
+.range-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:6px 8px;border-radius:6px;cursor:pointer}
+.range-btn.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#012}
+
+/* GA mini-chart wrapper */
+.ga-chart-wrap{margin-top:8px;}
+
+/* treemap container placeholder */
+.treemap{height:300px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.01));padding:8px;display:flex;align-items:center;justify-content:center}
+
+/* table enhancements */
+#stocksTable{width:100%;margin-top:12px;border-collapse:collapse}
+#stocksTable th{text-align:left;padding:8px;color:var(--muted)}
+#stocksTable td{padding:8px}
+.badge{display:inline-block;padding:6px 8px;border-radius:999px;color:#012;font-weight:700}
+.badge-green{background:#bff0da}
+.badge-yellow{background:#fff2b8}
+.badge-red{background:#ffd6d6}
+
+/* responsive KPI tiles */
+@media(max-width:900px){
+  .kpi-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:560px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* concentration list and summary */
+.list li{ color: #eaf6f1; padding:6px 0; }
+.concentration-summary{ margin-top:8px; font-size:14px; color:var(--muted); }
+
+/* Meta footnote styling */
+.meta-footnote{ color:var(--muted); font-size:12px; display:block; margin:4px 0; }
+#meta{ padding:8px 12px; margin-bottom:8px }
+#meta .meta-row{ margin:0 }
+
+/* Reduce prominence of header h1 a bit when on dashboard pages */
+.header h1{ font-size:18px }
+
+/* --- Weight bars (conditional-formatting-like) --- */
+#stocksTable td.weight-cell{ padding:6px 8px; min-width:160px; position:relative; vertical-align:middle }
+#stocksTable .weight-bar-bg{ background:#0b1b1f; border-radius:10px; height:24px; overflow:hidden; position:relative }
+#stocksTable .weight-bar{ position:absolute; left:0; top:0; bottom:0; width:0%; background:linear-gradient(90deg,#4fc3f7,#6fe3c5); transition:width 420ms ease; opacity:0.95 }
+#stocksTable .weight-val{ position:absolute; left:10px; top:50%; transform:translateY(-50%); z-index:2; font-variant-numeric:tabular-nums; font-weight:700; color:#eaf6f1; text-shadow:0 1px 0 rgba(0,0,0,0.6) }
+
+/* when bar is very dark, lighten text for contrast */
+#stocksTable .weight-bar-bg{ background:linear-gradient(90deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); }
+
+@media (max-width:640px){
+  #stocksTable .weight-val{ left:8px; font-size:13px }
+  #stocksTable .weight-bar-bg{ height:20px; border-radius:7px }
+}
+
+/* Ensure portfolioChart has a predictable height so the sector row is positioned correctly */
+.dashboard-row > .chart-card:first-child > #portfolioChart{ height:320px; }
+.dashboard-row > .chart-card:first-child .ga-chart-wrap{ height:80px; }
+
+/* Table footnote styling */
+.table-footnote {
+  margin-top: 10px;
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 0.85em;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.table-footnote small {
+  opacity: 0.8;
+}
+
+/* Diagnostics section with charts and KPIs side-by-side */
+.diagnostics-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.diag-item {
+  background: linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.01));
+  border-radius: 8px;
+  padding: 12px;
+}
+.diag-item.diag-with-kpi {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 16px;
+}
+.diag-chart-area {
+  flex: 1;
+  min-width: 0;
+}
+.diag-kpi-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 90px;
+  padding: 8px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+}
+.kpi-mini {
+  text-align: center;
+}
+.kpi-mini .kpi-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.kpi-mini .kpi-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .diag-item.diag-with-kpi {
+    flex-direction: column;
+  }
+  .diag-kpi-side {
+    flex-direction: row;
+    justify-content: center;
+    min-width: auto;
+    padding: 10px 16px;
+  }
+}
+

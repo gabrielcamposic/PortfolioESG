@@ -116,6 +116,10 @@ update_pipeline_status "Awaiting Next Stage" "Analysis completed successfully."
 run_stage "Generate Assets JSON" "$GENERATE_ASSETS_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Generated assets JSON for frontend."
 
+# 5.6 Update holdings metadata (forwardPE, currentPrice, targetPrice) in latest_run_summary.json
+log_message "Updating holdings metadata..."
+python3 "$PROJECT_ROOT/scripts/update_holdings_meta.py" 2>/dev/null || true
+
 # 7. Finalize the pipeline status
 log_message "Pipeline execution completed successfully."
 jq --arg endTime "$(date '+%Y-%m-%d %H:%M:%S')" \

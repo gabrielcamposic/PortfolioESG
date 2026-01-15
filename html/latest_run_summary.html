@@ -19,36 +19,115 @@
     </header>
 
     <section id="meta" class="card">
-      <div class="meta-row"><strong>Run ID:</strong> <span id="runId">—</span></div>
-      <div class="meta-row"><strong>Last updated:</strong> <span id="lastUpdated">—</span></div>
-      <div class="meta-row"><strong>Sharpe Ratio:</strong> <span id="sharpe">—</span></div>
-      <div class="meta-row"><strong>Expected Return (annual %):</strong> <span id="expRet">—</span></div>
-      <div class="meta-row"><strong>Volatility (annual %):</strong> <span id="vol">—</span></div>
+      <div class="meta-row"><small class="meta-footnote">Run ID: <span id="runId">—</span></small></div>
+      <div class="meta-row"><small class="meta-footnote">Last updated: <span id="lastUpdated">—</span></small></div>
+    </section>
+
+    <!-- KPI tiles -->
+    <section id="kpis" class="card kpi-grid">
+      <div class="kpi" id="kpi-sharpe"><div class="kpi-val">—</div><div class="kpi-label">Sharpe</div></div>
+      <div class="kpi" id="kpi-return"><div class="kpi-val">—</div><div class="kpi-label">Ann. Return</div></div>
+      <div class="kpi" id="kpi-top5"><div class="kpi-val">—</div><div class="kpi-label">Top 5 %</div></div>
+      <div class="kpi" id="mini-mom"><div class="kpi-val" id="momentum">—</div><div class="kpi-label">Momentum</div></div>
+      <div class="kpi" id="mini-bpe"><div class="kpi-val" id="bpe">—</div><div class="kpi-label">Benchmark P/E</div></div>
     </section>
 
     <section id="portfolio" class="card">
       <h2>Portfolio</h2>
+      <div class="portfolio-controls">
+        <div class="range-buttons">
+          <button class="range-btn active" data-range="all">All</button>
+          <button class="range-btn" data-range="12m">12M</button>
+          <button class="range-btn" data-range="6m">6M</button>
+          <button class="range-btn" data-range="3m">3M</button>
+          <button class="range-btn" data-range="1m">1M</button>
+        </div>
+        <!-- GA history removed: portfolio chart shows portfolio performance over time -->
+       </div>
+
+       <div class="dashboard-row">
+         <div class="chart-card">
+           <canvas id="portfolioChart" width="600" height="260" style="width:100%;height:260px;display:block;"></canvas>
+           <!-- GA mini chart removed -->
+         </div>
+       </div>
+
       <table id="stocksTable">
         <thead>
-          <tr><th>#</th><th>Stock</th><th>Weight</th></tr>
+          <tr><th>#</th><th>Stock</th><th>Fwd P/E</th><th>Latest Price</th><th>Target Price</th><th>Weight</th><th>Spark</th></tr>
         </thead>
         <tbody></tbody>
       </table>
-      <div id="peMomentum" class="mini-grid">
-        <div><strong>Portfolio weighted P/E</strong><div id="pe">—</div></div>
-        <div><strong>Portfolio momentum</strong><div id="momentum">—</div></div>
-        <div><strong>Benchmark forward P/E</strong><div id="bpe">—</div></div>
+      <div id="tableFootnote" class="table-footnote">
+        <small>Data from last run: <span id="tableRunDate">—</span></small>
       </div>
     </section>
 
     <section id="exposures" class="card">
-      <h2>Sector Exposure</h2>
-      <ul id="sectorList" class="list"></ul>
+      <h2>Sector Exposure (treemap)</h2>
+      <div id="treemap" class="treemap"></div>
     </section>
 
-    <section id="concentration" class="card">
-      <h2>Concentration Risk</h2>
-      <ul id="concentrationList" class="list"></ul>
+    <section id="diagnostics" class="card">
+      <h2>Diagnostics</h2>
+      <div class="diagnostics-row">
+        <!-- Sharpe Ratio Chart -->
+        <div class="diag-item diag-with-kpi">
+          <div class="diag-chart-area">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <strong>Histórico de Sharpe Ratio</strong>
+              <small style="color:var(--muted)">melhor Sharpe de cada simulação</small>
+            </div>
+            <div style="height:120px;"><canvas id="gaChart" width="600" height="120" style="width:100%;height:120px;display:block;"></canvas></div>
+          </div>
+          <div class="diag-kpi-side">
+            <div class="kpi-mini" id="kpi-sharpe-diag"><div class="kpi-val">—</div><div class="kpi-label">Último</div></div>
+          </div>
+        </div>
+        <!-- Volatility Chart -->
+        <div class="diag-item diag-with-kpi">
+          <div class="diag-chart-area">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <strong>Histórico de Volatilidade</strong>
+              <small style="color:var(--muted)">volatilidade anual de cada simulação</small>
+            </div>
+            <div style="height:120px;"><canvas id="volChart" width="600" height="120" style="width:100%;height:120px;display:block;"></canvas></div>
+          </div>
+          <div class="diag-kpi-side">
+            <div class="kpi-mini" id="kpi-vol-diag"><div class="kpi-val">—</div><div class="kpi-label">Último</div></div>
+          </div>
+        </div>
+        <!-- HHI (sem histórico - apenas valor atual) -->
+        <div class="diag-item diag-with-kpi">
+          <div class="diag-chart-area">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <strong>Índice de Concentração (HHI)</strong>
+              <small style="color:var(--muted)">sem histórico disponível</small>
+            </div>
+            <div style="height:120px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border-radius:8px;">
+              <span style="color:var(--muted);font-size:13px;">Histórico não rastreado</span>
+            </div>
+          </div>
+          <div class="diag-kpi-side">
+            <div class="kpi-mini" id="kpi-hhi-diag"><div class="kpi-val">—</div><div class="kpi-label">Atual</div></div>
+          </div>
+        </div>
+        <!-- Portfolio P/E (sem histórico - apenas valor atual) -->
+        <div class="diag-item diag-with-kpi">
+          <div class="diag-chart-area">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <strong>Portfolio P/E</strong>
+              <small style="color:var(--muted)">sem histórico disponível</small>
+            </div>
+            <div style="height:120px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border-radius:8px;">
+              <span style="color:var(--muted);font-size:13px;">Histórico não rastreado</span>
+            </div>
+          </div>
+          <div class="diag-kpi-side">
+            <div class="kpi-mini" id="kpi-pe-diag"><div class="kpi-val">—</div><div class="kpi-label">Atual</div></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <footer class="footer">
@@ -56,6 +135,16 @@
     </footer>
   </main>
 
-  <script src="./js/latest_run_summary.js"></script>
-</body>
-</html>
+  <!-- Chart.js from CDN (render-only) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Load local app JS with cache-busting so browsers always fetch the updated file during development.
+    (function(){
+      var s = document.createElement('script');
+      s.src = './js/latest_run_summary.js?_=' + Date.now();
+      s.defer = true;
+      document.body.appendChild(s);
+    })();
+  </script>
+ </body>
+ </html>

@@ -55,6 +55,8 @@ def normalize_ticker(s: Optional[str]) -> str:
     s2 = ''.join([c for c in s2 if c.isalnum()])
     return s2
 
+
+
 # FIFO lot-based aggregation for ledger.csv
 
 def aggregate_ledger_from_csv(path: str) -> Tuple[List[Dict[str,Any]], float, float]:
@@ -386,6 +388,19 @@ def main():
                 if mapped:
                     symbol = mapped
                     p['symbol'] = mapped
+            price = None
+            if symbol in price_map:
+                price = price_map[symbol]
+            else:
+                for k in price_map.keys():
+                    if normalize_ticker(k) == normalize_ticker(symbol):
+                        price = price_map[k]
+                        # update symbol to the exact price_map key
+                        p['symbol'] = k
+                        break
+            if price is not None:
+                total_current_market += qty * price
+                p['current_price'] = price            # Now try to get price
             price = None
             if symbol in price_map:
                 price = price_map[symbol]

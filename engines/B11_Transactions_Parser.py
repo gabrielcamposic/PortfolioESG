@@ -294,16 +294,19 @@ def parse_broker_note_text(text: str):
                 val = norm_num_br(raw_value)
                 desc_tokens = tokens[:-4]
                 desc = ' '.join(desc_tokens).strip()
-                # remove common market tokens
-                desc = re.sub(r'\b(?:BOVESPA|FRACIONARIO|FRACIONADO|C|V)\b', '', desc, flags=re.I).strip()
-                # try to extract ticker from end of desc
+                # remove common market tokens at the beginning (BOVESPA, FRACIONARIO, C, V)
+                # Apply multiple times to handle combinations like "BOVESPA C FRACIONARIO"
+                for _ in range(3):
+                    desc = re.sub(r'^(?:BOVESPA|FRACIONARIO|FRACIONADO|VISTA)\s*', '', desc, flags=re.I).strip()
+                    # remove single C or V (compra/venda) that appear after market type
+                    desc = re.sub(r'^[CV]\s+', '', desc, flags=re.I).strip()
+
+                # The full description is now the company name + share type (e.g., "VULCABRAS ON ED NM")
+                # Use this as the ticker - the mapping logic will convert it to the symbol
                 ticker = desc
-                tmatch = re.search(r'([A-Z0-9]{2,}(?:\s+(?:ON|PN|PNA|NM|11|3|4|5)\b)*)$', desc)
-                if tmatch:
-                    ticker = tmatch.group(1).strip()
-                    desc = re.sub(re.escape(ticker) + r'\s*$', '', desc).strip()
+
                 side = 'BUY' if dc == 'D' else 'SELL'
-                trades.append({'description': desc or ticker, 'ticker': ticker, 'quantity': qty, 'unit_price': unit, 'gross_value': val, 'side': side})
+                trades.append({'description': desc, 'ticker': ticker, 'quantity': qty, 'unit_price': unit, 'gross_value': val, 'side': side})
                 continue
             except Exception:
                 pass

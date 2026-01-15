@@ -31,43 +31,17 @@ logging.getLogger('yfinance').setLevel(logging.ERROR)
 def get_ticker_skip_file(ticker: str, params: dict[str, Any]) -> str:
     """Return the path to the skip file for a given ticker.
 
-    New behavior: keep all JSON under the web-accessible data folder configured by
-    'WEB_ACCESSIBLE_DATA_PATH' to avoid producing any JSON under repo-level data/.
-
-    Falling back: if WEB_ACCESSIBLE_DATA_PATH is not configured, fall back to
-    params['findata_directory'] for backwards compatibility.
+    Skip files are stored alongside the downloaded data in the findata directory.
     """
-    web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
-    if web_folder:
-        return os.path.join(web_folder, 'findata', ticker, 'skip.json')
-    # legacy fallback
     findata_dir = params.get('findata_directory') or params.get('FINDATA_PATH')
+    if not findata_dir:
+        raise ValueError("findata_directory or FINDATA_PATH must be configured in parameters")
     return os.path.join(findata_dir, ticker, 'skip.json')
 
 
 def load_ticker_skip_data(ticker: str, params: dict[str, Any], logger: logging.Logger) -> list:
-    """Load skip data for a ticker from its skip.json file.
-
-    If a legacy skip file exists under the findata directory but not under the
-    web-accessible path, attempt to migrate it into the web folder (move) so
-    further writes only happen under html/data.
-    """
+    """Load skip data for a ticker from its skip.json file."""
     skip_file = get_ticker_skip_file(ticker, params)
-    # If using web path, also check legacy location and migrate if needed
-    web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
-    if web_folder:
-        legacy_findata = params.get('findata_directory') or params.get('FINDATA_PATH')
-        if legacy_findata:
-            legacy_path = os.path.join(legacy_findata, ticker, 'skip.json')
-            if os.path.exists(legacy_path) and not os.path.exists(skip_file):
-                try:
-                    os.makedirs(os.path.dirname(skip_file), exist_ok=True)
-                    shutil.copy2(legacy_path, skip_file)
-                    # Optionally remove legacy to enforce single JSON location; keep copy to be safe
-                    # os.remove(legacy_path)
-                    logger.info(f"Migrated skip file for {ticker} from legacy location to web data folder.")
-                except Exception as e:
-                    logger.warning(f"Failed to migrate legacy skip file for {ticker}: {e}")
     if os.path.exists(skip_file):
         try:
             with open(skip_file, 'r') as f:
@@ -79,12 +53,7 @@ def load_ticker_skip_data(ticker: str, params: dict[str, Any], logger: logging.L
 
 
 def save_ticker_skip_data(ticker: str, skip_data: list, params: dict[str, Any], logger: logging.Logger):
-    """Save skip data for a ticker to its skip.json file.
-
-    Ensures the JSON file is written under the web-accessible data path (html/data)
-    when configured. This prevents any JSON outputs from being created under the
-    top-level repo `data/` folder.
-    """
+    """Save skip data for a ticker to its skip.json file."""
     skip_file = get_ticker_skip_file(ticker, params)
     os.makedirs(os.path.dirname(skip_file), exist_ok=True)
     try:
@@ -187,19 +156,25 @@ def load_tickers_data(params: dict[str, Any], logger: logging.Logger) -> pd.Data
     tickers_file_path = params.get("TICKERS_FILE")
     if not tickers_file_path:
         logger.critical("'TICKERS_FILE' not found in parameters. Cannot load tickers.")
-        return pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry'])
+        return pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry', 'BrokerName'])
 
     try:
         tickers_df = pd.read_csv(
             tickers_file_path,
             header=0,
-            names=['Ticker', 'Name', 'Sector', 'Industry'],
             comment='#',
             skip_blank_lines=True,
             sep=','
         )
         for col in tickers_df.select_dtypes(['object']):
             tickers_df[col] = tickers_df[col].str.strip()
+        # Ensure required columns exist
+        for col in ['Ticker', 'Name', 'Sector', 'Industry']:
+            if col not in tickers_df.columns:
+                tickers_df[col] = None
+        # Add BrokerName column if not present (for backward compatibility)
+        if 'BrokerName' not in tickers_df.columns:
+            tickers_df['BrokerName'] = None
         tickers_df.dropna(subset=['Ticker'], inplace=True)
         valid_tickers_df = tickers_df[~tickers_df['Sector'].str.contains('Error', na=False, case=False)].copy()
         num_loaded = len(tickers_df)
@@ -211,10 +186,10 @@ def load_tickers_data(params: dict[str, Any], logger: logging.Logger) -> pd.Data
         return valid_tickers_df
     except FileNotFoundError:
         logger.critical(f"Tickers file not found at '{tickers_file_path}'.")
-        return pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry'])
+        return pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry', 'BrokerName'])
     except Exception as e:
         logger.critical(f"An unexpected error occurred while reading tickers file '{tickers_file_path}': {e}")
-        return pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry'])
+        return pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry', 'BrokerName'])
 
 def save_ticker_data_to_csv(ticker: str, data: pd.DataFrame, params: dict, logger: logging.Logger) -> int:
     findata_dir = params.get("findata_directory")
@@ -732,10 +707,10 @@ def main():
         tickers_df = load_tickers_data(params, logger)
         if tickers_df.empty:
             logger.warning("Primary tickers file could not be loaded or is empty.")
-            tickers_df = pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry'])
+            tickers_df = pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry', 'BrokerName'])
 
         logger.info("Loading benchmark tickers...")
-        benchmarks_df = pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry'])
+        benchmarks_df = pd.DataFrame(columns=['Ticker', 'Name', 'Sector', 'Industry', 'BrokerName'])
         benchmarks_file_path = os.path.join(script_dir, '..', 'parameters', 'benchmarks.txt')
         try:
             temp_benchmarks_df = pd.read_csv(
@@ -747,10 +722,10 @@ def main():
             )
             for col in temp_benchmarks_df.select_dtypes(['object']):
                 temp_benchmarks_df[col] = temp_benchmarks_df[col].str.strip()
-            for col in ['Ticker', 'Name', 'Sector', 'Industry']:
+            for col in ['Ticker', 'Name', 'Sector', 'Industry', 'BrokerName']:
                 if col not in temp_benchmarks_df.columns:
                     temp_benchmarks_df[col] = None
-            benchmarks_df = temp_benchmarks_df[['Ticker', 'Name', 'Sector', 'Industry']]
+            benchmarks_df = temp_benchmarks_df[['Ticker', 'Name', 'Sector', 'Industry', 'BrokerName']]
             benchmarks_df.dropna(subset=['Ticker'], inplace=True)
             logger.info(f"Successfully loaded {len(benchmarks_df)} benchmark tickers.")
         except FileNotFoundError:

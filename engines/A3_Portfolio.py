@@ -915,6 +915,7 @@ def main():
             portfolio_momentum = None
             portfolio_dividend_yield = None
             benchmark_weighted_pe = None
+            latest_scored = pd.DataFrame()  # Initialize before loading
 
             if scored_stocks_file and os.path.exists(scored_stocks_file):
                 try:
@@ -979,6 +980,99 @@ def main():
                 except Exception as e:
                     logger.warning(f"Could not calculate portfolio dividend yield: {e}")
 
+            # --- Additional precomputed series for frontend (render-only) ---
+            # Build portfolio_timeseries from historical results (final_value) and
+            # stock_sparklines from the stock_close_df_sim_pool price history.
+
+            # initialize defaults to avoid potential unbound local reference warnings
+            portfolio_timeseries = []
+            stock_sparklines = {}
+            sector_exposure_list = []
+            # Note: latest_scored is already set above when loading scored_stocks_file
+
+            try:
+                max_points = 100
+
+                # 1) Portfolio timeseries: use PORTFOLIO_RESULTS_DB_FILE (final_value per run)
+                pr_file = params.get("PORTFOLIO_RESULTS_DB_FILE")
+                if pr_file and os.path.exists(pr_file):
+                    try:
+                        pr_df = pd.read_csv(pr_file)
+                        if 'timestamp' in pr_df.columns and 'final_value' in pr_df.columns:
+                            pr_df = pr_df.dropna(subset=['final_value']).copy()
+                            pr_df['timestamp'] = pd.to_datetime(pr_df['timestamp'], errors='coerce')
+                            pr_df = pr_df.dropna(subset=['timestamp']).sort_values('timestamp')
+                            if not pr_df.empty:
+                                total = len(pr_df)
+                                if total <= max_points:
+                                    sample_idx = list(range(total))
+                                else:
+                                    sample_idx = np.unique(np.linspace(0, total - 1, max_points).astype(int)).tolist()
+                                for i in sample_idx:
+                                    row = pr_df.iloc[i]
+                                    ts_val = row['timestamp']
+                                    try:
+                                        ts_str = ts_val.strftime('%Y-%m-%d')
+                                    except Exception:
+                                        ts_str = str(ts_val)
+                                    try:
+                                        fv = float(row['final_value'])
+                                    except Exception:
+                                        fv = None
+                                    portfolio_timeseries.append({
+                                        'ts': ts_str,
+                                        'final_value': fv
+                                    })
+                    except Exception as e:
+                        logger.warning(f"Could not build portfolio_timeseries from {pr_file}: {e}")
+
+                # 2) Stock sparklines: derive from stock_close_df_sim_pool (Date + price cols)
+                try:
+                    if isinstance(stock_close_df_sim_pool, pd.DataFrame) and not stock_close_df_sim_pool.empty:
+                        df_prices = stock_close_df_sim_pool.copy()
+                        # Ensure Date is datetime-like and sorted
+                        try:
+                            df_prices['Date'] = pd.to_datetime(df_prices['Date'])
+                        except Exception:
+                            pass
+                        df_prices = df_prices.sort_values('Date')
+
+                        # prepare an index to sample (last N points)
+                        total_rows = len(df_prices)
+                        if total_rows > 0:
+                            if total_rows <= max_points:
+                                row_idx = list(range(total_rows))
+                            else:
+                                row_idx = np.unique(np.linspace(0, total_rows - 1, max_points).astype(int)).tolist()
+
+                            for stock in best_combo:
+                                if stock in df_prices.columns:
+                                    series = df_prices[stock].iloc[row_idx].ffill().bfill().tolist()
+                                    # normalize series to start at 1.0 if possible
+                                    try:
+                                        if series and series[0] and series[0] != 0:
+                                            normalized = [round(float(v)/float(series[0]), 6) for v in series]
+                                        else:
+                                            normalized = [round(float(v) if pd.notna(v) else 0.0, 6) for v in series]
+                                    except Exception:
+                                        normalized = [round(float(v) if pd.notna(v) else 0.0, 6) for v in series]
+                                    stock_sparklines[stock] = normalized
+                                else:
+                                    stock_sparklines[stock] = []
+                except Exception as e:
+                    logger.warning(f"Could not build stock_sparklines: {e}")
+
+                # 3) sector_exposure_list: ordered list for predictable chart rendering
+                try:
+                    if isinstance(sector_exposure, dict) and sector_exposure:
+                        sector_exposure_list = sorted([
+                            {'sector': k, 'pct': float(v)} for k, v in sector_exposure.items()
+                        ], key=lambda x: x['pct'], reverse=True)
+                except Exception:
+                    sector_exposure_list = []
+            except Exception as e:
+                logger.warning(f"Error preparing frontend series: {e}")
+
             latest_summary = {
                 "last_updated_run_id": run_id,
                 "last_updated_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -990,6 +1084,7 @@ def main():
                     "expected_volatility_annual_pct": round(best_vol * 100, 2),
                     "initial_investment": params.get("initial_investment"),
                     "sector_exposure": sector_exposure,
+                    "sector_exposure_list": locals().get('sector_exposure_list', []),
                     "concentration_risk": {
                         "hhi": round(hhi, 4),
                         "top_5_holdings_pct": round(top_5_pct, 4),
@@ -1001,9 +1096,67 @@ def main():
                         "portfolio_forward_pe": portfolio_weighted_pe,
                         "benchmark_forward_pe": benchmark_weighted_pe,
                         "portfolio_dividend_yield": portfolio_dividend_yield
-                    }
+                    },
+                    "portfolio_timeseries": locals().get('portfolio_timeseries', []),
+                    "stock_sparklines": locals().get('stock_sparklines', {}),
+                    "ga_fitness_history": locals().get('ga_fitness_history', []),
+                    "holdings_meta": locals().get('holdings_meta', {})
                 }
             }
+
+            # Add per-holding metadata (forwardPE, Momentum, currentPrice, targetPrice) if scored stocks are available
+            try:
+                holdings_meta = {}
+
+                # Load financials DB as fallback for forwardPE data
+                financials_db = pd.DataFrame()
+                financials_db_file = params.get("FINANCIALS_DB_FILE")
+                if financials_db_file and os.path.exists(financials_db_file):
+                    try:
+                        financials_db = pd.read_csv(financials_db_file)
+                        # Get latest entry per stock
+                        if 'LastUpdated' in financials_db.columns:
+                            financials_db['LastUpdated'] = pd.to_datetime(financials_db['LastUpdated'])
+                            financials_db = financials_db.sort_values('LastUpdated').drop_duplicates(subset='Stock', keep='last')
+                        logger.info(f"Loaded {len(financials_db)} entries from FinancialsDB for fallback")
+                    except Exception as e:
+                        logger.warning(f"Could not load FinancialsDB: {e}")
+
+                for stock in best_combo:
+                    stock_row = latest_scored[latest_scored['Stock'] == stock] if not latest_scored.empty else pd.DataFrame()
+
+                    # Get values from scored_stocks if available
+                    forward_pe = None
+                    momentum_val = None
+                    current_price = None
+                    target_price = None
+
+                    if not stock_row.empty:
+                        forward_pe = stock_row['forwardPE'].values[0] if 'forwardPE' in stock_row.columns else None
+                        momentum_val = stock_row['Momentum'].values[0] if 'Momentum' in stock_row.columns else None
+                        current_price = stock_row['CurrentPrice'].values[0] if 'CurrentPrice' in stock_row.columns else None
+                        target_price = stock_row['TargetPrice'].values[0] if 'TargetPrice' in stock_row.columns else None
+
+                    # Fallback to FinancialsDB for forwardPE if not found
+                    if (forward_pe is None or pd.isna(forward_pe)) and not financials_db.empty:
+                        fin_row = financials_db[financials_db['Stock'] == stock]
+                        if not fin_row.empty and 'forwardPE' in fin_row.columns:
+                            forward_pe = fin_row['forwardPE'].values[0]
+                            logger.debug(f"Using FinancialsDB fallback for {stock} forwardPE: {forward_pe}")
+
+                    holdings_meta[stock] = {
+                        'forwardPE': float(forward_pe) if pd.notna(forward_pe) else None,
+                        'Momentum': float(momentum_val) if pd.notna(momentum_val) else None,
+                        'currentPrice': float(current_price) if pd.notna(current_price) else None,
+                        'targetPrice': float(target_price) if pd.notna(target_price) else None
+                    }
+
+                latest_summary['best_portfolio_details']['holdings_meta'] = holdings_meta
+                logger.info(f"Populated holdings_meta for {len(holdings_meta)} stocks")
+            except Exception as e:
+                # if anything fails, keep holdings_meta empty
+                logger.error(f"Failed to populate holdings_meta: {e}")
+
             latest_summary_path = os.path.join(params.get("WEB_ACCESSIBLE_DATA_PATH"), "latest_run_summary.json")
             try:
                 with open(latest_summary_path, 'w') as f:

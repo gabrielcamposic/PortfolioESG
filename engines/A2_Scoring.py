@@ -19,7 +19,7 @@ if project_root not in sys.path:
 
 import pandas as pd
 import numpy as np
-import time, logging, shutil
+import time, logging, shutil, json
 from datetime import datetime
 from typing import Any, Dict
 
@@ -95,6 +95,7 @@ def copy_file_to_web_accessible_location(source_param_key: str, params: Dict[str
         logger.error(f"Failed to copy file from '{source_path}' to '{dest_folder}': {e}")
 
 
+
 def load_input_stocks_with_sectors(params: Dict[str, Any], logger: logging.Logger) -> pd.DataFrame:
     """Loads tickers, names, sectors, and industries, preparing them for scoring."""
     tickers_file_path = params.get("TICKERS_FILE")
@@ -104,9 +105,13 @@ def load_input_stocks_with_sectors(params: Dict[str, Any], logger: logging.Logge
 
     try:
         stocks_df = pd.read_csv(
-            tickers_file_path, header=None, names=['Ticker', 'Name', 'Sector', 'Industry'],
+            tickers_file_path, header=0,
             comment='#', skip_blank_lines=True, sep=','
         )
+        # Ensure required columns exist
+        for col in ['Ticker', 'Name', 'Sector', 'Industry']:
+            if col not in stocks_df.columns:
+                stocks_df[col] = None
         for col in stocks_df.select_dtypes(['object']):
             stocks_df[col] = stocks_df[col].str.strip()
 
@@ -122,6 +127,24 @@ def load_input_stocks_with_sectors(params: Dict[str, Any], logger: logging.Logge
 
         # Filter out tickers marked with 'Error'
         stocks_df = stocks_df[~stocks_df['Sector'].str.contains('Error', na=False, case=False)].copy()
+
+        # Filter out tickers that are marked as invalid/delisted (have skip.json with "ALL")
+        findata_path = params.get("FINDATA_PATH") or params.get("findata_directory")
+        if findata_path:
+            invalid_tickers = []
+            for ticker in stocks_df['Ticker'].tolist():
+                skip_file = os.path.join(findata_path, ticker, 'skip.json')
+                if os.path.exists(skip_file):
+                    try:
+                        with open(skip_file, 'r') as f:
+                            skip_data = json.load(f)
+                        if skip_data == ["ALL"]:
+                            invalid_tickers.append(ticker)
+                    except Exception:
+                        pass
+            if invalid_tickers:
+                logger.info(f"Filtering out {len(invalid_tickers)} invalid/delisted tickers: {invalid_tickers}")
+                stocks_df = stocks_df[~stocks_df['Ticker'].isin(invalid_tickers)].copy()
 
         # Sanitize for safety and consistency
         stocks_df['Sector'] = stocks_df['Sector'].str.replace('&', 'and', regex=False)
@@ -235,6 +258,8 @@ def main():
 
     logger.info("Starting A2_Scoring.py execution pipeline.")
 
+    script_failed = False  # Track if script encountered an error
+
     try:
         # 4. --- Data Loading ---
         data_load_start_time = time.time()
@@ -261,17 +286,43 @@ def main():
         logger.info("Starting scoring and analysis...")
 
         valid_tickers = stocks_with_sectors_df['Stock'].unique()
+        logger.info(f"Looking for price data for {len(valid_tickers)} stocks")
+
         filtered_stock_data = all_stock_data_df[all_stock_data_df['Stock'].isin(valid_tickers)].copy()
+        logger.info(f"Found {len(filtered_stock_data)} price records matching the stocks")
+
+        if filtered_stock_data.empty:
+            # Log which stocks are in the DB vs what we're looking for
+            stocks_in_db = set(all_stock_data_df['Stock'].unique())
+            missing_stocks = set(valid_tickers) - stocks_in_db
+            logger.error(f"No matching stocks found. Stocks in DB: {len(stocks_in_db)}, Looking for: {len(valid_tickers)}")
+            if missing_stocks:
+                logger.error(f"Sample of missing stocks: {list(missing_stocks)[:10]}")
+            logger.critical("No price data available for any of the loaded stocks.",
+                           extra={'web_data': {"scoring_status": "Failed: No Matching Stocks"}})
+            sys.exit(1)
+
         daily_close_prices = filtered_stock_data.pivot(index='Date', columns='Stock', values='Close')
+
+        # Check if we have price data before proceeding
+        if daily_close_prices.empty:
+            logger.critical("No price data available for the loaded stocks. Check if download was successful.",
+                           extra={'web_data': {"scoring_status": "Failed: No Price Data"}})
+            sys.exit(1)
+
         daily_returns = daily_close_prices.pct_change(fill_method=None).dropna(how='all')
         current_prices_df = daily_close_prices.iloc[-1].reset_index(name='CurrentPrice')
         sharpe_df = calculate_individual_sharpe_ratios(daily_returns, params)
         sharpe_df.rename(columns={'index': 'Stock'}, inplace=True)
         if params.get("momentum_enabled", False):
             momentum_period = params.get("momentum_period_days", 126)
-            momentum_returns = daily_close_prices.pct_change(periods=momentum_period, fill_method=None).iloc[-1]
-            momentum_df = momentum_returns.reset_index(name='MomentumScore')
-            momentum_df.fillna(0, inplace=True)
+            if len(daily_close_prices) > momentum_period:
+                momentum_returns = daily_close_prices.pct_change(periods=momentum_period, fill_method=None).iloc[-1]
+                momentum_df = momentum_returns.reset_index(name='MomentumScore')
+                momentum_df.fillna(0, inplace=True)
+            else:
+                logger.warning(f"Not enough data for momentum calculation. Need {momentum_period} days, have {len(daily_close_prices)}.")
+                momentum_df = pd.DataFrame(columns=['Stock', 'MomentumScore'])
         else:
             momentum_df = pd.DataFrame(columns=['Stock', 'MomentumScore'])
         base_df = stocks_with_sectors_df.merge(financials_df, on='Stock', how='left')
@@ -382,13 +433,13 @@ def main():
         missing_columns = [col for col in required_columns if col not in filtered_df.columns]
         if missing_columns:
             logger.warning(f"The following required columns are missing in the output: {missing_columns}")
-        final_df_to_save = filtered_df[[col for col in required_columns if col in filtered_df.columns]]
+        final_df_to_save = filtered_df[[col for col in required_columns if col in filtered_df.columns]].copy()
 
         # Only sort and drop duplicates if necessary
         if 'CompositeScore' in final_df_to_save.columns:
-            final_df_to_save.sort_values(by='CompositeScore', ascending=False, inplace=True)
+            final_df_to_save = final_df_to_save.sort_values(by='CompositeScore', ascending=False)
         if 'Stock' in final_df_to_save.columns:
-            final_df_to_save.drop_duplicates(subset=['Stock'], keep='first', inplace=True)
+            final_df_to_save = final_df_to_save.drop_duplicates(subset=['Stock'], keep='first')
 
         # --- END OF REPLACEMENT ---
         # The rest of the file (saving logic) remains the same.
@@ -420,10 +471,12 @@ def main():
             logger.info(f"Appended {len(sector_pe)} new records to {sector_pe_file}")
 
         perf_data["results_save_duration_s"] = time.time() - save_start_time
+        script_failed = False
 
     except Exception as e:
         logger.critical(f"An unhandled exception occurred in the main scoring pipeline: {e}", exc_info=True,
                         extra={'web_data': {"scoring_status": "Failed: Unhandled Exception"}})
+        script_failed = True
     finally:
         # 7. --- Finalization and Logging ---
         perf_data["overall_script_duration_s"] = time.time() - overall_start_time
@@ -436,7 +489,7 @@ def main():
         copy_file_to_web_accessible_location("SCORING_PERFORMANCE_FILE", params, logger)
 
         final_web_payload = {
-            "scoring_status": "Completed",
+            "scoring_status": "Failed" if script_failed else "Completed",
             "scoring_start_time": perf_data.get("run_start_timestamp"),  # <-- ADD THIS LINE
             "scoring_end_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "stocks_scored_count": perf_data.get("stocks_successfully_scored", 0)
@@ -446,6 +499,10 @@ def main():
             extra={'web_data': final_web_payload}
         )
         logger.info("Execution complete.")
+
+        # Exit with error code if script failed
+        if script_failed:
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
