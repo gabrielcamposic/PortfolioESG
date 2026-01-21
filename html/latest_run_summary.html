@@ -18,40 +18,31 @@
       </div>
     </header>
 
+    <!-- Meta info -->
     <section id="meta" class="card">
       <div class="meta-row"><small class="meta-footnote">Run ID: <span id="runId">—</span></small></div>
       <div class="meta-row"><small class="meta-footnote">Last updated: <span id="lastUpdated">—</span></small></div>
     </section>
 
-    <!-- KPI tiles -->
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 1: KPIs PRINCIPAIS - Métricas-chave de performance
+         ═══════════════════════════════════════════════════════════════════════ -->
     <section id="kpis" class="card kpi-grid">
       <div class="kpi" id="kpi-sharpe"><div class="kpi-val">—</div><div class="kpi-label">Sharpe</div></div>
       <div class="kpi" id="kpi-return"><div class="kpi-val">—</div><div class="kpi-label">Ann. Return</div></div>
+      <div class="kpi" id="kpi-vol"><div class="kpi-val" id="kpi-vol-val">—</div><div class="kpi-label">Volatilidade</div></div>
+      <div class="kpi" id="kpi-hhi"><div class="kpi-val" id="kpi-hhi-val">—</div><div class="kpi-label">HHI</div></div>
       <div class="kpi" id="kpi-top5"><div class="kpi-val">—</div><div class="kpi-label">Top 5 %</div></div>
-      <div class="kpi" id="mini-mom"><div class="kpi-val" id="momentum">—</div><div class="kpi-label">Momentum</div></div>
-      <div class="kpi" id="mini-bpe"><div class="kpi-val" id="bpe">—</div><div class="kpi-label">Benchmark P/E</div></div>
+      <div class="kpi" id="kpi-turnover"><div class="kpi-val" id="kpi-turnover-val">—</div><div class="kpi-label">Turnover</div></div>
     </section>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 2: PORTFOLIO ATUAL - Composição e detalhes
+         ═══════════════════════════════════════════════════════════════════════ -->
     <section id="portfolio" class="card">
-      <h2>Portfolio</h2>
-      <div class="portfolio-controls">
-        <div class="range-buttons">
-          <button class="range-btn active" data-range="all">All</button>
-          <button class="range-btn" data-range="12m">12M</button>
-          <button class="range-btn" data-range="6m">6M</button>
-          <button class="range-btn" data-range="3m">3M</button>
-          <button class="range-btn" data-range="1m">1M</button>
-        </div>
-        <!-- GA history removed: portfolio chart shows portfolio performance over time -->
-       </div>
+      <h2>Portfolio Atual</h2>
 
-       <div class="dashboard-row">
-         <div class="chart-card">
-           <canvas id="portfolioChart" width="600" height="260" style="width:100%;height:260px;display:block;"></canvas>
-           <!-- GA mini chart removed -->
-         </div>
-       </div>
-
+      <!-- Tabela de ações -->
       <table id="stocksTable">
         <thead>
           <tr><th>#</th><th>Stock</th><th>Fwd P/E</th><th>Latest Price</th><th>Target Price</th><th>Weight</th><th>Spark</th></tr>
@@ -61,70 +52,207 @@
       <div id="tableFootnote" class="table-footnote">
         <small>Data from last run: <span id="tableRunDate">—</span></small>
       </div>
+
+      <!-- Sector Exposure -->
+      <div class="subsection">
+        <h3>Exposição por Setor</h3>
+        <div id="treemap" class="treemap"></div>
+      </div>
     </section>
 
-    <section id="exposures" class="card">
-      <h2>Sector Exposure (treemap)</h2>
-      <div id="treemap" class="treemap"></div>
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 3: EVOLUÇÃO HISTÓRICA - Gráficos temporais
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="historico" class="card">
+      <h2>Evolução Histórica</h2>
+
+      <!-- Retorno anual por simulação -->
+      <div class="subsection">
+        <div class="subsection-header">
+          <h3>Retorno Anual por Simulação</h3>
+          <div class="range-buttons">
+            <button class="range-btn active" data-range="all">All</button>
+            <button class="range-btn" data-range="12m">12M</button>
+            <button class="range-btn" data-range="6m">6M</button>
+            <button class="range-btn" data-range="3m">3M</button>
+            <button class="range-btn" data-range="1m">1M</button>
+          </div>
+        </div>
+        <div class="chart-card">
+          <canvas id="portfolioChart" width="600" height="260" style="width:100%;height:260px;display:block;"></canvas>
+        </div>
+      </div>
+
+      <!-- Evolução da composição -->
+      <div class="subsection">
+        <div class="subsection-header">
+          <h3>Evolução da Composição</h3>
+          <small style="color:var(--muted);">clique em um ponto para ver detalhes</small>
+        </div>
+        <div class="chart-card" style="min-height:280px;">
+          <canvas id="compositionHistoryChart" width="600" height="280" style="width:100%;height:280px;display:block;"></canvas>
+        </div>
+        <div id="compositionLegend" class="composition-legend"></div>
+      </div>
+
+      <!-- Histórico de Sharpe e Volatilidade -->
+      <div class="history-grid">
+        <div class="subsection">
+          <div class="subsection-header">
+            <h3>Histórico de Sharpe</h3>
+            <div class="kpi-mini-inline" id="kpi-sharpe-diag"><span class="kpi-val">—</span></div>
+          </div>
+          <div class="chart-card" style="height:140px;">
+            <canvas id="gaChart" width="600" height="140" style="width:100%;height:140px;display:block;"></canvas>
+          </div>
+        </div>
+        <div class="subsection">
+          <div class="subsection-header">
+            <h3>Histórico de Volatilidade</h3>
+            <div class="kpi-mini-inline" id="kpi-vol-diag"><span class="kpi-val">—</span></div>
+          </div>
+          <div class="chart-card" style="height:140px;">
+            <canvas id="volChart" width="600" height="140" style="width:100%;height:140px;display:block;"></canvas>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section id="diagnostics" class="card">
-      <h2>Diagnostics</h2>
-      <div class="diagnostics-row">
-        <!-- Sharpe Ratio Chart -->
-        <div class="diag-item diag-with-kpi">
-          <div class="diag-chart-area">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <strong>Histórico de Sharpe Ratio</strong>
-              <small style="color:var(--muted)">melhor Sharpe de cada simulação</small>
-            </div>
-            <div style="height:120px;"><canvas id="gaChart" width="600" height="120" style="width:100%;height:120px;display:block;"></canvas></div>
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 4: ANÁLISE DE RISCO - Correlação, concentração, liquidez
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="risco" class="card">
+      <h2>Análise de Risco</h2>
+
+      <!-- Métricas de risco em grid -->
+      <div class="risk-metrics-grid">
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Tracking Error</span>
+            <span class="metric-card-value" id="diag_tracking_error">—</span>
           </div>
-          <div class="diag-kpi-side">
-            <div class="kpi-mini" id="kpi-sharpe-diag"><div class="kpi-val">—</div><div class="kpi-label">Último</div></div>
+          <div class="metric-card-bar">
+            <div class="metric-bar-fill tracking-error-bar" id="diag_tracking_bar"></div>
+          </div>
+          <div class="metric-card-desc">Desvio em relação ao benchmark</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Information Ratio</span>
+            <span class="metric-card-value" id="diag_info_ratio">—</span>
+          </div>
+          <div class="metric-card-desc">Retorno ativo / Tracking Error</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Liquidity Score</span>
+            <span class="metric-card-value" id="diag_liquidity">—</span>
+          </div>
+          <div class="metric-card-desc">Volume médio negociado</div>
+        </div>
+      </div>
+
+      <!-- Matriz de correlação -->
+      <div class="subsection">
+        <h3>Matriz de Correlação</h3>
+        <div class="correlation-legend-scale">
+          <span class="scale-label">-1 (inversa)</span>
+          <div class="scale-gradient"></div>
+          <span class="scale-label">+1 (direta)</span>
+          <span class="scale-hint">| <span style="color:var(--accent);">■</span> = no portfolio atual</span>
+        </div>
+        <div id="correlationMatrix" class="correlation-heatmap"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 5: VALUATION & MOMENTUM - Métricas de valoração
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="valuation" class="card">
+      <h2>Valuation & Momentum</h2>
+
+      <!-- Métricas de valuation em grid -->
+      <div class="valuation-metrics-grid">
+        <!-- Momentum Signal com gauge -->
+        <div class="metric-card metric-gauge-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Momentum Signal</span>
+            <span class="metric-card-value" id="diag_momentum_signal">—</span>
+          </div>
+          <div class="metric-gauge-container">
+            <div class="metric-gauge-bg">
+              <div class="metric-gauge-fill" id="diag_momentum_bar"></div>
+              <div class="metric-gauge-marker" id="diag_momentum_marker"></div>
+            </div>
+            <div class="metric-gauge-labels">
+              <span>-1</span>
+              <span>0</span>
+              <span>+1</span>
+            </div>
           </div>
         </div>
-        <!-- Volatility Chart -->
-        <div class="diag-item diag-with-kpi">
-          <div class="diag-chart-area">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <strong>Histórico de Volatilidade</strong>
-              <small style="color:var(--muted)">volatilidade anual de cada simulação</small>
-            </div>
-            <div style="height:120px;"><canvas id="volChart" width="600" height="120" style="width:100%;height:120px;display:block;"></canvas></div>
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Portfolio P/E</span>
+            <span class="metric-card-value" id="diag_portfolio_pe">—</span>
           </div>
-          <div class="diag-kpi-side">
-            <div class="kpi-mini" id="kpi-vol-diag"><div class="kpi-val">—</div><div class="kpi-label">Último</div></div>
-          </div>
+          <div class="metric-card-desc">P/E ponderado do portfolio</div>
         </div>
-        <!-- HHI (sem histórico - apenas valor atual) -->
-        <div class="diag-item diag-with-kpi">
-          <div class="diag-chart-area">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <strong>Índice de Concentração (HHI)</strong>
-              <small style="color:var(--muted)">sem histórico disponível</small>
-            </div>
-            <div style="height:120px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border-radius:8px;">
-              <span style="color:var(--muted);font-size:13px;">Histórico não rastreado</span>
-            </div>
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Benchmark P/E</span>
+            <span class="metric-card-value" id="bpe">—</span>
           </div>
-          <div class="diag-kpi-side">
-            <div class="kpi-mini" id="kpi-hhi-diag"><div class="kpi-val">—</div><div class="kpi-label">Atual</div></div>
-          </div>
+          <div class="metric-card-desc">P/E médio do benchmark</div>
         </div>
-        <!-- Portfolio P/E (sem histórico - apenas valor atual) -->
-        <div class="diag-item diag-with-kpi">
-          <div class="diag-chart-area">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <strong>Portfolio P/E</strong>
-              <small style="color:var(--muted)">sem histórico disponível</small>
-            </div>
-            <div style="height:120px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border-radius:8px;">
-              <span style="color:var(--muted);font-size:13px;">Histórico não rastreado</span>
-            </div>
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Fwd P/E Implied Upside</span>
+            <span class="metric-card-value" id="diag_pe_upside">—</span>
           </div>
-          <div class="diag-kpi-side">
-            <div class="kpi-mini" id="kpi-pe-diag"><div class="kpi-val">—</div><div class="kpi-label">Atual</div></div>
+          <div class="metric-card-desc">Potencial de valorização implícito</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Dividend Yield (pond.)</span>
+            <span class="metric-card-value" id="diag_div_yield">—</span>
+          </div>
+          <div class="metric-card-desc">Rendimento de dividendos</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Momentum</span>
+            <span class="metric-card-value" id="momentum">—</span>
+          </div>
+          <div class="metric-card-desc">Momentum do portfolio</div>
+        </div>
+      </div>
+
+      <!-- Sector P/E Comparison -->
+      <div class="subsection">
+        <h3>P/E por Setor</h3>
+        <div class="chart-card" style="min-height:320px;">
+          <canvas id="sectorPEChart" width="600" height="320" style="width:100%;height:320px;display:block;"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 6: PERFORMANCE ATTRIBUTION - Análise de atribuição
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="performanceAttribution" class="card">
+      <h2>Performance Attribution</h2>
+      <div class="attribution-container">
+        <div class="attribution-total">
+          <div class="attribution-total-label">Total Active Return</div>
+          <div class="attribution-total-value" id="attrTotalReturn">—</div>
+        </div>
+        <div class="attribution-breakdown">
+          <div class="attribution-chart-container">
+            <canvas id="attributionChart" width="400" height="180" style="width:100%;height:180px;display:block;"></canvas>
+          </div>
+          <div class="attribution-details" id="attributionDetails">
+            <!-- Filled dynamically -->
           </div>
         </div>
       </div>
@@ -133,6 +261,28 @@
     <footer class="footer">
       <small>Auto-refresh every <span id="interval">10</span>s. Last fetch: <span id="lastFetch">—</span></small>
     </footer>
+
+    <!-- Modal for portfolio composition -->
+    <div id="compositionModal" class="modal-overlay" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Portfolio Composition</h3>
+          <button class="modal-close" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-meta">
+            <div><strong>Run ID:</strong> <span id="modalRunId">—</span></div>
+            <div><strong>Date:</strong> <span id="modalDate">—</span></div>
+            <div><strong>Annual Return:</strong> <span id="modalReturn">—</span></div>
+            <div><strong>Sharpe Ratio:</strong> <span id="modalSharpe">—</span></div>
+          </div>
+          <div class="modal-chart-container">
+            <canvas id="compositionChart" width="400" height="200"></canvas>
+          </div>
+          <div id="compositionList" class="composition-list"></div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- Chart.js from CDN (render-only) -->

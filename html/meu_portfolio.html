@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Meu Portfolio - Investimentos Reais</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <script src="./js/load_nav.js"></script>
+
+  <main class="container">
+    <header class="header">
+      <h1>Meu Portfolio</h1>
+      <div class="controls">
+        <button id="refreshBtn">Atualizar</button>
+        <a id="downloadJson" href="data/ledger_positions.json" download>Download JSON</a>
+      </div>
+    </header>
+
+    <!-- Meta info -->
+    <section id="meta" class="card">
+      <div class="meta-row"><small class="meta-footnote">Última atualização: <span id="lastUpdated">—</span></small></div>
+      <div class="meta-row"><small class="meta-footnote">Notas processadas: <span id="notesCount">—</span></small></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 1: RESUMO DO PORTFOLIO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="resumo" class="card">
+      <h2>Resumo do Portfolio</h2>
+      <div class="portfolio-summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">Total Investido</div>
+          <div class="summary-value" id="totalInvested">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Valor Atual</div>
+          <div class="summary-value" id="totalCurrent">—</div>
+        </div>
+        <div class="summary-card highlight">
+          <div class="summary-label">Lucro/Prejuízo</div>
+          <div class="summary-value" id="totalPL">—</div>
+          <div class="summary-sub" id="totalPLPct">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Posições Abertas</div>
+          <div class="summary-value" id="positionsCount">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Total Operações</div>
+          <div class="summary-value" id="transactionsCount">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 2: PROJEÇÃO FUTURA (Target Price)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="projecao" class="card">
+      <h2>Projeção Futura (Target Price)</h2>
+      <div class="projection-grid">
+        <div class="projection-card">
+          <div class="projection-icon">📈</div>
+          <div class="projection-content">
+            <div class="projection-label">Valor Projetado</div>
+            <div class="projection-value" id="projectedValue">—</div>
+            <div class="projection-desc">Baseado nos target prices dos analistas</div>
+          </div>
+        </div>
+        <div class="projection-card highlight-green">
+          <div class="projection-icon">🎯</div>
+          <div class="projection-content">
+            <div class="projection-label">Upside Esperado</div>
+            <div class="projection-value" id="projectedUpside">—</div>
+            <div class="projection-desc">Potencial de valorização</div>
+          </div>
+        </div>
+        <div class="projection-card">
+          <div class="projection-icon">💰</div>
+          <div class="projection-content">
+            <div class="projection-label">Lucro Projetado</div>
+            <div class="projection-value" id="projectedProfit">—</div>
+            <div class="projection-desc">Ganho esperado vs. investido</div>
+          </div>
+        </div>
+      </div>
+      <div class="projection-disclaimer">
+        <small>⚠️ Projeções baseadas em target prices de analistas. Valores sujeitos a variações de mercado.</small>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 3: POSIÇÕES ATUAIS
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="posicoes" class="card">
+      <h2>Posições Atuais</h2>
+      <div class="table-responsive">
+        <table id="positionsTable">
+          <thead>
+            <tr>
+              <th>Ativo</th>
+              <th>Qtd</th>
+              <th>Preço Médio</th>
+              <th>Preço Atual</th>
+              <th>Target Price</th>
+              <th>Investido</th>
+              <th>Valor Atual</th>
+              <th>L/P</th>
+              <th>Upside</th>
+              <th>Peso</th>
+            </tr>
+          </thead>
+          <tbody id="positionsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 4: ALOCAÇÃO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="alocacao" class="card">
+      <h2>Alocação do Portfolio</h2>
+      <div class="allocation-container">
+        <div class="allocation-chart">
+          <canvas id="allocationChart" width="300" height="300"></canvas>
+        </div>
+        <div class="allocation-legend" id="allocationLegend"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 5: HISTÓRICO DE TRANSAÇÕES
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="historico" class="card">
+      <h2>Histórico de Transações</h2>
+      <div class="transactions-filters">
+        <button class="filter-btn active" data-filter="all">Todas</button>
+        <button class="filter-btn" data-filter="buy">Compras</button>
+        <button class="filter-btn" data-filter="sell">Vendas</button>
+      </div>
+      <div class="table-responsive">
+        <table id="transactionsTable">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Ativo</th>
+              <th>Tipo</th>
+              <th>Qtd</th>
+              <th>Preço Unit.</th>
+              <th>Valor Total</th>
+              <th>Taxas</th>
+            </tr>
+          </thead>
+          <tbody id="transactionsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 6: COMPARAÇÃO COM RECOMENDADO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="comparacao" class="card">
+      <h2>Comparação com Portfolio Recomendado</h2>
+      <div class="comparison-summary">
+        <div class="comparison-stat">
+          <span class="stat-value" id="matchCount">—</span>
+          <span class="stat-label">Ações em comum</span>
+        </div>
+        <div class="comparison-stat">
+          <span class="stat-value" id="missingCount">—</span>
+          <span class="stat-label">Faltam comprar</span>
+        </div>
+        <div class="comparison-stat">
+          <span class="stat-value" id="extraCount">—</span>
+          <span class="stat-label">Não recomendadas</span>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table id="comparisonTable">
+          <thead>
+            <tr>
+              <th>Ativo</th>
+              <th>Status</th>
+              <th>Peso Real</th>
+              <th>Peso Recomendado</th>
+              <th>Diferença</th>
+              <th>Ação Sugerida</th>
+            </tr>
+          </thead>
+          <tbody id="comparisonBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <small>Última atualização dos dados: <span id="footerDate">—</span></small>
+    </footer>
+  </main>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    (function(){
+      var s = document.createElement('script');
+      s.src = './js/meu_portfolio.js?_=' + Date.now();
+      s.defer = true;
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>

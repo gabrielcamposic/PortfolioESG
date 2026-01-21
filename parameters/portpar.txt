@@ -15,11 +15,11 @@ start_date=2023-01-01
 
 # --- Stock Selection from Scoring ---
 # Number of top stocks to select from the latest scoring run based on CompositeScore
-top_n_stocks_from_score = 30
+top_n_stocks_from_score = 50
 
 # --- Target portfolio parameters
 min_stocks=5
-max_stocks=10
+max_stocks=15
 initial_investment=2000
 rf=0.15
 

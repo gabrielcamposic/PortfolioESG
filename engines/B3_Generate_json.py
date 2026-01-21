@@ -23,6 +23,7 @@ SCORED_STOCKS = os.path.join('data', 'results', 'scored_stocks.csv')
 LATEST_RUN_SUMMARY = os.path.join('html', 'data', 'latest_run_summary.json')
 
 OUTPUT_LEDGER_JSON = os.path.join('html','data','ledger_positions.json')
+OUTPUT_LEDGER_CSV = os.path.join('html','data','ledger.csv')
 OUTPUT_PIPELINE_JSON = os.path.join('html','data','pipeline_latest.json')
 OUTPUT_SCORED_JSON = os.path.join('html','data','scored_targets.json')
 
@@ -56,6 +57,78 @@ def normalize_ticker(s: Optional[str]) -> str:
     return s2
 
 
+def normalize_broker_ticker(ticker: str) -> str:
+    """
+    Normalize broker ticker names to consolidate variations of the same stock.
+    Brazilian brokers often use different suffixes like 'ON NM', 'ON ED NM', 'ON EDS NM', etc.
+    This function extracts the base company name for grouping purposes.
+
+    Examples:
+        'VULCABRAS ON NM' -> 'VULCABRAS'
+        'VULCABRAS ON ED NM' -> 'VULCABRAS'
+        'VULCABRAS ON EDS NM' -> 'VULCABRAS'
+        'VALE ON NM' -> 'VALE'
+        'COPASA ON NM' -> 'COPASA'
+        'MOURA DUBEUXON ED NM' -> 'MOURA DUBEUX' (handles glued ON)
+        'AXIA ENERGIAPNB EX N1' -> 'AXIA ENERGIA' (handles glued PNB)
+
+    Special cases (dividends, rights, etc.) are kept separate:
+        'VULCABRAS DO 13,75' -> 'VULCABRAS DO 13,75' (dividend/right, keep as is)
+    """
+    if not ticker:
+        return ''
+
+    t = str(ticker).strip().upper()
+
+    # Skip normalization for special instruments (dividends, rights, subscriptions)
+    # These typically have patterns like "DO", "DIR", "SUB", followed by numbers or specific codes
+    special_patterns = [' DO ', ' DIR ', ' SUB ', ' BON ']
+    for pat in special_patterns:
+        if pat in t:
+            return ticker  # Return original for special instruments
+
+    # Common suffixes used by Brazilian brokers that indicate share class/listing
+    # Order matters - longer/more specific patterns first
+    suffixes_to_remove = [
+        'ON EDS NM', 'ON ED NM', 'ON E NM', 'ON NM', 'ON N2', 'ON N1', 'ON MB',
+        'PN EDS NM', 'PN ED NM', 'PN E NM', 'PN NM', 'PN N2', 'PN N1', 'PN MB',
+        'PNA EDS NM', 'PNA ED NM', 'PNA NM', 'PNB EDS NM', 'PNB ED NM', 'PNB NM',
+        'PNB EX N1', 'PNB EX N2', 'PNB EX NM',  # Ex-rights patterns
+        'UNT EDS NM', 'UNT ED NM', 'UNT NM', 'UNT N2',
+        'CI EDS', 'CI ED', 'CI',
+        'DR3', 'DR2', 'DR1',
+        'EDS NM', 'ED NM', 'NM', 'N2', 'N1', 'MB',
+        'EX N1', 'EX N2', 'EX NM',  # Ex-rights patterns
+        'ON', 'PN', 'PNA', 'PNB', 'UNT',
+    ]
+
+    result = t
+    for suffix in suffixes_to_remove:
+        # Check if ends with suffix (with or without leading space)
+        if result.endswith(' ' + suffix):
+            result = result[:-(len(suffix)+1)].strip()
+            break
+        elif result.endswith(suffix):
+            result = result[:-len(suffix)].strip()
+            break
+
+    # Handle cases where ON/PN/PNA/PNB is glued to the company name (no space)
+    # e.g., "MOURA DUBEUXON" -> "MOURA DUBEUX", "AXIA ENERGIAPNB" -> "AXIA ENERGIA"
+    import re
+    # Pattern: word boundary followed by ON/PN/PNA/PNB at end
+    glued_patterns = [
+        (r'(\w)ON$', r'\1'),      # DUBEUXON -> DUBEUX
+        (r'(\w)PNB$', r'\1'),     # ENERGIAPNB -> ENERGIA
+        (r'(\w)PNA$', r'\1'),     # Similar pattern
+        (r'(\w)PN$', r'\1'),      # Similar pattern
+    ]
+    for pattern, replacement in glued_patterns:
+        if re.search(pattern, result):
+            result = re.sub(pattern, replacement, result)
+            break
+
+    return result.strip() if result else ticker
+
 
 # FIFO lot-based aggregation for ledger.csv
 
@@ -69,18 +142,26 @@ def aggregate_ledger_from_csv(path: str) -> Tuple[List[Dict[str,Any]], float, fl
     """
     if not os.path.exists(path):
         return [], 0.0, 0.0
-    # Structure: per-ticker lots list (fifo)
+
+    # Structure: per-normalized-ticker lots list (fifo)
     lots_by_ticker: Dict[str, List[Dict[str, Any]]] = {}
+    # Track the most recent original ticker name for each normalized key
+    original_ticker_names: Dict[str, str] = {}
     # We'll also keep realized P/L per ticker (optional)
     realized_by_ticker: Dict[str, float] = {}
+
     # We'll parse the CSV streaming
     with open(path, encoding=CSV_ENCODING, errors='replace') as fh:
         reader = csv.DictReader(fh)
         for row in reader:
             # Identify fields
-            ticker = (row.get('ticker') or row.get('Ticker') or row.get('symbol') or row.get('Symbol') or '').strip()
-            if not ticker:
+            raw_ticker = (row.get('ticker') or row.get('Ticker') or row.get('symbol') or row.get('Symbol') or '').strip()
+            if not raw_ticker:
                 continue
+
+            # Normalize ticker for consolidation (e.g., "VULCABRAS ON NM" and "VULCABRAS ON ED NM" -> "VULCABRAS")
+            ticker_key = normalize_broker_ticker(raw_ticker)
+
             side = (row.get('side') or row.get('Side') or '').strip().upper()
             qty = safe_parse_float(row.get('quantity') or row.get('qty') or row.get('quantity') or row.get('Quantity') or 0)
             # Use total_cost if available to include fees; else use effective_price * qty
@@ -98,38 +179,59 @@ def aggregate_ledger_from_csv(path: str) -> Tuple[List[Dict[str,Any]], float, fl
                 total_cost = unit * qty
             unit_cost = (total_cost / qty) if qty and total_cost is not None else 0.0
 
-            if ticker not in lots_by_ticker:
-                lots_by_ticker[ticker] = []
-                realized_by_ticker[ticker] = 0.0
+            if ticker_key not in lots_by_ticker:
+                lots_by_ticker[ticker_key] = []
+                realized_by_ticker[ticker_key] = 0.0
+
+            # Always update to most recent original name (for display purposes)
+            original_ticker_names[ticker_key] = raw_ticker
 
             if side == 'BUY' or side == 'B' or (side == '' and safe_parse_float(qty) > 0):
                 # append buy lot
-                lots_by_ticker[ticker].append({'qty': int(qty), 'unit_cost': unit_cost})
+                lots_by_ticker[ticker_key].append({'qty': int(qty), 'unit_cost': unit_cost})
             else:
                 # SELL or other negative side -> reduce FIFO lots
                 sell_qty = int(qty)
-                while sell_qty > 0 and lots_by_ticker[ticker]:
-                    lot = lots_by_ticker[ticker][0]
+                while sell_qty > 0 and lots_by_ticker[ticker_key]:
+                    lot = lots_by_ticker[ticker_key][0]
                     take = min(lot['qty'], sell_qty)
                     # realized cash: proceeds not used here; for realized P/L we'd compute here
                     lot['qty'] -= take
                     sell_qty -= take
                     if lot['qty'] == 0:
-                        lots_by_ticker[ticker].pop(0)
+                        lots_by_ticker[ticker_key].pop(0)
                 # if we sell more than we have, we allow negative net position (short) by recording negative lot
                 if sell_qty > 0:
                     # represent short position as negative lot with unit_cost equal to unit_cost (from row)
-                    lots_by_ticker[ticker].append({'qty': -int(sell_qty), 'unit_cost': unit_cost})
+                    lots_by_ticker[ticker_key].append({'qty': -int(sell_qty), 'unit_cost': unit_cost})
                     sell_qty = 0
 
     # build positions list and totals
     positions = []
     total_invested_cash = 0.0
-    for ticker, lots in lots_by_ticker.items():
-        net_qty = sum([l['qty'] for l in lots])
-        # net invested = sum of positive lots qty * unit_cost (ignore negatives which are shorts)
-        net_invested = sum([l['qty'] * l['unit_cost'] for l in lots if l['qty'] > 0])
-        positions.append({'ticker': ticker, 'symbol': ticker, 'net_qty': int(net_qty), 'net_invested': float(net_invested), 'lots': lots})
+    for ticker_key, lots in lots_by_ticker.items():
+        # Clean up lots: remove zero-quantity lots and consolidate
+        cleaned_lots = [l for l in lots if l['qty'] != 0]
+
+        net_qty = sum([l['qty'] for l in cleaned_lots])
+
+        # For positions with net_qty > 0: invested = sum of positive lots
+        # For positions with net_qty <= 0: invested = 0 (position is closed or short)
+        if net_qty > 0:
+            net_invested = sum([l['qty'] * l['unit_cost'] for l in cleaned_lots if l['qty'] > 0])
+        else:
+            net_invested = 0.0
+            cleaned_lots = []  # Clear lots for closed positions
+
+        # Use normalized key as ticker, but keep original name for display
+        original_name = original_ticker_names.get(ticker_key, ticker_key)
+        positions.append({
+            'ticker': ticker_key,  # Normalized for matching with targets/prices
+            'symbol': original_name,  # Original for display
+            'net_qty': int(net_qty),
+            'net_invested': float(net_invested),
+            'lots': cleaned_lots
+        })
         total_invested_cash += max(0.0, net_invested)
 
     # total_current_market will be computed later once we have prices; return 0.0 for now
@@ -309,6 +411,45 @@ def load_scored_maps(path: str) -> Dict[str, Any]:
     return {'targets': targets, 'symbols': symbols, 'name_to_symbol': name_to_symbol}
 
 
+def load_broker_name_mapping(tickers_path: str) -> Dict[str, str]:
+    """
+    Load mapping from BrokerName (as seen in broker notes) to trading symbol (like VALE3.SA).
+    Returns dict: { normalized_broker_name: trading_symbol }
+
+    Example: { 'AURA360DR3': 'AURA33.SA', 'AXIAENERGIAPNBEXN1': 'AXPE11.SA' }
+    """
+    mapping = {}
+    if not os.path.exists(tickers_path):
+        return mapping
+
+    with open(tickers_path, encoding=CSV_ENCODING, errors='replace') as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            ticker = (row.get('Ticker') or '').strip()
+            broker_name = (row.get('BrokerName') or '').strip()
+            company_name = (row.get('Name') or '').strip()
+
+            if ticker:
+                # Map by broker name if available
+                if broker_name:
+                    key = normalize_ticker(broker_name)
+                    mapping[key] = ticker
+                    # Also map the normalized broker ticker
+                    normalized_broker = normalize_broker_ticker(broker_name)
+                    mapping[normalize_ticker(normalized_broker)] = ticker
+
+                # Also map by company name
+                if company_name:
+                    key = normalize_ticker(company_name)
+                    mapping[key] = ticker
+
+                # Also map by ticker base (without .SA)
+                ticker_base = ticker.replace('.SA', '').strip()
+                mapping[normalize_ticker(ticker_base)] = ticker
+
+    return mapping
+
+
 # Build pipeline rows from stocks/weights, using ledger current market value as available cash
 
 def build_pipeline_rows(stocks: List[str], weights: List[float], ledger_market_value: float, price_map: Dict[str,float], target_map: Dict[str,float]):
@@ -361,6 +502,8 @@ def build_pipeline_rows(stocks: List[str], weights: List[float], ledger_market_v
 
 # Main
 
+TICKERS_FILE = os.path.join('parameters', 'tickers.txt')
+
 def main():
     print('Generating assets JSON (revised)...')
     # 1) aggregate ledger.csv
@@ -375,6 +518,9 @@ def main():
     symbol_map = scored.get('symbols', {})
     name_to_symbol = scored.get('name_to_symbol', {})
 
+    # 2c) load broker name mapping from tickers.txt
+    broker_mapping = load_broker_name_mapping(TICKERS_FILE)
+
     # 3) compute current market value using price_map
     total_current_market = 0.0
     for p in positions:
@@ -382,25 +528,39 @@ def main():
         if qty and qty != 0:
             # prefer explicit symbol, else try to map ledger ticker (which may be company name) to trading symbol
             symbol = p.get('symbol') or p.get('ticker')
-            # try mapping name->symbol if symbol doesn't look like a market symbol
-            if not ('.' in (symbol or '') or symbol.endswith(' SA') or symbol.endswith('SA')):
-                mapped = name_to_symbol.get(normalize_ticker(p.get('ticker')))
+            ticker_key = p.get('ticker', '')
+
+            # Try multiple ways to find the trading symbol
+            trading_symbol = None
+
+            # 1. Try broker_mapping with normalized ticker key
+            if not trading_symbol:
+                mapped = broker_mapping.get(normalize_ticker(ticker_key))
                 if mapped:
-                    symbol = mapped
-                    p['symbol'] = mapped
-            price = None
-            if symbol in price_map:
-                price = price_map[symbol]
-            else:
-                for k in price_map.keys():
-                    if normalize_ticker(k) == normalize_ticker(symbol):
-                        price = price_map[k]
-                        # update symbol to the exact price_map key
-                        p['symbol'] = k
-                        break
-            if price is not None:
-                total_current_market += qty * price
-                p['current_price'] = price            # Now try to get price
+                    trading_symbol = mapped
+
+            # 2. Try broker_mapping with original symbol
+            if not trading_symbol:
+                mapped = broker_mapping.get(normalize_ticker(symbol))
+                if mapped:
+                    trading_symbol = mapped
+
+            # 3. Try name_to_symbol mapping
+            if not trading_symbol:
+                mapped = name_to_symbol.get(normalize_ticker(ticker_key))
+                if mapped:
+                    trading_symbol = mapped
+
+            # 4. If symbol already looks like a market symbol, use it
+            if not trading_symbol and ('.' in (symbol or '') or (symbol or '').endswith('SA')):
+                trading_symbol = symbol
+
+            # Update symbol if we found a trading symbol
+            if trading_symbol:
+                p['symbol'] = trading_symbol
+                symbol = trading_symbol
+
+            # Now try to get price
             price = None
             if symbol in price_map:
                 price = price_map[symbol]
@@ -504,6 +664,19 @@ def main():
         print('Failed to write scored json:', e)
 
     print('Summary: positions:', len(positions), 'total_invested_cash:', total_invested_cash, 'total_current_market:', total_current_market, 'pipeline_stocks:', len(stocks))
+
+    # 7) Copy ledger.csv to html/data for frontend access
+    try:
+        if os.path.exists(LEDGER_CSV):
+            os.makedirs(os.path.dirname(OUTPUT_LEDGER_CSV) or '.', exist_ok=True)
+            # Read and write to ensure proper encoding
+            with open(LEDGER_CSV, 'r', encoding=CSV_ENCODING, errors='replace') as src:
+                content = src.read()
+            with open(OUTPUT_LEDGER_CSV, 'w', encoding=CSV_ENCODING) as dst:
+                dst.write(content)
+            print('Wrote', OUTPUT_LEDGER_CSV)
+    except Exception as e:
+        print('Failed to write ledger.csv to html/data:', e)
 
 
 if __name__ == '__main__':

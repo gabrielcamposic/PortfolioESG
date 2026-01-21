@@ -19,15 +19,19 @@
     kpiSharpe: document.querySelector('#kpi-sharpe .kpi-val'),
     kpiReturn: document.querySelector('#kpi-return .kpi-val'),
     kpiTop5: document.querySelector('#kpi-top5 .kpi-val'),
+    kpiVol: document.getElementById('kpi-vol-val'),
+    kpiHhi: document.getElementById('kpi-hhi-val'),
+    kpiTurnover: document.getElementById('kpi-turnover-val'),
     treemapContainer: document.getElementById('treemap'),
     gaChartCanvas: document.getElementById('gaChart'),
     volChartCanvas: document.getElementById('volChart'),
+    correlationMatrix: document.getElementById('correlationMatrix'),
     rangeButtons: document.querySelectorAll('.range-btn'),
-    // Diagnostics KPIs (side panels)
+    // Diagnostics KPIs (inline with charts)
     kpiSharpeDiag: document.querySelector('#kpi-sharpe-diag .kpi-val'),
     kpiVolDiag: document.querySelector('#kpi-vol-diag .kpi-val'),
-    kpiHhiDiag: document.querySelector('#kpi-hhi-diag .kpi-val'),
-    kpiPeDiag: document.querySelector('#kpi-pe-diag .kpi-val')
+    // Valuation section
+    diagPortfolioPe: document.getElementById('diag_portfolio_pe')
   };
 
   // Debug area
@@ -51,11 +55,13 @@
   if(!els.kpiSharpe) els.kpiSharpe = { textContent: '' };
   if(!els.kpiReturn) els.kpiReturn = { textContent: '' };
   if(!els.kpiTop5) els.kpiTop5 = { textContent: '' };
+  if(!els.kpiVol) els.kpiVol = { textContent: '' };
+  if(!els.kpiHhi) els.kpiHhi = { textContent: '' };
+  if(!els.kpiTurnover) els.kpiTurnover = { textContent: '' };
   // Diagnostics KPI fallbacks
   if(!els.kpiSharpeDiag) els.kpiSharpeDiag = { textContent: '' };
   if(!els.kpiVolDiag) els.kpiVolDiag = { textContent: '' };
-  if(!els.kpiHhiDiag) els.kpiHhiDiag = { textContent: '' };
-  if(!els.kpiPeDiag) els.kpiPeDiag = { textContent: '' };
+  if(!els.diagPortfolioPe) els.diagPortfolioPe = { textContent: '' };
   // mini-summary fallbacks (below table)
   if(!els.pe) els.pe = { textContent: '' };
   if(!els.momentum) els.momentum = { textContent: '' };
@@ -71,7 +77,10 @@
 
   // Chart instances
   let portfolioChart = null; let concentrationBarChart = null; let gaChart = null; let volChart = null;
+  let compositionChart = null; // for modal
+  let compositionHistoryChart = null; // for stacked area chart
   let lastFullData = null; // keep fetched JSON for range slicing
+  let portfolioResultsCache = []; // cache of all portfolio results from CSV
 
   function destroyCharts(){
     [portfolioChart, concentrationBarChart, gaChart, volChart].forEach(c=>{ if(c && c.destroy) try{ c.destroy(); }catch(e){} });
@@ -217,18 +226,25 @@
     const p = data.best_portfolio_details || {};
     const cr = p.concentration_risk || {};
 
-    // Main KPIs (top section)
+    // Main KPIs (top section - 6 cards)
     els.kpiSharpe.textContent = p.sharpe_ratio != null ? Number(p.sharpe_ratio).toFixed(3) : '—';
     els.kpiReturn.textContent = p.expected_return_annual_pct != null ? Number(p.expected_return_annual_pct).toFixed(1)+'%' : '—';
     els.kpiTop5.textContent = cr.top_5_holdings_pct != null ? (Number(cr.top_5_holdings_pct)*100).toFixed(1)+'%' : '—';
 
-    // Diagnostics KPIs (side panels)
+    // Volatility
+    if(els.kpiVol) {
+      els.kpiVol.textContent = p.expected_volatility_annual_pct != null ? Number(p.expected_volatility_annual_pct).toFixed(1)+'%' : '—';
+    }
+    // HHI
+    if(els.kpiHhi) {
+      els.kpiHhi.textContent = cr.hhi != null ? Number(cr.hhi).toFixed(4) : '—';
+    }
+
+    // Diagnostics KPIs (inline with charts in history section)
     els.kpiSharpeDiag.textContent = p.sharpe_ratio != null ? Number(p.sharpe_ratio).toFixed(3) : '—';
     els.kpiVolDiag.textContent = p.expected_volatility_annual_pct != null ? Number(p.expected_volatility_annual_pct).toFixed(1)+'%' : '—';
-    els.kpiHhiDiag.textContent = cr.hhi != null ? Number(cr.hhi).toFixed(4) : '—';
-    els.kpiPeDiag.textContent = p.portfolio_weighted_pe != null ? Number(p.portfolio_weighted_pe).toFixed(1) : '—';
 
-    // mini-summary values (below table) — use JSON fields or compute reasonable fallbacks
+    // Portfolio P/E in valuation section
     let computed_pwpe = null;
     if(p.portfolio_weighted_pe != null) computed_pwpe = Number(p.portfolio_weighted_pe);
     else if(Array.isArray(p.stocks) && Array.isArray(p.weights) && p.holdings_meta){
@@ -236,8 +252,11 @@
       for(let i=0;i<p.stocks.length;i++){ const s=p.stocks[i]; const w=p.weights[i]||0; const meta = p.holdings_meta && p.holdings_meta[s]; const f = meta && meta.forwardPE; if(f!=null && !isNaN(Number(f)) && Number(f)>0){ sum += Number(f)*w; tw += w; } }
       if(tw>0) computed_pwpe = sum / tw;
     }
-    els.pe.textContent = (computed_pwpe != null && !isNaN(Number(computed_pwpe))) ? Number(computed_pwpe).toFixed(1) : '—';
+    if(els.diagPortfolioPe) {
+      els.diagPortfolioPe.textContent = (computed_pwpe != null && !isNaN(Number(computed_pwpe))) ? Number(computed_pwpe).toFixed(1) : '—';
+    }
 
+    // Momentum in valuation section
     let computed_mom = null;
     if(p.momentum_valuation && p.momentum_valuation.portfolio_momentum != null) computed_mom = Number(p.momentum_valuation.portfolio_momentum);
     else if(Array.isArray(p.stocks) && Array.isArray(p.weights) && p.holdings_meta){
@@ -257,6 +276,7 @@
       els.momentum.textContent = '—';
     }
 
+    // Benchmark P/E in valuation section
     let computed_bpe = null;
     if(p.momentum_valuation && p.momentum_valuation.benchmark_forward_pe != null) computed_bpe = Number(p.momentum_valuation.benchmark_forward_pe);
     else if(p.holdings_meta){
@@ -492,6 +512,365 @@
     }
     result.push(current.trim());
     return result;
+  }
+
+  // Load all portfolio results from CSV and cache them
+  async function loadPortfolioResultsCache(){
+    if(portfolioResultsCache.length > 0) return portfolioResultsCache;
+    try {
+      const csvResp = await fetch('data/portfolio_results_db.csv?_=' + Date.now(), {cache:'no-store'});
+      if(!csvResp.ok) return [];
+      const csvText = await csvResp.text();
+      const lines = csvText.trim().split('\n');
+      if(lines.length < 2) return [];
+
+      const header = parseCSVLine(lines[0]);
+      const indices = {
+        run_id: header.findIndex(h => h.toLowerCase() === 'run_id'),
+        timestamp: header.findIndex(h => h.toLowerCase() === 'timestamp'),
+        stocks: header.findIndex(h => h.toLowerCase() === 'stocks'),
+        weights: header.findIndex(h => h.toLowerCase() === 'weights'),
+        sharpe_ratio: header.findIndex(h => h.toLowerCase() === 'sharpe_ratio'),
+        expected_return_annual_pct: header.findIndex(h => h.toLowerCase() === 'expected_return_annual_pct'),
+        expected_volatility_annual_pct: header.findIndex(h => h.toLowerCase() === 'expected_volatility_annual_pct')
+      };
+
+      for(let i=1; i<lines.length; i++){
+        const row = parseCSVLine(lines[i]);
+        const entry = {
+          run_id: row[indices.run_id] || '',
+          timestamp: row[indices.timestamp] || '',
+          stocks: (row[indices.stocks] || '').split(',').map(s => s.trim()).filter(s => s),
+          weights: (row[indices.weights] || '').split(',').map(w => parseFloat(w.trim()) || 0),
+          sharpe_ratio: parseFloat(row[indices.sharpe_ratio]) || 0,
+          annual_return: parseFloat(row[indices.expected_return_annual_pct]) || 0,
+          volatility: parseFloat(row[indices.expected_volatility_annual_pct]) || 0
+        };
+        if(entry.run_id && entry.stocks.length > 0){
+          portfolioResultsCache.push(entry);
+        }
+      }
+    } catch(e) {
+      console.warn('Failed to load portfolio results cache', e);
+    }
+    return portfolioResultsCache;
+  }
+
+  // Show modal with portfolio composition for a specific run
+  function showCompositionModal(runId){
+    const entry = portfolioResultsCache.find(e => e.run_id === runId);
+    if(!entry){
+      console.warn('No portfolio data found for run_id:', runId);
+      return;
+    }
+
+    const modal = document.getElementById('compositionModal');
+    if(!modal) return;
+
+    // Populate modal data
+    document.getElementById('modalRunId').textContent = entry.run_id;
+    document.getElementById('modalDate').textContent = entry.timestamp;
+    document.getElementById('modalReturn').textContent = entry.annual_return.toFixed(2) + '%';
+    document.getElementById('modalSharpe').textContent = entry.sharpe_ratio.toFixed(4);
+
+    // Build composition list
+    const listEl = document.getElementById('compositionList');
+    listEl.innerHTML = '';
+    const maxWeight = Math.max(...entry.weights, 0.01);
+
+    for(let i=0; i<entry.stocks.length; i++){
+      const stock = entry.stocks[i];
+      const weight = entry.weights[i] || 0;
+      const pct = (weight * 100).toFixed(1);
+      const barWidth = (weight / maxWeight) * 100;
+
+      const item = document.createElement('div');
+      item.className = 'composition-item';
+      item.innerHTML = `
+        <span class="stock-name">${stock}</span>
+        <div class="weight-bar-container">
+          <div class="weight-bar-fill" style="width: ${barWidth}%"></div>
+        </div>
+        <span class="weight-value">${pct}%</span>
+      `;
+      listEl.appendChild(item);
+    }
+
+    // Render pie chart
+    const chartCanvas = document.getElementById('compositionChart');
+    if(chartCanvas && typeof Chart !== 'undefined'){
+      try{ if(compositionChart && compositionChart.destroy) compositionChart.destroy(); }catch(e){}
+      const ctx = chartCanvas.getContext('2d');
+      compositionChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: entry.stocks,
+          datasets: [{
+            data: entry.weights.map(w => w * 100),
+            backgroundColor: generatePalette(entry.stocks.length),
+            borderWidth: 1,
+            borderColor: 'rgba(0,0,0,0.2)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'right',
+              labels: { color: '#cbd5e1', font: { size: 11 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.label + ': ' + context.parsed.toFixed(1) + '%';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Show modal
+    modal.style.display = 'flex';
+  }
+
+  // Close modal
+  function closeCompositionModal(){
+    const modal = document.getElementById('compositionModal');
+    if(modal) modal.style.display = 'none';
+  }
+
+  // Initialize modal event listeners
+  (function initModalListeners(){
+    const closeBtn = document.getElementById('closeModal');
+    if(closeBtn) closeBtn.addEventListener('click', closeCompositionModal);
+
+    const modal = document.getElementById('compositionModal');
+    if(modal){
+      modal.addEventListener('click', function(e){
+        if(e.target === modal) closeCompositionModal();
+      });
+    }
+
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') closeCompositionModal();
+    });
+  })();
+
+  // Render composition history as stacked area chart
+  async function renderCompositionHistoryChart(){
+    const canvas = document.getElementById('compositionHistoryChart');
+    const legendContainer = document.getElementById('compositionLegend');
+    if(!canvas) return;
+
+    try{ if(compositionHistoryChart && compositionHistoryChart.destroy) compositionHistoryChart.destroy(); }catch(e){}
+
+    // Ensure cache is loaded
+    if(portfolioResultsCache.length === 0){
+      await loadPortfolioResultsCache();
+    }
+
+    if(portfolioResultsCache.length === 0){
+      if(legendContainer) legendContainer.innerHTML = '<span style="color:var(--muted);font-size:12px;">No historical data available</span>';
+      return;
+    }
+
+    // Sort by timestamp
+    const sortedData = [...portfolioResultsCache].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    // Collect all unique stocks across all runs
+    const allStocks = new Set();
+    sortedData.forEach(entry => {
+      entry.stocks.forEach(s => allStocks.add(s));
+    });
+    const stockList = Array.from(allStocks).sort();
+
+    // Build datasets - one per stock
+    const datasets = [];
+    const colors = generateExtendedPalette(stockList.length);
+
+    stockList.forEach((stock, idx) => {
+      const data = sortedData.map(entry => {
+        const stockIdx = entry.stocks.indexOf(stock);
+        if(stockIdx === -1) return 0;
+        return (entry.weights[stockIdx] || 0) * 100; // convert to percentage
+      });
+
+      datasets.push({
+        label: stock,
+        data: data,
+        backgroundColor: colors[idx],
+        borderColor: colors[idx],
+        borderWidth: 1,
+        fill: true,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        tension: 0.3
+      });
+    });
+
+    // Labels (dates)
+    const labels = sortedData.map(entry => {
+      try {
+        const d = new Date(entry.timestamp);
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      } catch(e) { return entry.timestamp.substring(0, 10); }
+    });
+
+    // Store run_ids for click handler
+    const runIds = sortedData.map(entry => entry.run_id);
+
+    // Ensure canvas has correct size
+    try{ canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; }catch(e){}
+
+    if(typeof window.Chart === 'undefined'){
+      if(legendContainer) legendContainer.innerHTML = '<span style="color:var(--muted);">Chart.js not loaded</span>';
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    compositionHistoryChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        onClick: function(event, elements, chart) {
+          if(elements.length > 0){
+            const idx = elements[0].index;
+            const runId = runIds[idx];
+            if(runId){
+              showCompositionModal(runId);
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false // We'll use custom legend
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            titleColor: '#f1f5f9',
+            bodyColor: '#cbd5e1',
+            borderColor: '#475569',
+            borderWidth: 1,
+            padding: 12,
+            callbacks: {
+              title: function(context) {
+                const idx = context[0].dataIndex;
+                const entry = sortedData[idx];
+                try {
+                  const d = new Date(entry.timestamp);
+                  return 'Data: ' + d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                } catch(e) { return entry.timestamp; }
+              },
+              label: function(context) {
+                const value = context.parsed.y;
+                if(value === 0) return null; // Don't show stocks with 0%
+                return context.dataset.label + ': ' + value.toFixed(1) + '%';
+              },
+              afterBody: function(context) {
+                const idx = context[0].dataIndex;
+                return '\nRun ID: ' + runIds[idx] + '\n(clique para detalhes)';
+              }
+            },
+            filter: function(tooltipItem) {
+              return tooltipItem.parsed.y > 0;
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            grid: { color: 'rgba(71,85,105,0.3)' },
+            ticks: {
+              color: '#94a3b8',
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 10,
+              font: { size: 10 }
+            },
+            title: { display: true, text: 'Data', color: '#cbd5e1' }
+          },
+          y: {
+            display: true,
+            stacked: true,
+            min: 0,
+            max: 100,
+            grid: { color: 'rgba(71,85,105,0.3)' },
+            ticks: {
+              color: '#94a3b8',
+              callback: function(val) { return val + '%'; }
+            },
+            title: { display: true, text: 'Peso no Portfolio (%)', color: '#cbd5e1' }
+          }
+        }
+      }
+    });
+
+    // Render custom legend with toggle functionality
+    if(legendContainer){
+      legendContainer.innerHTML = '';
+      stockList.forEach((stock, idx) => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `
+          <span class="legend-color" style="background:${colors[idx]}"></span>
+          <span class="legend-label">${stock}</span>
+        `;
+        item.addEventListener('click', function(){
+          const datasetIndex = idx;
+          const meta = compositionHistoryChart.getDatasetMeta(datasetIndex);
+          meta.hidden = !meta.hidden;
+          item.classList.toggle('hidden', meta.hidden);
+          compositionHistoryChart.update();
+        });
+        legendContainer.appendChild(item);
+      });
+    }
+  }
+
+  // Extended color palette for many stocks
+  function generateExtendedPalette(n){
+    const base = [
+      'rgba(43, 138, 62, 0.7)',   // green
+      'rgba(79, 195, 247, 0.7)',  // light blue
+      'rgba(242, 192, 87, 0.7)',  // yellow
+      'rgba(217, 83, 79, 0.7)',   // red
+      'rgba(108, 92, 231, 0.7)',  // purple
+      'rgba(0, 163, 224, 0.7)',   // cyan
+      'rgba(255, 152, 0, 0.7)',   // orange
+      'rgba(156, 39, 176, 0.7)',  // deep purple
+      'rgba(0, 150, 136, 0.7)',   // teal
+      'rgba(233, 30, 99, 0.7)',   // pink
+      'rgba(103, 58, 183, 0.7)',  // indigo
+      'rgba(139, 195, 74, 0.7)',  // light green
+      'rgba(255, 87, 34, 0.7)',   // deep orange
+      'rgba(63, 81, 181, 0.7)',   // blue
+      'rgba(205, 220, 57, 0.7)',  // lime
+      'rgba(121, 85, 72, 0.7)',   // brown
+      'rgba(96, 125, 139, 0.7)',  // blue grey
+      'rgba(255, 193, 7, 0.7)',   // amber
+      'rgba(76, 175, 80, 0.7)',   // green 2
+      'rgba(33, 150, 243, 0.7)',  // blue 2
+    ];
+    const out = [];
+    for(let i = 0; i < n; i++){
+      out.push(base[i % base.length]);
+    }
+    return out;
   }
 
   // Render Volatility history chart (diagnostics)
@@ -900,6 +1279,15 @@
             intersect: false,
             mode: 'index'
           },
+          onClick: function(event, elements, chart) {
+            if(elements.length > 0){
+              const idx = elements[0].index;
+              const runId = chart.data.datasets[0].runIds?.[idx];
+              if(runId && runId !== 'N/A'){
+                showCompositionModal(runId);
+              }
+            }
+          },
           plugins: {
             legend: { display: true, position: 'top', labels: { color: '#cbd5e1' } },
             tooltip: {
@@ -926,7 +1314,7 @@
                 afterLabel: function(context) {
                   const idx = context.dataIndex;
                   const runId = context.dataset.runIds?.[idx] || 'N/A';
-                  return 'Run ID: ' + runId;
+                  return 'Run ID: ' + runId + ' (clique para ver composição)';
                 }
               }
             }
@@ -1168,6 +1556,549 @@
     ths[sparkIdx].setAttribute('title', 'Sparkline window inferred from sampled data');
   }
 
+  // Flag to prevent concurrent correlation matrix renders
+  let correlationRenderInProgress = false;
+
+  // Render correlation matrix heatmap
+  async function renderCorrelationMatrix(){
+    const container = els.correlationMatrix || document.getElementById('correlationMatrix');
+    if(!container) return;
+
+    // Prevent concurrent renders
+    if(correlationRenderInProgress) return;
+    correlationRenderInProgress = true;
+
+    container.innerHTML = '';
+
+    // Get current portfolio stocks for highlighting
+    const currentPortfolioStocks = new Set();
+    if(lastFullData && lastFullData.best_portfolio_details && lastFullData.best_portfolio_details.stocks){
+      lastFullData.best_portfolio_details.stocks.forEach(s => currentPortfolioStocks.add(s));
+    }
+
+    try {
+      const resp = await fetch('data/correlation_matrix.csv?_=' + Date.now(), {cache:'no-store'});
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      const text = await resp.text();
+
+      // Parse CSV
+      const lines = text.split(/\r?\n/).filter(l=>l.length>0);
+      if(lines.length === 0){
+        container.innerHTML = '<div class="no-data">No correlation data available</div>';
+        correlationRenderInProgress = false;
+        return;
+      }
+
+      // Parse header and rows
+      const cols = parseCSVLine(lines[0]);
+      const rows = [];
+      for(let i=1; i<lines.length; i++){
+        const parts = parseCSVLine(lines[i]);
+        while(parts.length < cols.length) parts.push('');
+        rows.push(parts);
+      }
+
+      // Build heatmap table
+      const headers = cols.slice(1); // first column is row labels
+      const matrix = rows.map(r => r.slice(1).map(v => Number(v)));
+
+      // Clear container again before appending (in case of race condition)
+      container.innerHTML = '';
+
+      const table = document.createElement('table');
+
+      // Header row
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      const thCorner = document.createElement('th');
+      thCorner.textContent = '';
+      trh.appendChild(thCorner);
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        th.title = h;
+        // Highlight if in current portfolio
+        if(currentPortfolioStocks.has(h)){
+          th.classList.add('in-portfolio');
+        }
+        trh.appendChild(th);
+      });
+      thead.appendChild(trh);
+      table.appendChild(thead);
+
+      // Body rows
+      const tbody = document.createElement('tbody');
+      for(let i=0; i<matrix.length; i++){
+        const tr = document.createElement('tr');
+        const rowStock = rows[i][0];
+        const rowInPortfolio = currentPortfolioStocks.has(rowStock);
+
+        // Row header (ticker name)
+        const th = document.createElement('th');
+        th.textContent = rowStock;
+        th.title = rowStock;
+        // Highlight if in current portfolio
+        if(rowInPortfolio){
+          th.classList.add('in-portfolio');
+        }
+        tr.appendChild(th);
+
+        // Data cells
+        for(let j=0; j<matrix[i].length; j++){
+          const td = document.createElement('td');
+          const v = matrix[i][j];
+          const colStock = headers[j];
+          const colInPortfolio = currentPortfolioStocks.has(colStock);
+
+          // Don't show text in cells (too crowded), show on hover via title
+          td.textContent = '';
+          // Color: map -1..1 to red..green
+          const pct = Math.max(0, Math.min(1, (v + 1) / 2));
+          // Use gradient: red (negative) -> yellow (neutral) -> green (positive)
+          let r, g, b;
+          if(pct < 0.5){
+            // red to yellow
+            r = 220;
+            g = Math.round(180 * (pct * 2));
+            b = 80;
+          } else {
+            // yellow to green
+            r = Math.round(220 * (1 - (pct - 0.5) * 2));
+            g = 180;
+            b = 80;
+          }
+          td.style.background = `rgba(${r}, ${g}, ${b}, 0.85)`;
+          td.title = `${rowStock} / ${colStock}: ${Number.isFinite(v) ? v.toFixed(3) : 'n/a'}`;
+
+          // Highlight cell if both row and column are in portfolio
+          if(rowInPortfolio && colInPortfolio){
+            td.classList.add('portfolio-correlation');
+          }
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      container.appendChild(table);
+      correlationRenderInProgress = false;
+
+    } catch(err) {
+      console.error('Failed to load correlation matrix', err);
+      container.innerHTML = '<div class="no-data">Failed to load correlation data</div>';
+      correlationRenderInProgress = false;
+    }
+  }
+
+  // ── Sector P/E Chart ─────────────────────────────────────────────────────────
+  let sectorPEChartInstance = null;
+
+  async function loadSectorPE() {
+    try {
+      const res = await fetch('./data/sector_pe.csv?_=' + Date.now());
+      if (!res.ok) return;
+      const text = await res.text();
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) return;
+
+      const headers = lines[0].split(',');
+      const sectorIdx = headers.findIndex(h => h.toLowerCase().includes('sector'));
+      const peIdx = headers.findIndex(h => h.toLowerCase().includes('sectormedianpe') || h.toLowerCase().includes('pe'));
+      const runIdIdx = headers.findIndex(h => h.toLowerCase().includes('run_id'));
+      const timestampIdx = headers.findIndex(h => h.toLowerCase().includes('timestamp'));
+
+      if (sectorIdx === -1 || peIdx === -1) return;
+
+      // Group by run_id to get the latest run
+      const runMap = new Map();
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length > Math.max(sectorIdx, peIdx, runIdIdx)) {
+          const runId = cols[runIdIdx]?.trim() || '';
+          const timestamp = cols[timestampIdx]?.trim() || '';
+          const sector = cols[sectorIdx]?.trim();
+          const pe = parseFloat(cols[peIdx]);
+          if (sector && !isNaN(pe) && runId) {
+            if (!runMap.has(runId)) {
+              runMap.set(runId, { timestamp, data: [] });
+            }
+            runMap.get(runId).data.push({ sector, pe });
+          }
+        }
+      }
+
+      if (runMap.size === 0) return;
+
+      // Find the latest run by timestamp
+      let latestRunId = null;
+      let latestTimestamp = '';
+      for (const [runId, info] of runMap.entries()) {
+        if (info.timestamp > latestTimestamp) {
+          latestTimestamp = info.timestamp;
+          latestRunId = runId;
+        }
+      }
+
+      const latestData = runMap.get(latestRunId)?.data || [];
+      if (latestData.length === 0) return;
+
+      // Sort by P/E descending
+      latestData.sort((a, b) => b.pe - a.pe);
+
+      renderSectorPEChart(latestData);
+    } catch (e) {
+      console.warn('Failed to load sector_pe.csv:', e);
+    }
+  }
+
+  function renderSectorPEChart(data) {
+    const ctx = document.getElementById('sectorPEChart');
+    if (!ctx) return;
+
+    if (sectorPEChartInstance) {
+      try { sectorPEChartInstance.destroy(); } catch(e) {}
+    }
+
+    const labels = data.map(d => d.sector);
+    const values = data.map(d => d.pe);
+    const avgPE = values.reduce((a, b) => a + b, 0) / values.length;
+
+    // Color bars based on comparison to average (green = below avg = cheaper, red = above avg = expensive)
+    const colors = values.map(v => v > avgPE ? 'rgba(231, 111, 81, 0.8)' : 'rgba(91, 210, 163, 0.8)');
+    const borderColors = values.map(v => v > avgPE ? 'rgba(231, 111, 81, 1)' : 'rgba(91, 210, 163, 1)');
+
+    sectorPEChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Median Forward P/E',
+          data: values,
+          backgroundColor: colors,
+          borderColor: borderColors,
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y', // Horizontal bars for better label readability
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            titleColor: '#f1f5f9',
+            bodyColor: '#cbd5e1',
+            borderColor: '#475569',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              label: (ctx) => `Median P/E: ${ctx.raw.toFixed(2)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#aaa' },
+            title: {
+              display: true,
+              text: 'Median Forward P/E',
+              color: '#aaa'
+            }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: '#ccc', font: { size: 11 } }
+          }
+        }
+      }
+    });
+  }
+
+  // ── Performance Attribution ─────────────────────────────────────────────────
+  let attributionChartInstance = null;
+
+  async function loadPerformanceAttribution() {
+    try {
+      const res = await fetch('./data/performance_attribution.json?_=' + Date.now());
+      if (!res.ok) {
+        console.warn('Failed to load performance_attribution.json:', res.status);
+        return;
+      }
+      const data = await res.json();
+      renderPerformanceAttribution(data);
+    } catch (e) {
+      console.warn('Failed to load performance attribution:', e);
+    }
+  }
+
+  function renderPerformanceAttribution(data) {
+    // Update total active return
+    const totalEl = document.getElementById('attrTotalReturn');
+    if (totalEl) {
+      const total = data.total_active_return;
+      if (total != null && !isNaN(total)) {
+        totalEl.textContent = (total >= 0 ? '+' : '') + total.toFixed(2) + '%';
+        totalEl.classList.toggle('negative', total < 0);
+      } else {
+        totalEl.textContent = '—';
+      }
+    }
+
+    // Render breakdown details
+    const detailsEl = document.getElementById('attributionDetails');
+    if (detailsEl) {
+      const items = [
+        { key: 'allocation_effect', label: 'Allocation Effect', desc: 'Ganho por escolha de setores' },
+        { key: 'selection_effect', label: 'Selection Effect', desc: 'Ganho por seleção de ações' },
+        { key: 'interaction_effect', label: 'Interaction Effect', desc: 'Efeito combinado' }
+      ];
+
+      // Find max absolute value for bar scaling
+      const maxAbs = Math.max(
+        ...items.map(it => Math.abs(data[it.key] || 0)),
+        0.0001
+      );
+
+      detailsEl.innerHTML = items.map(item => {
+        const val = data[item.key] || 0;
+        const isNegative = val < 0;
+        const barWidth = (Math.abs(val) / maxAbs) * 100;
+        return `
+          <div class="attribution-item">
+            <div class="attribution-item-header">
+              <span class="attribution-item-label">${item.label}</span>
+              <span class="attribution-item-value ${isNegative ? 'negative' : ''}">${(val >= 0 ? '+' : '') + val.toFixed(2)}%</span>
+            </div>
+            <div class="attribution-bar-bg">
+              <div class="attribution-bar ${isNegative ? 'negative' : 'positive'}" style="width: ${barWidth}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render chart
+    renderAttributionChart(data);
+  }
+
+  function renderAttributionChart(data) {
+    const ctx = document.getElementById('attributionChart');
+    if (!ctx) return;
+
+    if (attributionChartInstance) {
+      try { attributionChartInstance.destroy(); } catch(e) {}
+    }
+
+    const items = [
+      { key: 'allocation_effect', label: 'Allocation' },
+      { key: 'selection_effect', label: 'Selection' },
+      { key: 'interaction_effect', label: 'Interaction' }
+    ];
+
+    const labels = items.map(it => it.label);
+    const values = items.map(it => data[it.key] || 0);
+
+    // Color based on positive/negative
+    const colors = values.map(v => v >= 0 ? 'rgba(91, 210, 163, 0.85)' : 'rgba(231, 111, 81, 0.85)');
+    const borderColors = values.map(v => v >= 0 ? 'rgba(91, 210, 163, 1)' : 'rgba(231, 111, 81, 1)');
+
+    attributionChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Attribution Effect',
+          data: values,
+          backgroundColor: colors,
+          borderColor: borderColors,
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            titleColor: '#f1f5f9',
+            bodyColor: '#cbd5e1',
+            borderColor: '#475569',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              label: (ctx) => {
+                const val = ctx.raw;
+                return `${ctx.label}: ${(val >= 0 ? '+' : '') + val.toFixed(2)}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#ccc', font: { size: 11 } }
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: {
+              color: '#aaa',
+              callback: (val) => val.toFixed(1) + '%'
+            },
+            title: {
+              display: true,
+              text: 'Effect (%)',
+              color: '#aaa'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // ── Portfolio Diagnostics Metrics ───────────────────────────────────────────
+  async function loadPortfolioDiagnostics() {
+    try {
+      const res = await fetch('./data/portfolio_diagnostics.json?_=' + Date.now());
+      if (!res.ok) {
+        console.warn('Failed to load portfolio_diagnostics.json:', res.status);
+        return;
+      }
+      const data = await res.json();
+      renderPortfolioDiagnostics(data);
+    } catch (e) {
+      console.warn('Failed to load portfolio diagnostics:', e);
+    }
+  }
+
+  function renderPortfolioDiagnostics(data) {
+    // Helper functions
+    const formatPct = (v) => {
+      if (v == null || isNaN(v)) return '—';
+      const pct = Number(v) * 100;
+      return (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+    };
+    const formatNum = (v, decimals = 2) => {
+      if (v == null || isNaN(v)) return '—';
+      return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    };
+    const formatLarge = (v) => {
+      if (v == null || isNaN(v)) return '—';
+      const num = Number(v);
+      if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+      if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+      if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+      return num.toFixed(0);
+    };
+
+    // Momentum Signal Strength (range: -1 to +1)
+    const momentumEl = document.getElementById('diag_momentum_signal');
+    const momentumMarker = document.getElementById('diag_momentum_marker');
+    if (momentumEl) {
+      const ms = data.momentum_signal_strength;
+      if (ms != null && !isNaN(ms)) {
+        momentumEl.textContent = Number(ms).toFixed(4);
+        momentumEl.classList.toggle('positive', ms > 0);
+        momentumEl.classList.toggle('negative', ms < 0);
+        // Position marker: -1 = 0%, 0 = 50%, +1 = 100%
+        if (momentumMarker) {
+          const pct = ((Number(ms) + 1) / 2) * 100;
+          momentumMarker.style.left = Math.max(2, Math.min(98, pct)) + '%';
+        }
+      } else {
+        momentumEl.textContent = '—';
+      }
+    }
+
+    // Forward P/E Implied Upside
+    const peUpsideEl = document.getElementById('diag_pe_upside');
+    if (peUpsideEl) {
+      const v = data.forward_pe_implied_upside;
+      if (v != null && !isNaN(v)) {
+        peUpsideEl.textContent = formatPct(v);
+        peUpsideEl.classList.toggle('positive', v > 0);
+        peUpsideEl.classList.toggle('negative', v < 0);
+      } else {
+        peUpsideEl.textContent = '—';
+      }
+    }
+
+    // Weighted Dividend Yield
+    const divYieldEl = document.getElementById('diag_div_yield');
+    if (divYieldEl) {
+      const v = data.weighted_dividend_yield;
+      if (v != null && !isNaN(v)) {
+        // If value > 1, assume it's raw and format accordingly
+        if (Math.abs(v) > 1) {
+          divYieldEl.textContent = formatNum(v, 2);
+        } else {
+          divYieldEl.textContent = formatPct(v);
+        }
+      } else {
+        divYieldEl.textContent = '—';
+      }
+    }
+
+    // Turnover
+    const turnoverEl = document.getElementById('diag_turnover');
+    const turnoverBar = document.getElementById('diag_turnover_bar');
+    const kpiTurnoverEl = document.getElementById('kpi-turnover-val');
+    if (turnoverEl || kpiTurnoverEl) {
+      const v = data.turnover;
+      if (v != null && !isNaN(v)) {
+        const turnoverText = (Number(v) * 100).toFixed(1) + '%';
+        if (turnoverEl) turnoverEl.textContent = turnoverText;
+        if (kpiTurnoverEl) kpiTurnoverEl.textContent = turnoverText;
+        if (turnoverBar) {
+          turnoverBar.style.width = Math.min(100, Number(v) * 100) + '%';
+        }
+      } else {
+        if (turnoverEl) turnoverEl.textContent = '—';
+        if (kpiTurnoverEl) kpiTurnoverEl.textContent = '—';
+      }
+    }
+
+    // Liquidity Score
+    const liquidityEl = document.getElementById('diag_liquidity');
+    if (liquidityEl) {
+      const v = data.liquidity_score;
+      liquidityEl.textContent = v != null ? formatLarge(v) : '—';
+    }
+
+    // Tracking Error
+    const trackingEl = document.getElementById('diag_tracking_error');
+    const trackingBar = document.getElementById('diag_tracking_bar');
+    if (trackingEl) {
+      const v = data.tracking_error;
+      if (v != null && !isNaN(v)) {
+        trackingEl.textContent = (Number(v) * 100).toFixed(2) + '%';
+        if (trackingBar) {
+          // Assume max tracking error ~50% for bar scaling
+          trackingBar.style.width = Math.min(100, (Number(v) / 0.5) * 100) + '%';
+        }
+      } else {
+        trackingEl.textContent = '—';
+      }
+    }
+
+    // Information Ratio
+    const infoRatioEl = document.getElementById('diag_info_ratio');
+    if (infoRatioEl) {
+      const v = data.information_ratio;
+      if (v != null && !isNaN(v)) {
+        infoRatioEl.textContent = Number(v).toFixed(4);
+        infoRatioEl.classList.toggle('positive', v > 0);
+        infoRatioEl.classList.toggle('negative', v < 0);
+      } else {
+        infoRatioEl.textContent = '—';
+      }
+    }
+  }
+
   // render everything
   async function renderAll(data){
     // populate top meta block: only Run ID and Last updated (now styled as footnote)
@@ -1178,15 +2109,26 @@
     if(els.tableRunDate) els.tableRunDate.textContent = data.last_updated_timestamp || '—';
     const p = data.best_portfolio_details || {};
 
+    // Load portfolio results cache for composition modal
+    await loadPortfolioResultsCache();
+
     // KPIs and other sections
     renderKPIs(data);
     renderHoldingsTable(data);
     renderTreemap(data);
+    await loadSectorPE();
+    await loadPerformanceAttribution();
+    await loadPortfolioDiagnostics();
+    await renderCorrelationMatrix();
     await renderGA(data);
     await renderVolatilityChart(data);
 
     // default portfolio range: all
     await updatePortfolioChart('all');
+
+    // render composition history stacked area chart
+    await renderCompositionHistoryChart();
+
     // render sector donut and concentration bar
     renderSectorAndConcentration(data);
 

@@ -14,7 +14,7 @@ ANIM3.SA,Ânima Holding S.A.,Consumer Defensive,Education & Training Services,
 ASAI3.SA,Sendas Distribuidora S.A.,Consumer Defensive,Grocery Stores,
 AURA33.SA,Aura Minerals Inc.,Basic Materials,Gold,AURA 360 DR3
 AURE3.SA,Auren Energia S.A.,Utilities,Utilities - Renewable,
-AXPE11.SA,Axia Energia S.A.,Utilities,Utilities - Regulated Electric,AXIA ENERGIAPNB EX N1
+AXIA6.SA,Axia Energia S.A.,Utilities,Utilities - Regulated Electric,AXIA ENERGIAPNB EX N1
 AZUL4.SA,Azul S.A.,Industrials,Airlines,
 AZZA3.SA,Azzas 2154 S.A.,Consumer Cyclical,Footwear & Accessories
 B3SA3.SA,"B3 S.A. - Brasil, Bolsa, Balcão",Financial Services,Financial Data & Stock Exchanges
