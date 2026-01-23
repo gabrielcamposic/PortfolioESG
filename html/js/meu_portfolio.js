@@ -9,6 +9,7 @@
   const SCORED_TARGETS_PATH = './data/scored_targets.json';
   const LATEST_RUN_PATH = './data/latest_run_summary.json';
   const PROCESSED_NOTES_PATH = './data/processed_notes.json';
+  const PORTFOLIO_HISTORY_PATH = './data/portfolio_history.json';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // UTILIDADES
@@ -61,7 +62,9 @@
   let targetsData = {};
   let recommendedPortfolio = { stocks: [], weights: [] };
   let processedNotesData = null;
+  let portfolioHistoryData = null;
   let allocationChart = null;
+  let evolutionChart = null;
 
   async function loadAllData() {
     try {
@@ -91,6 +94,12 @@
       const notesResp = await fetch(PROCESSED_NOTES_PATH + '?_=' + Date.now());
       if (notesResp.ok) {
         processedNotesData = await notesResp.json();
+      }
+
+      // Load portfolio history
+      const historyResp = await fetch(PORTFOLIO_HISTORY_PATH + '?_=' + Date.now());
+      if (historyResp.ok) {
+        portfolioHistoryData = await historyResp.json();
       }
 
       // Load transactions CSV
@@ -242,6 +251,7 @@
   function renderAll() {
     renderMeta();
     renderSummary();
+    renderEvolution();
     renderProjection();
     renderPositions();
     renderAllocation();
@@ -289,6 +299,215 @@
     const openPositions = metrics.positions.filter(p => p.net_qty > 0).length;
     document.getElementById('positionsCount').textContent = openPositions;
     document.getElementById('transactionsCount').textContent = transactionsData.length;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GRÁFICO DE EVOLUÇÃO DO PATRIMÔNIO
+  // ═══════════════════════════════════════════════════════════════════════════
+  let currentRange = 'all';
+
+  function filterHistoryByRange(history, range) {
+    if (!history || history.length === 0) return [];
+
+    const now = new Date();
+    let cutoffDate;
+
+    switch (range) {
+      case '1m':
+        cutoffDate = new Date(now);
+        cutoffDate.setMonth(cutoffDate.getMonth() - 1);
+        break;
+      case '3m':
+        cutoffDate = new Date(now);
+        cutoffDate.setMonth(cutoffDate.getMonth() - 3);
+        break;
+      default: // 'all'
+        return history;
+    }
+
+    return history.filter(d => new Date(d.date) >= cutoffDate);
+  }
+
+  function renderEvolution(range = currentRange) {
+    const canvas = document.getElementById('portfolioEvolutionChart');
+    if (!canvas) return;
+
+    const history = portfolioHistoryData?.history || [];
+    const filteredHistory = filterHistoryByRange(history, range);
+
+    if (filteredHistory.length === 0) {
+      if (evolutionChart) {
+        try { evolutionChart.destroy(); } catch(e) {}
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#888';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sem dados históricos', canvas.width / 2, canvas.height / 2);
+      return;
+    }
+
+    // Prepare data
+    const labels = filteredHistory.map(d => d.date);
+    const marketValues = filteredHistory.map(d => d.market_value);
+    const costBases = filteredHistory.map(d => d.cost_basis);
+    const profitLoss = filteredHistory.map(d => d.profit_loss);
+
+    // Find transaction days for annotations
+    const transactionDays = filteredHistory
+      .filter(d => d.transactions && d.transactions.length > 0)
+      .map(d => ({
+        date: d.date,
+        transactions: d.transactions,
+        marketValue: d.market_value
+      }));
+
+    // Destroy previous chart
+    if (evolutionChart) {
+      try { evolutionChart.destroy(); } catch(e) {}
+    }
+
+    evolutionChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Valor de Mercado',
+            data: marketValues,
+            borderColor: '#4fc3f7',
+            backgroundColor: 'rgba(79, 195, 247, 0.1)',
+            fill: false,
+            tension: 0.2,
+            pointRadius: 2,
+            pointHoverRadius: 6,
+            borderWidth: 2
+          },
+          {
+            label: 'Custo Base',
+            data: costBases,
+            borderColor: '#68b36b',
+            backgroundColor: 'rgba(104, 179, 107, 0.1)',
+            fill: false,
+            tension: 0,
+            pointRadius: 0,
+            borderWidth: 2,
+            borderDash: [5, 5]
+          },
+          {
+            label: 'Lucro/Prejuízo',
+            data: profitLoss,
+            borderColor: profitLoss[profitLoss.length - 1] >= 0 ? '#2b8a3e' : '#d9534f',
+            backgroundColor: profitLoss[profitLoss.length - 1] >= 0
+              ? 'rgba(43, 138, 62, 0.2)'
+              : 'rgba(217, 83, 79, 0.2)',
+            fill: true,
+            tension: 0.2,
+            pointRadius: 0,
+            borderWidth: 1,
+            hidden: true // Hidden by default, can be toggled
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: false // Using custom legend
+          },
+          tooltip: {
+            backgroundColor: 'rgba(30, 30, 30, 0.95)',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            padding: 12,
+            displayColors: true,
+            callbacks: {
+              title: function(context) {
+                const date = context[0].label;
+                const d = new Date(date);
+                return d.toLocaleDateString('pt-BR', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                });
+              },
+              label: function(context) {
+                const value = context.raw;
+                const label = context.dataset.label;
+                return `${label}: ${formatCurrency(value)}`;
+              },
+              afterBody: function(context) {
+                const dateStr = context[0].label;
+                const dayData = filteredHistory.find(d => d.date === dateStr);
+
+                if (!dayData) return [];
+
+                const lines = [];
+                lines.push(`Retorno: ${formatPercent(dayData.profit_loss_pct)}`);
+
+                // Show transactions if any
+                if (dayData.transactions && dayData.transactions.length > 0) {
+                  lines.push('');
+                  lines.push('📊 Transações:');
+                  dayData.transactions.forEach(tx => {
+                    const icon = tx.side === 'BUY' ? '🟢' : '🔴';
+                    lines.push(`${icon} ${tx.side === 'BUY' ? 'Compra' : 'Venda'} ${tx.qty}x ${tx.symbol} @ ${formatCurrency(tx.price)}`);
+                  });
+                }
+
+                return lines;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            grid: {
+              display: false
+            },
+            ticks: {
+              maxTicksLimit: 10,
+              callback: function(value, index) {
+                const date = new Date(this.getLabelForValue(value));
+                return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+              }
+            }
+          },
+          y: {
+            display: true,
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            },
+            ticks: {
+              callback: function(value) {
+                return formatCurrency(value);
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Setup range buttons
+    setupRangeButtons();
+  }
+
+  function setupRangeButtons() {
+    document.querySelectorAll('.range-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentRange = this.getAttribute('data-range');
+        renderEvolution(currentRange);
+      });
+    });
   }
 
   function renderProjection() {

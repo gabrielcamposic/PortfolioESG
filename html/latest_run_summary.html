@@ -40,7 +40,7 @@
          SEÇÃO 2: PORTFOLIO ATUAL - Composição e detalhes
          ═══════════════════════════════════════════════════════════════════════ -->
     <section id="portfolio" class="card">
-      <h2>Portfolio Atual</h2>
+      <h2>Portfolio Recomendado</h2>
 
       <!-- Tabela de ações -->
       <table id="stocksTable">
@@ -53,10 +53,13 @@
         <small>Data from last run: <span id="tableRunDate">—</span></small>
       </div>
 
-      <!-- Sector Exposure -->
+      <!-- Sector Exposure with Forward P/E -->
       <div class="subsection">
-        <h3>Exposição por Setor</h3>
-        <div id="treemap" class="treemap"></div>
+        <h3>Exposição por Setor e Forward P/E</h3>
+        <div class="chart-card" style="min-height:280px;">
+          <canvas id="sectorExposureChart" width="600" height="280" style="width:100%;height:280px;display:block;"></canvas>
+        </div>
+        <div id="treemap" class="treemap" style="display:none;"></div>
       </div>
     </section>
 
@@ -80,6 +83,14 @@
         </div>
         <div class="chart-card">
           <canvas id="portfolioChart" width="600" height="260" style="width:100%;height:260px;display:block;"></canvas>
+        </div>
+        <!-- Stock count range chart (candlestick-style) -->
+        <div class="chart-card" style="margin-top:8px;">
+          <canvas id="stockRangeChart" width="600" height="120" style="width:100%;height:120px;display:block;"></canvas>
+        </div>
+        <div class="chart-legend" style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:12px;color:#aaa;">
+          <span><span style="display:inline-block;width:12px;height:12px;background:rgba(107,156,232,0.3);border:1px solid #6b9ce8;margin-right:4px;"></span>Range (min-max)</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#f28c28;border-radius:50%;margin-right:4px;"></span>Qtd. Ações Resultante</span>
         </div>
       </div>
 
@@ -225,14 +236,6 @@
             <span class="metric-card-value" id="momentum">—</span>
           </div>
           <div class="metric-card-desc">Momentum do portfolio</div>
-        </div>
-      </div>
-
-      <!-- Sector P/E Comparison -->
-      <div class="subsection">
-        <h3>P/E por Setor</h3>
-        <div class="chart-card" style="min-height:320px;">
-          <canvas id="sectorPEChart" width="600" height="320" style="width:100%;height:320px;display:block;"></canvas>
         </div>
       </div>
     </section>

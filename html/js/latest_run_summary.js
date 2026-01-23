@@ -287,27 +287,210 @@
   }
 
   // render treemap using simple flex tiles
-  function renderTreemap(data){
+  let sectorExposureChartInstance = null;
+
+  async function renderTreemap(data){
     const list = data.best_portfolio_details && data.best_portfolio_details.sector_exposure_list ? data.best_portfolio_details.sector_exposure_list : [];
-    const container = els.treemapContainer; container.innerHTML='';
-    if(!list || !list.length){ container.textContent='No sector data'; return; }
-    // create tiles with flex-basis proportional to pct
-    list.forEach((s, idx)=>{
-      const pct = Number(s.pct) || 0; const wperc = Math.max(pct*100, 3); // min size
-      const tile = document.createElement('div');
-      tile.className = 'treemap-tile';
-      tile.style.flex = `0 0 ${wperc}%`;
-      tile.style.minWidth = '80px';
-      tile.style.height = '80px';
-      tile.style.margin = '4px';
-      tile.style.borderRadius = '6px';
-      tile.style.display = 'flex'; tile.style.flexDirection = 'column'; tile.style.justifyContent='center'; tile.style.alignItems='center';
-      tile.style.color = '#012';
-      const palette = generatePalette(8);
-      tile.style.background = palette[idx % palette.length];
-      tile.innerHTML = `<strong>${s.sector}</strong><small style="opacity:0.85">${(pct*100).toFixed(1)}%</small>`;
-      tile.title = `${s.sector}: ${(pct*100).toFixed(2)}%`;
-      container.appendChild(tile);
+    const container = els.treemapContainer;
+    if(container) container.innerHTML='';
+
+    // Load sector P/E data
+    let sectorPEData = new Map();
+    try {
+      const res = await fetch('./data/sector_pe.csv?_=' + Date.now());
+      if (res.ok) {
+        const text = await res.text();
+        const lines = text.trim().split('\n');
+        if (lines.length >= 2) {
+          const headers = lines[0].split(',');
+          const sectorIdx = headers.findIndex(h => h.toLowerCase().includes('sector'));
+          const peIdx = headers.findIndex(h => h.toLowerCase().includes('sectormedianpe') || h.toLowerCase().includes('pe'));
+          const runIdIdx = headers.findIndex(h => h.toLowerCase().includes('run_id'));
+          const timestampIdx = headers.findIndex(h => h.toLowerCase().includes('timestamp'));
+
+          if (sectorIdx !== -1 && peIdx !== -1) {
+            // Group by run_id to get the latest run
+            const runMap = new Map();
+            for (let i = 1; i < lines.length; i++) {
+              const cols = lines[i].split(',');
+              if (cols.length > Math.max(sectorIdx, peIdx, runIdIdx)) {
+                const runId = cols[runIdIdx]?.trim() || '';
+                const timestamp = cols[timestampIdx]?.trim() || '';
+                const sector = cols[sectorIdx]?.trim();
+                const pe = parseFloat(cols[peIdx]);
+                if (sector && !isNaN(pe) && runId) {
+                  if (!runMap.has(runId)) {
+                    runMap.set(runId, { timestamp, data: [] });
+                  }
+                  runMap.get(runId).data.push({ sector, pe });
+                }
+              }
+            }
+
+            // Find the latest run by timestamp
+            let latestRunId = null;
+            let latestTimestamp = '';
+            for (const [runId, info] of runMap.entries()) {
+              if (info.timestamp > latestTimestamp) {
+                latestTimestamp = info.timestamp;
+                latestRunId = runId;
+              }
+            }
+
+            const latestData = runMap.get(latestRunId)?.data || [];
+            latestData.forEach(d => sectorPEData.set(d.sector, d.pe));
+          }
+        }
+      }
+    } catch(e) {
+      console.warn('Failed to load sector P/E data:', e);
+    }
+
+    if(!list || !list.length){
+      const canvas = document.getElementById('sectorExposureChart');
+      if(canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#888';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No sector data', canvas.width/2, canvas.height/2);
+      }
+      return;
+    }
+
+    // Sort by exposure descending
+    const sortedList = [...list].sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0));
+
+    // Prepare data for combined chart
+    const labels = sortedList.map(s => s.sector);
+    const exposures = sortedList.map(s => (Number(s.pct) || 0) * 100);
+    const pes = sortedList.map(s => sectorPEData.get(s.sector) || null);
+
+    renderSectorExposureChart(labels, exposures, pes);
+  }
+
+  function renderSectorExposureChart(labels, exposures, pes) {
+    const canvas = document.getElementById('sectorExposureChart');
+    if (!canvas) return;
+
+    if (sectorExposureChartInstance) {
+      try { sectorExposureChartInstance.destroy(); } catch(e) {}
+    }
+
+    const palette = generatePalette(labels.length);
+    const avgPE = pes.filter(p => p != null).reduce((a, b) => a + b, 0) / pes.filter(p => p != null).length || 0;
+
+    // Create datasets
+    const datasets = [
+      {
+        label: 'Exposição (%)',
+        data: exposures,
+        backgroundColor: palette.map(c => c.replace(')', ', 0.8)').replace('rgb', 'rgba')),
+        borderColor: palette,
+        borderWidth: 1,
+        borderRadius: 4,
+        yAxisID: 'y',
+        order: 2
+      }
+    ];
+
+    // Add P/E line if data exists
+    if (pes.some(p => p != null)) {
+      datasets.push({
+        label: 'Forward P/E',
+        data: pes,
+        type: 'line',
+        borderColor: '#f28c28',
+        backgroundColor: '#f28c28',
+        pointBackgroundColor: pes.map(p => p != null ? (p > avgPE ? '#e76f51' : '#5bd2a3') : 'transparent'),
+        pointBorderColor: pes.map(p => p != null ? (p > avgPE ? '#e76f51' : '#5bd2a3') : 'transparent'),
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        borderWidth: 2,
+        fill: false,
+        tension: 0.1,
+        yAxisID: 'y1',
+        order: 1
+      });
+    }
+
+    sectorExposureChartInstance = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: '#ccc', usePointStyle: true, padding: 15 }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            titleColor: '#f1f5f9',
+            bodyColor: '#cbd5e1',
+            borderColor: '#475569',
+            borderWidth: 1,
+            padding: 12,
+            callbacks: {
+              label: function(ctx) {
+                if (ctx.dataset.label === 'Exposição (%)') {
+                  return `Exposição: ${ctx.raw.toFixed(1)}%`;
+                } else if (ctx.dataset.label === 'Forward P/E') {
+                  if (ctx.raw == null) return 'P/E: N/A';
+                  const indicator = ctx.raw > avgPE ? '↑' : '↓';
+                  return `P/E: ${ctx.raw.toFixed(1)} ${indicator}`;
+                }
+                return ctx.formattedValue;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: {
+              color: '#ccc',
+              font: { size: 11 },
+              maxRotation: 45,
+              minRotation: 45
+            }
+          },
+          y: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#aaa' },
+            title: {
+              display: true,
+              text: 'Exposição (%)',
+              color: '#aaa'
+            }
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: false,
+            grid: { display: false },
+            ticks: { color: '#f28c28' },
+            title: {
+              display: true,
+              text: 'Forward P/E',
+              color: '#f28c28'
+            }
+          }
+        }
+      }
     });
   }
 
@@ -661,7 +844,7 @@
   })();
 
   // Render composition history as stacked area chart
-  async function renderCompositionHistoryChart(){
+  async function renderCompositionHistoryChart(rangeKey){
     const canvas = document.getElementById('compositionHistoryChart');
     const legendContainer = document.getElementById('compositionLegend');
     if(!canvas) return;
@@ -679,7 +862,12 @@
     }
 
     // Sort by timestamp
-    const sortedData = [...portfolioResultsCache].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    let sortedData = [...portfolioResultsCache].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    // Apply range filter if specified
+    if(rangeKey && rangeKey !== 'all'){
+      sortedData = sliceByRange(sortedData.map(d => ({...d, ts: d.timestamp.split(' ')[0]})), rangeKey);
+    }
 
     // Collect all unique stocks across all runs
     const allStocks = new Set();
@@ -712,11 +900,11 @@
       });
     });
 
-    // Labels (dates)
+    // Labels (dates) - same format as portfolio chart for alignment
     const labels = sortedData.map(entry => {
       try {
         const d = new Date(entry.timestamp);
-        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
       } catch(e) { return entry.timestamp.substring(0, 10); }
     });
 
@@ -793,16 +981,8 @@
         },
         scales: {
           x: {
-            display: true,
-            grid: { color: 'rgba(71,85,105,0.3)' },
-            ticks: {
-              color: '#94a3b8',
-              maxRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 10,
-              font: { size: 10 }
-            },
-            title: { display: true, text: 'Data', color: '#cbd5e1' }
+            display: false, // Hide x-axis since it's synchronized with the charts above
+            grid: { display: false }
           },
           y: {
             display: true,
@@ -1106,156 +1286,185 @@
     }
   }
 
-  // Cache for run_id by date - loaded from CSV
-  let runIdByDateCache = null;
+  // Cache for portfolio results from CSV
+  let portfolioResultsCsvCache = null;
 
-  // Load run_id mapping from CSV (date -> run_id)
-  async function loadRunIdCache(){
-    if(runIdByDateCache) return runIdByDateCache;
-    runIdByDateCache = {};
+  // Load all portfolio results from CSV
+  async function loadPortfolioResultsCsv(){
+    if(portfolioResultsCsvCache) return portfolioResultsCsvCache;
+    portfolioResultsCsvCache = [];
     try {
       const csvResp = await fetch('data/portfolio_results_db.csv?_=' + Date.now(), {cache:'no-store'});
       if(csvResp.ok){
         const csvText = await csvResp.text();
         const lines = csvText.trim().split('\n');
-        if(lines.length > 0){
-          const firstLine = lines[0];
-          const hasHeader = firstLine.toLowerCase().includes('run_id') && firstLine.toLowerCase().includes('timestamp');
+        if(lines.length > 1){
+          // Parse header to find column indices
+          const headerLine = lines[0];
+          const headerParts = parseCSVLine(headerLine);
 
-          let runIdIdx = 0, timestampIdx = 1;
-          let startLine = 0;
+          const runIdIdx = headerParts.findIndex(h => h.trim().toLowerCase() === 'run_id');
+          const timestampIdx = headerParts.findIndex(h => h.trim().toLowerCase() === 'timestamp');
+          const minStocksIdx = headerParts.findIndex(h => h.trim().toLowerCase() === 'min_stocks');
+          const maxStocksIdx = headerParts.findIndex(h => h.trim().toLowerCase() === 'max_stocks');
+          const stocksIdx = headerParts.findIndex(h => h.trim().toLowerCase() === 'stocks');
 
-          if(hasHeader){
-            const header = firstLine.split(',');
-            runIdIdx = header.findIndex(h => h.trim().toLowerCase() === 'run_id');
-            timestampIdx = header.findIndex(h => h.trim().toLowerCase() === 'timestamp');
-            if(runIdIdx === -1) runIdIdx = 0;
-            if(timestampIdx === -1) timestampIdx = 1;
-            startLine = 1;
+          console.debug('CSV header columns:', headerParts.length, { runIdIdx, timestampIdx, minStocksIdx, maxStocksIdx, stocksIdx });
+
+          if(runIdIdx === -1 || timestampIdx === -1){
+            console.warn('CSV missing required columns:', { runIdIdx, timestampIdx });
+            return portfolioResultsCsvCache;
           }
 
-          for(let i=startLine; i<lines.length; i++){
+          for(let i=1; i<lines.length; i++){
             const row = parseCSVLine(lines[i]);
-            if(row.length > Math.max(runIdIdx, timestampIdx)){
-              const runId = row[runIdIdx] || '';
-              const timestamp = row[timestampIdx] || '';
-              if(runId && timestamp){
-                // Extract date part (YYYY-MM-DD) from timestamp
-                const datePart = timestamp.split(' ')[0];
-                runIdByDateCache[datePart] = runId;
+
+            const runId = row[runIdIdx] ? row[runIdIdx].trim() : '';
+            const timestamp = row[timestampIdx] ? row[timestampIdx].trim() : '';
+
+            // Handle different CSV formats:
+            // Old format (12 cols): sharpe at 7, final_value at 8, roi at 9, expected_return at 10, volatility at 11
+            // New format (10 cols): sharpe at 7, expected_return at 8, volatility at 9
+
+            let expectedReturn = NaN;
+
+            if(row.length >= 12){
+              // Old format - expected_return is at index 10
+              expectedReturn = parseFloat(row[10]);
+            } else if(row.length >= 10){
+              // New format - expected_return is at index 8 (right after sharpe at 7)
+              expectedReturn = parseFloat(row[8]);
+            }
+
+            // Get min_stocks, max_stocks, and count actual stocks
+            const minStocks = minStocksIdx !== -1 ? parseInt(row[minStocksIdx]) : NaN;
+            const maxStocks = maxStocksIdx !== -1 ? parseInt(row[maxStocksIdx]) : NaN;
+            let actualStocks = 0;
+            if(stocksIdx !== -1 && row[stocksIdx]){
+              // Count stocks by splitting on comma
+              const stocksStr = row[stocksIdx].trim();
+              if(stocksStr){
+                actualStocks = stocksStr.split(',').filter(s => s.trim()).length;
               }
             }
+
+            if(runId && timestamp && !isNaN(expectedReturn) && expectedReturn > 0){
+              portfolioResultsCsvCache.push({
+                run_id: runId,
+                timestamp: timestamp,
+                ts: timestamp.split(' ')[0],
+                expected_return_annual_pct: expectedReturn,
+                min_stocks: minStocks,
+                max_stocks: maxStocks,
+                actual_stocks: actualStocks
+              });
+            }
+          }
+
+          console.debug('Loaded portfolio results:', portfolioResultsCsvCache.length, 'records');
+          if(portfolioResultsCsvCache.length > 0){
+            console.debug('First record:', portfolioResultsCsvCache[0]);
+            console.debug('Last record:', portfolioResultsCsvCache[portfolioResultsCsvCache.length-1]);
           }
         }
       }
     } catch(e) {
-      console.warn('Failed to load run_id cache from CSV', e);
+      console.warn('Failed to load portfolio results from CSV', e);
     }
-    return runIdByDateCache;
+    // Sort by timestamp ascending
+    portfolioResultsCsvCache.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+    return portfolioResultsCsvCache;
   }
 
-  // Update portfolio chart with selected range
+  // Update portfolio chart with selected range - now uses CSV data with each run_id as separate point
   async function updatePortfolioChart(rangeKey){
-    if(!lastFullData) return;
+    // Load data from CSV
+    const allResults = await loadPortfolioResultsCsv();
 
-    // Ensure run_id cache is loaded
-    await loadRunIdCache();
-
-    const p = lastFullData.best_portfolio_details || {};
-    const fullRaw = p.portfolio_timeseries || [];
-    const full = sanitizePortfolioTimeseries(fullRaw);
-    const sliced = sliceByRange(full, rangeKey);
-    const labels = sliced.map(d=>d.ts);
-    // final_value actually represents annual return in % (not portfolio monetary value)
-    const values = sliced.map(d=>d.final_value);
-    // Get run_id from cache by date, fallback to the entry's run_id or last run_id
-    const runIds = sliced.map(d => {
-      // First try from cached CSV data
-      if(runIdByDateCache && runIdByDateCache[d.ts]) return runIdByDateCache[d.ts];
-      // Then from the entry itself
-      if(d.run_id) return d.run_id;
-      // Fallback to current run_id
-      return lastFullData.last_updated_run_id || 'N/A';
-    });
-    console.debug('updatePortfolioChart (pre-filter):', {rangeKey, rawPoints: fullRaw.length, groupedPoints: full.length, slicedPoints: labels.length});
-    // filter out invalid points (ensure numeric final_value)
-    const filteredLabels = [];
-    const filteredValues = [];
-    const filteredRunIds = [];
-    for(let i=0;i<labels.length;i++){
-      const v = values[i];
-      const n = (v == null || v === '') ? NaN : Number(v);
-      if(!isNaN(n) && isFinite(n)){
-        filteredLabels.push(labels[i]);
-        filteredValues.push(n);
-        filteredRunIds.push(runIds[i] || 'N/A');
-      }
-    }
-    if(filteredValues.length === 0){
-      // clear chart and show message
+    if(!allResults || allResults.length === 0){
+      // Fallback: clear chart and show message
       try{ if(portfolioChart && portfolioChart.destroy) portfolioChart.destroy(); }catch(e){}
-      const c = document.getElementById('portfolioChart'); try{ const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); }catch(e){}
-      showChartError('portfolioChart','No portfolio timeseries data available');
+      const c = document.getElementById('portfolioChart');
+      try{ const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); }catch(e){}
+      showChartError('portfolioChart','No portfolio results data available');
       return;
-    } else {
-      // remove any previous chart error message
-      const pc = document.getElementById('portfolioChart'); if(pc && pc.parentElement) pc.parentElement.querySelectorAll('.chart-error').forEach(n=>n.remove());
     }
 
-    // Format labels for better display (dd/MM format)
-    const formattedLabels = filteredLabels.map(ts => {
+    // Apply date range filter
+    const sliced = sliceByRange(allResults, rangeKey);
+
+    if(sliced.length === 0){
+      try{ if(portfolioChart && portfolioChart.destroy) portfolioChart.destroy(); }catch(e){}
+      const c = document.getElementById('portfolioChart');
+      try{ const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); }catch(e){}
+      showChartError('portfolioChart','No data for selected range');
+      return;
+    }
+
+    // Remove any previous chart error message
+    const pc = document.getElementById('portfolioChart');
+    if(pc && pc.parentElement) pc.parentElement.querySelectorAll('.chart-error').forEach(n=>n.remove());
+
+    // Prepare data - each run_id is a separate point
+    const filteredLabels = sliced.map(d => d.ts);
+    const filteredValues = sliced.map(d => d.expected_return_annual_pct);
+    const filteredRunIds = sliced.map(d => d.run_id);
+    const filteredTimestamps = sliced.map(d => d.timestamp);
+
+    console.debug('updatePortfolioChart:', {rangeKey, points: filteredValues.length, lastValue: filteredValues[filteredValues.length-1]});
+
+    // Format labels for display - use index for x-axis, show date in tooltip
+    // This avoids mixing date formats and handles multiple runs on same day
+    const formattedLabels = sliced.map((d, idx) => {
       try {
-        const d = new Date(ts + 'T00:00:00');
-        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-      } catch(e) { return ts; }
+        const date = new Date(d.timestamp);
+        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      } catch(e) { return d.ts; }
     });
 
     try{
       const canvasEl = document.getElementById('portfolioChart');
-      // ensure canvas pixel size matches layout
       try{ canvasEl.width = canvasEl.clientWidth; canvasEl.height = canvasEl.clientHeight; }catch(e){}
       const ctx = canvasEl.getContext('2d');
-      // diagnostics
-      try{
-        const sample = filteredValues.slice(0,5);
-        const last = filteredValues[filteredValues.length-1];
-        const min = Math.min(...filteredValues); const max = Math.max(...filteredValues);
-        console.info('Portfolio chart data:', { points: filteredValues.length, sample, last, min, max });
-      }catch(e){ console.warn('Portfolio chart diagnostics failed', e); }
+
+      // Diagnostics
+      const sample = filteredValues.slice(0,3);
+      const last = filteredValues[filteredValues.length-1];
+      const min = Math.min(...filteredValues);
+      const max = Math.max(...filteredValues);
+      console.info('Portfolio chart data:', { points: filteredValues.length, sample, last, min, max });
+
       if(typeof window.Chart === 'undefined'){
-        drawLineFallback(canvasEl, filteredValues, '#2b8a3e'); return;
+        drawLineFallback(canvasEl, filteredValues, '#2b8a3e');
+        return;
       }
+
+      // Check for existing chart and update in-place
       try{
         if(typeof Chart !== 'undefined' && Chart.getChart){
           const existing = Chart.getChart(canvasEl);
           if(existing){
-            // Update data in-place to avoid re-creating charts bound to the same canvas
             try{
               existing.data.labels = formattedLabels;
               if(existing.data.datasets && existing.data.datasets[0]){
                 existing.data.datasets[0].data = filteredValues;
                 existing.data.datasets[0].runIds = filteredRunIds;
                 existing.data.datasets[0].originalDates = filteredLabels;
-              } else {
-                existing.data.datasets = [{
-                  label:'Retorno Anual (%)',
-                  data: filteredValues,
-                  borderColor:'#2b8a3e',
-                  backgroundColor:'rgba(43,138,62,0.08)',
-                  pointRadius: 3,
-                  pointHoverRadius: 6,
-                  fill:true,
-                  runIds: filteredRunIds,
-                  originalDates: filteredLabels
-                }];
+                existing.data.datasets[0].timestamps = filteredTimestamps;
               }
               existing.update();
               portfolioChart = existing;
+              // Also update stock range chart
+              await renderStockRangeChart(sliced, formattedLabels);
               return;
-            }catch(e){ console.warn('Failed to update existing portfolio chart, will recreate', e); try{ existing.destroy(); }catch(e){} }
+            }catch(e){
+              console.warn('Failed to update existing portfolio chart, will recreate', e);
+              try{ existing.destroy(); }catch(e){}
+            }
           }
         }
       }catch(e){ console.warn('Safe chart check failed', e); }
+
       portfolioChart = new Chart(ctx, {
         type:'line',
         data: {
@@ -1265,103 +1474,221 @@
             data: filteredValues,
             borderColor:'#2b8a3e',
             backgroundColor:'rgba(43,138,62,0.08)',
-            pointRadius: 3,
-            pointHoverRadius: 6,
+            pointRadius: 4,
+            pointHoverRadius: 7,
             fill:true,
             runIds: filteredRunIds,
-            originalDates: filteredLabels
+            originalDates: filteredLabels,
+            timestamps: filteredTimestamps
           }]
+        },
+        options: {
+          responsive:true,
+          maintainAspectRatio:false,
+          interaction: { mode: 'nearest', intersect: false },
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor:'rgba(30,41,59,0.95)',
+              titleColor:'#f1f5f9',
+              bodyColor:'#cbd5e1',
+              borderColor:'#475569',
+              borderWidth:1,
+              padding:12,
+              callbacks:{
+                title: function(items){
+                  if(!items.length) return '';
+                  const idx = items[0].dataIndex;
+                  const ds = items[0].dataset;
+                  const timestamp = ds.timestamps ? ds.timestamps[idx] : '';
+                  return timestamp || items[0].label;
+                },
+                label: function(ctx){
+                  const val = ctx.raw;
+                  return 'Retorno Anual: ' + (val != null ? val.toFixed(2) + '%' : '—');
+                },
+                afterLabel: function(ctx){
+                  const ds = ctx.dataset;
+                  const idx = ctx.dataIndex;
+                  const runId = ds.runIds ? ds.runIds[idx] : null;
+                  return runId ? 'Run ID: ' + runId : '';
+                }
+              }
+            }
+          },
+          scales:{
+            x:{
+              grid:{color:'rgba(255,255,255,0.03)'},
+              ticks:{
+                color:'#888',
+                maxRotation: 45,
+                minRotation: 45,
+                autoSkip: true,
+                maxTicksLimit: 15
+              }
+            },
+            y:{
+              grid:{color:'rgba(255,255,255,0.05)'},
+              ticks:{
+                color:'#aaa',
+                callback: function(v){ return v.toFixed(0) + '%'; }
+              },
+              title:{
+                display:true,
+                text:'Retorno Anual (%)',
+                color:'#aaa'
+              }
+            }
+          }
+        }
+      });
+    }catch(e){
+      console.error('Failed to render portfolio chart', e);
+      showChartError('portfolioChart','Failed to render chart');
+    }
+
+    // Render stock range chart synchronized with portfolio chart
+    await renderStockRangeChart(sliced, formattedLabels);
+  }
+
+  // Stock range chart instance
+  let stockRangeChart = null;
+
+  // Render candlestick-style chart showing min_stocks, max_stocks range and actual stock count
+  async function renderStockRangeChart(data, labels){
+    const canvas = document.getElementById('stockRangeChart');
+    if(!canvas) return;
+
+    try {
+      if(stockRangeChart && stockRangeChart.destroy) stockRangeChart.destroy();
+    } catch(e) {}
+
+    if(!data || !data.length){
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+
+    // Prepare data arrays
+    const minStocks = data.map(d => d.min_stocks || 0);
+    const maxStocks = data.map(d => d.max_stocks || 0);
+    const actualStocks = data.map(d => d.actual_stocks || 0);
+    const runIds = data.map(d => d.run_id);
+    const timestamps = data.map(d => d.timestamp);
+
+    // Create floating bar data for the range (min to max)
+    const rangeData = data.map(d => [d.min_stocks || 0, d.max_stocks || 0]);
+
+    try {
+      const ctx = canvas.getContext('2d');
+
+      stockRangeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Range (min-max)',
+              data: rangeData,
+              backgroundColor: 'rgba(107, 156, 232, 0.3)',
+              borderColor: 'rgba(107, 156, 232, 0.8)',
+              borderWidth: 1,
+              borderSkipped: false,
+              barPercentage: 0.6,
+              categoryPercentage: 0.8
+            },
+            {
+              label: 'Qtd. Ações Resultante',
+              data: actualStocks,
+              type: 'line',
+              borderColor: '#f28c28',
+              backgroundColor: '#f28c28',
+              pointBackgroundColor: '#f28c28',
+              pointBorderColor: '#fff',
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              borderWidth: 2,
+              fill: false,
+              tension: 0.1,
+              order: 0 // Draw on top
+            }
+          ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: 'index'
-          },
-          onClick: function(event, elements, chart) {
-            if(elements.length > 0){
-              const idx = elements[0].index;
-              const runId = chart.data.datasets[0].runIds?.[idx];
-              if(runId && runId !== 'N/A'){
-                showCompositionModal(runId);
-              }
-            }
-          },
+          interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { display: true, position: 'top', labels: { color: '#cbd5e1' } },
+            legend: { display: false },
             tooltip: {
-              enabled: true,
-              backgroundColor: 'rgba(30, 41, 59, 0.95)',
+              backgroundColor: 'rgba(30,41,59,0.95)',
               titleColor: '#f1f5f9',
               bodyColor: '#cbd5e1',
               borderColor: '#475569',
               borderWidth: 1,
               padding: 12,
               callbacks: {
-                title: function(context) {
-                  const idx = context[0].dataIndex;
-                  const originalDate = context[0].dataset.originalDates?.[idx] || context[0].label;
-                  try {
-                    const d = new Date(originalDate + 'T00:00:00');
-                    return 'Data: ' + d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                  } catch(e) { return 'Data: ' + originalDate; }
+                title: function(items) {
+                  if(!items.length) return '';
+                  const idx = items[0].dataIndex;
+                  return timestamps[idx] || labels[idx];
                 },
-                label: function(context) {
-                  const value = context.parsed.y;
-                  return 'Retorno Anual: ' + value.toFixed(2) + '%';
+                label: function(ctx) {
+                  if(ctx.dataset.label === 'Range (min-max)') {
+                    const range = ctx.raw;
+                    return `Range: ${range[0]} - ${range[1]} ações`;
+                  } else {
+                    return `Resultado: ${ctx.raw} ações`;
+                  }
                 },
-                afterLabel: function(context) {
-                  const idx = context.dataIndex;
-                  const runId = context.dataset.runIds?.[idx] || 'N/A';
-                  return 'Run ID: ' + runId + ' (clique para ver composição)';
+                afterBody: function(items) {
+                  if(!items.length) return '';
+                  const idx = items[0].dataIndex;
+                  return 'Run ID: ' + (runIds[idx] || 'N/A');
                 }
               }
             }
           },
           scales: {
             x: {
-              display: true,
-              grid: { color: 'rgba(71,85,105,0.3)' },
+              display: false, // Hide x-axis since it's synchronized with the chart above
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(255,255,255,0.05)' },
               ticks: {
-                color: '#94a3b8',
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 8,
-                font: { size: 11 }
+                color: '#aaa',
+                stepSize: 5,
+                callback: function(v) { return v; }
               },
               title: {
                 display: true,
-                text: 'Data',
-                color: '#cbd5e1'
-              }
-            },
-            y: {
-              display: true,
-              grid: { color: 'rgba(71,85,105,0.3)' },
-              title: { display: true, text: 'Retorno Anual (%)', color: '#cbd5e1' },
-              ticks: {
-                color: '#94a3b8',
-                callback: function(val){
-                  try{ const n = Number(val); if(isNaN(n)) return val; return n.toFixed(1) + '%'; }catch(e){ return val; }
-                }
+                text: 'Nº Ações',
+                color: '#aaa',
+                font: { size: 11 }
               }
             }
           }
         }
       });
-    }catch(err){
-      console.error('Portfolio chart rendering error', err);
-      showChartError('portfolioChart','Chart render error');
+    } catch(e) {
+      console.error('Failed to render stock range chart', e);
     }
   }
 
   // Render holdings table with badges and sparklines
   function renderHoldingsTable(data){
     const p = data.best_portfolio_details || {};
-    const stocks = p.stocks || []; const weights = p.weights || [];
+    const stocksRaw = p.stocks || []; const weightsRaw = p.weights || [];
     const holdings_meta = p.holdings_meta || {};
     const benchmark_pe = (p.momentum_valuation && p.momentum_valuation.benchmark_forward_pe) || null;
+
+    // Ordenar por peso decrescente
+    const indexed = stocksRaw.map((s, i) => ({ stock: s, weight: weightsRaw[i] || 0, index: i }));
+    indexed.sort((a, b) => b.weight - a.weight);
+    const stocks = indexed.map(x => x.stock);
+    const weights = indexed.map(x => x.weight);
 
     const tbody = els.stocksTableBody;
     if(!tbody) return;
@@ -1689,134 +2016,6 @@
     }
   }
 
-  // ── Sector P/E Chart ─────────────────────────────────────────────────────────
-  let sectorPEChartInstance = null;
-
-  async function loadSectorPE() {
-    try {
-      const res = await fetch('./data/sector_pe.csv?_=' + Date.now());
-      if (!res.ok) return;
-      const text = await res.text();
-      const lines = text.trim().split('\n');
-      if (lines.length < 2) return;
-
-      const headers = lines[0].split(',');
-      const sectorIdx = headers.findIndex(h => h.toLowerCase().includes('sector'));
-      const peIdx = headers.findIndex(h => h.toLowerCase().includes('sectormedianpe') || h.toLowerCase().includes('pe'));
-      const runIdIdx = headers.findIndex(h => h.toLowerCase().includes('run_id'));
-      const timestampIdx = headers.findIndex(h => h.toLowerCase().includes('timestamp'));
-
-      if (sectorIdx === -1 || peIdx === -1) return;
-
-      // Group by run_id to get the latest run
-      const runMap = new Map();
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',');
-        if (cols.length > Math.max(sectorIdx, peIdx, runIdIdx)) {
-          const runId = cols[runIdIdx]?.trim() || '';
-          const timestamp = cols[timestampIdx]?.trim() || '';
-          const sector = cols[sectorIdx]?.trim();
-          const pe = parseFloat(cols[peIdx]);
-          if (sector && !isNaN(pe) && runId) {
-            if (!runMap.has(runId)) {
-              runMap.set(runId, { timestamp, data: [] });
-            }
-            runMap.get(runId).data.push({ sector, pe });
-          }
-        }
-      }
-
-      if (runMap.size === 0) return;
-
-      // Find the latest run by timestamp
-      let latestRunId = null;
-      let latestTimestamp = '';
-      for (const [runId, info] of runMap.entries()) {
-        if (info.timestamp > latestTimestamp) {
-          latestTimestamp = info.timestamp;
-          latestRunId = runId;
-        }
-      }
-
-      const latestData = runMap.get(latestRunId)?.data || [];
-      if (latestData.length === 0) return;
-
-      // Sort by P/E descending
-      latestData.sort((a, b) => b.pe - a.pe);
-
-      renderSectorPEChart(latestData);
-    } catch (e) {
-      console.warn('Failed to load sector_pe.csv:', e);
-    }
-  }
-
-  function renderSectorPEChart(data) {
-    const ctx = document.getElementById('sectorPEChart');
-    if (!ctx) return;
-
-    if (sectorPEChartInstance) {
-      try { sectorPEChartInstance.destroy(); } catch(e) {}
-    }
-
-    const labels = data.map(d => d.sector);
-    const values = data.map(d => d.pe);
-    const avgPE = values.reduce((a, b) => a + b, 0) / values.length;
-
-    // Color bars based on comparison to average (green = below avg = cheaper, red = above avg = expensive)
-    const colors = values.map(v => v > avgPE ? 'rgba(231, 111, 81, 0.8)' : 'rgba(91, 210, 163, 0.8)');
-    const borderColors = values.map(v => v > avgPE ? 'rgba(231, 111, 81, 1)' : 'rgba(91, 210, 163, 1)');
-
-    sectorPEChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Median Forward P/E',
-          data: values,
-          backgroundColor: colors,
-          borderColor: borderColors,
-          borderWidth: 1,
-          borderRadius: 4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        indexAxis: 'y', // Horizontal bars for better label readability
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(30, 41, 59, 0.95)',
-            titleColor: '#f1f5f9',
-            bodyColor: '#cbd5e1',
-            borderColor: '#475569',
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: (ctx) => `Median P/E: ${ctx.raw.toFixed(2)}`
-            }
-          }
-        },
-        scales: {
-          x: {
-            beginAtZero: true,
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: { color: '#aaa' },
-            title: {
-              display: true,
-              text: 'Median Forward P/E',
-              color: '#aaa'
-            }
-          },
-          y: {
-            grid: { display: false },
-            ticks: { color: '#ccc', font: { size: 11 } }
-          }
-        }
-      }
-    });
-  }
-
   // ── Performance Attribution ─────────────────────────────────────────────────
   let attributionChartInstance = null;
 
@@ -2116,7 +2315,6 @@
     renderKPIs(data);
     renderHoldingsTable(data);
     renderTreemap(data);
-    await loadSectorPE();
     await loadPerformanceAttribution();
     await loadPortfolioDiagnostics();
     await renderCorrelationMatrix();
@@ -2126,8 +2324,8 @@
     // default portfolio range: all
     await updatePortfolioChart('all');
 
-    // render composition history stacked area chart
-    await renderCompositionHistoryChart();
+    // render composition history stacked area chart (synchronized with portfolio chart)
+    await renderCompositionHistoryChart('all');
 
     // render sector donut and concentration bar
     renderSectorAndConcentration(data);
@@ -2161,6 +2359,9 @@
   }
 
   async function fetchIfChanged(){
+    // Clear CSV cache to force reload
+    portfolioResultsCsvCache = null;
+
     try{
       const headResp = await fetch(JSON_PATH, {method:'HEAD', cache:'no-store'});
       if(!headResp.ok){ console.warn('HEAD fetch failed', headResp.status); }
@@ -2188,8 +2389,11 @@
       this.classList.add('active');
       // Get the range from data-range attribute
       const range = this.getAttribute('data-range') || 'all';
-      // Update the chart with new range
+      // Update all three charts with new range (they are synchronized)
       await updatePortfolioChart(range);
+      // Composition chart is updated via updatePortfolioChart -> renderStockRangeChart
+      // but we also need to update the composition history chart
+      await renderCompositionHistoryChart(range);
     });
   });
 

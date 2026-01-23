@@ -55,8 +55,25 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         SEÇÃO 2: PROJEÇÃO FUTURA (Target Price)
+         SEÇÃO 2: EVOLUÇÃO DO PATRIMÔNIO
          ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="evolucao" class="card">
+      <h2>Evolução do Patrimônio</h2>
+      <div class="chart-controls">
+        <button class="range-btn active" data-range="all">Todo Período</button>
+        <button class="range-btn" data-range="3m">3 Meses</button>
+        <button class="range-btn" data-range="1m">1 Mês</button>
+      </div>
+      <div class="portfolio-evolution-chart">
+        <canvas id="portfolioEvolutionChart" height="300"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item"><span class="legend-dot blue"></span> Valor de Mercado</div>
+        <div class="legend-item"><span class="legend-dot green"></span> Custo Base</div>
+        <div class="legend-item"><span class="legend-dot orange"></span> Lucro/Prejuízo</div>
+      </div>
+    </section>
+
     <section id="projecao" class="card">
       <h2>Projeção Futura (Target Price)</h2>
       <div class="projection-grid">
