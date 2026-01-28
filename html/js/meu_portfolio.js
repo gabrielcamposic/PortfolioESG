@@ -60,7 +60,7 @@
   let positionsData = null;
   let transactionsData = [];
   let targetsData = {};
-  let recommendedPortfolio = { stocks: [], weights: [] };
+  let recommendedPortfolio = { stocks: [], weights: [], sharpe: null, expectedReturn: null };
   let processedNotesData = null;
   let portfolioHistoryData = null;
   let allocationChart = null;
@@ -88,6 +88,8 @@
         const bp = recData.best_portfolio_details || {};
         recommendedPortfolio.stocks = bp.stocks || [];
         recommendedPortfolio.weights = bp.weights || [];
+        recommendedPortfolio.sharpe = bp.sharpe_ratio || null;
+        recommendedPortfolio.expectedReturn = bp.expected_return_annual_pct || null;
       }
 
       // Load processed notes info
@@ -256,7 +258,9 @@
     renderPositions();
     renderAllocation();
     renderTransactions();
+    renderRebalance();
     renderComparison();
+    setupRebalanceControls();
   }
 
   function renderMeta() {
@@ -689,6 +693,402 @@
         row.style.display = '';
       } else {
         row.style.display = 'none';
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DADOS DE CUSTOS HISTÓRICOS
+  // ═══════════════════════════════════════════════════════════════════════════
+  let historicalFees = {
+    totalFees: 0,
+    totalVolume: 0,
+    notesCount: 0,
+    avgFeeRate: 0.028 // Default calculado do histórico
+  };
+
+  function calculateHistoricalFees() {
+    // Dados extraídos das notas de negociação
+    const feesData = [
+      { noteId: '15030227', fees: 0.28, volume: 987.60 },
+      { noteId: '15088606', fees: 0.26, volume: 908.77 },
+      { noteId: '15124347', fees: 0.46, volume: 1587.15 },
+      { noteId: '15118128', fees: 0.18, volume: 641.74 },
+      { noteId: '15322925', fees: 0.27, volume: 976.76 }
+    ];
+
+    let totalFees = 0;
+    let totalVolume = 0;
+
+    for (const note of feesData) {
+      totalFees += note.fees;
+      totalVolume += note.volume;
+    }
+
+    historicalFees = {
+      totalFees: totalFees,
+      totalVolume: totalVolume,
+      notesCount: feesData.length,
+      avgFeeRate: totalVolume > 0 ? (totalFees / totalVolume) * 100 : 0.028
+    };
+
+    return historicalFees;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ANÁLISE DE REBALANCEAMENTO
+  // ═══════════════════════════════════════════════════════════════════════════
+  function calculateRebalanceAnalysis() {
+    const feeRate = parseFloat(document.getElementById('feeRate')?.value || 0.028) / 100;
+    const spreadRate = parseFloat(document.getElementById('spreadRate')?.value || 0.10) / 100;
+    const minGainThreshold = parseFloat(document.getElementById('minGainThreshold')?.value || 5);
+    const additionalInvestment = parseFloat(document.getElementById('additionalInvestment')?.value || 0);
+
+    const metrics = calculatePortfolioMetrics();
+    const currentPortfolioValue = metrics.totalCurrent || 0;
+
+    // Valor total considerando aporte adicional
+    const totalPortfolioValue = currentPortfolioValue + additionalInvestment;
+
+    if (currentPortfolioValue <= 0 && additionalInvestment <= 0) {
+      return { valid: false, reason: 'Sem posições abertas e sem aporte adicional' };
+    }
+
+    // Build maps of current positions
+    const myPositions = new Map();
+    for (const pos of metrics.positions) {
+      if (pos.net_qty > 0) {
+        const key = normalizeTickerKey(pos.symbol || pos.ticker);
+        myPositions.set(key, {
+          ticker: pos.symbol || pos.ticker,
+          qty: pos.net_qty,
+          currentPrice: pos.currentPrice || 0,
+          currentValue: pos.currentValue || 0,
+          targetPrice: pos.targetPrice || pos.currentPrice,
+          weight: pos.weight || 0
+        });
+      }
+    }
+
+    // Build map of recommended positions with target allocation
+    const recommendedMap = new Map();
+    for (let i = 0; i < recommendedPortfolio.stocks.length; i++) {
+      const stock = recommendedPortfolio.stocks[i];
+      const weight = recommendedPortfolio.weights[i] || 0;
+      const key = normalizeTickerKey(stock);
+
+      // Get current price and target price for recommended stock
+      let currentPrice = null;
+      let targetPrice = getTargetPrice(stock, stock);
+
+      // Check if we already own this stock
+      const existingPos = myPositions.get(key);
+      if (existingPos) {
+        currentPrice = existingPos.currentPrice;
+        if (!targetPrice) targetPrice = existingPos.targetPrice;
+      }
+
+      recommendedMap.set(key, {
+        stock: stock,
+        weight: weight * 100,
+        currentPrice: currentPrice,
+        targetPrice: targetPrice || currentPrice
+      });
+    }
+
+    // Calculate transactions needed
+    const transactions = [];
+    let totalSellValue = 0;
+    let totalBuyValue = 0;
+
+    // Positions to sell (in current portfolio but not in recommended, or need to reduce)
+    for (const [key, pos] of myPositions) {
+      const rec = recommendedMap.get(key);
+      const recWeight = rec ? rec.weight : 0;
+      const currentWeight = pos.weight;
+
+      if (recWeight < currentWeight) {
+        const targetValue = (recWeight / 100) * totalPortfolioValue;
+        const diffValue = pos.currentValue - targetValue;
+        const diffQty = pos.currentPrice > 0 ? Math.floor(diffValue / pos.currentPrice) : 0;
+
+        if (diffQty > 0) {
+          transactions.push({
+            ticker: pos.ticker,
+            action: 'SELL',
+            currentQty: pos.qty,
+            targetQty: pos.qty - diffQty,
+            diffQty: -diffQty,
+            value: diffValue,
+            price: pos.currentPrice,
+            cost: diffValue * (feeRate + spreadRate)
+          });
+          totalSellValue += diffValue;
+        }
+      }
+    }
+
+    // Positions to buy (in recommended but not in current, or need to increase)
+    for (const [key, rec] of recommendedMap) {
+      const pos = myPositions.get(key);
+      const currentWeight = pos ? pos.weight : 0;
+
+      if (rec.weight > currentWeight) {
+        const currentValue = pos ? pos.currentValue : 0;
+        const targetValue = (rec.weight / 100) * totalPortfolioValue;
+        const diffValue = targetValue - currentValue;
+
+        // Use a price estimate - try current price from our positions or from targets
+        let price = rec.currentPrice;
+        if (!price && rec.targetPrice) {
+          price = rec.targetPrice * 0.9; // Estimate current as 90% of target
+        }
+        if (!price) price = 50; // Default fallback
+
+        const diffQty = Math.ceil(diffValue / price);
+
+        if (diffQty > 0) {
+          transactions.push({
+            ticker: rec.stock,
+            action: 'BUY',
+            currentQty: pos ? pos.qty : 0,
+            targetQty: (pos ? pos.qty : 0) + diffQty,
+            diffQty: diffQty,
+            value: diffValue,
+            price: price,
+            cost: diffValue * (feeRate + spreadRate)
+          });
+          totalBuyValue += diffValue;
+        }
+      }
+    }
+
+    // Calculate total costs
+    const totalTransactionCost = transactions.reduce((sum, t) => sum + t.cost, 0);
+
+    // Calculate expected gain from switching to recommended portfolio
+    // Using target prices to estimate upside
+    let currentPortfolioUpside = 0;
+    let recommendedPortfolioUpside = 0;
+
+    // Current portfolio upside
+    for (const [key, pos] of myPositions) {
+      if (pos.currentPrice > 0 && pos.targetPrice > 0) {
+        const upside = ((pos.targetPrice - pos.currentPrice) / pos.currentPrice) * pos.currentValue;
+        currentPortfolioUpside += upside;
+      }
+    }
+
+    // Recommended portfolio upside (estimated)
+    for (const [key, rec] of recommendedMap) {
+      const targetValue = (rec.weight / 100) * totalPortfolioValue;
+      if (rec.currentPrice > 0 && rec.targetPrice > 0) {
+        const upside = ((rec.targetPrice - rec.currentPrice) / rec.currentPrice) * targetValue;
+        recommendedPortfolioUpside += upside;
+      }
+    }
+
+    const additionalGain = recommendedPortfolioUpside - currentPortfolioUpside;
+    const netGain = additionalGain - totalTransactionCost;
+    const netGainPct = totalPortfolioValue > 0 ? (netGain / totalPortfolioValue) * 100 : 0;
+
+    // Calcular valores finais de cada cenário
+    const currentFinalValue = currentPortfolioValue + currentPortfolioUpside;
+    const recommendedFinalValue = totalPortfolioValue + recommendedPortfolioUpside - totalTransactionCost;
+
+    // Determine recommendation
+    let verdict = 'neutral';
+    let verdictText = 'Análise inconclusiva';
+    let verdictIcon = '🤔';
+
+    if (netGainPct >= minGainThreshold) {
+      verdict = 'recommend';
+      verdictText = `✅ Recomendado rebalancear (ganho líquido estimado: ${formatPercent(netGainPct)})`;
+      verdictIcon = '✅';
+    } else if (netGainPct < 0) {
+      verdict = 'not-recommend';
+      verdictText = `❌ Não vale rebalancear (custo supera o ganho)`;
+      verdictIcon = '❌';
+    } else {
+      verdict = 'neutral';
+      verdictText = `⚠️ Ganho marginal (${formatPercent(netGainPct)}) - abaixo do threshold de ${minGainThreshold}%`;
+      verdictIcon = '⚠️';
+    }
+
+    return {
+      valid: true,
+      currentPortfolioValue,
+      additionalInvestment,
+      totalPortfolioValue,
+      totalTransactionCost,
+      totalSellValue,
+      totalBuyValue,
+      currentPortfolioUpside,
+      recommendedPortfolioUpside,
+      currentFinalValue,
+      recommendedFinalValue,
+      additionalGain,
+      netGain,
+      netGainPct,
+      transactions,
+      verdict,
+      verdictText,
+      verdictIcon,
+      sharpe: recommendedPortfolio.sharpe,
+      expectedReturn: recommendedPortfolio.expectedReturn
+    };
+  }
+
+  function renderRebalance() {
+    // Calcular custos históricos primeiro
+    calculateHistoricalFees();
+
+    // Atualizar resumo dos parâmetros históricos
+    const histFeeEl = document.getElementById('historicalFeeRate');
+    const notesAnalyzedEl = document.getElementById('notesAnalyzed');
+    const totalVolumeEl = document.getElementById('totalVolume');
+    const feeRateHintEl = document.getElementById('feeRateHint');
+
+    if (histFeeEl) histFeeEl.textContent = historicalFees.avgFeeRate.toFixed(4) + '%';
+    if (notesAnalyzedEl) notesAnalyzedEl.textContent = historicalFees.notesCount;
+    if (totalVolumeEl) totalVolumeEl.textContent = formatCurrency(historicalFees.totalVolume);
+    if (feeRateHintEl) feeRateHintEl.textContent = `Histórico: ${historicalFees.avgFeeRate.toFixed(4)}%`;
+
+    const analysis = calculateRebalanceAnalysis();
+
+    // Update verdict
+    const verdictEl = document.getElementById('rebalanceVerdict');
+    if (verdictEl) {
+      verdictEl.className = 'rebalance-verdict ' + (analysis.valid ? analysis.verdict : '');
+
+      let verdictContent = '';
+      if (analysis.valid) {
+        verdictContent = `
+          <div class="verdict-icon">${analysis.verdictIcon}</div>
+          <div class="verdict-content">
+            <div class="verdict-text">${analysis.verdictText}</div>
+            ${analysis.additionalInvestment > 0 ?
+              `<div class="verdict-detail">Considerando aporte de ${formatCurrency(analysis.additionalInvestment)} (Portfolio final: ${formatCurrency(analysis.totalPortfolioValue)})</div>` : ''}
+            <div class="verdict-scenarios">
+              <span class="scenario">📊 Manter atual → ${formatCurrency(analysis.currentFinalValue)}</span>
+              <span class="scenario">🎯 Rebalancear → ${formatCurrency(analysis.recommendedFinalValue)}</span>
+            </div>
+          </div>`;
+      } else {
+        verdictContent = `
+          <div class="verdict-icon">⚠️</div>
+          <div class="verdict-text">${analysis.reason || 'Dados insuficientes'}</div>`;
+      }
+      verdictEl.innerHTML = verdictContent;
+    }
+
+    if (!analysis.valid) {
+      // Clear all metrics
+      ['rebalanceCost', 'rebalanceGain', 'rebalanceNetGain', 'rebalanceSharpe',
+       'volumeToSell', 'volumeToBuy', 'numOperations'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '—';
+      });
+      const tbody = document.getElementById('rebalanceBody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="no-data">Sem dados para análise</td></tr>';
+      return;
+    }
+
+    // Update metrics
+    const costEl = document.getElementById('rebalanceCost');
+    if (costEl) {
+      costEl.textContent = formatCurrency(analysis.totalTransactionCost);
+      costEl.className = 'metric-value negative';
+    }
+    document.getElementById('rebalanceCostDetail').textContent =
+      `${((parseFloat(document.getElementById('feeRate')?.value || 0.03) + parseFloat(document.getElementById('spreadRate')?.value || 0.10)).toFixed(2))}% sobre R$ ${formatNumber(analysis.totalSellValue + analysis.totalBuyValue, 0)}`;
+
+    const gainEl = document.getElementById('rebalanceGain');
+    if (gainEl) {
+      gainEl.textContent = formatCurrency(analysis.additionalGain);
+      gainEl.className = 'metric-value ' + (analysis.additionalGain >= 0 ? 'positive' : 'negative');
+    }
+    document.getElementById('rebalanceGainDetail').textContent =
+      `Upside rec: ${formatCurrency(analysis.recommendedPortfolioUpside)} vs atual: ${formatCurrency(analysis.currentPortfolioUpside)}`;
+
+    const netGainEl = document.getElementById('rebalanceNetGain');
+    if (netGainEl) {
+      netGainEl.textContent = `${formatCurrency(analysis.netGain)} (${formatPercent(analysis.netGainPct)})`;
+      netGainEl.className = 'metric-value ' + (analysis.netGain >= 0 ? 'positive' : 'negative');
+    }
+    document.getElementById('rebalanceNetDetail').textContent =
+      `Ganho esperado menos custos de transação`;
+
+    const sharpeEl = document.getElementById('rebalanceSharpe');
+    if (sharpeEl && analysis.sharpe != null) {
+      sharpeEl.textContent = analysis.sharpe.toFixed(2);
+    }
+
+    // Update summary row
+    document.getElementById('volumeToSell').textContent = formatCurrency(analysis.totalSellValue);
+    document.getElementById('volumeToBuy').textContent = formatCurrency(analysis.totalBuyValue);
+    document.getElementById('numOperations').textContent = analysis.transactions.length;
+
+    // Render transactions table
+    const tbody = document.getElementById('rebalanceBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    // Sort: sells first, then buys
+    const sortedTransactions = [...analysis.transactions].sort((a, b) => {
+      if (a.action === 'SELL' && b.action === 'BUY') return -1;
+      if (a.action === 'BUY' && b.action === 'SELL') return 1;
+      return Math.abs(b.value) - Math.abs(a.value);
+    });
+
+    for (const tx of sortedTransactions) {
+      const tr = document.createElement('tr');
+      const actionClass = tx.action === 'BUY' ? 'action-buy' : 'action-sell';
+      const actionText = tx.action === 'BUY' ? 'Comprar' : 'Vender';
+
+      tr.innerHTML = `
+        <td><strong>${tx.ticker}</strong></td>
+        <td><span class="${actionClass}">${actionText}</span></td>
+        <td>${tx.currentQty}</td>
+        <td>${tx.targetQty}</td>
+        <td class="${tx.diffQty >= 0 ? 'positive' : 'negative'}">${tx.diffQty > 0 ? '+' : ''}${tx.diffQty}</td>
+        <td>${formatCurrency(tx.value)}</td>
+        <td class="negative">${formatCurrency(tx.cost)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    if (analysis.transactions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="no-data">Portfolios já estão alinhados</td></tr>';
+    }
+  }
+
+  function setupRebalanceControls() {
+    // Setup recalculate button
+    const recalcBtn = document.getElementById('recalculateBtn');
+    if (recalcBtn) {
+      recalcBtn.addEventListener('click', function() {
+        console.log('Recalculando análise de rebalanceamento...');
+        renderRebalance();
+        // Feedback visual
+        this.textContent = '✓ Recalculado!';
+        this.classList.add('recalculated');
+        setTimeout(() => {
+          this.textContent = '🔄 Recalcular Análise';
+          this.classList.remove('recalculated');
+        }, 1500);
+      });
+    }
+
+    // Também recalcular quando os inputs mudam
+    ['feeRate', 'spreadRate', 'additionalInvestment', 'minGainThreshold'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener('change', function() {
+          console.log(`Parâmetro ${id} alterado para: ${this.value}`);
+          renderRebalance();
+        });
       }
     });
   }

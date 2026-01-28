@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Meu Portfolio - Investimentos Reais</title>
   <link rel="stylesheet" href="./css/styles.css">
+  <!-- Auth script - carrega primeiro para bloquear conteúdo -->
+  <script src="./js/auth.js"></script>
 </head>
 <body>
   <script src="./js/load_nav.js"></script>
@@ -175,7 +177,129 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         SEÇÃO 6: COMPARAÇÃO COM RECOMENDADO
+         SEÇÃO 6: ANÁLISE DE REBALANCEAMENTO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="rebalanceamento" class="card">
+      <h2>Análise de Rebalanceamento</h2>
+      <p class="section-desc">Avaliação se vale a pena trocar o portfolio atual pelo recomendado, considerando custos de transação.</p>
+
+      <!-- Parâmetros do Cálculo -->
+      <div class="rebalance-params">
+        <h4>⚙️ Parâmetros do Cálculo</h4>
+        <div class="params-grid">
+          <div class="param-item">
+            <label for="feeRate">Taxa por operação (%):</label>
+            <input type="number" id="feeRate" value="0.028" step="0.001" min="0" max="1">
+            <small class="param-hint" id="feeRateHint">Calculado: 0.028%</small>
+          </div>
+          <div class="param-item">
+            <label for="spreadRate">Spread estimado (%):</label>
+            <input type="number" id="spreadRate" value="0.10" step="0.01" min="0" max="2">
+          </div>
+          <div class="param-item">
+            <label for="additionalInvestment">Aporte adicional (R$):</label>
+            <input type="number" id="additionalInvestment" value="0" step="100" min="0">
+          </div>
+          <div class="param-item">
+            <label for="minGainThreshold">Ganho mínimo para rebalancear (%):</label>
+            <input type="number" id="minGainThreshold" value="5" step="1" min="0" max="50">
+          </div>
+          <div class="param-item full-width">
+            <button id="recalculateBtn" class="btn-recalculate">🔄 Recalcular Análise</button>
+          </div>
+        </div>
+        <div class="params-summary" id="paramsSummary">
+          <small>📊 <strong>Custos históricos:</strong> <span id="historicalFeeRate">—</span> |
+          <strong>Notas analisadas:</strong> <span id="notesAnalyzed">—</span> |
+          <strong>Volume total:</strong> <span id="totalVolume">—</span></small>
+        </div>
+        <small class="params-note">* Custos incluem: emolumentos, taxa de liquidação, taxa de transferência de ativos</small>
+      </div>
+
+      <!-- Veredicto Principal -->
+      <div id="rebalanceVerdict" class="rebalance-verdict">
+        <div class="verdict-icon">⏳</div>
+        <div class="verdict-text">Calculando...</div>
+      </div>
+
+      <!-- Métricas de Comparação -->
+      <div class="rebalance-metrics-grid">
+        <div class="rebalance-metric-card">
+          <div class="metric-header">
+            <span class="metric-icon">💰</span>
+            <span class="metric-title">Custo de Transação Estimado</span>
+          </div>
+          <div class="metric-value" id="rebalanceCost">—</div>
+          <div class="metric-detail" id="rebalanceCostDetail">Taxas + spread estimado</div>
+        </div>
+
+        <div class="rebalance-metric-card">
+          <div class="metric-header">
+            <span class="metric-icon">📈</span>
+            <span class="metric-title">Ganho Esperado (Upside)</span>
+          </div>
+          <div class="metric-value" id="rebalanceGain">—</div>
+          <div class="metric-detail" id="rebalanceGainDetail">Baseado nos target prices</div>
+        </div>
+
+        <div class="rebalance-metric-card">
+          <div class="metric-header">
+            <span class="metric-icon">⚖️</span>
+            <span class="metric-title">Ganho Líquido</span>
+          </div>
+          <div class="metric-value" id="rebalanceNetGain">—</div>
+          <div class="metric-detail" id="rebalanceNetDetail">Ganho - Custos</div>
+        </div>
+
+        <div class="rebalance-metric-card">
+          <div class="metric-header">
+            <span class="metric-icon">📊</span>
+            <span class="metric-title">Sharpe do Recomendado</span>
+          </div>
+          <div class="metric-value" id="rebalanceSharpe">—</div>
+          <div class="metric-detail">Retorno ajustado ao risco</div>
+        </div>
+      </div>
+
+      <!-- Detalhes das Transações Necessárias -->
+      <div class="rebalance-details">
+        <h3>Transações Necessárias</h3>
+        <div class="rebalance-summary-row">
+          <div class="rebalance-summary-item">
+            <span class="summary-label">Volume a Vender:</span>
+            <span class="summary-value negative" id="volumeToSell">—</span>
+          </div>
+          <div class="rebalance-summary-item">
+            <span class="summary-label">Volume a Comprar:</span>
+            <span class="summary-value positive" id="volumeToBuy">—</span>
+          </div>
+          <div class="rebalance-summary-item">
+            <span class="summary-label">Nº Operações:</span>
+            <span class="summary-value" id="numOperations">—</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="rebalanceTable">
+            <thead>
+              <tr>
+                <th>Ativo</th>
+                <th>Ação</th>
+                <th>Qtd Atual</th>
+                <th>Qtd Alvo</th>
+                <th>Diferença</th>
+                <th>Valor Estimado</th>
+                <th>Custo Est.</th>
+              </tr>
+            </thead>
+            <tbody id="rebalanceBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 7: COMPARAÇÃO COM RECOMENDADO
          ═══════════════════════════════════════════════════════════════════════ -->
     <section id="comparacao" class="card">
       <h2>Comparação com Portfolio Recomendado</h2>

@@ -33,21 +33,40 @@ env/
 venv/
 ENV/
 
-# Data files - Add your specific data files/folders here
+# Data files - Dados gerados pelos scripts
 data/findata/
 data/findb/
 data/results/
-html/data/
+data/*.csv
+data/*.json
 logs/
-*.logs
-test_tools/
-*.json
-old_*.*
+*.log
+
+# HTML data - gerado e copiado dinamicamente
+html/data/*.json
+html/data/*.csv
+html/data/findata/
+
+# Documentos pessoais
 Notas_Negociação/
 Personal/
 
+# Arquivos de teste/temp
+test_tools/
+old_*.*
+
 # IDE files
 .idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# AWS credentials (nunca commitar!)
+*.pem
+*.key
+credentials.json
 .vscode/
 
 # macOS specific files

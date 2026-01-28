@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PortfolioESG</title>
+  <link rel="stylesheet" href="./css/styles.css">
+  <script src="./js/auth.js"></script>
+  <style>
+    .landing-container {
+      min-height: calc(100vh - var(--nav-height));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .landing-logo {
+      font-size: 80px;
+      margin-bottom: 24px;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+    }
+    .landing-title {
+      font-size: 42px;
+      font-weight: 700;
+      color: #6fe3c5;
+      margin: 0 0 12px 0;
+      letter-spacing: -1px;
+    }
+    .landing-subtitle {
+      font-size: 18px;
+      color: #9fb0bb;
+      margin: 0 0 48px 0;
+      max-width: 500px;
+    }
+    .landing-nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 800px;
+      width: 100%;
+    }
+    .landing-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .landing-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(111, 227, 197, 0.3);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    }
+    .landing-card-icon {
+      font-size: 48px;
+    }
+    .landing-card-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #eaf6f1;
+      margin: 0;
+    }
+    .landing-card-desc {
+      font-size: 14px;
+      color: #9fb0bb;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .landing-footer {
+      margin-top: 60px;
+      color: #9fb0bb;
+      font-size: 13px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <script src="./js/load_nav.js"></script>
+
+  <main class="landing-container">
+    <div class="landing-logo">📊</div>
+    <h1 class="landing-title">PortfolioESG</h1>
+    <p class="landing-subtitle">
+      Sistema de análise e otimização de portfólio de ações brasileiras
+      com foco em critérios ESG e rentabilidade
+    </p>
+
+    <nav class="landing-nav">
+      <a href="./latest_run_summary.html" class="landing-card">
+        <div class="landing-card-icon">📈</div>
+        <h2 class="landing-card-title">Análise de Portfólio</h2>
+        <p class="landing-card-desc">
+          Visualize o portfólio recomendado, métricas de risco/retorno,
+          composição por setor e histórico de simulações
+        </p>
+      </a>
+
+      <a href="./meu_portfolio.html" class="landing-card">
+        <div class="landing-card-icon">💼</div>
+        <h2 class="landing-card-title">Meu Portfolio</h2>
+        <p class="landing-card-desc">
+          Acompanhe seus investimentos reais, compare com o recomendado
+          e analise se vale a pena rebalancear
+        </p>
+      </a>
+    </nav>
+
+    <footer class="landing-footer">
+      <p>Dados atualizados automaticamente via Yahoo Finance</p>
+    </footer>
+  </main>
+</body>
+</html>

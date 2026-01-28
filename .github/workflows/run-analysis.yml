@@ -1,0 +1,117 @@
+name: Run Portfolio Analysis
+
+on:
+  # Executa manualmente
+  workflow_dispatch:
+    inputs:
+      run_download:
+        description: 'Executar download de dados (A1)?'
+        required: true
+        default: 'true'
+        type: boolean
+      run_scoring:
+        description: 'Executar scoring (A2)?'
+        required: true
+        default: 'true'
+        type: boolean
+      run_portfolio:
+        description: 'Executar otimização de portfolio (A3)?'
+        required: true
+        default: 'true'
+        type: boolean
+
+  # Executa diariamente às 20h (horário de Brasília = 23h UTC)
+  schedule:
+    - cron: '0 23 * * 1-5'  # Segunda a Sexta, 23:00 UTC
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  analyze:
+    name: Run Portfolio Analysis Pipeline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r engines/requirements.txt
+
+      - name: Download data from S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          # Baixa dados existentes do S3 (se houver)
+          aws s3 sync s3://${{ secrets.S3_BUCKET }}/data/ data/ --quiet || true
+          aws s3 sync s3://${{ secrets.S3_BUCKET }}/html/data/ html/data/ --quiet || true
+
+      - name: Run A1_Download
+        if: ${{ github.event.inputs.run_download == 'true' || github.event_name == 'schedule' }}
+        run: |
+          cd engines
+          python A1_Download.py
+        continue-on-error: true
+
+      - name: Run A2_Scoring
+        if: ${{ github.event.inputs.run_scoring == 'true' || github.event_name == 'schedule' }}
+        run: |
+          cd engines
+          python A2_Scoring.py
+
+      - name: Run A3_Portfolio
+        if: ${{ github.event.inputs.run_portfolio == 'true' || github.event_name == 'schedule' }}
+        run: |
+          cd engines
+          python A3_Portfolio.py
+
+      - name: Run A4_Analysis
+        run: |
+          cd engines
+          python A4_Analysis.py
+
+      - name: Upload results to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          # Sincroniza dados processados
+          aws s3 sync data/ s3://${{ secrets.S3_BUCKET }}/data/ --exclude "findata/*" --quiet
+          aws s3 sync html/data/ s3://${{ secrets.S3_BUCKET }}/html/data/ --quiet
+
+      - name: Invalidate CloudFront cache
+        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/data/*" "/html/data/*"
+        continue-on-error: true
+
+      - name: Summary
+        run: |
+          echo "## 📊 Portfolio Analysis Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f "html/data/latest_run_summary.json" ]; then
+            echo "### Results" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            head -50 html/data/latest_run_summary.json >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi

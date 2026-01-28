@@ -1169,3 +1169,295 @@ a{color:var(--accent-2);text-decoration:none;padding:8px 12px;background:transpa
   background: #f2c057;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   REBALANCE ANALYSIS SECTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+.section-desc {
+  color: var(--muted);
+  margin: 0 0 20px 0;
+  font-size: 14px;
+}
+
+/* Verdict Banner */
+.rebalance-verdict {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+.rebalance-verdict.recommend {
+  background: linear-gradient(135deg, rgba(43, 138, 62, 0.15), rgba(104, 179, 107, 0.1));
+  border-color: #2b8a3e;
+}
+.rebalance-verdict.not-recommend {
+  background: linear-gradient(135deg, rgba(231, 111, 81, 0.15), rgba(217, 83, 79, 0.1));
+  border-color: #d9534f;
+}
+.rebalance-verdict.neutral {
+  background: linear-gradient(135deg, rgba(242, 192, 87, 0.15), rgba(242, 192, 87, 0.1));
+  border-color: #f2c057;
+}
+.verdict-icon {
+  font-size: 40px;
+}
+.verdict-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+.verdict-subtext {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Metrics Grid */
+.rebalance-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.rebalance-metric-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 16px;
+}
+.metric-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.metric-icon {
+  font-size: 20px;
+}
+.metric-title {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.rebalance-metric-card .metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.rebalance-metric-card .metric-value.positive {
+  color: #2b8a3e;
+}
+.rebalance-metric-card .metric-value.negative {
+  color: #d9534f;
+}
+.metric-detail {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Details Section */
+.rebalance-details {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.rebalance-details h3 {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  color: #fff;
+}
+.rebalance-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.rebalance-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rebalance-summary-item .summary-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+.rebalance-summary-item .summary-value {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Rebalance Table */
+#rebalanceTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+#rebalanceTable th,
+#rebalanceTable td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+#rebalanceTable th {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+#rebalanceTable .action-buy {
+  color: #2b8a3e;
+  background: rgba(43, 138, 62, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 11px;
+}
+#rebalanceTable .action-sell {
+  color: #d9534f;
+  background: rgba(217, 83, 79, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 11px;
+}
+#rebalanceTable .action-hold {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* Parameters Section */
+.rebalance-params {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+.rebalance-params h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #fff;
+}
+.params-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+.param-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.param-item.full-width {
+  flex-basis: 100%;
+}
+.param-item label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.param-item input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 14px;
+  width: 150px;
+}
+.param-item input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.param-hint {
+  font-size: 10px;
+  color: var(--accent);
+}
+.btn-recalculate {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #033;
+  font-weight: 600;
+  padding: 10px 20px;
+  transition: all 0.2s ease;
+}
+.btn-recalculate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(111, 227, 197, 0.3);
+}
+.btn-recalculate.recalculated {
+  background: #2b8a3e;
+  color: #fff;
+}
+.params-summary {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(79, 195, 247, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-2);
+}
+.params-summary small {
+  color: #fff;
+}
+.params-note {
+  display: block;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Verdict scenarios */
+.verdict-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.verdict-detail {
+  font-size: 12px;
+  color: var(--accent-2);
+}
+.verdict-scenarios {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.verdict-scenarios .scenario {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+@media (max-width: 640px) {
+  .rebalance-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rebalance-verdict {
+    flex-direction: column;
+    text-align: center;
+  }
+  .params-grid {
+    flex-direction: column;
+  }
+  .param-item input {
+    width: 100%;
+  }
+  .verdict-scenarios {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
