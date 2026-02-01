@@ -9,3 +9,8 @@ python-dateutil
 pdfplumber
 Pillow
 pytesseract
+
+# Resource profiling for cloud cost estimation
+memory-profiler>=0.61
+psutil>=5.9
+
