@@ -16,180 +16,178 @@ AURA33.SA,Aura Minerals Inc.,Basic Materials,Gold,AURA 360 DR3
 AURE3.SA,Auren Energia S.A.,Utilities,Utilities - Renewable,
 AXIA6.SA,Axia Energia S.A.,Utilities,Utilities - Regulated Electric,AXIA ENERGIAPNB EX N1
 AZUL4.SA,Azul S.A.,Industrials,Airlines,
-AZZA3.SA,Azzas 2154 S.A.,Consumer Cyclical,Footwear & Accessories
-B3SA3.SA,"B3 S.A. - Brasil, Bolsa, Balcão",Financial Services,Financial Data & Stock Exchanges
-B3SA4.SA,N/A,Error,HTTP Error 404:
-BBAS3.SA,Banco do Brasil S.A.,Financial Services,Banks - Regional
-BBDC3.SA,Banco Bradesco S.A.,Financial Services,Banks - Regional
-BBDC4.SA,Banco Bradesco S.A.,Financial Services,Banks - Regional
-BBSE3.SA,BB Seguridade Participações S.A.,Financial Services,Insurance - Diversified
-BEEF3.SA,Minerva S.A.,Consumer Defensive,Farm Products
-BEEF9.SA,Minerva S.A.,,
-BHIA3.SA,Grupo Casas Bahia S.A.,Consumer Cyclical,Specialty Retail
-BKBR3.SA,N/A,Unknown,Unknown
-BLAU3.SA,Blau Farmacêutica S.A.,Healthcare,Drug Manufacturers - Specialty & Generic
-BMOB3.SA,Bemobi Mobile Tech S.A.,Communication Services,Entertainment
-BPAC11.SA,Banco BTG Pactual S.A.,Financial Services,Capital Markets
-BPAN4.SA,Banco Pan S.A.,Financial Services,Banks - Regional
-BRFS33.SA,N/A,Error,HTTP Error 404:
-BRIT3.SA,N/A,Unknown,Unknown
-BRKM5.SA,Braskem S.A.,Basic Materials,Chemicals
-BRML3.SA,N/A,Unknown,Unknown
-BRSR6.SA,Banco do Estado do Rio Grande do Sul S.A.,Financial Services,Banks - Regional
-BTOW3.SA,N/A,Unknown,Unknown
-CAML3.SA,Camil Alimentos S.A.,Consumer Defensive,Packaged Foods
-CASH3.SA,Méliuz S.A.,Communication Services,Internet Content & Information
-CBAV3.SA,Companhia Brasileira de Alumínio,Basic Materials,Aluminum
-CEAB3.SA,C&A Modas S.A.,Consumer Cyclical,Specialty Retail
-CFRB3.SA,N/A,Error,HTTP Error 404:
-CMIG3.SA,Companhia Energética de Minas Gerais - CEMIG,Utilities,Utilities - Diversified
-CMIG4.SA,Companhia Energética de Minas Gerais - CEMIG,Utilities,Utilities - Diversified
-CMIN3.SA,CSN Mineração S.A.,Basic Materials,Steel
-COGN3.SA,Cogna Educação S.A.,Consumer Defensive,Education & Training Services
-CPFE3.SA,CPFL Energia S.A.,Utilities,Utilities - Regulated Electric
-CPLE3.SA,Companhia Paranaense de Energia - COPEL,Utilities,Utilities - Regulated Electric
-CPLE6.SA,Companhia Paranaense de Energia - COPEL,Utilities,Utilities - Regulated Electric
-CSAN3.SA,Cosan S.A.,Energy,Oil & Gas Refining & Marketing
-CSED3.SA,Cruzeiro do Sul Educacional S.A.,Consumer Defensive,Education & Training Services
+AZZA3.SA,Azzas 2154 S.A.,Consumer Cyclical,Footwear & Accessories,
+B3SA3.SA,"B3 S.A. - Brasil, Bolsa, Balcão",Financial Services,Financial Data & Stock Exchanges,
+B3SA4.SA,N/A,Error,HTTP Error 404:,
+BBAS3.SA,Banco do Brasil S.A.,Financial Services,Banks - Regional,
+BBDC3.SA,Banco Bradesco S.A.,Financial Services,Banks - Regional,
+BBDC4.SA,Banco Bradesco S.A.,Financial Services,Banks - Regional,
+BBSE3.SA,BB Seguridade Participações S.A.,Financial Services,Insurance - Diversified,
+BEEF3.SA,Minerva S.A.,Consumer Defensive,Farm Products,
+BEEF9.SA,Minerva S.A.,,,
+BHIA3.SA,Grupo Casas Bahia S.A.,Consumer Cyclical,Specialty Retail,
+BKBR3.SA,N/A,Unknown,Unknown,
+BLAU3.SA,Blau Farmacêutica S.A.,Healthcare,Drug Manufacturers - Specialty & Generic,
+BMOB3.SA,Bemobi Mobile Tech S.A.,Communication Services,Entertainment,
+BPAC11.SA,Banco BTG Pactual S.A.,Financial Services,Capital Markets,
+BPAN4.SA,Banco Pan S.A.,Financial Services,Banks - Regional,
+BRFS33.SA,N/A,Error,HTTP Error 404:,
+BRIT3.SA,N/A,Unknown,Unknown,
+BRKM5.SA,Braskem S.A.,Basic Materials,Chemicals,
+BRML3.SA,N/A,Unknown,Unknown,
+BRSR6.SA,Banco do Estado do Rio Grande do Sul S.A.,Financial Services,Banks - Regional,
+BTOW3.SA,N/A,Unknown,Unknown,
+CAML3.SA,Camil Alimentos S.A.,Consumer Defensive,Packaged Foods,
+CASH3.SA,Méliuz S.A.,Communication Services,Internet Content & Information,
+CBAV3.SA,Companhia Brasileira de Alumínio,Basic Materials,Aluminum,
+CEAB3.SA,C&A Modas S.A.,Consumer Cyclical,Specialty Retail,
+CFRB3.SA,N/A,Error,HTTP Error 404:,
+CMIG3.SA,Companhia Energética de Minas Gerais - CEMIG,Utilities,Utilities - Diversified,CEMIG ON N1
+CMIG4.SA,Companhia Energética de Minas Gerais - CEMIG,Utilities,Utilities - Diversified,
+CMIN3.SA,CSN Mineração S.A.,Basic Materials,Steel,
+COGN3.SA,Cogna Educação S.A.,Consumer Defensive,Education & Training Services,
+CPFE3.SA,CPFL Energia S.A.,Utilities,Utilities - Regulated Electric,
+CPLE3.SA,Companhia Paranaense de Energia - COPEL,Utilities,Utilities - Regulated Electric,
+CPLE6.SA,Companhia Paranaense de Energia - COPEL,Utilities,Utilities - Regulated Electric,
+CSAN3.SA,Cosan S.A.,Energy,Oil & Gas Refining & Marketing,
+CSED3.SA,Cruzeiro do Sul Educacional S.A.,Consumer Defensive,Education & Training Services,
 CSMG3.SA,Companhia de Saneamento de Minas Gerais - COPASA,Utilities,Utilities - Regulated Water,COPASA ON NM
-CSNA3.SA,Companhia Siderúrgica Nacional,Basic Materials,Steel
-CURY3.SA,Cury Construtora e Incorporadora S.A.,Real Estate,Real Estate - Development
-CXSE3.SA,Caixa Seguridade Participações S.A.,Financial Services,Insurance - Diversified
-CYRE3.SA,Cyrela Brazil Realty S.A. Empreendimentos e Participações,Consumer Cyclical,Residential Construction
-DASA3.SA,Diagnósticos da América S.A.,Healthcare,Diagnostics & Research
-DESK3.SA,Desktop S.A.,Communication Services,Telecom Services
-DIRR3.SA,Direcional Engenharia S.A.,Real Estate,Real Estate - Development
-DMFV3.SA,N/A,Error,HTTP Error 404:
-DXCO3.SA,Dexco S.A.,Basic Materials,Lumber & Wood Production
-ECOR3.SA,EcoRodovias Infraestrutura e Logística S.A.,Industrials,Infrastructure Operations
-EGIE3.SA,Engie Brasil Energia S.A.,Utilities,Utilities - Renewable
-ELET3.SA,Centrais Elétricas Brasileiras S.A. - Eletrobrás,Utilities,Utilities - Renewable
-ELET6.SA,Centrais Elétricas Brasileiras S.A. - Eletrobrás,Utilities,Utilities - Renewable
-EMBR3.SA,Embraer S.A.,Industrials,Aerospace & Defense
-ENEV3.SA,Eneva S.A.,Utilities,Utilities - Diversified
-ENGI11.SA,Energisa S.A.,Utilities,Utilities - Regulated Electric
-ENJU3.SA,Enjoei S.A.,Consumer Cyclical,Internet Retail
-EQTL3.SA,Equatorial S.A.,Utilities,Utilities - Regulated Electric
-EVEN3.SA,Even Construtora e Incorporadora S.A.,Real Estate,Real Estate - Development
-EZTC3.SA,EZTEC Empreendimentos e Participações S.A.,Real Estate,Real Estate - Development
-FESA4.SA,Cia de Ferro Ligas da Bahia S.A. - FERBASA,Basic Materials,Steel
-FIQE3.SA,Unifique Telecomunicações S.A.,Communication Services,Telecom Services
-FLRY3.SA,Fleury S.A.,Healthcare,Diagnostics & Research
-FRAS3.SA,Fras-le S.A.,Consumer Cyclical,Auto Parts
-G2DI33.SA,"G2D Investments, Ltd.",Financial Services,Asset Management
-GFSA3.SA,Gafisa S.A.,Consumer Cyclical,Residential Construction
-GGBR4.SA,Gerdau S.A.,Basic Materials,Steel
-GMAT3.SA,Grupo Mateus S.A.,Consumer Cyclical,Department Stores
-GNDI3.SA,N/A,Unknown,Unknown
-GUAR3.SA,Guararapes Confecções S.A.,Consumer Cyclical,Apparel Retail
-HAPV3.SA,Hapvida Participações e Investimentos S.A.,Financial Services,Insurance - Life
-HBSA3.SA,Hidrovias do Brasil S.A.,Industrials,Integrated Freight & Logistics
-HYPE3.SA,Hypera S.A.,Healthcare,Drug Manufacturers - Specialty & Generic
-IGTA3.SA,N/A,Unknown,Unknown
-IGTI11.SA,Iguatemi S.A.,Real Estate,Real Estate Services
-MEAL3.SA,International Meal Company Alimentação S.A.,Consumer Cyclical,Restaurants
-INTB3.SA,Intelbras S.A. - Indústria de Telecomunicação Eletrônica Brasileira,Technology,Communication Equipment
-RANI3.SA,Irani Papel e Embalagem S.A.,Consumer Cyclical,Packaging & Containers
-IRBR3.SA,IRB-Brasil Resseguros S.A.,Financial Services,Insurance - Reinsurance
-ISAE4.SA,ISA Energía Brasil S.A.,Utilities,Utilities - Independent Power Producers
-ITSA4.SA,Itaúsa S.A.,Industrials,Conglomerates
-ITUB3.SA,Itaú Unibanco Holding S.A.,Financial Services,Banks - Regional
-ITUB4.SA,Itaú Unibanco Holding S.A.,Financial Services,Banks - Regional
-JALL3.SA,Jalles Machado S/A,Consumer Defensive,Confectioners
-JBSS32.SA,JBS N.V.,Consumer Defensive,Packaged Foods
-JHSF3.SA,JHSF Participações S.A.,Real Estate,Real Estate - Development
-JSLG3.SA,JSL S.A.,Industrials,Integrated Freight & Logistics
-KEPL3.SA,Kepler Weber S.A.,Industrials,Farm & Heavy Construction Machinery
-KLBN11.SA,Klabin S.A.,Basic Materials,Paper & Paper Products
-KLBN4.SA,Klabin S.A.,Basic Materials,Paper & Paper Products
-KRSA3.SA,N/A,Error,HTTP Error 404:
-LAME4.SA,N/A,Unknown,Unknown
-LAVV3.SA,Lavvi Empreendimentos Imobiliários S.A.,Real Estate,Real Estate Services
-LCAM3.SA,N/A,Unknown,Unknown
-LJQQ3.SA,Lojas Quero-Quero S.A.,Consumer Cyclical,Specialty Retail
-LOGG3.SA,LOG Commercial Properties e Participações S.A.,Real Estate,Real Estate Services
-LREN3.SA,Lojas Renner S.A.,Consumer Cyclical,Department Stores
-LWSA3.SA,Locaweb Serviços de Internet S.A.,Technology,Software - Infrastructure
-MATD3.SA,Hospital Mater Dei S.A.,Healthcare,Medical Care Facilities
-MDIA3.SA,M. Dias Branco S.A. Indústria e Comércio de Alimentos,Consumer Defensive,Packaged Foods
+CSNA3.SA,Companhia Siderúrgica Nacional,Basic Materials,Steel,
+CURY3.SA,Cury Construtora e Incorporadora S.A.,Real Estate,Real Estate - Development,
+CXSE3.SA,Caixa Seguridade Participações S.A.,Financial Services,Insurance - Diversified,
+CYRE3.SA,Cyrela Brazil Realty S.A. Empreendimentos e Participações,Consumer Cyclical,Residential Construction,
+DASA3.SA,Diagnósticos da América S.A.,Healthcare,Diagnostics & Research,
+DESK3.SA,Desktop S.A.,Communication Services,Telecom Services,
+DIRR3.SA,Direcional Engenharia S.A.,Real Estate,Real Estate - Development,
+DMFV3.SA,N/A,Error,HTTP Error 404:,
+DXCO3.SA,Dexco S.A.,Basic Materials,Lumber & Wood Production,
+ECOR3.SA,EcoRodovias Infraestrutura e Logística S.A.,Industrials,Infrastructure Operations,
+EGIE3.SA,Engie Brasil Energia S.A.,Utilities,Utilities - Renewable,
+ELET3.SA,Centrais Elétricas Brasileiras S.A. - Eletrobrás,Utilities,Utilities - Renewable,
+ELET6.SA,Centrais Elétricas Brasileiras S.A. - Eletrobrás,Utilities,Utilities - Renewable,
+EMBR3.SA,Embraer S.A.,Industrials,Aerospace & Defense,
+ENEV3.SA,Eneva S.A.,Utilities,Utilities - Diversified,
+ENGI11.SA,Energisa S.A.,Utilities,Utilities - Regulated Electric,
+ENJU3.SA,Enjoei S.A.,Consumer Cyclical,Internet Retail,
+EQTL3.SA,Equatorial S.A.,Utilities,Utilities - Regulated Electric,
+EVEN3.SA,Even Construtora e Incorporadora S.A.,Real Estate,Real Estate - Development,
+EZTC3.SA,EZTEC Empreendimentos e Participações S.A.,Real Estate,Real Estate - Development,
+FESA4.SA,Cia de Ferro Ligas da Bahia S.A. - FERBASA,Basic Materials,Steel,
+FIQE3.SA,Unifique Telecomunicações S.A.,Communication Services,Telecom Services,
+FLRY3.SA,Fleury S.A.,Healthcare,Diagnostics & Research,
+FRAS3.SA,Fras-le S.A.,Consumer Cyclical,Auto Parts,
+G2DI33.SA,"G2D Investments, Ltd.",Financial Services,Asset Management,
+GFSA3.SA,Gafisa S.A.,Consumer Cyclical,Residential Construction,
+GGBR4.SA,Gerdau S.A.,Basic Materials,Steel,
+GMAT3.SA,Grupo Mateus S.A.,Consumer Cyclical,Department Stores,
+GNDI3.SA,N/A,Unknown,Unknown,
+GUAR3.SA,Guararapes Confecções S.A.,Consumer Cyclical,Apparel Retail,
+HAPV3.SA,Hapvida Participações e Investimentos S.A.,Financial Services,Insurance - Life,
+HBSA3.SA,Hidrovias do Brasil S.A.,Industrials,Integrated Freight & Logistics,
+HYPE3.SA,Hypera S.A.,Healthcare,Drug Manufacturers - Specialty & Generic,
+IGTA3.SA,N/A,Unknown,Unknown,
+IGTI11.SA,Iguatemi S.A.,Real Estate,Real Estate Services,
+MEAL3.SA,International Meal Company Alimentação S.A.,Consumer Cyclical,Restaurants,
+INTB3.SA,Intelbras S.A. - Indústria de Telecomunicação Eletrônica Brasileira,Technology,Communication Equipment,
+RANI3.SA,Irani Papel e Embalagem S.A.,Consumer Cyclical,Packaging & Containers,
+IRBR3.SA,IRB-Brasil Resseguros S.A.,Financial Services,Insurance - Reinsurance,
+ISAE4.SA,ISA Energía Brasil S.A.,Utilities,Utilities - Independent Power Producers,
+ITSA4.SA,Itaúsa S.A.,Industrials,Conglomerates,
+ITUB3.SA,Itaú Unibanco Holding S.A.,Financial Services,Banks - Regional,
+ITUB4.SA,Itaú Unibanco Holding S.A.,Financial Services,Banks - Regional,
+JALL3.SA,Jalles Machado S/A,Consumer Defensive,Confectioners,
+JBSS32.SA,JBS N.V.,Consumer Defensive,Packaged Foods,
+JHSF3.SA,JHSF Participações S.A.,Real Estate,Real Estate - Development,
+JSLG3.SA,JSL S.A.,Industrials,Integrated Freight & Logistics,
+KEPL3.SA,Kepler Weber S.A.,Industrials,Farm & Heavy Construction Machinery,
+KLBN11.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,
+KLBN4.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,
+KRSA3.SA,N/A,Error,HTTP Error 404:,
+LAME4.SA,N/A,Unknown,Unknown,
+LAVV3.SA,Lavvi Empreendimentos Imobiliários S.A.,Real Estate,Real Estate Services,
+LCAM3.SA,N/A,Unknown,Unknown,
+LJQQ3.SA,Lojas Quero-Quero S.A.,Consumer Cyclical,Specialty Retail,
+LOGG3.SA,LOG Commercial Properties e Participações S.A.,Real Estate,Real Estate Services,
+LREN3.SA,Lojas Renner S.A.,Consumer Cyclical,Department Stores,
+LWSA3.SA,Locaweb Serviços de Internet S.A.,Technology,Software - Infrastructure,
+MATD3.SA,Hospital Mater Dei S.A.,Healthcare,Medical Care Facilities,
+MDIA3.SA,M. Dias Branco S.A. Indústria e Comércio de Alimentos,Consumer Defensive,Packaged Foods,
 MDNE3.SA,Moura Dubeux Engenharia S.A.,Real Estate,Real Estate Services,MOURA DUBEUXON ED NM
-MEAL3.SA,International Meal Company Alimentação S.A.,Consumer Cyclical,Restaurants
-MEGA3.SA,N/A,Unknown,Unknown
-MELK3.SA,Melnick Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate Services
-MGLU3.SA,Magazine Luiza S.A.,Consumer Cyclical,Specialty Retail
-MIL3.SA,N/A,Error,HTTP Error 404:
-MILS3.SA,"Mills Locação, Serviços e Logística S.A.",Industrials,Rental & Leasing Services
-MOTV3.SA,Motiva Infraestrutura de Mobilidade S.A.,Industrials,Infrastructure Operations
-MOVI3.SA,Movida Participações S.A.,Industrials,Rental & Leasing Services
-MRFG3.SA,Marfrig Global Foods S.A.,Consumer Defensive,Packaged Foods
-MRVE3.SA,MRV Engenharia e Participações S.A.,Real Estate,Real Estate - Development
-MTRE3.SA,Mitre Realty Empreendimentos e Participações S.A.,Real Estate,Real Estate - Development
-MULT3.SA,Multiplan Empreendimentos Imobiliários S.A.,Real Estate,Real Estate Services
-MYPK3.SA,Iochpe-Maxion S.A.,Consumer Cyclical,Auto Parts
-NEOE3.SA,Neoenergia S.A.,Utilities,Utilities - Regulated Electric
-NTCO3.SA,Natura &Co Holding S.A.,Consumer Defensive,Household & Personal Products
-ODPT3.SA,N/A,Error,HTTP Error 404:
-ODPV3.SA,Odontoprev S.A.,Healthcare,Healthcare Plans
-ONCO3.SA,Oncoclínicas do Brasil Serviços Médicos S.A.,Healthcare,Medical Care Facilities
-OPCT3.SA,OceanPact Serviços Marítimos S.A.,Industrials,Specialty Business Services
-ORVR3.SA,Orizon Valorização de Resíduos S.A.,Industrials,Waste Management
-PARD3.SA,N/A,Unknown,Unknown
-PCAR3.SA,Companhia Brasileira De Distribuicao,Consumer Cyclical,Department Stores
-PETR3.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated
-PETR4.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated
-PETZ3.SA,Pet Center Comércio e Participações S.A.,Consumer Cyclical,Specialty Retail
-PGMN3.SA,Empreendimentos Pague Menos S.A.,Healthcare,Pharmaceutical Retailers
+MEAL3.SA,International Meal Company Alimentação S.A.,Consumer Cyclical,Restaurants,
+MEGA3.SA,N/A,Unknown,Unknown,
+MELK3.SA,Melnick Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate Services,
+MGLU3.SA,Magazine Luiza S.A.,Consumer Cyclical,Specialty Retail,
+MIL3.SA,N/A,Error,HTTP Error 404:,
+MILS3.SA,"Mills Locação, Serviços e Logística S.A.",Industrials,Rental & Leasing Services,
+MOTV3.SA,Motiva Infraestrutura de Mobilidade S.A.,Industrials,Infrastructure Operations,
+MOVI3.SA,Movida Participações S.A.,Industrials,Rental & Leasing Services,
+MRFG3.SA,Marfrig Global Foods S.A.,Consumer Defensive,Packaged Foods,
+MRVE3.SA,MRV Engenharia e Participações S.A.,Real Estate,Real Estate - Development,
+MTRE3.SA,Mitre Realty Empreendimentos e Participações S.A.,Real Estate,Real Estate - Development,
+MULT3.SA,Multiplan Empreendimentos Imobiliários S.A.,Real Estate,Real Estate Services,
+MYPK3.SA,Iochpe-Maxion S.A.,Consumer Cyclical,Auto Parts,
+NEOE3.SA,Neoenergia S.A.,Utilities,Utilities - Regulated Electric,
+NTCO3.SA,Natura &Co Holding S.A.,Consumer Defensive,Household & Personal Products,
+ODPT3.SA,N/A,Error,HTTP Error 404:,
+ODPV3.SA,Odontoprev S.A.,Healthcare,Healthcare Plans,
+ONCO3.SA,Oncoclínicas do Brasil Serviços Médicos S.A.,Healthcare,Medical Care Facilities,
+OPCT3.SA,OceanPact Serviços Marítimos S.A.,Industrials,Specialty Business Services,
+ORVR3.SA,Orizon Valorização de Resíduos S.A.,Industrials,Waste Management,
+PARD3.SA,N/A,Unknown,Unknown,
+PCAR3.SA,Companhia Brasileira De Distribuicao,Consumer Cyclical,Department Stores,
+PETR3.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated,PETROBRAS ON N2
+PETR4.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated,
+PETZ3.SA,Pet Center Comércio e Participações S.A.,Consumer Cyclical,Specialty Retail,
+PGMN3.SA,Empreendimentos Pague Menos S.A.,Healthcare,Pharmaceutical Retailers,
 PLPL3.SA,Plano & Plano Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate - Development,PLANOEPLANO ON NM
-PNVL3.SA,Dimed S.A. Distribuidora de Medicamentos,Healthcare,Drug Manufacturers - General
-PORT3.SA,Wilson Sons S.A.,Industrials,Marine Shipping
-POSI3.SA,Positivo Tecnologia S.A.,Technology,Computer Hardware
-PRIO3.SA,Prio S.A.,Energy,Oil & Gas E&P
-PRNR3.SA,Priner Serviços Industriais S.A.,Industrials,Engineering & Construction
-PRTB3.SA,N/A,Error,HTTP Error 404:
-PSSA3.SA,Porto Seguro S.A.,Financial Services,Insurance - Diversified
-RADL3.SA,Raia Drogasil S.A.,Healthcare,Pharmaceutical Retailers
-RAIL3.SA,Rumo S.A.,Industrials,Railroads
-RAIZ4.SA,Raízen S.A.,Utilities,Utilities - Renewable
-RANI3.SA,Irani Papel e Embalagem S.A.,Consumer Cyclical,Packaging & Containers
-RAPT4.SA,Randoncorp S.A.,Industrials,Farm & Heavy Construction Machinery
-RDOR3.SA,Rede D'Or São Luiz S.A.,Healthcare,Medical Care Facilities
-RECV3.SA,Petroreconcavo S.A.,Energy,Oil & Gas E&P
-RENT3.SA,Localiza Rent a Car S.A.,Industrials,Rental & Leasing Services
-RRRP3.SA,N/A,Unknown,Unknown
-SANB11.SA,Banco Santander (Brasil) S.A.,Financial Services,Banks - Regional
-SAPR11.SA,Companhia de Saneamento do Paraná - SANEPAR,Utilities,Utilities - Regulated Water
-SBFG3.SA,Grupo SBF S.A.,Consumer Cyclical,Specialty Retail
-SBSP3.SA,Companhia de Saneamento Básico do Estado de São Paulo - SABESP,Utilities,Utilities - Regulated Water
-SEER3.SA,Ser Educacional S.A.,Consumer Defensive,Education & Training Services
-SIMH3.SA,SIMPAR S.A.,Industrials,Rental & Leasing Services
-SLCE3.SA,SLC Agrícola S.A.,Consumer Defensive,Farm Products
-SMFT3.SA,Smartfit Escola de Ginástica e Dança S.A.,Consumer Cyclical,Leisure
-SMTO3.SA,São Martinho S.A.,Basic Materials,Specialty Chemicals
-SOJA3.SA,Boa Safra Sementes S.A.,Basic Materials,Agricultural Inputs
-SOMA3.SA,N/A,Unknown,Unknown
-SRNA3.SA,Serena Energia S.A.,Utilities,Utilities - Renewable
-STBP3.SA,Santos Brasil Participações S.A.,Industrials,Marine Shipping
-SUZB3.SA,Suzano S.A.,Basic Materials,Paper & Paper Products
+PNVL3.SA,Dimed S.A. Distribuidora de Medicamentos,Healthcare,Drug Manufacturers - General,
+PORT3.SA,Wilson Sons S.A.,Industrials,Marine Shipping,
+POSI3.SA,Positivo Tecnologia S.A.,Technology,Computer Hardware,
+PRIO3.SA,Prio S.A.,Energy,Oil & Gas E&P,
+PRNR3.SA,Priner Serviços Industriais S.A.,Industrials,Engineering & Construction,
+PRTB3.SA,N/A,Error,HTTP Error 404:,
+PSSA3.SA,Porto Seguro S.A.,Financial Services,Insurance - Diversified,
+RADL3.SA,Raia Drogasil S.A.,Healthcare,Pharmaceutical Retailers,
+RAIL3.SA,Rumo S.A.,Industrials,Railroads,
+RAIZ4.SA,Raízen S.A.,Utilities,Utilities - Renewable,
+RANI3.SA,Irani Papel e Embalagem S.A.,Consumer Cyclical,Packaging & Containers,
+RAPT4.SA,Randoncorp S.A.,Industrials,Farm & Heavy Construction Machinery,
+RDOR3.SA,Rede D'Or São Luiz S.A.,Healthcare,Medical Care Facilities,
+RECV3.SA,Petroreconcavo S.A.,Energy,Oil & Gas E&P,
+RENT3.SA,Localiza Rent a Car S.A.,Industrials,Rental & Leasing Services,
+RRRP3.SA,N/A,Unknown,Unknown,
+SANB11.SA,Banco Santander (Brasil) S.A.,Financial Services,Banks - Regional,
+SAPR11.SA,Companhia de Saneamento do Paraná - SANEPAR,Utilities,Utilities - Regulated Water,SANEPAR UNT N2
+SBFG3.SA,Grupo SBF S.A.,Consumer Cyclical,Specialty Retail,
+SBSP3.SA,Companhia de Saneamento Básico do Estado de São Paulo - SABESP,Utilities,Utilities - Regulated Water,
+SEER3.SA,Ser Educacional S.A.,Consumer Defensive,Education & Training Services,
+SIMH3.SA,SIMPAR S.A.,Industrials,Rental & Leasing Services,
+SLCE3.SA,SLC Agrícola S.A.,Consumer Defensive,Farm Products,
+SMFT3.SA,Smartfit Escola de Ginástica e Dança S.A.,Consumer Cyclical,Leisure,
+SMTO3.SA,São Martinho S.A.,Basic Materials,Specialty Chemicals,
+SOJA3.SA,Boa Safra Sementes S.A.,Basic Materials,Agricultural Inputs,
+SOMA3.SA,N/A,Unknown,Unknown,
+SRNA3.SA,Serena Energia S.A.,Utilities,Utilities - Renewable,
+STBP3.SA,Santos Brasil Participações S.A.,Industrials,Marine Shipping,
+SUZB3.SA,Suzano S.A.,Basic Materials,Paper & Paper Products,
 TEND3.SA,Construtora Tenda S.A.,Real Estate,Real Estate - Development,TENDA ON ED NM
-TFCO4.SA,Track & Field Co S.A.,Consumer Cyclical,Apparel Retail
-TIMS3.SA,TIM S.A.,Communication Services,Telecom Services
-TOTS3.SA,TOTVS S.A.,Technology,Software - Application
-TRIS3.SA,Trisul S.A.,Real Estate,Real Estate Services
-TTEN3.SA,Três Tentos Agroindustrial S/A,Basic Materials,Agricultural Inputs
-TUPY3.SA,Tupy S.A.,Industrials,Metal Fabrication
-UGPA3.SA,Ultrapar Participações S.A.,Energy,Oil & Gas Refining & Marketing
-VALE3.SA,Vale S.A.,Basic Materials,Other Industrial Metals & Mining
-VAMO3.SA,"Vamos Locação de Caminhões, Máquinas e Equipamentos S.A.",Industrials,Rental & Leasing Services
-VBBR3.SA,Vibra Energia S.A.,Consumer Cyclical,Specialty Retail
-VITT3.SA,Vittia S.A.,Basic Materials,Agricultural Inputs
-VIVA3.SA,Vivara Participações S.A.,Consumer Cyclical,Luxury Goods
-VIVT3.SA,Telefônica Brasil S.A.,Communication Services,Telecom Services
-VLID3.SA,Valid Soluções S.A.,Industrials,Specialty Business Services
+TFCO4.SA,Track & Field Co S.A.,Consumer Cyclical,Apparel Retail,
+TIMS3.SA,TIM S.A.,Communication Services,Telecom Services,
+TOTS3.SA,TOTVS S.A.,Technology,Software - Application,
+TRIS3.SA,Trisul S.A.,Real Estate,Real Estate Services,
+TTEN3.SA,Três Tentos Agroindustrial S/A,Basic Materials,Agricultural Inputs,
+TUPY3.SA,Tupy S.A.,Industrials,Metal Fabrication,
+UGPA3.SA,Ultrapar Participações S.A.,Energy,Oil & Gas Refining & Marketing,
+VALE3.SA,Vale S.A.,Basic Materials,Other Industrial Metals & Mining,VALE ON NM
+VAMO3.SA,"Vamos Locação de Caminhões, Máquinas e Equipamentos S.A.",Industrials,Rental & Leasing Services,
+VBBR3.SA,Vibra Energia S.A.,Consumer Cyclical,Specialty Retail,
+VITT3.SA,Vittia S.A.,Basic Materials,Agricultural Inputs,
+VIVA3.SA,Vivara Participações S.A.,Consumer Cyclical,Luxury Goods,
+VIVT3.SA,Telefônica Brasil S.A.,Communication Services,Telecom Services,
+VLID3.SA,Valid Soluções S.A.,Industrials,Specialty Business Services,
 VULC3.SA,Vulcabras S.A.,Consumer Cyclical,Footwear & Accessories,VULCABRAS ON NM
-VVAR3.SA,N/A,Unknown,Unknown
-VVEO3.SA,CM Hospitalar S/A,Healthcare,Medical Distribution
-WEGE3.SA,WEG S.A.,Industrials,Electrical Equipment & Parts
-YDUQ3.SA,Yduqs Participações S.A.,Consumer Defensive,Education & Training Services
-
-
-
+VVAR3.SA,N/A,Unknown,Unknown,
+VVEO3.SA,CM Hospitalar S/A,Healthcare,Medical Distribution,
+WEGE3.SA,WEG S.A.,Industrials,Electrical Equipment & Parts,
+YDUQ3.SA,Yduqs Participações S.A.,Consumer Defensive,Education & Training Services,
+LAVV3.SA,Lavvi Empreendimentos Imobiliarios S.A.,Real Estate,Real Estate - Development,LAVVI ON NM

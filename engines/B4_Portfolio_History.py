@@ -10,9 +10,8 @@ Generates historical portfolio value data based on:
 Output: html/data/portfolio_history.json
 """
 
-import os
-import sys
 import json
+import csv
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -86,25 +85,103 @@ def get_stock_price(symbol, date):
     return None
 
 
-def normalize_symbol(ticker_name):
-    """Convert ticker name from ledger to Yahoo Finance symbol"""
-    # Mapping of known ticker names to symbols
-    mappings = {
-        'COPASA ON NM': 'CSMG3.SA',
-        'PLANOEPLANO ON NM': 'PLPL3.SA',
-        'VULCABRAS ON NM': 'VULC3.SA',
-        'VULCABRAS ON ED NM': 'VULC3.SA',
-        'VULCABRAS ON EDS NM': 'VULC3.SA',
-        'VULCABRAS DO 13,75': None,  # Dividend, skip
-        'LAVVI ON NM': 'LAVV3.SA',
-        'AXIA ENERGIAPNB EX N1': 'AXIA6.SA',
-        'MOURA DUBEUXON ED NM': 'MDNE3.SA',
-        'TENDA ON ED NM': 'TEND3.SA',
-        'VALE ON NM': 'VALE3.SA',
-        'AURA 360 DR3': 'AURA33.SA',
-    }
+# Cache for broker name to symbol mappings (loaded once)
+_BROKER_NAME_CACHE = None
 
-    return mappings.get(ticker_name, None)
+def _load_broker_name_mappings():
+    """Load broker name to symbol mappings from tickers.txt"""
+    global _BROKER_NAME_CACHE
+    if _BROKER_NAME_CACHE is not None:
+        return _BROKER_NAME_CACHE
+
+    _BROKER_NAME_CACHE = {}
+    tickers_file = BASE_DIR / 'parameters' / 'tickers.txt'
+
+    if not tickers_file.exists():
+        print(f"[WARN] tickers.txt not found at {tickers_file}")
+        return _BROKER_NAME_CACHE
+
+    try:
+        with open(tickers_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                ticker = (row.get('Ticker') or '').strip()
+                broker_name = (row.get('BrokerName') or '').strip()
+                company_name = (row.get('Name') or '').strip()
+
+                if ticker:
+                    # Map by BrokerName (exact match, case-insensitive)
+                    if broker_name:
+                        _BROKER_NAME_CACHE[broker_name.upper()] = ticker
+
+                    # Also create partial mappings from company name
+                    # e.g., "Petróleo Brasileiro S.A. - Petrobras" -> extract "PETROBRAS"
+                    if company_name:
+                        # Try to extract key words
+                        name_upper = company_name.upper()
+                        _BROKER_NAME_CACHE[name_upper] = ticker
+
+                        # Extract common patterns like "- Petrobras" or "CEMIG"
+                        if ' - ' in company_name:
+                            short_name = company_name.split(' - ')[-1].strip().upper()
+                            if short_name and len(short_name) >= 3:
+                                _BROKER_NAME_CACHE[short_name] = ticker
+
+        print(f"[INFO] Loaded {len(_BROKER_NAME_CACHE)} broker name mappings from tickers.txt")
+    except Exception as e:
+        print(f"[WARN] Error loading tickers.txt: {e}")
+
+    return _BROKER_NAME_CACHE
+
+
+def normalize_symbol(ticker_name):
+    """
+    Convert ticker name from ledger (broker format) to Yahoo Finance symbol.
+
+    Uses tickers.txt as the single source of truth via the BrokerName column.
+    If a ticker is not found, it will be skipped and a warning logged.
+    """
+    if not ticker_name:
+        return None
+
+    ticker_name_clean = ticker_name.strip()
+
+    # Skip known non-stock entries (dividends, rights, etc.)
+    skip_patterns = [' DO ', ' DIR ', ' SUB ', ' BON ']
+    for pattern in skip_patterns:
+        if pattern in ticker_name_clean.upper():
+            return None
+
+    # Load mappings from tickers.txt
+    mappings = _load_broker_name_mappings()
+
+    # Try exact match (case-insensitive)
+    if ticker_name_clean.upper() in mappings:
+        return mappings[ticker_name_clean.upper()]
+
+    # Try matching by extracting the company name part
+    # e.g., "PETROBRAS ON N2" -> try "PETROBRAS"
+    words = ticker_name_clean.upper().split()
+    if words:
+        # Try first word (usually company name)
+        first_word = words[0]
+        if first_word in mappings:
+            return mappings[first_word]
+
+        # Try first two words combined (for names like "MOURA DUBEUX")
+        if len(words) >= 2:
+            first_two = f"{words[0]} {words[1]}"
+            if first_two in mappings:
+                return mappings[first_two]
+
+            # Also try without space (for cases like "MOURA DUBEUXON")
+            for key in mappings:
+                if key.startswith(first_word) and len(key) > len(first_word):
+                    return mappings[key]
+
+    # If not found, log warning (this means BrokerName needs to be added to tickers.txt)
+    print(f"[WARN] Unknown ticker '{ticker_name}' - please add BrokerName mapping to tickers.txt")
+    return None
 
 
 def build_portfolio_history(transactions_df):

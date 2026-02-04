@@ -24,3 +24,8 @@ transaction_id,category,kind,fee_type,amount,currency,description
 15322925,Bolsa,fee,Taxa de termo/opções,0.00,BRL,Taxa de termo/opções
 15322925,Bolsa,fee,Emolumentos,0.04,BRL,Emolumentos
 15322925,Depositária,fee,Taxa de Transferência de Ativos,0.02,BRL,Taxa de Transferência de Ativos
+15459184,Clearing,fee,Taxa de liquidação/CCP,0.43,BRL,Taxa de liquidação/CCP
+15459184,Clearing,fee,Taxa de registro,0.00,BRL,Taxa de registro
+15459184,Bolsa,fee,Taxa de termo/opções,0.00,BRL,Taxa de termo/opções
+15459184,Bolsa,fee,Emolumentos,0.09,BRL,Emolumentos
+15459184,Depositária,fee,Taxa de Transferência de Ativos,0.05,BRL,Taxa de Transferência de Ativos

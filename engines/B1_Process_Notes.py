@@ -83,8 +83,8 @@ def update_broker_names_in_tickers(broker_names_found):
     # Update rows where BrokerName is empty and we have a match
     updated = False
     for row in rows:
-        ticker = row.get('Ticker', '').strip()
-        current_broker_name = row.get('BrokerName', '').strip()
+        ticker = (row.get('Ticker') or '').strip()
+        current_broker_name = (row.get('BrokerName') or '').strip()
 
         if ticker in broker_names_found and not current_broker_name:
             row['BrokerName'] = broker_names_found[ticker]
@@ -115,9 +115,9 @@ def find_symbol_for_broker_name(broker_name):
     with TICKERS_FILE.open('r', newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            ticker = row.get('Ticker', '').strip()
-            name = row.get('Name', '').strip()
-            existing_broker = row.get('BrokerName', '').strip()
+            ticker = (row.get('Ticker') or '').strip()
+            name = (row.get('Name') or '').strip()
+            existing_broker = (row.get('BrokerName') or '').strip()
 
             # Check if BrokerName already matches
             if existing_broker:
@@ -309,7 +309,15 @@ def main():
         print(' Total implementation cost (fees):', summary['total_implementation_cost'])
         print(' Implementation cost (% of invested):', summary['implementation_pct'], '%')
     else:
-        print('No new documents processed. Ledger unchanged.')
+        print('No new documents processed.')
+        # Always rebuild ledger to ensure consistency (in case previous run failed mid-process)
+        print('Rebuilding ledger to ensure consistency...')
+        summary = rebuild_ledger()
+        print('Ledger rebuilt at', LEDGER_FILE)
+        print('Summary:')
+        print(' Total invested (BUY):', summary['total_invested'])
+        print(' Total implementation cost (fees):', summary['total_implementation_cost'])
+        print(' Implementation cost (% of invested):', summary['implementation_pct'], '%')
 
 
 if __name__ == '__main__':
