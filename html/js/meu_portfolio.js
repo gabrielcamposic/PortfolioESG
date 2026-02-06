@@ -10,6 +10,9 @@
   const LATEST_RUN_PATH = './data/latest_run_summary.json';
   const PROCESSED_NOTES_PATH = './data/processed_notes.json';
   const PORTFOLIO_HISTORY_PATH = './data/portfolio_history.json';
+  const OPTIMIZED_RECOMMENDATION_PATH = './data/optimized_recommendation.json';
+  const PORTFOLIO_RESULTS_DB_PATH = './data/portfolio_results_db.csv';
+  const TICKERS_PATH = './data/tickers.txt';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // UTILIDADES
@@ -63,8 +66,12 @@
   let recommendedPortfolio = { stocks: [], weights: [], sharpe: null, expectedReturn: null };
   let processedNotesData = null;
   let portfolioHistoryData = null;
+  let optimizedRecommendation = null;
+  let portfolioResultsData = [];
+  let brokerNameToSymbol = {};  // Maps broker names (from tickers.txt) to symbols
   let allocationChart = null;
   let evolutionChart = null;
+  let returnComparisonChart = null;
 
   async function loadAllData() {
     try {
@@ -102,6 +109,29 @@
       const historyResp = await fetch(PORTFOLIO_HISTORY_PATH + '?_=' + Date.now());
       if (historyResp.ok) {
         portfolioHistoryData = await historyResp.json();
+      }
+
+      // Load optimized recommendation from C_OptimizedPortfolio
+      const optResp = await fetch(OPTIMIZED_RECOMMENDATION_PATH + '?_=' + Date.now());
+      if (optResp.ok) {
+        optimizedRecommendation = await optResp.json();
+        console.log('Loaded optimized recommendation:', optimizedRecommendation);
+      }
+
+      // Load portfolio results history (ideal portfolio returns)
+      const resultsResp = await fetch(PORTFOLIO_RESULTS_DB_PATH + '?_=' + Date.now());
+      if (resultsResp.ok) {
+        const csvText = await resultsResp.text();
+        portfolioResultsData = parsePortfolioResultsCSV(csvText);
+        console.log('Loaded portfolio results:', portfolioResultsData.length, 'runs');
+      }
+
+      // Load tickers.txt for BrokerName to Symbol mapping
+      const tickersResp = await fetch(TICKERS_PATH + '?_=' + Date.now());
+      if (tickersResp.ok) {
+        const tickersText = await tickersResp.text();
+        brokerNameToSymbol = parseTickersMapping(tickersText);
+        console.log('Loaded broker name mappings:', Object.keys(brokerNameToSymbol).length);
       }
 
       // Load transactions CSV
@@ -153,6 +183,110 @@
     // Sort by date descending (most recent first)
     transactions.sort((a, b) => b.date.localeCompare(a.date));
     return transactions;
+  }
+
+  function parsePortfolioResultsCSV(csvText) {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+
+    const header = parseCSVLine(lines[0]);
+
+    // Find column indices
+    const indices = {
+      run_id: header.findIndex(h => h.toLowerCase() === 'run_id'),
+      timestamp: header.findIndex(h => h.toLowerCase() === 'timestamp'),
+      stocks: header.findIndex(h => h.toLowerCase() === 'stocks'),
+      weights: header.findIndex(h => h.toLowerCase() === 'weights'),
+      sharpe: header.findIndex(h => h.toLowerCase() === 'sharpe_ratio'),
+      expectedReturn: header.findIndex(h => h.toLowerCase() === 'expected_return_annual_pct'),
+      volatility: header.findIndex(h => h.toLowerCase() === 'expected_volatility_annual_pct')
+    };
+
+    const results = [];
+    for (let i = 1; i < lines.length; i++) {
+      const row = parseCSVLine(lines[i]);
+      if (row.length < 5) continue;
+
+      const timestamp = row[indices.timestamp] || '';
+      const date = timestamp.split(' ')[0]; // Get just the date part
+
+      // Handle inconsistent CSV structure:
+      // Some rows have 12 columns (with final_value, roi_percent)
+      // Some rows have 10 columns (without final_value, roi_percent)
+      // We need to detect which format and adjust indices accordingly
+
+      let expectedReturn = 0;
+      let volatility = 0;
+      let sharpe = 0;
+
+      // Check if row has the expected number of columns
+      if (row.length >= 12) {
+        // Full format: use standard indices
+        expectedReturn = parseFloat(row[indices.expectedReturn]) || 0;
+        volatility = parseFloat(row[indices.volatility]) || 0;
+        sharpe = parseFloat(row[indices.sharpe]) || 0;
+      } else if (row.length >= 10) {
+        // Short format (missing final_value and roi_percent)
+        // expected_return is at index 8 (0-based), volatility at 9
+        sharpe = parseFloat(row[7]) || 0;
+        expectedReturn = parseFloat(row[8]) || 0;
+        volatility = parseFloat(row[9]) || 0;
+      }
+
+      // Skip if no valid return data
+      if (expectedReturn === 0 && sharpe === 0) continue;
+
+      results.push({
+        run_id: row[indices.run_id] || '',
+        timestamp: timestamp,
+        date: date,
+        stocks: row[indices.stocks] || '',
+        weights: row[indices.weights] || '',
+        sharpe: sharpe,
+        expectedReturn: expectedReturn,
+        volatility: volatility
+      });
+    }
+
+    // Sort by timestamp ascending
+    results.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    console.log('Parsed portfolio results:', results.length, 'rows. Sample returns:',
+                results.slice(0, 3).map(r => r.expectedReturn));
+    return results;
+  }
+
+  function parseTickersMapping(csvText) {
+    // Parse tickers.txt to extract BrokerName -> Symbol mapping
+    // Format: Ticker,Name,Sector,Industry,BrokerName
+    const mapping = {};
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return mapping;
+
+    const header = parseCSVLine(lines[0]);
+    const tickerIdx = header.findIndex(h => h.toLowerCase() === 'ticker');
+    const brokerNameIdx = header.findIndex(h => h.toLowerCase() === 'brokername');
+
+    if (tickerIdx < 0) return mapping;
+
+    for (let i = 1; i < lines.length; i++) {
+      const row = parseCSVLine(lines[i]);
+      const symbol = row[tickerIdx];
+      const brokerName = brokerNameIdx >= 0 ? row[brokerNameIdx] : null;
+
+      if (symbol) {
+        // Always map symbol to itself
+        mapping[symbol.toUpperCase()] = symbol;
+        mapping[normalizeTickerKey(symbol)] = symbol;
+
+        // Map broker name if present
+        if (brokerName && brokerName.trim()) {
+          mapping[brokerName.toUpperCase()] = symbol;
+          mapping[brokerName.toUpperCase().replace(/\s+/g, '')] = symbol;
+        }
+      }
+    }
+
+    return mapping;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -258,9 +392,9 @@
     renderPositions();
     renderAllocation();
     renderTransactions();
-    renderRebalance();
+    renderOptimizedRecommendation();
+    renderReturnComparisonChart();
     renderComparison();
-    setupRebalanceControls();
   }
 
   function renderMeta() {
@@ -569,6 +703,526 @@
     if (metrics.positions.filter(p => p.net_qty > 0).length === 0) {
       tbody.innerHTML = '<tr><td colspan="10" class="no-data">Nenhuma posição aberta</td></tr>';
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RECOMENDAÇÃO OTIMIZADA (Script C)
+  // ═══════════════════════════════════════════════════════════════════════════
+  function renderOptimizedRecommendation() {
+    const verdictEl = document.getElementById('optimizedVerdict');
+    const metricsEl = document.getElementById('optimizedMetrics');
+    const transactionsEl = document.getElementById('optimizedTransactions');
+
+    if (!optimizedRecommendation) {
+      if (verdictEl) {
+        verdictEl.className = 'rebalance-verdict';
+        verdictEl.innerHTML = `
+          <div class="verdict-icon">⚠️</div>
+          <div class="verdict-text">Recomendação não disponível. Execute C_OptimizedPortfolio.sh para gerar.</div>
+        `;
+      }
+      return;
+    }
+
+    const rec = optimizedRecommendation;
+    const decision = rec.decision || 'UNKNOWN';
+    const isRebalance = decision === 'REBALANCE';
+    const comparison = rec.comparison || {};
+    const holdings = comparison.holdings || {};
+    const optimal = comparison.optimal || {};
+
+    // Render verdict
+    if (verdictEl) {
+      const iconMap = {
+        'REBALANCE': '🔄',
+        'HOLD': '✅',
+        'UNKNOWN': '❓'
+      };
+      const classMap = {
+        'REBALANCE': 'recommend',
+        'HOLD': 'hold',
+        'UNKNOWN': ''
+      };
+
+      verdictEl.className = 'rebalance-verdict ' + (classMap[decision] || '');
+      verdictEl.innerHTML = `
+        <div class="verdict-icon">${iconMap[decision] || '❓'}</div>
+        <div class="verdict-content">
+          <div class="verdict-text">${decision === 'REBALANCE' ? 'Recomendado Rebalancear' : 'Manter Portfolio Atual'}</div>
+          <div class="verdict-detail">${rec.reason || ''}</div>
+        </div>
+      `;
+    }
+
+    // Show metrics
+    if (metricsEl) {
+      metricsEl.style.display = 'grid';
+
+      const holdingsReturnEl = document.getElementById('optHoldingsReturn');
+      const optimalReturnEl = document.getElementById('optOptimalReturn');
+      const excessReturnEl = document.getElementById('optExcessReturn');
+      const transitionCostEl = document.getElementById('optTransitionCost');
+
+      if (holdingsReturnEl) {
+        holdingsReturnEl.textContent = formatPercent(holdings.expected_return_pct || 0);
+      }
+      if (optimalReturnEl) {
+        optimalReturnEl.textContent = formatPercent(optimal.net_return_pct || 0);
+        optimalReturnEl.className = 'metric-value ' + ((optimal.net_return_pct || 0) >= 0 ? 'positive' : 'negative');
+      }
+      if (excessReturnEl) {
+        const excess = rec.excess_return_pct || 0;
+        excessReturnEl.textContent = formatPercent(excess);
+        excessReturnEl.className = 'metric-value ' + (excess >= 0 ? 'positive' : 'negative');
+      }
+      if (transitionCostEl) {
+        transitionCostEl.textContent = formatPercent(optimal.transition_cost_pct || 0);
+        transitionCostEl.className = 'metric-value negative';
+      }
+    }
+
+    // Show transactions if REBALANCE
+    const transactions = rec.transactions || [];
+    if (transactionsEl && transactions.length > 0 && isRebalance) {
+      transactionsEl.style.display = 'block';
+      const tbody = document.getElementById('optimizedTransactionsBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        transactions.forEach(tx => {
+          const tr = document.createElement('tr');
+          const actionClass = tx.action === 'BUY' ? 'positive' : 'negative';
+          const weightChange = ((tx.target_weight - tx.current_weight) * 100).toFixed(1);
+          tr.innerHTML = `
+            <td><strong>${tx.symbol}</strong></td>
+            <td class="${actionClass}">${tx.action === 'BUY' ? '🟢 Comprar' : '🔴 Vender'}</td>
+            <td>${(tx.current_weight * 100).toFixed(1)}%</td>
+            <td>${(tx.target_weight * 100).toFixed(1)}%</td>
+            <td class="${actionClass}">${weightChange > 0 ? '+' : ''}${weightChange}%</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    } else if (transactionsEl) {
+      transactionsEl.style.display = 'none';
+    }
+
+    // Update timestamp
+    const timestampEl = document.getElementById('optTimestamp');
+    if (timestampEl && rec.timestamp) {
+      timestampEl.textContent = rec.timestamp;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GRÁFICO: COMPARAÇÃO DE RETORNOS (Ideal vs Implementado)
+  // ═══════════════════════════════════════════════════════════════════════════
+  function renderReturnComparisonChart() {
+    const canvas = document.getElementById('returnComparisonChart');
+    if (!canvas) return;
+
+    // Destroy existing chart
+    if (returnComparisonChart) {
+      try { returnComparisonChart.destroy(); } catch(e) {}
+    }
+
+    if (!portfolioResultsData || portfolioResultsData.length === 0) {
+      const ctx = canvas.getContext('2d');
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#888';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sem dados históricos disponíveis', canvas.width / 2, canvas.height / 2);
+      return;
+    }
+
+    // Prepare ideal portfolio data (from Script A results)
+    const idealData = portfolioResultsData.map(r => ({
+      date: r.date,
+      timestamp: r.timestamp,
+      run_id: r.run_id,
+      return: r.expectedReturn
+    }));
+
+    console.log('Ideal portfolio data sample:', idealData.slice(0, 5));
+
+    // Calculate implemented portfolio returns at each trade date
+    const implementedData = calculateImplementedReturns();
+
+    console.log('Implemented portfolio data:', implementedData);
+
+    // Merge all dates from both datasets
+    const allDates = [...new Set([
+      ...idealData.map(d => d.date),
+      ...implementedData.map(d => d.date)
+    ])].sort();
+
+    // Build datasets with step interpolation for implemented
+    const labels = [];
+    const idealValues = [];
+    const implementedValues = [];
+
+    let lastImplementedReturn = null;
+
+    allDates.forEach(date => {
+      const idealPoint = idealData.find(d => d.date === date);
+      const implPoint = implementedData.find(d => d.date === date);
+
+      // Update last implemented return if we have a new value
+      if (implPoint) {
+        lastImplementedReturn = implPoint.return;
+      }
+
+      // Add data point
+      labels.push(date);
+      idealValues.push(idealPoint ? idealPoint.return : null);
+      implementedValues.push(lastImplementedReturn);
+    });
+
+    console.log('Chart data:', {
+      totalPoints: labels.length,
+      idealSample: idealValues.slice(0, 5),
+      implementedSample: implementedValues.slice(0, 5)
+    });
+
+    returnComparisonChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Portfolio Ideal (Script A)',
+            data: idealValues,
+            borderColor: '#2196F3',
+            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+            spanGaps: true
+          },
+          {
+            label: 'Portfolio Implementado',
+            data: implementedValues,
+            borderColor: '#4CAF50',
+            backgroundColor: 'rgba(76, 175, 80, 0.15)',
+            fill: true,
+            stepped: 'before',  // Step interpolation - constant until next change
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+            spanGaps: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            backgroundColor: 'rgba(30, 30, 30, 0.95)',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            padding: 12,
+            callbacks: {
+              title: function(context) {
+                return context[0].label;
+              },
+              label: function(context) {
+                const value = context.parsed.y;
+                if (value == null) return context.dataset.label + ': —';
+                return context.dataset.label + ': ' + value.toFixed(2) + '%';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Data'
+            },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45,
+              autoSkip: true,
+              maxTicksLimit: 12
+            }
+          },
+          y: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Retorno Anual (%)'
+            },
+            ticks: {
+              callback: function(value) {
+                return value.toFixed(1) + '%';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function calculateImplementedReturns() {
+    // Calculate the expected annual return of the implemented portfolio at each trade date
+    // Logic:
+    // 1. Group transactions by date
+    // 2. At each date, calculate portfolio composition after trades
+    // 3. Calculate expected return based on target prices for that composition
+    // 4. Return stays constant until next trade date
+
+    const returns = [];
+
+    if (!transactionsData || transactionsData.length === 0) {
+      console.warn('No transaction data for implemented returns');
+      return returns;
+    }
+
+    if (!targetsData || Object.keys(targetsData).length === 0) {
+      console.warn('No target data available for implemented returns calculation');
+      return returns;
+    }
+
+    // Build ticker to symbol mapping from positionsData
+    const tickerToSymbol = {};
+    if (positionsData && positionsData.positions) {
+      positionsData.positions.forEach(pos => {
+        // Map both ticker name and symbol variations
+        if (pos.ticker && pos.symbol) {
+          const ticker = pos.ticker.toUpperCase();
+          const symbol = pos.symbol;
+
+          // Only add if symbol looks like a valid ticker (contains numbers)
+          if (/\d/.test(symbol)) {
+            tickerToSymbol[ticker] = symbol;
+            tickerToSymbol[symbol.toUpperCase()] = symbol;
+            // Also map without spaces
+            tickerToSymbol[ticker.replace(/\s+/g, '')] = symbol;
+            // Map first word (e.g., "COPASA" from "COPASA ON NM")
+            const firstWord = ticker.split(/\s+/)[0];
+            if (firstWord) {
+              tickerToSymbol[firstWord] = symbol;
+            }
+          }
+        }
+      });
+    }
+
+    // Merge with brokerNameToSymbol from tickers.txt (loaded at startup)
+    if (brokerNameToSymbol && Object.keys(brokerNameToSymbol).length > 0) {
+      Object.assign(tickerToSymbol, brokerNameToSymbol);
+    }
+
+    // Add fallback mappings for ledger names - these OVERRIDE any incorrect mappings
+    // These are the exact names used in ledger.csv -> ticker symbols
+    const ledgerFallbacks = {
+      'COPASA ON NM': 'CSMG3.SA',
+      'COPASA': 'CSMG3.SA',
+      'PLANOEPLANO ON NM': 'PLPL3.SA',
+      'PLANOEPLANO': 'PLPL3.SA',
+      'VULCABRAS ON NM': 'VULC3.SA',
+      'VULCABRAS ON ED NM': 'VULC3.SA',
+      'VULCABRAS ON EDS NM': 'VULC3.SA',
+      'VULCABRAS': 'VULC3.SA',
+      'LAVVI ON NM': 'LAVV3.SA',
+      'LAVVI': 'LAVV3.SA',
+      'AXIA ENERGIAPNB EX N1': 'AXIA6.SA',
+      'AXIA ENERGIA': 'AXIA6.SA',
+      'MOURA DUBEUXON ED NM': 'MDNE3.SA',
+      'MOURA DUBEUX': 'MDNE3.SA',
+      'TENDA ON ED NM': 'TEND3.SA',
+      'TENDA': 'TEND3.SA',
+      'VALE ON NM': 'VALE3.SA',
+      'VALE': 'VALE3.SA',
+      'AURA 360 DR3': 'AURA33.SA',
+      'AURA 360': 'AURA33.SA',
+      'CEMIG ON N1': 'CMIG3.SA',
+      'CEMIG': 'CMIG3.SA',
+      'PETROBRAS ON N2': 'PETR3.SA',
+      'PETROBRAS': 'PETR3.SA',
+      'SANEPAR UNT N2': 'SAPR11.SA',
+      'SANEPAR': 'SAPR11.SA',
+    };
+    // Apply fallbacks - these override any previous mappings
+    Object.entries(ledgerFallbacks).forEach(([name, symbol]) => {
+      tickerToSymbol[name.toUpperCase()] = symbol;
+    });
+
+    console.log('Ticker to symbol mapping (sample):', Object.fromEntries(Object.entries(tickerToSymbol).slice(0, 30)));
+
+    // Sort transactions by date ascending
+    const sortedTx = [...transactionsData].sort((a, b) => a.date.localeCompare(b.date));
+
+    // Build portfolio state over time
+    // holdings: { symbol: { qty, totalCost } }
+    const holdings = {};
+
+    // Group transactions by date
+    const txByDate = {};
+    sortedTx.forEach(tx => {
+      if (!txByDate[tx.date]) {
+        txByDate[tx.date] = [];
+      }
+      txByDate[tx.date].push(tx);
+    });
+
+    const tradeDates = Object.keys(txByDate).sort();
+    console.log('Trade dates:', tradeDates);
+
+    tradeDates.forEach(date => {
+      // Apply all transactions for this date
+      txByDate[date].forEach(tx => {
+        const tickerName = tx.ticker;
+        if (!tickerName) return;
+
+        // Find the symbol for this ticker
+        let symbol = tickerToSymbol[tickerName.toUpperCase()] ||
+                     tickerToSymbol[tickerName.toUpperCase().replace(/\s+/g, '')] ||
+                     tickerName;
+
+        // Normalize symbol to match targets format
+        const normalizedSymbol = normalizeTickerKey(symbol);
+
+        // Debug: log the mapping
+        if (date === tradeDates[0]) {
+          console.log(`Mapping: "${tickerName}" -> symbol="${symbol}" -> normalized="${normalizedSymbol}"`);
+        }
+
+        if (!holdings[normalizedSymbol]) {
+          holdings[normalizedSymbol] = { qty: 0, totalCost: 0, originalSymbol: symbol };
+        }
+
+        if (tx.side === 'BUY' || tx.side === 'C') {
+          holdings[normalizedSymbol].qty += tx.qty;
+          holdings[normalizedSymbol].totalCost += tx.total || (tx.qty * tx.price);
+        } else if (tx.side === 'SELL' || tx.side === 'V') {
+          // FIFO-like: reduce qty and proportional cost
+          const avgCost = holdings[normalizedSymbol].qty > 0
+            ? holdings[normalizedSymbol].totalCost / holdings[normalizedSymbol].qty
+            : tx.price;
+          holdings[normalizedSymbol].qty -= tx.qty;
+          holdings[normalizedSymbol].totalCost -= tx.qty * avgCost;
+
+          // Clean up if position closed
+          if (holdings[normalizedSymbol].qty <= 0) {
+            holdings[normalizedSymbol].qty = 0;
+            holdings[normalizedSymbol].totalCost = 0;
+          }
+        }
+      });
+
+      // Calculate expected return for current portfolio composition
+      const expectedReturn = calculateExpectedReturnForHoldings(holdings);
+
+      if (expectedReturn !== null) {
+        returns.push({
+          date: date,
+          return: expectedReturn
+        });
+        console.log(`Date ${date}: expected return = ${expectedReturn.toFixed(2)}%`);
+      }
+    });
+
+    // Add current date with latest return if we have data
+    const today = new Date().toISOString().split('T')[0];
+    if (returns.length > 0 && returns[returns.length - 1].date !== today) {
+      returns.push({
+        date: today,
+        return: returns[returns.length - 1].return
+      });
+    }
+
+    console.log('Implemented returns calculated:', returns.length, 'points');
+    return returns;
+  }
+
+  function calculateExpectedReturnForHoldings(holdings) {
+    // Calculate weighted expected return based on target prices
+    let totalValue = 0;
+    let weightedReturn = 0;
+    let stocksWithTargets = 0;
+
+    console.log('Calculating return for holdings:', Object.keys(holdings).filter(k => holdings[k].qty > 0));
+
+    // First pass: calculate total portfolio value
+    const positionValues = {};
+    for (const [normalizedSymbol, pos] of Object.entries(holdings)) {
+      if (pos.qty <= 0) continue;
+
+      // Get current price from positionsData if available
+      let currentPrice = null;
+      if (positionsData && positionsData.positions) {
+        const found = positionsData.positions.find(p => {
+          const posNorm = normalizeTickerKey(p.symbol || p.ticker || '');
+          return posNorm === normalizedSymbol;
+        });
+        if (found && found.current_price) {
+          currentPrice = found.current_price;
+        }
+      }
+
+      // Fallback to avg cost
+      if (!currentPrice && pos.qty > 0) {
+        currentPrice = pos.totalCost / pos.qty;
+      }
+
+      const value = pos.qty * currentPrice;
+      positionValues[normalizedSymbol] = { value, currentPrice, qty: pos.qty };
+      totalValue += value;
+    }
+
+    if (totalValue <= 0) return null;
+
+    // Second pass: calculate weighted return using targets
+    for (const [normalizedSymbol, posVal] of Object.entries(positionValues)) {
+      const weight = posVal.value / totalValue;
+
+      // Try multiple formats to find target price
+      let targetPrice = null;
+      const keysToTry = [
+        normalizedSymbol,                           // PLPL3SA
+        normalizedSymbol + 'SA',                    // PLPL3SASA (unlikely but try)
+        normalizedSymbol.replace(/SA$/, ''),        // PLPL3
+        normalizedSymbol.replace(/SA$/, '') + 'SA', // PLPL3SA again
+      ];
+
+      for (const key of keysToTry) {
+        const val = targetsData[key];
+        // Only accept numeric values (skip string mappings)
+        if (val !== undefined && val !== null && typeof val === 'number' && !isNaN(val)) {
+          targetPrice = val;
+          break;
+        }
+      }
+
+      console.log(`Stock ${normalizedSymbol}: currentPrice=${posVal.currentPrice?.toFixed(2)}, targetPrice=${targetPrice?.toFixed(2) || 'N/A'}, weight=${(weight*100).toFixed(1)}%`);
+
+      if (targetPrice && posVal.currentPrice > 0) {
+        const stockReturn = ((targetPrice - posVal.currentPrice) / posVal.currentPrice) * 100;
+        weightedReturn += weight * stockReturn;
+        stocksWithTargets++;
+      }
+    }
+
+    // Only return if we have targets for at least some stocks
+    if (stocksWithTargets === 0) {
+      console.warn('No stocks with target prices found. Holdings:', Object.keys(positionValues));
+      console.warn('Available targets sample:', Object.keys(targetsData).slice(0, 20));
+      return null;
+    }
+
+    return weightedReturn;
   }
 
   function renderAllocation() {

@@ -1,0 +1,45 @@
+# --- Optimized Portfolio Script Parameters for PortfolioESG ---
+# Script C_OptimizedPortfolio.py: combines ideal portfolio (A) with holdings (B)
+
+# --- Files and paths ---
+OPTIMIZED_RESULTS_FILE = ~/PortfolioESG/data/results/optimized_portfolio_history.csv
+OPTIMIZED_LATEST_JSON = ~/PortfolioESG/html/data/optimized_recommendation.json
+OPTIMIZED_LOG_FILE = ~/PortfolioESG/logs/optimized.log
+
+# --- Score Weights (must sum to 1.0) ---
+# Pesos para score do portfolio otimizado
+WEIGHT_EXPECTED_RETURN = 0.4
+WEIGHT_SHARPE_RATIO = 0.4
+WEIGHT_MOMENTUM = 0.2
+
+# --- Threshold mínimo de retorno excedente (%) ---
+# Se o retorno excedente do portfolio otimizado vs holdings for menor que isso,
+# a recomendação será "manter holdings"
+MIN_EXCESS_RETURN_THRESHOLD = 0.5
+
+# --- Transaction Cost Calculation ---
+# DYNAMIC = calcula baseado no histórico de transações
+# FIXED = usa valor fixo definido abaixo
+TRANSACTION_COST_MODE = DYNAMIC
+
+# Para cálculo dinâmico: número mínimo de transações ou meses
+TRANSACTION_COST_MIN_TRANSACTIONS = 20
+TRANSACTION_COST_MIN_MONTHS = 6
+
+# Custo fixo de transação (% por trade) - usado se TRANSACTION_COST_MODE = FIXED
+TRANSACTION_COST_FIXED_PCT = 0.1
+
+# --- Expected Return Window ---
+# Janela temporal para cálculo de expected return (dias úteis)
+EXPECTED_RETURN_WINDOW_DAYS = 252
+
+# --- Optimization Settings ---
+# Número de portfolios candidatos a gerar entre holdings e ideal
+NUM_CANDIDATE_PORTFOLIOS = 100
+
+# Mínimo de overlap (%) entre holdings e recomendação para considerar transição
+MIN_OVERLAP_THRESHOLD = 0.0
+
+# Máximo de transações permitidas em uma recomendação (0 = sem limite)
+MAX_TRANSACTIONS = 0
+
