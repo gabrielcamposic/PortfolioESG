@@ -623,7 +623,7 @@
           mode: 'index'
         },
         plugins:{
-          legend:{display:true, position:'top', labels:{color:'#cbd5e1'}},
+          legend:{display:false},
           tooltip: {
             enabled: true,
             backgroundColor: 'rgba(30, 41, 59, 0.95)',
@@ -1073,33 +1073,50 @@
           const firstLine = lines[0];
           const hasHeader = firstLine.toLowerCase().includes('run_id') && firstLine.toLowerCase().includes('timestamp');
 
-          let runIdIdx = 0, timestampIdx = 1, volIdx = 9;
+          let runIdIdx = 0, timestampIdx = 1;
+          // Header may have 12 columns (old format with final_value, roi_percent) or 10 columns (new format)
+          // We need to detect per-row which format is being used
+          let volIdxFromHeader = -1;
+          let headerHasFinalValue = false;
           let startLine = 0;
 
           if(hasHeader){
             const header = firstLine.split(',');
             runIdIdx = header.findIndex(h => h.trim().toLowerCase() === 'run_id');
             timestampIdx = header.findIndex(h => h.trim().toLowerCase() === 'timestamp');
-            volIdx = header.findIndex(h => h.trim().toLowerCase() === 'expected_volatility_annual_pct');
+            volIdxFromHeader = header.findIndex(h => h.trim().toLowerCase() === 'expected_volatility_annual_pct');
+            headerHasFinalValue = header.some(h => h.trim().toLowerCase() === 'final_value');
             if(runIdIdx === -1) runIdIdx = 0;
             if(timestampIdx === -1) timestampIdx = 1;
-            if(volIdx === -1) volIdx = 9; // fallback to index 9 for CSV without proper header
             startLine = 1;
           }
 
           for(let i=startLine; i<lines.length; i++){
             const row = parseCSVLine(lines[i]);
-            if(row.length > Math.max(runIdIdx, timestampIdx, volIdx)){
-              const runId = row[runIdIdx] || '';
-              const timestamp = row[timestampIdx] || '';
-              const vol = parseFloat(row[volIdx]);
-              if(!isNaN(vol) && timestamp){
-                historicalData.push({
-                  run_id: runId,
-                  timestamp: timestamp,
-                  volatility: vol
-                });
-              }
+            if(row.length < 10) continue; // Need at least 10 columns
+
+            const runId = row[runIdIdx] || '';
+            const timestamp = row[timestampIdx] || '';
+
+            // Determine volatility index based on row length
+            // Old format (12+ cols with final_value, roi_percent): volatility at index 11
+            // New format (10 cols without final_value, roi_percent): volatility at last column (index 9)
+            let volIdx;
+            if(headerHasFinalValue && row.length >= 12){
+              // Old format: use header index
+              volIdx = volIdxFromHeader !== -1 ? volIdxFromHeader : 11;
+            } else {
+              // New format: volatility is last column
+              volIdx = row.length - 1;
+            }
+
+            const vol = parseFloat(row[volIdx]);
+            if(!isNaN(vol) && timestamp && vol > 0 && vol < 100){
+              historicalData.push({
+                run_id: runId,
+                timestamp: timestamp,
+                volatility: vol
+              });
             }
           }
         }
@@ -1180,7 +1197,7 @@
           mode: 'index'
         },
         plugins:{
-          legend:{display:true, position:'top', labels:{color:'#cbd5e1'}},
+          legend:{display:false},
           tooltip: {
             enabled: true,
             backgroundColor: 'rgba(30, 41, 59, 0.95)',

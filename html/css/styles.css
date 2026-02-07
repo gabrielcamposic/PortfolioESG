@@ -745,6 +745,22 @@ a{color:var(--accent-2);text-decoration:none;padding:8px 12px;background:transpa
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid rgba(255,255,255,0.05);
+  align-items: start;
+}
+.history-grid > .subsection {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.history-grid > .subsection:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.history-grid > .subsection > .chart-card {
+  flex: 1;
 }
 @media (max-width: 700px) {
   .history-grid {
