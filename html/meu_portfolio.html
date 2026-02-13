@@ -194,10 +194,10 @@
         <div class="rebalance-metric-card">
           <div class="metric-header">
             <span class="metric-icon">📊</span>
-            <span class="metric-title">Retorno Holdings</span>
+            <span class="metric-title">Retorno Esperado (Atual)</span>
           </div>
           <div class="metric-value" id="optHoldingsReturn">—</div>
-          <div class="metric-detail">Seu portfolio atual</div>
+          <div class="metric-detail">Seu portfolio hoje → target prices</div>
         </div>
 
         <div class="rebalance-metric-card">
@@ -206,7 +206,7 @@
             <span class="metric-title">Retorno Otimizado</span>
           </div>
           <div class="metric-value" id="optOptimalReturn">—</div>
-          <div class="metric-detail">Portfolio recomendado (líquido de custos)</div>
+          <div class="metric-detail">Portfolio ideal (líquido de custos)</div>
         </div>
 
         <div class="rebalance-metric-card">
@@ -255,13 +255,13 @@
       <!-- Gráfico de Comparação de Retornos -->
       <div class="chart-section" style="margin-top: 20px;">
         <h3>📈 Evolução dos Retornos: Ideal vs Implementado</h3>
-        <p class="section-desc">Comparação do retorno anual esperado do portfolio ideal (Script A) com o retorno do portfolio implementado.</p>
+        <p class="section-desc">Quando a linha azul está <strong>acima</strong> da verde, vale rebalancear. Quando está <strong>abaixo</strong>, manter é a melhor opção. O ideal já desconta o custo de transição.</p>
         <div class="chart-container" style="height: 350px;">
           <canvas id="returnComparisonChart"></canvas>
         </div>
         <div class="chart-legend" style="margin-top: 10px;">
-          <div class="legend-item"><span class="legend-dot" style="background:#2196F3;"></span> Portfolio Ideal (recomendação do modelo)</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#4CAF50;"></span> Portfolio Implementado (suas posições)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#2196F3;"></span> Portfolio Ideal (líquido de custos de transição)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#4CAF50;"></span> Portfolio Implementado (suas posições atuais)</div>
         </div>
       </div>
     </section>

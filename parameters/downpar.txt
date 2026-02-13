@@ -11,6 +11,11 @@ debug_mode = false
 # Number of past years of data to consider for downloads (e.g., for calculating start_date)
 history_years = 10
 
+# Storage mode for downloaded data:
+# - "legacy": Save individual CSV files in findata/ then consolidate (original behavior)
+# - "direct": Save directly to StockDataDB.csv without individual CSVs (optimized for cloud, ~95% less storage)
+storage_mode = direct
+
 # --- Optional User-Agent Settings ---
 # Enable dynamic user agent generation (true/false) - Currently uses fake-useragent library
 dynamic_user_agents_enabled = true

@@ -63,11 +63,19 @@ old_*.*
 .DS_Store
 Thumbs.db
 
-# AWS credentials (nunca commitar!)
+# Cloud credentials (nunca commitar!)
 *.pem
 *.key
 credentials.json
-.vscode/
+gcp-sa-key.json
+*-key.json
+.gcp/
+
+# AWS specific
+.aws/
+
+# GCP specific
+.config/gcloud/
 
 # macOS specific files
 .DS_Store

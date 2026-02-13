@@ -13,6 +13,7 @@
   const OPTIMIZED_RECOMMENDATION_PATH = './data/optimized_recommendation.json';
   const PORTFOLIO_RESULTS_DB_PATH = './data/portfolio_results_db.csv';
   const TICKERS_PATH = './data/tickers.txt';
+  const SCORED_STOCKS_CSV_PATH = './data/scored_stocks.csv';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // UTILIDADES
@@ -68,6 +69,7 @@
   let portfolioHistoryData = null;
   let optimizedRecommendation = null;
   let portfolioResultsData = [];
+  let scoredStocksHistory = [];  // Historical scored stocks data with CurrentPrice, TargetPrice per date
   let brokerNameToSymbol = {};  // Maps broker names (from tickers.txt) to symbols
   let allocationChart = null;
   let evolutionChart = null;
@@ -115,7 +117,6 @@
       const optResp = await fetch(OPTIMIZED_RECOMMENDATION_PATH + '?_=' + Date.now());
       if (optResp.ok) {
         optimizedRecommendation = await optResp.json();
-        console.log('Loaded optimized recommendation:', optimizedRecommendation);
       }
 
       // Load portfolio results history (ideal portfolio returns)
@@ -123,7 +124,13 @@
       if (resultsResp.ok) {
         const csvText = await resultsResp.text();
         portfolioResultsData = parsePortfolioResultsCSV(csvText);
-        console.log('Loaded portfolio results:', portfolioResultsData.length, 'runs');
+      }
+
+      // Load scored_stocks.csv for historical CurrentPrice and TargetPrice per stock per run
+      const scoredResp = await fetch(SCORED_STOCKS_CSV_PATH + '?_=' + Date.now());
+      if (scoredResp.ok) {
+        const csvText = await scoredResp.text();
+        scoredStocksHistory = parseScoredStocksCSV(csvText);
       }
 
       // Load tickers.txt for BrokerName to Symbol mapping
@@ -131,7 +138,6 @@
       if (tickersResp.ok) {
         const tickersText = await tickersResp.text();
         brokerNameToSymbol = parseTickersMapping(tickersText);
-        console.log('Loaded broker name mappings:', Object.keys(brokerNameToSymbol).length);
       }
 
       // Load transactions CSV
@@ -250,8 +256,58 @@
 
     // Sort by timestamp ascending
     results.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-    console.log('Parsed portfolio results:', results.length, 'rows. Sample returns:',
-                results.slice(0, 3).map(r => r.expectedReturn));
+    return results;
+  }
+
+  function parseScoredStocksCSV(csvText) {
+    // Parse scored_stocks.csv to get historical CurrentPrice and TargetPrice per stock per run
+    // Format: run_id,run_timestamp,scoring_version,Stock,Name,Sector,Industry,...,CurrentPrice,TargetPrice,...
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+
+    const header = parseCSVLine(lines[0]);
+    const indices = {
+      run_id: header.findIndex(h => h.toLowerCase() === 'run_id'),
+      run_timestamp: header.findIndex(h => h.toLowerCase() === 'run_timestamp'),
+      stock: header.findIndex(h => h.toLowerCase() === 'stock'),
+      currentPrice: header.findIndex(h => h.toLowerCase() === 'currentprice'),
+      targetPrice: header.findIndex(h => h.toLowerCase() === 'targetprice'),
+      forwardPE: header.findIndex(h => h.toLowerCase() === 'forwardpe'),
+      sectorMedianPE: header.findIndex(h => h.toLowerCase() === 'sectormedianpe')
+    };
+
+    // Validate required columns exist
+    if (indices.stock < 0 || indices.currentPrice < 0 || indices.targetPrice < 0) {
+      console.warn('scored_stocks.csv missing required columns. Found:', header);
+      return [];
+    }
+
+    const results = [];
+    for (let i = 1; i < lines.length; i++) {
+      const row = parseCSVLine(lines[i]);
+      if (row.length < 10) continue;
+
+      const timestamp = row[indices.run_timestamp] || '';
+      const date = timestamp.split(' ')[0]; // Get just the date part
+
+      const currentPrice = parseFloat(row[indices.currentPrice]);
+      const targetPrice = parseFloat(row[indices.targetPrice]);
+
+      // Skip rows with invalid prices
+      if (isNaN(currentPrice) || isNaN(targetPrice) || currentPrice <= 0) continue;
+
+      results.push({
+        run_id: row[indices.run_id] || '',
+        date: date,
+        timestamp: timestamp,
+        stock: row[indices.stock] || '',
+        currentPrice: currentPrice,
+        targetPrice: targetPrice,
+        forwardPE: parseFloat(row[indices.forwardPE]) || null,
+        sectorMedianPE: parseFloat(row[indices.sectorMedianPE]) || null
+      });
+    }
+
     return results;
   }
 
@@ -839,15 +895,17 @@
       date: r.date,
       timestamp: r.timestamp,
       run_id: r.run_id,
-      return: r.expectedReturn
+      return: r.expectedReturn,
+      stocks: r.stocks,
+      weights: r.weights
     }));
 
-    console.log('Ideal portfolio data sample:', idealData.slice(0, 5));
-
     // Calculate implemented portfolio returns at each trade date
-    const implementedData = calculateImplementedReturns();
+    // This also builds the portfolio state over time
+    const { returns: implementedData, portfolioByDate } = calculateImplementedReturnsWithState();
 
-    console.log('Implemented portfolio data:', implementedData);
+    // Get transaction cost percentage from parameters or use default
+    const transactionCostPct = optimizedRecommendation?.transaction_cost_pct_used || 0.0285;
 
     // Merge all dates from both datasets
     const allDates = [...new Set([
@@ -855,32 +913,41 @@
       ...implementedData.map(d => d.date)
     ])].sort();
 
-    // Build datasets with step interpolation for implemented
+    // Build datasets - ideal shows NET return (after transition cost from current holdings)
     const labels = [];
-    const idealValues = [];
+    const idealNetValues = [];  // Ideal return MINUS cost to transition from implemented
     const implementedValues = [];
 
     let lastImplementedReturn = null;
+    let lastImplementedPortfolio = null;  // Track current portfolio state
 
     allDates.forEach(date => {
       const idealPoint = idealData.find(d => d.date === date);
       const implPoint = implementedData.find(d => d.date === date);
 
-      // Update last implemented return if we have a new value
+      // Update last implemented return and portfolio if we have new data
       if (implPoint) {
         lastImplementedReturn = implPoint.return;
+        lastImplementedPortfolio = portfolioByDate[date] || lastImplementedPortfolio;
+      }
+
+      // Calculate net ideal return (ideal return - transition cost)
+      let idealNetReturn = null;
+      if (idealPoint && idealPoint.return != null) {
+        // Calculate transition cost from current holdings to ideal
+        const transitionCost = calculateTransitionCost(
+          lastImplementedPortfolio,
+          idealPoint.stocks,
+          idealPoint.weights,
+          transactionCostPct
+        );
+        idealNetReturn = idealPoint.return - transitionCost;
       }
 
       // Add data point
       labels.push(date);
-      idealValues.push(idealPoint ? idealPoint.return : null);
+      idealNetValues.push(idealNetReturn);
       implementedValues.push(lastImplementedReturn);
-    });
-
-    console.log('Chart data:', {
-      totalPoints: labels.length,
-      idealSample: idealValues.slice(0, 5),
-      implementedSample: implementedValues.slice(0, 5)
     });
 
     returnComparisonChart = new Chart(canvas, {
@@ -889,8 +956,8 @@
         labels: labels,
         datasets: [
           {
-            label: 'Portfolio Ideal (Script A)',
-            data: idealValues,
+            label: 'Portfolio Ideal (líquido de custos)',
+            data: idealNetValues,
             borderColor: '#2196F3',
             backgroundColor: 'rgba(33, 150, 243, 0.1)',
             fill: false,
@@ -939,6 +1006,20 @@
                 const value = context.parsed.y;
                 if (value == null) return context.dataset.label + ': —';
                 return context.dataset.label + ': ' + value.toFixed(2) + '%';
+              },
+              afterBody: function(context) {
+                // Show recommendation based on comparison
+                const idealVal = context[0]?.parsed?.y;
+                const implVal = context[1]?.parsed?.y;
+                if (idealVal != null && implVal != null) {
+                  const diff = idealVal - implVal;
+                  if (diff > 0) {
+                    return ['', '⚠️ Rebalancear (+' + diff.toFixed(1) + '% ganho)'];
+                  } else {
+                    return ['', '✅ Manter (' + diff.toFixed(1) + '%)'];
+                  }
+                }
+                return [];
               }
             }
           }
@@ -974,8 +1055,9 @@
     });
   }
 
-  function calculateImplementedReturns() {
+  function calculateImplementedReturnsWithState() {
     // Calculate the expected annual return of the implemented portfolio at each trade date
+    // Also returns the portfolio state (weights) at each date for transition cost calculation
     // Logic:
     // 1. Group transactions by date
     // 2. At each date, calculate portfolio composition after trades
@@ -983,15 +1065,16 @@
     // 4. Return stays constant until next trade date
 
     const returns = [];
+    const portfolioByDate = {};  // Track portfolio weights at each date
 
     if (!transactionsData || transactionsData.length === 0) {
       console.warn('No transaction data for implemented returns');
-      return returns;
+      return { returns, portfolioByDate };
     }
 
     if (!targetsData || Object.keys(targetsData).length === 0) {
       console.warn('No target data available for implemented returns calculation');
-      return returns;
+      return { returns, portfolioByDate };
     }
 
     // Build ticker to symbol mapping from positionsData
@@ -1059,8 +1142,6 @@
       tickerToSymbol[name.toUpperCase()] = symbol;
     });
 
-    console.log('Ticker to symbol mapping (sample):', Object.fromEntries(Object.entries(tickerToSymbol).slice(0, 30)));
-
     // Sort transactions by date ascending
     const sortedTx = [...transactionsData].sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1078,7 +1159,6 @@
     });
 
     const tradeDates = Object.keys(txByDate).sort();
-    console.log('Trade dates:', tradeDates);
 
     tradeDates.forEach(date => {
       // Apply all transactions for this date
@@ -1093,11 +1173,6 @@
 
         // Normalize symbol to match targets format
         const normalizedSymbol = normalizeTickerKey(symbol);
-
-        // Debug: log the mapping
-        if (date === tradeDates[0]) {
-          console.log(`Mapping: "${tickerName}" -> symbol="${symbol}" -> normalized="${normalizedSymbol}"`);
-        }
 
         if (!holdings[normalizedSymbol]) {
           holdings[normalizedSymbol] = { qty: 0, totalCost: 0, originalSymbol: symbol };
@@ -1122,47 +1197,169 @@
         }
       });
 
-      // Calculate expected return for current portfolio composition
-      const expectedReturn = calculateExpectedReturnForHoldings(holdings);
+      // Calculate portfolio weights at this date
+      const activeStocks = Object.entries(holdings).filter(([_, pos]) => pos.qty > 0);
+      const totalCost = activeStocks.reduce((sum, [_, pos]) => sum + pos.totalCost, 0);
+
+      if (totalCost > 0) {
+        const weights = {};
+        activeStocks.forEach(([symbol, pos]) => {
+          weights[symbol] = pos.totalCost / totalCost;
+        });
+        portfolioByDate[date] = weights;
+      }
+
+      // Calculate expected return for current portfolio composition using historical data for this date
+      const expectedReturn = calculateExpectedReturnForHoldings(holdings, date);
 
       if (expectedReturn !== null) {
         returns.push({
           date: date,
           return: expectedReturn
         });
-        console.log(`Date ${date}: expected return = ${expectedReturn.toFixed(2)}%`);
       }
     });
 
-    // Add current date with latest return if we have data
+    // Add current date with value from optimized_recommendation.json if available
+    // This ensures consistency between the chart and the KPI cards
     const today = new Date().toISOString().split('T')[0];
-    if (returns.length > 0 && returns[returns.length - 1].date !== today) {
+    if (optimizedRecommendation && optimizedRecommendation.comparison && optimizedRecommendation.comparison.holdings) {
+      const holdingsReturn = optimizedRecommendation.comparison.holdings.expected_return_pct;
+      if (holdingsReturn != null) {
+        // Update or add today's value with the authoritative return from Python
+        const existingIdx = returns.findIndex(r => r.date === today || r.date === optimizedRecommendation.date);
+        if (existingIdx >= 0) {
+          returns[existingIdx].return = holdingsReturn;
+        } else {
+          returns.push({
+            date: optimizedRecommendation.date || today,
+            return: holdingsReturn
+          });
+        }
+
+        // Also save current portfolio weights from optimized_recommendation
+        if (optimizedRecommendation.comparison.holdings.weights) {
+          const currentWeights = {};
+          Object.entries(optimizedRecommendation.comparison.holdings.weights).forEach(([stock, weight]) => {
+            currentWeights[normalizeTickerKey(stock)] = weight;
+          });
+          portfolioByDate[optimizedRecommendation.date || today] = currentWeights;
+        }
+      }
+    } else if (returns.length > 0 && returns[returns.length - 1].date !== today) {
+      // Fallback: extend last known return
       returns.push({
         date: today,
         return: returns[returns.length - 1].return
       });
     }
 
-    console.log('Implemented returns calculated:', returns.length, 'points');
-    return returns;
+    return { returns, portfolioByDate };
   }
 
-  function calculateExpectedReturnForHoldings(holdings) {
-    // Calculate weighted expected return based on target prices
+  function calculateTransitionCost(currentPortfolio, idealStocksStr, idealWeightsStr, costPct) {
+    // Calculate the cost of transitioning from current portfolio to ideal portfolio
+    // Cost = sum of absolute weight changes * costPct
+
+    if (!currentPortfolio || !idealStocksStr || !idealWeightsStr) {
+      return 0;
+    }
+
+    // Parse ideal portfolio from strings (format: "STOCK1, STOCK2, ..." and "0.1, 0.2, ...")
+    const idealStocks = idealStocksStr.split(',').map(s => normalizeTickerKey(s.trim()));
+    const idealWeights = idealWeightsStr.split(',').map(w => parseFloat(w.trim()) || 0);
+
+    if (idealStocks.length !== idealWeights.length) {
+      return 0;
+    }
+
+    // Build ideal weights map
+    const idealWeightsMap = {};
+    idealStocks.forEach((stock, i) => {
+      idealWeightsMap[stock] = idealWeights[i];
+    });
+
+    // Calculate total absolute weight change
+    let totalChange = 0;
+
+    // Changes to existing positions
+    Object.entries(currentPortfolio).forEach(([stock, weight]) => {
+      const idealWeight = idealWeightsMap[stock] || 0;
+      totalChange += Math.abs(idealWeight - weight);
+    });
+
+    // New positions in ideal (not in current)
+    Object.entries(idealWeightsMap).forEach(([stock, weight]) => {
+      if (!currentPortfolio[stock]) {
+        totalChange += weight;
+      }
+    });
+
+    // Transition cost as percentage of return
+    // Each unit of turnover costs costPct (e.g., 2.85% for buying/selling)
+    // totalChange/2 because buying one stock means selling another
+    const transitionCost = (totalChange / 2) * costPct * 100;
+
+    return transitionCost;
+  }
+
+  function calculateExpectedReturnForHoldings(holdings, tradeDate) {
+    // Calculate weighted expected return based on historical target prices from scored_stocks.csv
+    // Uses the closest run date to the trade date for accurate historical calculation
     let totalValue = 0;
     let weightedReturn = 0;
     let stocksWithTargets = 0;
 
-    console.log('Calculating return for holdings:', Object.keys(holdings).filter(k => holdings[k].qty > 0));
+    const activeHoldings = Object.keys(holdings).filter(k => holdings[k].qty > 0);
 
-    // First pass: calculate total portfolio value
+    // Find the closest scoring run to this trade date
+    // scored_stocks.csv has data per stock per run_id/date
+    let closestRunDate = null;
+    if (scoredStocksHistory && scoredStocksHistory.length > 0) {
+      // Get unique dates from scored stocks history, sorted ascending
+      const scoringDates = [...new Set(scoredStocksHistory.map(s => s.date))].sort();
+
+      // Find the closest date <= tradeDate (use data available at that point)
+      for (const d of scoringDates) {
+        if (d <= tradeDate) {
+          closestRunDate = d;
+        } else {
+          break;
+        }
+      }
+      // If no date before tradeDate, use the first available date
+      if (!closestRunDate && scoringDates.length > 0) {
+        closestRunDate = scoringDates[0];
+      }
+    }
+
+    // Build a map of stock -> {currentPrice, targetPrice} for the closest run date
+    const stockPricesForDate = {};
+    if (closestRunDate && scoredStocksHistory) {
+      scoredStocksHistory
+        .filter(s => s.date === closestRunDate)
+        .forEach(s => {
+          const normStock = normalizeTickerKey(s.stock);
+          stockPricesForDate[normStock] = {
+            currentPrice: s.currentPrice,
+            targetPrice: s.targetPrice
+          };
+        });
+    }
+
+    // First pass: calculate total portfolio value using historical prices
     const positionValues = {};
     for (const [normalizedSymbol, pos] of Object.entries(holdings)) {
       if (pos.qty <= 0) continue;
 
-      // Get current price from positionsData if available
+      // Try to get historical price for this stock
       let currentPrice = null;
-      if (positionsData && positionsData.positions) {
+      const historicalData = findStockPriceData(normalizedSymbol, stockPricesForDate);
+
+      if (historicalData && historicalData.currentPrice > 0) {
+        currentPrice = historicalData.currentPrice;
+      } else if (positionsData && positionsData.positions) {
+        // Fallback to current positions data
         const found = positionsData.positions.find(p => {
           const posNorm = normalizeTickerKey(p.symbol || p.ticker || '');
           return posNorm === normalizedSymbol;
@@ -1172,10 +1369,11 @@
         }
       }
 
-      // Fallback to avg cost
+      // Final fallback to avg cost
       if (!currentPrice && pos.qty > 0) {
         currentPrice = pos.totalCost / pos.qty;
       }
+
 
       const value = pos.qty * currentPrice;
       positionValues[normalizedSymbol] = { value, currentPrice, qty: pos.qty };
@@ -1184,29 +1382,20 @@
 
     if (totalValue <= 0) return null;
 
-    // Second pass: calculate weighted return using targets
+    // Second pass: calculate weighted return using historical targets
     for (const [normalizedSymbol, posVal] of Object.entries(positionValues)) {
       const weight = posVal.value / totalValue;
 
-      // Try multiple formats to find target price
+      // Try to get historical target price
       let targetPrice = null;
-      const keysToTry = [
-        normalizedSymbol,                           // PLPL3SA
-        normalizedSymbol + 'SA',                    // PLPL3SASA (unlikely but try)
-        normalizedSymbol.replace(/SA$/, ''),        // PLPL3
-        normalizedSymbol.replace(/SA$/, '') + 'SA', // PLPL3SA again
-      ];
+      const historicalData = findStockPriceData(normalizedSymbol, stockPricesForDate);
 
-      for (const key of keysToTry) {
-        const val = targetsData[key];
-        // Only accept numeric values (skip string mappings)
-        if (val !== undefined && val !== null && typeof val === 'number' && !isNaN(val)) {
-          targetPrice = val;
-          break;
-        }
+      if (historicalData && historicalData.targetPrice > 0) {
+        targetPrice = historicalData.targetPrice;
+      } else {
+        // Fallback to current targets data with ON/PN equivalences
+        targetPrice = findTargetPriceWithEquivalences(normalizedSymbol);
       }
-
-      console.log(`Stock ${normalizedSymbol}: currentPrice=${posVal.currentPrice?.toFixed(2)}, targetPrice=${targetPrice?.toFixed(2) || 'N/A'}, weight=${(weight*100).toFixed(1)}%`);
 
       if (targetPrice && posVal.currentPrice > 0) {
         const stockReturn = ((targetPrice - posVal.currentPrice) / posVal.currentPrice) * 100;
@@ -1217,13 +1406,77 @@
 
     // Only return if we have targets for at least some stocks
     if (stocksWithTargets === 0) {
-      console.warn('No stocks with target prices found. Holdings:', Object.keys(positionValues));
-      console.warn('Available targets sample:', Object.keys(targetsData).slice(0, 20));
       return null;
     }
 
     return weightedReturn;
   }
+
+  function findStockPriceData(normalizedSymbol, stockPricesForDate) {
+    // Try to find price data for this symbol, including ON/PN equivalences
+    const baseSymbol = normalizedSymbol.replace(/SA$/, '');  // e.g., PETR3
+    const baseWithoutNum = baseSymbol.replace(/[0-9]+$/, ''); // e.g., PETR
+    const numPart = baseSymbol.match(/[0-9]+$/)?.[0] || '';   // e.g., 3
+
+    const alternativeNums = {
+      '3': ['4', '11'],
+      '4': ['3', '11'],
+      '6': ['3', '4'],
+      '11': ['3', '4'],
+    };
+
+    const keysToTry = [
+      normalizedSymbol,
+      baseSymbol + 'SA',
+    ];
+
+    if (numPart && alternativeNums[numPart]) {
+      alternativeNums[numPart].forEach(altNum => {
+        keysToTry.push(baseWithoutNum + altNum + 'SA');
+      });
+    }
+
+    for (const key of keysToTry) {
+      if (stockPricesForDate[key]) {
+        return stockPricesForDate[key];
+      }
+    }
+    return null;
+  }
+
+  function findTargetPriceWithEquivalences(normalizedSymbol) {
+    // Find target price in targetsData with ON/PN equivalences
+    const baseSymbol = normalizedSymbol.replace(/SA$/, '');
+    const baseWithoutNum = baseSymbol.replace(/[0-9]+$/, '');
+    const numPart = baseSymbol.match(/[0-9]+$/)?.[0] || '';
+
+    const alternativeNums = {
+      '3': ['4', '11'],
+      '4': ['3', '11'],
+      '6': ['3', '4'],
+      '11': ['3', '4'],
+    };
+
+    const keysToTry = [
+      normalizedSymbol,
+      baseSymbol + 'SA',
+    ];
+
+    if (numPart && alternativeNums[numPart]) {
+      alternativeNums[numPart].forEach(altNum => {
+        keysToTry.push(baseWithoutNum + altNum + 'SA');
+      });
+    }
+
+    for (const key of keysToTry) {
+      const val = targetsData[key];
+      if (val !== undefined && val !== null && typeof val === 'number' && !isNaN(val)) {
+        return val;
+      }
+    }
+    return null;
+  }
+
 
   function renderAllocation() {
     const metrics = calculatePortfolioMetrics();
@@ -1723,7 +1976,6 @@
     const recalcBtn = document.getElementById('recalculateBtn');
     if (recalcBtn) {
       recalcBtn.addEventListener('click', function() {
-        console.log('Recalculando análise de rebalanceamento...');
         renderRebalance();
         // Feedback visual
         this.textContent = '✓ Recalculado!';
@@ -1740,7 +1992,6 @@
       const input = document.getElementById(id);
       if (input) {
         input.addEventListener('change', function() {
-          console.log(`Parâmetro ${id} alterado para: ${this.value}`);
           renderRebalance();
         });
       }

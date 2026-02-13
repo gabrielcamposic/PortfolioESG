@@ -1,0 +1,121 @@
+name: Deploy to GCP
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'html/**'
+      - 'parameters/**'
+      - '.github/workflows/deploy-gcp.yml'
+  workflow_dispatch:  # Permite trigger manual
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  BUCKET_NAME: ${{ secrets.GCS_BUCKET }}
+  DATA_BUCKET: ${{ secrets.GCS_DATA_BUCKET }}
+
+jobs:
+  deploy-website:
+    name: Deploy Website to GCS
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Verify gcloud setup
+        run: |
+          gcloud info
+          gsutil ls
+
+      - name: Deploy HTML to GCS
+        run: |
+          echo "📦 Deploying website to gs://${{ env.BUCKET_NAME }}/"
+          gsutil -m rsync -r -d html/ gs://${{ env.BUCKET_NAME }}/
+          echo "✅ Website deployed successfully!"
+
+      - name: Deploy Parameters to GCS
+        run: |
+          echo "📦 Deploying parameters to gs://${{ env.DATA_BUCKET }}/parameters/"
+          gsutil -m rsync -r parameters/ gs://${{ env.DATA_BUCKET }}/parameters/
+          echo "✅ Parameters deployed successfully!"
+
+      - name: Set Cache Headers
+        run: |
+          # HTML files - cache for 1 hour
+          gsutil -m setmeta -h "Cache-Control:public, max-age=3600" \
+            gs://${{ env.BUCKET_NAME }}/*.html
+          
+          # CSS/JS files - cache for 1 day
+          gsutil -m setmeta -h "Cache-Control:public, max-age=86400" \
+            gs://${{ env.BUCKET_NAME }}/css/*.css || true
+          gsutil -m setmeta -h "Cache-Control:public, max-age=86400" \
+            gs://${{ env.BUCKET_NAME }}/js/*.js || true
+          
+          # JSON data files - no cache (always fresh)
+          gsutil -m setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" \
+            gs://${{ env.BUCKET_NAME }}/data/*.json || true
+          gsutil -m setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" \
+            gs://${{ env.BUCKET_NAME }}/data/*.csv || true
+
+      - name: Deploy Summary
+        run: |
+          echo ""
+          echo "════════════════════════════════════════════════════════"
+          echo "  DEPLOY COMPLETED"
+          echo "════════════════════════════════════════════════════════"
+          echo ""
+          echo "  🌐 Website: https://storage.googleapis.com/${{ env.BUCKET_NAME }}/index.html"
+          echo "  📅 Time: $(date)"
+          echo "  🔄 Commit: ${{ github.sha }}"
+          echo ""
+
+  # Job opcional para sincronizar dados de resultados
+  sync-results:
+    name: Sync Results Data
+    runs-on: ubuntu-latest
+    needs: deploy-website
+    if: github.event_name == 'workflow_dispatch'  # Apenas no trigger manual
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Sync Results to GCS
+        run: |
+          if [ -d "data/results" ]; then
+            echo "📦 Syncing results to gs://${{ env.DATA_BUCKET }}/data/results/"
+            gsutil -m rsync -r data/results/ gs://${{ env.DATA_BUCKET }}/data/results/
+            echo "✅ Results synced!"
+          else
+            echo "⚠️ No results directory found, skipping"
+          fi
+
