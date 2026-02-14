@@ -942,12 +942,12 @@ a{color:var(--accent-2);text-decoration:none;padding:8px 12px;background:transpa
 .table-responsive {
   overflow-x: auto;
 }
-#positionsTable, #transactionsTable, #comparisonTable {
+#positionsTable, #transactionsTable, #comparisonTable, #optimizedTransactionsTable {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
-#positionsTable th, #transactionsTable th, #comparisonTable th {
+#positionsTable th, #transactionsTable th, #comparisonTable th, #optimizedTransactionsTable th {
   text-align: left;
   padding: 10px 8px;
   color: var(--muted);
@@ -955,12 +955,12 @@ a{color:var(--accent-2);text-decoration:none;padding:8px 12px;background:transpa
   border-bottom: 1px solid rgba(255,255,255,0.1);
   white-space: nowrap;
 }
-#positionsTable td, #transactionsTable td, #comparisonTable td {
+#positionsTable td, #transactionsTable td, #comparisonTable td, #optimizedTransactionsTable td {
   padding: 10px 8px;
   border-bottom: 1px solid rgba(255,255,255,0.03);
   vertical-align: middle;
 }
-#positionsTable tr:hover, #transactionsTable tr:hover, #comparisonTable tr:hover {
+#positionsTable tr:hover, #transactionsTable tr:hover, #comparisonTable tr:hover, #optimizedTransactionsTable tr:hover {
   background: rgba(255,255,255,0.02);
 }
 .positive { color: #5bd2a3; }

@@ -140,19 +140,10 @@ def save_ticker_skip_data(ticker: str, skip_data: list, params: dict[str, Any], 
         os.makedirs(os.path.dirname(consolidated_file), exist_ok=True)
         with open(consolidated_file, 'w') as f:
             json.dump(_consolidated_skips_cache, f, indent=2, sort_keys=True)
-        logger.debug(f"Updated consolidated skip file with {ticker}")
+        logger.info(f"Updated consolidated skip file with {ticker}")
     except Exception as e:
         logger.warning(f"Could not save consolidated skip file: {e}")
 
-    # Also save to individual file (backward compatibility, can be removed after migration)
-    try:
-        skip_file = get_ticker_skip_file(ticker, params)
-        os.makedirs(os.path.dirname(skip_file), exist_ok=True)
-        with open(skip_file, 'w') as f:
-            json.dump(skip_data, f, indent=4)
-        logger.info(f"Saved skip data for {ticker} to {skip_file}")
-    except Exception as e:
-        logger.error(f"Failed to save skip data for {ticker}: {e}")
 
 
 def get_missing_dates(

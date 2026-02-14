@@ -832,7 +832,9 @@
         excessReturnEl.className = 'metric-value ' + (excess >= 0 ? 'positive' : 'negative');
       }
       if (transitionCostEl) {
-        transitionCostEl.textContent = formatPercent(optimal.transition_cost_pct || 0);
+        // Use 2 decimal places for small values like transition cost
+        const costPct = optimal.transition_cost_pct || 0;
+        transitionCostEl.textContent = '-' + Math.abs(costPct).toFixed(2) + '%';
         transitionCostEl.className = 'metric-value negative';
       }
     }
@@ -844,16 +846,28 @@
       const tbody = document.getElementById('optimizedTransactionsBody');
       if (tbody) {
         tbody.innerHTML = '';
-        transactions.forEach(tx => {
+
+        // Sort: SELL first, then BUY, then by absolute weight change (descending)
+        const sortedTx = [...transactions].sort((a, b) => {
+          if (a.action !== b.action) {
+            return a.action === 'SELL' ? -1 : 1;
+          }
+          return Math.abs(b.weight_change || 0) - Math.abs(a.weight_change || 0);
+        });
+
+        sortedTx.forEach(tx => {
           const tr = document.createElement('tr');
           const actionClass = tx.action === 'BUY' ? 'positive' : 'negative';
-          const weightChange = ((tx.target_weight - tx.current_weight) * 100).toFixed(1);
+          const currentWeight = (tx.current_weight || 0) * 100;
+          const targetWeight = (tx.target_weight || 0) * 100;
+          const weightChange = targetWeight - currentWeight;
+
           tr.innerHTML = `
-            <td><strong>${tx.symbol}</strong></td>
+            <td><strong>${tx.symbol.replace('.SA', '')}</strong></td>
             <td class="${actionClass}">${tx.action === 'BUY' ? '🟢 Comprar' : '🔴 Vender'}</td>
-            <td>${(tx.current_weight * 100).toFixed(1)}%</td>
-            <td>${(tx.target_weight * 100).toFixed(1)}%</td>
-            <td class="${actionClass}">${weightChange > 0 ? '+' : ''}${weightChange}%</td>
+            <td>${currentWeight.toFixed(1)}%</td>
+            <td>${targetWeight.toFixed(1)}%</td>
+            <td class="${actionClass}">${weightChange >= 0 ? '+' : ''}${weightChange.toFixed(1)}%</td>
           `;
           tbody.appendChild(tr);
         });

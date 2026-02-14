@@ -17,15 +17,8 @@
   // IMPORTANTE: Adicione os emails autorizados na lista ALLOWED_EMAILS abaixo
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "firebase/app";
-  import { getAnalytics } from "firebase/analytics";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
+  // Firebase configuration - usando SDK compat via CDN (carregado dinamicamente)
+  const FIREBASE_CONFIG = {
     apiKey: "AIzaSyDkmazMpNPzKMqctiIxtmbA2-IHDJ3hxsM",
     authDomain: "portfolioesg.firebaseapp.com",
     projectId: "portfolioesg",
@@ -35,9 +28,6 @@
     measurementId: "G-4EWVXMGDSZ"
   };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
 
   // Lista de emails autorizados a acessar o sistema
   // Adicione seu email do Google aqui

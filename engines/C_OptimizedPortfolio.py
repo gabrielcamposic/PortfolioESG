@@ -50,8 +50,93 @@ LEDGER_POSITIONS_JSON = os.path.join(ROOT, 'html', 'data', 'ledger_positions.jso
 LATEST_RUN_JSON = os.path.join(ROOT, 'html', 'data', 'latest_run_summary.json')
 PORTFOLIO_RESULTS_DB = os.path.join(ROOT, 'data', 'results', 'portfolio_results_db.csv')
 WEB_DATA_PATH = os.path.join(ROOT, 'html', 'data')
-FINDATA_PATH = os.path.join(ROOT, 'data', 'findata')
+FINDATA_PATH = os.path.join(ROOT, 'data', 'findata')  # Legacy - kept for backward compatibility
+FINDB_PATH = os.path.join(ROOT, 'data', 'findb')
+STOCK_DATA_DB = os.path.join(FINDB_PATH, 'StockDataDB.csv')
+FINANCIALS_DB = os.path.join(FINDB_PATH, 'FinancialsDB.csv')
 TICKERS_FILE = os.path.join(ROOT, 'parameters', 'tickers.txt')
+
+# Global caches for database data (loaded once)
+_STOCK_PRICES_CACHE = None
+_FINANCIALS_CACHE = None
+
+
+def _load_stock_prices_db(logger: logging.Logger):
+    """Load stock prices from StockDataDB.csv into memory cache"""
+    global _STOCK_PRICES_CACHE
+
+    if _STOCK_PRICES_CACHE is not None:
+        return _STOCK_PRICES_CACHE
+
+    _STOCK_PRICES_CACHE = {}
+
+    if not os.path.exists(STOCK_DATA_DB):
+        logger.warning(f"StockDataDB not found: {STOCK_DATA_DB}")
+        return _STOCK_PRICES_CACHE
+
+    try:
+        logger.info(f"Loading stock prices from {STOCK_DATA_DB}...")
+        df = pd.read_csv(STOCK_DATA_DB)
+        df['Date'] = pd.to_datetime(df['Date'])
+
+        # Create a dictionary: {ticker: {date_str: close_price}}
+        for _, row in df.iterrows():
+            ticker = row.get('Stock', row.get('Ticker', ''))
+            if not ticker:
+                continue
+            date_str = row['Date'].strftime('%Y-%m-%d')
+            close_price = row.get('Close')
+
+            if pd.notna(close_price):
+                if ticker not in _STOCK_PRICES_CACHE:
+                    _STOCK_PRICES_CACHE[ticker] = {}
+                _STOCK_PRICES_CACHE[ticker][date_str] = float(close_price)
+
+        logger.info(f"Loaded price data for {len(_STOCK_PRICES_CACHE)} tickers")
+    except Exception as e:
+        logger.error(f"Failed to load StockDataDB: {e}")
+
+    return _STOCK_PRICES_CACHE
+
+
+def _load_financials_db(logger: logging.Logger):
+    """Load financials data from FinancialsDB.csv into memory cache"""
+    global _FINANCIALS_CACHE
+
+    if _FINANCIALS_CACHE is not None:
+        return _FINANCIALS_CACHE
+
+    _FINANCIALS_CACHE = {}
+
+    if not os.path.exists(FINANCIALS_DB):
+        logger.warning(f"FinancialsDB not found: {FINANCIALS_DB}")
+        return _FINANCIALS_CACHE
+
+    try:
+        logger.info(f"Loading financials from {FINANCIALS_DB}...")
+        df = pd.read_csv(FINANCIALS_DB)
+
+        # Keep only the latest entry per ticker
+        df['Timestamp'] = pd.to_datetime(df.get('Timestamp', df.get('Date', '')), errors='coerce')
+        df = df.sort_values('Timestamp', ascending=False).drop_duplicates(subset=['Ticker'], keep='first')
+
+        for _, row in df.iterrows():
+            ticker = row.get('Ticker', '')
+            if not ticker:
+                continue
+
+            _FINANCIALS_CACHE[ticker] = {
+                'current_price': row.get('currentPrice') or row.get('CurrentPrice'),
+                'target_price': row.get('targetMeanPrice') or row.get('TargetMeanPrice'),
+                'forward_pe': row.get('forwardPE') or row.get('ForwardPE'),
+                'forward_eps': row.get('forwardEps') or row.get('ForwardEps'),
+            }
+
+        logger.info(f"Loaded financials for {len(_FINANCIALS_CACHE)} tickers")
+    except Exception as e:
+        logger.error(f"Failed to load FinancialsDB: {e}")
+
+    return _FINANCIALS_CACHE
 
 
 # ----------------------------------------------------------- #
@@ -307,97 +392,82 @@ def calculate_dynamic_transaction_cost(logger: logging.Logger, params: Dict) -> 
 
 
 def get_current_price(symbol: str, logger: logging.Logger) -> Optional[float]:
-    """Get current price for a symbol from findata (latest daily CSV)"""
-    symbol_clean = symbol.replace('.SA', '') + '.SA'
-    stock_folder = os.path.join(FINDATA_PATH, symbol_clean)
+    """Get current price for a symbol from StockDataDB (latest available price)"""
+    symbol_clean = symbol.replace('.SA', '') + '.SA' if '.SA' not in symbol else symbol
 
-    if not os.path.exists(stock_folder):
-        stock_folder = os.path.join(FINDATA_PATH, symbol.replace('.SA', ''))
+    # First try FinancialsDB for currentPrice
+    financials = _load_financials_db(logger)
+    if symbol_clean in financials:
+        current = financials[symbol_clean].get('current_price')
+        if current and pd.notna(current):
+            return float(current)
 
-    if not os.path.exists(stock_folder):
+    # Fall back to StockDataDB (most recent close price)
+    prices_db = _load_stock_prices_db(logger)
+    if symbol_clean not in prices_db:
         return None
 
-    try:
-        # Find the most recent CSV file (format: StockData_XXXX_YYYY-MM-DD.csv)
-        csv_files = [f for f in os.listdir(stock_folder) if f.startswith('StockData_') and f.endswith('.csv')]
-        if not csv_files:
-            return None
-
-        # Sort by date (filename contains date)
-        csv_files.sort(reverse=True)
-        latest_file = os.path.join(stock_folder, csv_files[0])
-
-        df = pd.read_csv(latest_file)
-        if df.empty:
-            return None
-
-        # Get Close price
-        price_col = 'Close' if 'Close' in df.columns else 'close'
-        if price_col in df.columns:
-            return float(df[price_col].iloc[-1])
+    ticker_prices = prices_db[symbol_clean]
+    if not ticker_prices:
         return None
 
-    except Exception as e:
-        logger.debug(f"Could not get price for {symbol}: {e}")
-        return None
+    # Get the most recent date's price
+    sorted_dates = sorted(ticker_prices.keys(), reverse=True)
+    if sorted_dates:
+        return ticker_prices[sorted_dates[0]]
+
+    return None
 
 
 def get_target_price(symbol: str, logger: logging.Logger) -> Optional[float]:
-    """Get target price for a symbol from findata info.json"""
-    symbol_clean = symbol.replace('.SA', '') + '.SA'
-    info_file = os.path.join(FINDATA_PATH, symbol_clean, 'info.json')
+    """Get target price for a symbol from FinancialsDB"""
+    symbol_clean = symbol.replace('.SA', '') + '.SA' if '.SA' not in symbol else symbol
 
-    if not os.path.exists(info_file):
-        info_file = os.path.join(FINDATA_PATH, symbol.replace('.SA', ''), 'info.json')
+    financials = _load_financials_db(logger)
+    if symbol_clean in financials:
+        target = financials[symbol_clean].get('target_price')
+        if target and pd.notna(target):
+            return float(target)
 
-    if not os.path.exists(info_file):
-        return None
-
-    try:
-        with open(info_file, 'r', encoding='utf-8') as f:
-            info = json.load(f)
-        return info.get('targetMeanPrice') or info.get('targetPrice')
-
-    except Exception as e:
-        logger.debug(f"Could not get target price for {symbol}: {e}")
-        return None
+    return None
 
 
 def get_historical_return(symbol: str, days: int, logger: logging.Logger) -> Optional[float]:
-    """Get historical return for a symbol over the last N days"""
-    symbol_clean = symbol.replace('.SA', '') + '.SA'
-    stock_folder = os.path.join(FINDATA_PATH, symbol_clean)
+    """Get historical return for a symbol over the last N days using StockDataDB"""
+    symbol_clean = symbol.replace('.SA', '') + '.SA' if '.SA' not in symbol else symbol
 
-    if not os.path.exists(stock_folder):
-        stock_folder = os.path.join(FINDATA_PATH, symbol.replace('.SA', ''))
+    prices_db = _load_stock_prices_db(logger)
+    if symbol_clean not in prices_db:
+        return None
 
-    if not os.path.exists(stock_folder):
+    ticker_prices = prices_db[symbol_clean]
+    if len(ticker_prices) < 2:
         return None
 
     try:
-        # Find all CSV files and sort by date
-        csv_files = [f for f in os.listdir(stock_folder) if f.startswith('StockData_') and f.endswith('.csv')]
-        if len(csv_files) < 2:
-            return None
+        # Sort dates
+        sorted_dates = sorted(ticker_prices.keys(), reverse=True)
 
-        csv_files.sort(reverse=True)  # Most recent first
+        # Get current price (most recent)
+        current_price = ticker_prices[sorted_dates[0]]
 
-        # Read latest price
-        latest_file = os.path.join(stock_folder, csv_files[0])
-        latest_df = pd.read_csv(latest_file)
-        price_col = 'Close' if 'Close' in latest_df.columns else 'close'
-        if price_col not in latest_df.columns:
-            return None
-        current_price = float(latest_df[price_col].iloc[-1])
+        # Find price from approximately N days ago
+        target_date = (datetime.strptime(sorted_dates[0], '%Y-%m-%d') - timedelta(days=days)).strftime('%Y-%m-%d')
 
-        # Find file from ~N days ago
-        target_idx = min(days, len(csv_files) - 1)
-        past_file = os.path.join(stock_folder, csv_files[target_idx])
-        past_df = pd.read_csv(past_file)
-        past_price = float(past_df[price_col].iloc[-1])
+        # Find the closest date to target
+        past_price = None
+        for date_str in sorted_dates:
+            if date_str <= target_date:
+                past_price = ticker_prices[date_str]
+                break
 
-        if past_price > 0:
+        if past_price is None and len(sorted_dates) > 1:
+            # Use the oldest available price
+            past_price = ticker_prices[sorted_dates[-1]]
+
+        if past_price and past_price > 0:
             return (current_price - past_price) / past_price
+
         return None
 
     except Exception as e:
@@ -672,20 +742,25 @@ def calculate_portfolio_momentum(portfolio: Dict[str, Any], logger: logging.Logg
     total_momentum = 0
     total_weight = 0
 
+    prices_db = _load_stock_prices_db(logger)
+
     for stock, weight in weights.items():
         # Get 12-month return as proxy for momentum
-        price_file = os.path.join(FINDATA_PATH, stock, 'prices.csv')
-        if not os.path.exists(price_file):
+        symbol_clean = stock.replace('.SA', '') + '.SA' if '.SA' not in stock else stock
+
+        if symbol_clean not in prices_db:
             continue
 
         try:
-            df = pd.read_csv(price_file)
-            if len(df) < 252:
+            ticker_prices = prices_db[symbol_clean]
+            sorted_dates = sorted(ticker_prices.keys(), reverse=True)
+
+            if len(sorted_dates) < 252:
                 continue
 
-            price_col = 'Close' if 'Close' in df.columns else 'close'
-            current_price = df[price_col].iloc[-1]
-            price_12m_ago = df[price_col].iloc[-252]
+            current_price = ticker_prices[sorted_dates[0]]
+            # Find price from ~252 trading days ago
+            price_12m_ago = ticker_prices[sorted_dates[min(251, len(sorted_dates) - 1)]]
 
             if price_12m_ago > 0:
                 momentum = (current_price - price_12m_ago) / price_12m_ago

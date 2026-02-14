@@ -18,7 +18,7 @@ WEIGHT_MOMENTUM = 0.2
 MIN_EXCESS_RETURN_THRESHOLD = 0.5
 
 # --- Transaction Cost Calculation ---
-# DYNAMIC = calcula baseado no histórico de transações
+# DYNAMIC = calcula baseado no histórico de transações (recomendado para custos reais)
 # FIXED = usa valor fixo definido abaixo
 TRANSACTION_COST_MODE = DYNAMIC
 
@@ -27,7 +27,8 @@ TRANSACTION_COST_MIN_TRANSACTIONS = 20
 TRANSACTION_COST_MIN_MONTHS = 6
 
 # Custo fixo de transação (% por trade) - usado se TRANSACTION_COST_MODE = FIXED
-TRANSACTION_COST_FIXED_PCT = 0.1
+# Seu custo real da Ágora é ~0.03%, muito abaixo da média do mercado
+TRANSACTION_COST_FIXED_PCT = 0.03
 
 # --- Expected Return Window ---
 # Janela temporal para cálculo de expected return (dias úteis)

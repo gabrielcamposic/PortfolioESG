@@ -23,9 +23,14 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / 'data'
 HTML_DATA_DIR = BASE_DIR / 'html' / 'data'
-FINDATA_DIR = DATA_DIR / 'findata'
+FINDATA_DIR = DATA_DIR / 'findata'  # Legacy - kept for backward compatibility
+FINDB_DIR = DATA_DIR / 'findb'
+STOCK_DATA_DB = FINDB_DIR / 'StockDataDB.csv'
 LEDGER_CSV = HTML_DATA_DIR / 'ledger.csv'
 OUTPUT_FILE = HTML_DATA_DIR / 'portfolio_history.json'
+
+# Global cache for stock prices loaded from StockDataDB
+_STOCK_PRICES_CACHE = None
 
 
 def load_transactions():
@@ -45,42 +50,68 @@ def load_transactions():
     return df
 
 
+def _load_stock_prices_db():
+    """Load all stock prices from StockDataDB.csv into memory cache"""
+    global _STOCK_PRICES_CACHE
+
+    if _STOCK_PRICES_CACHE is not None:
+        return _STOCK_PRICES_CACHE
+
+    _STOCK_PRICES_CACHE = {}
+
+    if not STOCK_DATA_DB.exists():
+        print(f"[WARN] StockDataDB not found: {STOCK_DATA_DB}")
+        return _STOCK_PRICES_CACHE
+
+    try:
+        print(f"[INFO] Loading stock prices from {STOCK_DATA_DB}...")
+        df = pd.read_csv(STOCK_DATA_DB)
+        df['Date'] = pd.to_datetime(df['Date'])
+
+        # Create a dictionary: {ticker: {date_str: close_price}}
+        for _, row in df.iterrows():
+            ticker = row.get('Stock', row.get('Ticker', ''))
+            if not ticker:
+                continue
+            date_str = row['Date'].strftime('%Y-%m-%d')
+            close_price = row.get('Close')
+
+            if pd.notna(close_price):
+                if ticker not in _STOCK_PRICES_CACHE:
+                    _STOCK_PRICES_CACHE[ticker] = {}
+                _STOCK_PRICES_CACHE[ticker][date_str] = float(close_price)
+
+        print(f"[INFO] Loaded prices for {len(_STOCK_PRICES_CACHE)} tickers")
+    except Exception as e:
+        print(f"[ERROR] Failed to load StockDataDB: {e}")
+
+    return _STOCK_PRICES_CACHE
+
+
 def get_stock_price(symbol, date):
-    """Get the closing price for a stock on a given date"""
-    # Clean symbol for folder lookup
-    if '.SA' not in symbol:
+    """Get the closing price for a stock on a given date from StockDataDB"""
+    # Clean symbol for lookup
+    if '.SA' not in symbol and not symbol.startswith('^'):
         symbol = f"{symbol}.SA"
 
-    symbol_dir = FINDATA_DIR / symbol
+    prices_db = _load_stock_prices_db()
 
-    if not symbol_dir.exists():
+    if symbol not in prices_db:
         return None
 
-    # Try exact date first
+    ticker_prices = prices_db[symbol]
     date_str = date.strftime('%Y-%m-%d')
-    csv_file = symbol_dir / f"StockData_{symbol}_{date_str}.csv"
 
-    if csv_file.exists():
-        try:
-            df = pd.read_csv(csv_file)
-            if 'Close' in df.columns and len(df) > 0:
-                return float(df['Close'].iloc[0])
-        except Exception:
-            pass
+    # Try exact date first
+    if date_str in ticker_prices:
+        return ticker_prices[date_str]
 
     # Try to find the nearest previous trading day (up to 10 days back)
     for days_back in range(1, 11):
         prev_date = date - timedelta(days=days_back)
-        date_str = prev_date.strftime('%Y-%m-%d')
-        csv_file = symbol_dir / f"StockData_{symbol}_{date_str}.csv"
-
-        if csv_file.exists():
-            try:
-                df = pd.read_csv(csv_file)
-                if 'Close' in df.columns and len(df) > 0:
-                    return float(df['Close'].iloc[0])
-            except Exception:
-                pass
+        prev_date_str = prev_date.strftime('%Y-%m-%d')
+        if prev_date_str in ticker_prices:
+            return ticker_prices[prev_date_str]
 
     return None
 
