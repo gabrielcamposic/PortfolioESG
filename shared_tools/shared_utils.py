@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 import logging
 import tempfile
 from datetime import datetime, timedelta
@@ -9,6 +10,17 @@ from dateutil.easter import easter
 from holidays.countries.brazil import Brazil as BrazilHolidays
 from typing import List, Dict, Any, Union
 from os import PathLike
+
+
+class FlushingStreamHandler(logging.StreamHandler):
+    """
+    A StreamHandler that flushes after every emit.
+    This prevents buffering pauses in terminal output.
+    """
+    def emit(self, record):
+        super().emit(record)
+        self.flush()
+
 
 class JsonWebLogHandler(logging.Handler):
     """
@@ -108,8 +120,9 @@ def setup_logger(logger_name, log_file, web_log_file, level=logging.INFO):
     # Create a standard formatter for console and file logs.
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    # --- Handler 1: Console Output (StreamHandler) ---
-    stream_handler = logging.StreamHandler()
+    # --- Handler 1: Console Output (FlushingStreamHandler) ---
+    # Uses custom handler that flushes after each message to avoid buffering pauses
+    stream_handler = FlushingStreamHandler(sys.stdout)
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 

@@ -18,6 +18,10 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Set Python path and force unbuffered output
+export PYTHONPATH="$PROJECT_ROOT"
+export PYTHONUNBUFFERED=1
+
 # Activate virtual environment if it exists
 if [ -d "$PROJECT_ROOT/.venv" ]; then
     source "$PROJECT_ROOT/.venv/bin/activate"

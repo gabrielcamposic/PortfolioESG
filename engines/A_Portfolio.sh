@@ -15,6 +15,9 @@ PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
 # This allows Python to find modules like 'shared_tools' from anywhere in the project.
 export PYTHONPATH="$PROJECT_ROOT"
 
+# Force Python to run in unbuffered mode to avoid output pauses in terminal
+export PYTHONUNBUFFERED=1
+
 # Define paths to the scripts and the main progress file
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 DOWNLOAD_SCRIPT="$PROJECT_ROOT/engines/A1_Download.py"

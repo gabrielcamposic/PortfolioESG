@@ -15,10 +15,12 @@ body{margin:0;padding-top:var(--nav-height);background:linear-gradient(180deg,va
 .wrap{max-width:820px}
 .header, .top{display:flex;align-items:center;justify-content:space-between}
 .header h1, .top h1{margin:0;font-size:20px}
-.controls{display:flex;gap:8px}
+.controls{display:flex;gap:8px;align-items:center}
 button{background:var(--accent);color:#033;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
 button:active{transform:translateY(1px)}
 a{color:var(--accent-2);text-decoration:none;padding:8px 12px;background:transparent;border-radius:8px}
+.help-link{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);font-size:13px;transition:background 0.2s}
+.help-link:hover{background:rgba(255,255,255,0.1)}
 .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:14px;margin-top:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
 
 /* top navigation - shared */
@@ -99,6 +101,24 @@ a{color:var(--accent-2);text-decoration:none;padding:8px 12px;background:transpa
 .kpi{background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.01));padding:12px;border-radius:8px;text-align:center}
 .kpi-val{font-size:20px;font-weight:700;color:var(--accent)}
 .kpi-label{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* KPI qualification bars */
+.kpi-qual-bar{width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin-top:8px;overflow:hidden}
+.kpi-qual-fill{height:100%;border-radius:3px;transition:width 0.3s, background 0.3s}
+.kpi-qual-label{font-size:10px;margin-top:4px;font-weight:600}
+.kpi-qual-label.qual-good{color:#4CAF50}
+.kpi-qual-label.qual-moderate{color:#FFC107}
+.kpi-qual-label.qual-bad{color:#f44336}
+
+/* P/E comparison bars */
+.metric-compare-card{min-width:200px}
+.pe-compare-container{margin-top:8px}
+.pe-compare-bar{display:flex;height:24px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;gap:2px}
+.pe-compare-portfolio{height:100%;background:var(--accent);border-radius:4px 0 0 4px;transition:width 0.3s}
+.pe-compare-benchmark{height:100%;background:#ff9800;border-radius:0 4px 4px 0;transition:width 0.3s}
+.pe-compare-legend{display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:10px;color:var(--muted)}
+.pe-legend-port{display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px;margin-right:4px;vertical-align:middle}
+.pe-legend-bench{display:inline-block;width:10px;height:10px;background:#ff9800;border-radius:2px;margin-right:4px;vertical-align:middle}
 
 /* mini KPI cards under holdings table */
 #peMomentum.mini-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:12px }

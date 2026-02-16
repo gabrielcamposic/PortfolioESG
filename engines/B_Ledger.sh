@@ -8,6 +8,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
 export PYTHONPATH="$PROJECT_ROOT"
 
+# Force Python to run in unbuffered mode to avoid output pauses in terminal
+export PYTHONUNBUFFERED=1
+
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 PROCESS_NOTES_SCRIPT="$PROJECT_ROOT/engines/B1_Process_Notes.py"
 CONSOLIDATE_LEDGER_SCRIPT="$PROJECT_ROOT/engines/B2_Consolidate_Ledger.py"

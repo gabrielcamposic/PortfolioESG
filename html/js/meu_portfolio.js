@@ -1372,22 +1372,16 @@
 
       if (historicalData && historicalData.currentPrice > 0) {
         currentPrice = historicalData.currentPrice;
-      } else if (positionsData && positionsData.positions) {
-        // Fallback to current positions data
-        const found = positionsData.positions.find(p => {
-          const posNorm = normalizeTickerKey(p.symbol || p.ticker || '');
-          return posNorm === normalizedSymbol;
-        });
-        if (found && found.current_price) {
-          currentPrice = found.current_price;
-        }
       }
+      // Removed fallback to current positions data - use only historical data for consistency
 
-      // Final fallback to avg cost
+      // Final fallback to avg cost (valid because it's the actual purchase price)
       if (!currentPrice && pos.qty > 0) {
         currentPrice = pos.totalCost / pos.qty;
       }
 
+      // Skip if we still have no price
+      if (!currentPrice || currentPrice <= 0) continue;
 
       const value = pos.qty * currentPrice;
       positionValues[normalizedSymbol] = { value, currentPrice, qty: pos.qty };
@@ -1397,19 +1391,19 @@
     if (totalValue <= 0) return null;
 
     // Second pass: calculate weighted return using historical targets
+    // IMPORTANT: Only use historical data, no fallback to current prices
+    // This ensures historical calculations remain stable over time
     for (const [normalizedSymbol, posVal] of Object.entries(positionValues)) {
       const weight = posVal.value / totalValue;
 
-      // Try to get historical target price
+      // Try to get historical target price - NO FALLBACK to current data
       let targetPrice = null;
       const historicalData = findStockPriceData(normalizedSymbol, stockPricesForDate);
 
       if (historicalData && historicalData.targetPrice > 0) {
         targetPrice = historicalData.targetPrice;
-      } else {
-        // Fallback to current targets data with ON/PN equivalences
-        targetPrice = findTargetPriceWithEquivalences(normalizedSymbol);
       }
+      // Removed fallback to current targets - historical calculation must use only historical data
 
       if (targetPrice && posVal.currentPrice > 0) {
         const stockReturn = ((targetPrice - posVal.currentPrice) / posVal.currentPrice) * 100;

@@ -240,6 +240,74 @@
       els.kpiHhi.textContent = cr.hhi != null ? Number(cr.hhi).toFixed(4) : '—';
     }
 
+    // === QUALIFICAÇÃO VISUAL DOS KPIs ===
+
+    // Sharpe qualification: <1 ruim, 1-2 bom, >2 excelente
+    const sharpeBar = document.getElementById('sharpe-qual-bar');
+    const sharpeLabel = document.getElementById('sharpe-qual-label');
+    if (sharpeBar && sharpeLabel && p.sharpe_ratio != null) {
+      const sharpe = Number(p.sharpe_ratio);
+      let pct, color, label, labelClass;
+      if (sharpe < 1) {
+        pct = Math.min(100, (sharpe / 1) * 33);
+        color = '#f44336'; label = 'Baixo'; labelClass = 'qual-bad';
+      } else if (sharpe < 2) {
+        pct = 33 + ((sharpe - 1) / 1) * 33;
+        color = '#FFC107'; label = 'Bom'; labelClass = 'qual-moderate';
+      } else {
+        pct = 66 + Math.min(34, ((sharpe - 2) / 2) * 34);
+        color = '#4CAF50'; label = 'Excelente'; labelClass = 'qual-good';
+      }
+      sharpeBar.style.width = pct + '%';
+      sharpeBar.style.background = color;
+      sharpeLabel.textContent = label;
+      sharpeLabel.className = 'kpi-qual-label ' + labelClass;
+    }
+
+    // HHI qualification: <0.15 diversificado, 0.15-0.25 moderado, >0.25 concentrado
+    const hhiBar = document.getElementById('hhi-qual-bar');
+    const hhiLabel = document.getElementById('hhi-qual-label');
+    if (hhiBar && hhiLabel && cr.hhi != null) {
+      const hhi = Number(cr.hhi);
+      let pct, color, label, labelClass;
+      if (hhi < 0.15) {
+        pct = (hhi / 0.15) * 33;
+        color = '#4CAF50'; label = 'Diversificado'; labelClass = 'qual-good';
+      } else if (hhi < 0.25) {
+        pct = 33 + ((hhi - 0.15) / 0.10) * 33;
+        color = '#FFC107'; label = 'Moderado'; labelClass = 'qual-moderate';
+      } else {
+        pct = 66 + Math.min(34, ((hhi - 0.25) / 0.25) * 34);
+        color = '#f44336'; label = 'Concentrado'; labelClass = 'qual-bad';
+      }
+      hhiBar.style.width = pct + '%';
+      hhiBar.style.background = color;
+      hhiLabel.textContent = label;
+      hhiLabel.className = 'kpi-qual-label ' + labelClass;
+    }
+
+    // Top 5% qualification: <50% diversificado, 50-80% moderado, >80% concentrado
+    const top5Bar = document.getElementById('top5-qual-bar');
+    const top5Label = document.getElementById('top5-qual-label');
+    if (top5Bar && top5Label && cr.top_5_holdings_pct != null) {
+      const top5 = Number(cr.top_5_holdings_pct) * 100;
+      let pct, color, label, labelClass;
+      if (top5 < 50) {
+        pct = (top5 / 50) * 33;
+        color = '#4CAF50'; label = 'Diversificado'; labelClass = 'qual-good';
+      } else if (top5 < 80) {
+        pct = 33 + ((top5 - 50) / 30) * 33;
+        color = '#FFC107'; label = 'Moderado'; labelClass = 'qual-moderate';
+      } else {
+        pct = 66 + Math.min(34, ((top5 - 80) / 20) * 34);
+        color = '#f44336'; label = 'Concentrado'; labelClass = 'qual-bad';
+      }
+      top5Bar.style.width = pct + '%';
+      top5Bar.style.background = color;
+      top5Label.textContent = label;
+      top5Label.className = 'kpi-qual-label ' + labelClass;
+    }
+
     // Diagnostics KPIs (inline with charts in history section)
     els.kpiSharpeDiag.textContent = p.sharpe_ratio != null ? Number(p.sharpe_ratio).toFixed(3) : '—';
     els.kpiVolDiag.textContent = p.expected_volatility_annual_pct != null ? Number(p.expected_volatility_annual_pct).toFixed(1)+'%' : '—';
@@ -284,6 +352,31 @@
       if(vals.length) computed_bpe = vals.reduce((a,b)=>a+b,0)/vals.length;
     }
     els.bpe.textContent = (computed_bpe != null && !isNaN(Number(computed_bpe))) ? Number(computed_bpe).toFixed(1) : '—';
+
+    // === P/E COMPARISON VISUAL ===
+    const peCompareLabel = document.getElementById('pe-compare-label');
+    const pePortBar = document.getElementById('pe-compare-portfolio-bar');
+    const peBenchBar = document.getElementById('pe-compare-benchmark-bar');
+    if (peCompareLabel && pePortBar && peBenchBar && computed_pwpe != null && computed_bpe != null) {
+      const total = computed_pwpe + computed_bpe;
+      const portPct = (computed_pwpe / total) * 100;
+      const benchPct = (computed_bpe / total) * 100;
+      pePortBar.style.width = portPct + '%';
+      peBenchBar.style.width = benchPct + '%';
+
+      // Label: show if portfolio is cheaper or more expensive
+      const diff = ((computed_pwpe - computed_bpe) / computed_bpe) * 100;
+      if (diff < -5) {
+        peCompareLabel.textContent = Math.abs(diff).toFixed(0) + '% mais barato';
+        peCompareLabel.style.color = '#4CAF50';
+      } else if (diff > 5) {
+        peCompareLabel.textContent = diff.toFixed(0) + '% mais caro';
+        peCompareLabel.style.color = '#f44336';
+      } else {
+        peCompareLabel.textContent = 'Similar';
+        peCompareLabel.style.color = '#FFC107';
+      }
+    }
   }
 
   // render treemap using simple flex tiles
@@ -2301,14 +2394,41 @@
       }
     }
 
-    // Information Ratio
+    // Information Ratio: <0 ruim, 0-0.5 ok, 0.5-1 bom, >1 excelente
     const infoRatioEl = document.getElementById('diag_info_ratio');
+    const infoRatioBar = document.getElementById('diag_info_ratio_bar');
+    const infoRatioQual = document.getElementById('diag_info_ratio_qual');
     if (infoRatioEl) {
       const v = data.information_ratio;
       if (v != null && !isNaN(v)) {
-        infoRatioEl.textContent = Number(v).toFixed(4);
+        infoRatioEl.textContent = Number(v).toFixed(2);
         infoRatioEl.classList.toggle('positive', v > 0);
         infoRatioEl.classList.toggle('negative', v < 0);
+
+        // Bar and qualification
+        if (infoRatioBar && infoRatioQual) {
+          let pct, color, label;
+          if (v < 0) {
+            pct = Math.max(5, 25 + (v * 25)); // negative values get small bar
+            color = '#f44336'; label = 'Ruim';
+          } else if (v < 0.5) {
+            pct = 25 + (v / 0.5) * 25;
+            color = '#FFC107'; label = 'Regular';
+          } else if (v < 1) {
+            pct = 50 + ((v - 0.5) / 0.5) * 25;
+            color = '#8BC34A'; label = 'Bom';
+          } else {
+            pct = 75 + Math.min(25, ((v - 1) / 1) * 25);
+            color = '#4CAF50'; label = 'Excelente';
+          }
+          infoRatioBar.style.width = pct + '%';
+          infoRatioBar.style.background = color;
+          infoRatioQual.textContent = label;
+          infoRatioQual.style.color = color;
+          infoRatioQual.style.fontSize = '10px';
+          infoRatioQual.style.fontWeight = '600';
+          infoRatioQual.style.marginTop = '4px';
+        }
       } else {
         infoRatioEl.textContent = '—';
       }

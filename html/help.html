@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ajuda - Documentação dos Cálculos</title>
+  <link rel="stylesheet" href="./css/styles.css">
+  <style>
+    .help-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .help-section {
+      background: var(--card-bg, #1e1e1e);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border-color, #333);
+    }
+    .help-section h2 {
+      color: var(--accent-color, #4CAF50);
+      margin-top: 0;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color, #333);
+    }
+    .help-section h3 {
+      color: var(--text-secondary, #aaa);
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    .formula-box {
+      background: var(--bg-darker, #121212);
+      border-radius: 6px;
+      padding: 16px;
+      margin: 12px 0;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 14px;
+      border-left: 4px solid var(--accent-color, #4CAF50);
+      overflow-x: auto;
+    }
+    .formula-box code {
+      color: #81c784;
+    }
+    .importance-box {
+      background: rgba(33, 150, 243, 0.1);
+      border-radius: 6px;
+      padding: 16px;
+      margin: 12px 0;
+      border-left: 4px solid #2196F3;
+    }
+    .importance-box strong {
+      color: #2196F3;
+    }
+    .source-box {
+      background: rgba(255, 152, 0, 0.1);
+      border-radius: 6px;
+      padding: 16px;
+      margin: 12px 0;
+      border-left: 4px solid #FF9800;
+    }
+    .source-box strong {
+      color: #FF9800;
+    }
+    .example-box {
+      background: rgba(156, 39, 176, 0.1);
+      border-radius: 6px;
+      padding: 16px;
+      margin: 12px 0;
+      border-left: 4px solid #9C27B0;
+    }
+    .example-box strong {
+      color: #9C27B0;
+    }
+    .toc {
+      background: var(--card-bg, #1e1e1e);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .toc h2 {
+      margin-top: 0;
+      color: var(--accent-color, #4CAF50);
+    }
+    .toc ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .toc li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color, #333);
+    }
+    .toc li:last-child {
+      border-bottom: none;
+    }
+    .toc a {
+      color: var(--text-primary, #fff);
+      text-decoration: none;
+    }
+    .toc a:hover {
+      color: var(--accent-color, #4CAF50);
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: var(--accent-color, #4CAF50);
+      text-decoration: none;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    table.calc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+    }
+    table.calc-table th, table.calc-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color, #333);
+    }
+    table.calc-table th {
+      background: var(--bg-darker, #121212);
+      color: var(--accent-color, #4CAF50);
+    }
+    .time-horizon {
+      display: inline-block;
+      background: var(--accent-color, #4CAF50);
+      color: #000;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <script src="./js/load_nav.js"></script>
+
+  <main class="help-container">
+
+    <header class="header">
+      <h1>📊 Documentação dos Cálculos</h1>
+      <p style="color: var(--text-secondary);">Explicação detalhada de cada métrica usada na página Meu Portfolio</p>
+    </header>
+
+    <!-- Índice -->
+    <nav class="toc">
+      <h2>Índice</h2>
+      <ul>
+        <li><a href="#metricas-portfolio">1. Métricas do Portfolio</a></li>
+        <li><a href="#projecoes">2. Projeções e Target Price</a></li>
+        <li><a href="#retornos">3. Retornos Esperados</a></li>
+        <li><a href="#rebalanceamento">4. Análise de Rebalanceamento</a></li>
+        <li><a href="#custos">5. Custos de Transação</a></li>
+        <li><a href="#grafico-evolucao">6. Gráfico de Evolução</a></li>
+        <li><a href="#kpis-recomendado">7. KPIs do Portfolio Recomendado</a></li>
+        <li><a href="#risco">8. Métricas de Risco</a></li>
+        <li><a href="#valuation">9. Valuation & Momentum</a></li>
+        <li><a href="#attribution">10. Performance Attribution</a></li>
+        <li><a href="#benchmarks">11. Benchmarks</a></li>
+        <li><a href="#fontes-dados">12. Fontes de Dados</a></li>
+      </ul>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 1: MÉTRICAS DO PORTFOLIO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="metricas-portfolio" class="help-section">
+      <h2>1. Métricas do Portfolio</h2>
+
+      <!-- Total Investido -->
+      <h3>1.1 Total Investido</h3>
+      <p>Soma de todo o capital aplicado nas posições atuais, considerando compras e vendas.</p>
+
+      <div class="formula-box">
+        <code>Total Investido = Σ (Quantidade × Preço de Compra)</code><br>
+        <small>Para cada posição ativa, soma-se o custo total de aquisição.</small>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        É a base para calcular rentabilidade real. Mostra quanto dinheiro você efetivamente colocou no mercado.
+      </div>
+
+      <div class="example-box">
+        <strong>Exemplo:</strong><br>
+        Se você comprou 10 ações de VALE3 a R$80 e 5 ações de PETR4 a R$35:<br>
+        <code>Total Investido = (10 × 80) + (5 × 35) = R$ 975,00</code>
+      </div>
+
+      <!-- Valor Atual -->
+      <h3>1.2 Valor Atual</h3>
+      <p>Valor de mercado atual de todas as posições.</p>
+
+      <div class="formula-box">
+        <code>Valor Atual = Σ (Quantidade × Preço Atual de Mercado)</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Mostra quanto seu portfolio vale hoje se você liquidasse todas as posições.
+      </div>
+
+      <!-- P&L (Lucro/Prejuízo) -->
+      <h3>1.3 Lucro/Prejuízo (P&L)</h3>
+      <p>Diferença entre o valor atual e o valor investido.</p>
+
+      <div class="formula-box">
+        <code>P&L = Valor Atual - Total Investido</code><br>
+        <code>P&L (%) = (Valor Atual - Total Investido) / Total Investido × 100</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Indica se você está ganhando ou perdendo dinheiro. O percentual permite comparar performance entre portfolios de tamanhos diferentes.
+      </div>
+
+      <!-- Peso de cada ação -->
+      <h3>1.4 Peso (%) de Cada Ação</h3>
+      <p>Participação percentual de cada ação no portfolio total.</p>
+
+      <div class="formula-box">
+        <code>Peso (%) = (Valor Atual da Ação / Valor Total do Portfolio) × 100</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Mostra a concentração do portfolio. Um peso muito alto em uma única ação aumenta o risco específico.
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 2: PROJEÇÕES E TARGET PRICE
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="projecoes" class="help-section">
+      <h2>2. Projeções e Target Price <span class="time-horizon">Horizonte: 12 meses</span></h2>
+
+      <!-- Target Price -->
+      <h3>2.1 Target Price (Preço Alvo)</h3>
+      <p>Estimativa do preço futuro da ação baseada na convergência do P/E para a mediana do setor.</p>
+
+      <div class="formula-box">
+        <code>Upside Potential = (Mediana P/E do Setor / Forward P/E da Ação) - 1</code><br><br>
+        <code>Target Price = Preço Atual × (1 + Upside Potential)</code>
+      </div>
+
+      <div class="source-box">
+        <strong>Fonte dos dados:</strong><br>
+        <ul>
+          <li><strong>Forward P/E:</strong> Yahoo Finance (estimativa de analistas para os próximos 12 meses)</li>
+          <li><strong>Mediana P/E do Setor:</strong> Calculada a partir de todas as ações do mesmo setor no universo analisado</li>
+        </ul>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Identifica ações "baratas" em relação ao seu setor. Se uma ação tem P/E menor que a mediana do setor, há potencial de valorização quando o mercado reconhecer seu valor.
+      </div>
+
+      <div class="example-box">
+        <strong>Exemplo:</strong><br>
+        Ação XPTO: Preço Atual = R$20, Forward P/E = 8, Mediana do Setor = 12<br>
+        <code>Upside = (12 / 8) - 1 = 0.50 (50%)</code><br>
+        <code>Target Price = 20 × 1.50 = R$ 30,00</code>
+      </div>
+
+      <!-- Valor Projetado -->
+      <h3>2.2 Valor Projetado</h3>
+      <p>Valor estimado do portfolio em ~12 meses, usando os Target Prices.</p>
+
+      <div class="formula-box">
+        <code>Valor Projetado = Σ (Quantidade × Target Price)</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Mostra o potencial de valorização do seu portfolio, permitindo avaliar se vale a pena manter as posições atuais ou rebalancear.
+      </div>
+
+      <!-- Upside Esperado -->
+      <h3>2.3 Upside Esperado</h3>
+      <p>Potencial de valorização do portfolio em relação ao valor atual.</p>
+
+      <div class="formula-box">
+        <code>Upside Esperado (%) = (Valor Projetado - Valor Atual) / Valor Atual × 100</code>
+      </div>
+
+      <!-- Lucro Projetado -->
+      <h3>2.4 Lucro Projetado</h3>
+      <p>Lucro esperado considerando o capital investido.</p>
+
+      <div class="formula-box">
+        <code>Lucro Projetado = Valor Projetado - Total Investido</code>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 3: RETORNOS ESPERADOS
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="retornos" class="help-section">
+      <h2>3. Retornos Esperados <span class="time-horizon">Horizonte: 12 meses</span></h2>
+
+      <!-- Retorno Esperado do Portfolio -->
+      <h3>3.1 Retorno Esperado do Portfolio</h3>
+      <p>Média ponderada dos retornos esperados de cada ação, usando os pesos do portfolio.</p>
+
+      <div class="formula-box">
+        <code>Retorno Esperado = Σ (Peso_i × Retorno_i)</code><br><br>
+        Onde:<br>
+        <code>Retorno_i = (Target Price_i - Preço Atual_i) / Preço Atual_i × 100</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Permite comparar o potencial do seu portfolio atual com alternativas (como o portfolio ideal recomendado pelo sistema).
+      </div>
+
+      <div class="example-box">
+        <strong>Exemplo:</strong><br>
+        Portfolio com 2 ações:<br>
+        - VALE3: Peso 60%, Retorno esperado 25%<br>
+        - PETR4: Peso 40%, Retorno esperado 15%<br>
+        <code>Retorno Esperado = (0.60 × 25) + (0.40 × 15) = 21%</code>
+      </div>
+
+      <!-- Forward P/E -->
+      <h3>3.2 Forward P/E (Preço/Lucro Projetado)</h3>
+      <p>Relação entre o preço atual e o lucro por ação estimado para os próximos 12 meses.</p>
+
+      <div class="formula-box">
+        <code>Forward P/E = Preço Atual / EPS Estimado (próximos 12 meses)</code>
+      </div>
+
+      <div class="source-box">
+        <strong>Fonte:</strong> Yahoo Finance - baseado em estimativas de consenso de analistas (NTM - Next Twelve Months).
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Indica quantos anos de lucro você está pagando pela ação. Um P/E baixo pode indicar subvalorização; um P/E alto pode indicar expectativas de crescimento ou sobrevalorização.
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 4: ANÁLISE DE REBALANCEAMENTO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="rebalanceamento" class="help-section">
+      <h2>4. Análise de Rebalanceamento</h2>
+
+      <!-- Retorno Excedente -->
+      <h3>4.1 Retorno Excedente (Excess Return)</h3>
+      <p>Diferença entre o retorno esperado do portfolio ideal e do portfolio atual.</p>
+
+      <div class="formula-box">
+        <code>Excess Return = Retorno Esperado (Ideal) - Retorno Esperado (Holdings)</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Indica quanto retorno adicional você poderia obter trocando para o portfolio recomendado. Se for maior que o custo de transição, pode valer a pena rebalancear.
+      </div>
+
+      <!-- Threshold -->
+      <h3>4.2 Threshold (Limite Mínimo)</h3>
+      <p>Excesso de retorno mínimo necessário para justificar o rebalanceamento.</p>
+
+      <div class="formula-box">
+        <code>Decisão = "REBALANCE" se Excess Return > Threshold</code><br>
+        <code>Decisão = "HOLD" se Excess Return ≤ Threshold</code>
+      </div>
+
+      <div class="source-box">
+        <strong>Configuração padrão:</strong> Threshold = 0.5%
+      </div>
+
+      <!-- Score do Portfolio -->
+      <h3>4.3 Score do Portfolio</h3>
+      <p>Pontuação composta que combina retorno esperado, Sharpe ratio e momentum.</p>
+
+      <div class="formula-box">
+        <code>Score = (Peso_Retorno × Retorno_Norm) + (Peso_Sharpe × Sharpe_Norm) + (Peso_Momentum × Momentum_Norm)</code>
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Componente</th>
+          <th>Peso Padrão</th>
+          <th>Descrição</th>
+        </tr>
+        <tr>
+          <td>Retorno Esperado</td>
+          <td>40%</td>
+          <td>Potencial de valorização</td>
+        </tr>
+        <tr>
+          <td>Sharpe Ratio</td>
+          <td>40%</td>
+          <td>Retorno ajustado ao risco</td>
+        </tr>
+        <tr>
+          <td>Momentum</td>
+          <td>20%</td>
+          <td>Tendência de curto prazo</td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 5: CUSTOS DE TRANSAÇÃO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="custos" class="help-section">
+      <h2>5. Custos de Transação</h2>
+
+      <!-- Custo de Transição -->
+      <h3>5.1 Custo de Transição</h3>
+      <p>Custo estimado para mudar do portfolio atual para o portfolio recomendado.</p>
+
+      <div class="formula-box">
+        <code>Turnover = Σ |Peso_Ideal - Peso_Atual| / 2</code><br><br>
+        <code>Custo de Transição = Turnover × Taxa de Transação</code>
+      </div>
+
+      <div class="example-box">
+        <strong>Exemplo:</strong><br>
+        Se você precisa vender 50% do portfolio e comprar 50% em novas ações:<br>
+        <code>Turnover = 50%</code><br>
+        Com taxa de 2.85%:<br>
+        <code>Custo = 0.50 × 0.0285 = 1.43%</code>
+      </div>
+
+      <!-- Taxa de Transação -->
+      <h3>5.2 Taxa de Transação</h3>
+      <p>Percentual cobrado por cada operação de compra ou venda.</p>
+
+      <div class="source-box">
+        <strong>Componentes típicos:</strong>
+        <ul>
+          <li>Taxa de liquidação (CBLC): ~0.02%</li>
+          <li>Emolumentos (B3): ~0.004%</li>
+          <li>Taxa de corretagem: variável (pode ser zero em algumas corretoras)</li>
+          <li>Spread bid-ask e impacto de mercado: variável</li>
+        </ul>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Custos de transação reduzem o retorno real. Um rebalanceamento só vale a pena se o ganho esperado superar os custos.
+      </div>
+
+      <!-- Retorno Líquido -->
+      <h3>5.3 Retorno Líquido</h3>
+      <p>Retorno esperado após descontar os custos de transição.</p>
+
+      <div class="formula-box">
+        <code>Retorno Líquido = Retorno Esperado (Ideal) - Custo de Transição</code>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 6: GRÁFICO DE EVOLUÇÃO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="grafico-evolucao" class="help-section">
+      <h2>6. Gráfico de Evolução: Ideal vs Implementado</h2>
+
+      <h3>6.1 Linha Azul: Portfolio Ideal (líquido de custos)</h3>
+      <p>Retorno esperado do portfolio recomendado pelo sistema em cada data, descontando o custo de transição.</p>
+
+      <div class="formula-box">
+        <code>Retorno Ideal Líquido = Retorno Ideal - Custo de Transição</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Mostra o potencial máximo de retorno que o sistema identificou em cada momento, já considerando que você teria custos para implementá-lo.
+      </div>
+
+      <h3>6.2 Linha Verde: Portfolio Implementado</h3>
+      <p>Retorno esperado do portfolio que você realmente possui em cada data de negociação.</p>
+
+      <div class="formula-box">
+        <code>Retorno Implementado = Σ (Peso_i × Retorno_i)</code><br>
+        <small>Calculado usando os Target Prices históricos da época (não os atuais).</small>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que usar dados históricos?</strong><br>
+        Para manter consistência: o retorno esperado calculado em uma data deve permanecer o mesmo, independente de quando você consulta. Isso permite avaliar suas decisões passadas de forma justa.
+      </div>
+
+      <h3>6.3 Interpretação do Gráfico</h3>
+      <table class="calc-table">
+        <tr>
+          <th>Cenário</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>Ideal > Implementado</td>
+          <td>Você não implementou o portfolio recomendado. Pode ter perdido oportunidade de ganho.</td>
+        </tr>
+        <tr>
+          <td>Ideal ≈ Implementado</td>
+          <td>Você seguiu a recomendação ou seu portfolio tem potencial similar.</td>
+        </tr>
+        <tr>
+          <td>Implementado > Ideal</td>
+          <td>Raro, mas possível se o mercado mudou favoravelmente para suas posições.</td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 7: KPIs DO PORTFOLIO RECOMENDADO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="kpis-recomendado" class="help-section">
+      <h2>7. KPIs do Portfolio Recomendado</h2>
+      <p>Métricas-chave exibidas na página "Recomendado" (latest_run_summary.html).</p>
+
+      <div class="source-box">
+        <strong>Visualizações Disponíveis:</strong><br>
+        Alguns KPIs possuem barras de qualificação visual que indicam se o valor está em uma faixa boa, moderada ou ruim:
+        <ul>
+          <li><strong>Sharpe Ratio:</strong> Barra verde (bom), amarela (moderado), vermelha (baixo)</li>
+          <li><strong>HHI:</strong> Barra verde (diversificado), amarela (moderado), vermelha (concentrado)</li>
+          <li><strong>Top 5%:</strong> Barra verde (diversificado), amarela (moderado), vermelha (concentrado)</li>
+        </ul>
+      </div>
+
+      <!-- Sharpe Ratio -->
+      <h3>7.1 Sharpe Ratio</h3>
+      <p>Mede o retorno ajustado ao risco do portfolio.</p>
+
+      <div class="formula-box">
+        <code>Sharpe Ratio = (Retorno do Portfolio - Taxa Livre de Risco) / Volatilidade do Portfolio</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Quanto maior o Sharpe, melhor o retorno por unidade de risco assumido.
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Sharpe Ratio</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>&lt; 1</td>
+          <td>Baixo - retorno não compensa o risco</td>
+        </tr>
+        <tr>
+          <td>1 a 2</td>
+          <td>Bom - retorno adequado ao risco</td>
+        </tr>
+        <tr>
+          <td>&gt; 2</td>
+          <td>Excelente - retorno muito acima do risco</td>
+        </tr>
+      </table>
+
+      <div class="example-box">
+        <strong>Exemplo:</strong><br>
+        Retorno = 25%, Taxa livre de risco = 10%, Volatilidade = 15%<br>
+        <code>Sharpe = (0.25 - 0.10) / 0.15 = 1.0</code>
+      </div>
+
+      <!-- Retorno Anual -->
+      <h3>7.2 Retorno Anual (Ann. Return)</h3>
+      <p>Retorno esperado anualizado do portfolio recomendado.</p>
+
+      <div class="formula-box">
+        <code>Retorno Anual = Σ (Peso_i × Retorno Esperado_i)</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Permite comparar portfolios com diferentes horizontes temporais em uma base comum (anual).
+      </div>
+
+      <!-- Volatilidade -->
+      <h3>7.3 Volatilidade</h3>
+      <p>Desvio padrão anualizado dos retornos do portfolio.</p>
+
+      <div class="formula-box">
+        <code>Volatilidade = σ(Retornos Diários) × √252</code><br>
+        <small>252 = número de dias de pregão por ano</small>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Mede o risco do portfolio. Maior volatilidade significa maiores oscilações de preço (tanto positivas quanto negativas).
+      </div>
+
+      <!-- HHI -->
+      <h3>7.4 HHI (Herfindahl-Hirschman Index)</h3>
+      <p>Mede a concentração do portfolio.</p>
+
+      <div class="formula-box">
+        <code>HHI = Σ (Peso_i)²</code><br>
+        <small>Onde Peso_i é o peso decimal de cada ação (ex: 0.20 para 20%)</small>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        HHI baixo indica portfolio diversificado. HHI alto indica concentração em poucas ações.
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>HHI</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>&lt; 0.15</td>
+          <td>Bem diversificado</td>
+        </tr>
+        <tr>
+          <td>0.15 - 0.25</td>
+          <td>Moderadamente concentrado</td>
+        </tr>
+        <tr>
+          <td>&gt; 0.25</td>
+          <td>Altamente concentrado</td>
+        </tr>
+      </table>
+
+      <!-- Top 5 % -->
+      <h3>7.5 Top 5 %</h3>
+      <p>Soma dos pesos das 5 maiores posições do portfolio.</p>
+
+      <div class="formula-box">
+        <code>Top 5 % = Σ Peso das 5 maiores posições</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Indica quão dependente o portfolio está das principais posições.
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Top 5 %</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>&lt; 50%</td>
+          <td>Diversificado - risco bem distribuído</td>
+        </tr>
+        <tr>
+          <td>50% a 80%</td>
+          <td>Moderado - alguma concentração</td>
+        </tr>
+        <tr>
+          <td>&gt; 80%</td>
+          <td>Concentrado - alta dependência das top 5</td>
+        </tr>
+      </table>
+
+      <!-- Turnover -->
+      <h3>7.6 Turnover</h3>
+      <p>Percentual do portfolio que precisa ser rebalanceado.</p>
+
+      <div class="formula-box">
+        <code>Turnover = Σ |Peso_Novo - Peso_Anterior| / 2</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Alto turnover implica mais custos de transação. É importante balancear entre otimização e custos.
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 8: MÉTRICAS DE RISCO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="risco" class="help-section">
+      <h2>8. Métricas de Risco</h2>
+
+      <div class="source-box">
+        <strong>Visualizações Disponíveis:</strong><br>
+        <ul>
+          <li><strong>Tracking Error:</strong> Barra de progresso proporcional ao valor</li>
+          <li><strong>Information Ratio:</strong> Barra colorida com qualificação (Ruim/Regular/Bom/Excelente)</li>
+          <li><strong>Matriz de Correlação:</strong> Heatmap com escala de cores de -1 (azul) a +1 (vermelho)</li>
+        </ul>
+      </div>
+
+      <!-- Tracking Error -->
+      <h3>8.1 Tracking Error</h3>
+      <p>Desvio padrão da diferença entre os retornos do portfolio e do benchmark.</p>
+
+      <div class="formula-box">
+        <code>Tracking Error = σ(Retorno_Portfolio - Retorno_Benchmark)</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Mede quanto o portfolio se desvia do benchmark. Um tracking error alto pode indicar gestão ativa agressiva ou falta de aderência.
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Tracking Error</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>&lt; 5%</td>
+          <td>Baixo - portfolio segue o benchmark de perto</td>
+        </tr>
+        <tr>
+          <td>5% a 15%</td>
+          <td>Moderado - gestão ativa moderada</td>
+        </tr>
+        <tr>
+          <td>&gt; 15%</td>
+          <td>Alto - gestão muito ativa ou descolada do benchmark</td>
+        </tr>
+      </table>
+
+      <!-- Information Ratio -->
+      <h3>8.2 Information Ratio</h3>
+      <p>Retorno ativo (excesso sobre benchmark) dividido pelo tracking error.</p>
+
+      <div class="formula-box">
+        <code>Information Ratio = (Retorno_Portfolio - Retorno_Benchmark) / Tracking Error</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Mede a eficiência da gestão ativa. Quanto maior, melhor o gestor consegue gerar retorno excedente por unidade de risco ativo.
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Information Ratio</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>&lt; 0</td>
+          <td>Ruim - gestão ativa destruiu valor</td>
+        </tr>
+        <tr>
+          <td>0 a 0.5</td>
+          <td>Regular - alguma geração de valor</td>
+        </tr>
+        <tr>
+          <td>0.5 a 1.0</td>
+          <td>Bom - gestão ativa eficiente</td>
+        </tr>
+        <tr>
+          <td>&gt; 1.0</td>
+          <td>Excelente - gestão ativa muito eficiente</td>
+        </tr>
+      </table>
+
+      <!-- Liquidity Score -->
+      <h3>8.3 Liquidity Score</h3>
+      <p>Pontuação baseada no volume médio negociado das ações do portfolio.</p>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Ações com baixa liquidez podem ter spreads maiores e dificuldade de execução em grandes volumes.
+      </div>
+
+      <!-- Matriz de Correlação -->
+      <h3>8.4 Matriz de Correlação</h3>
+      <p>Mostra a correlação entre pares de ações do portfolio.</p>
+
+      <div class="formula-box">
+        <code>Correlação(A,B) = Cov(A,B) / (σ_A × σ_B)</code><br>
+        <small>Varia de -1 (correlação negativa perfeita) a +1 (correlação positiva perfeita)</small>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Ações com baixa correlação entre si reduzem o risco do portfolio (diversificação). Se todas as ações forem altamente correlacionadas, caem e sobem juntas.
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Correlação</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>0.8 a 1.0</td>
+          <td>Muito alta - movem-se juntas</td>
+        </tr>
+        <tr>
+          <td>0.5 a 0.8</td>
+          <td>Moderada</td>
+        </tr>
+        <tr>
+          <td>0 a 0.5</td>
+          <td>Baixa - boa para diversificação</td>
+        </tr>
+        <tr>
+          <td>-1.0 a 0</td>
+          <td>Negativa - movem-se em direções opostas</td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 9: VALUATION & MOMENTUM
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="valuation" class="help-section">
+      <h2>9. Valuation & Momentum</h2>
+
+      <div class="source-box">
+        <strong>Visualizações Disponíveis:</strong><br>
+        <ul>
+          <li><strong>Momentum Signal:</strong> Gauge/termômetro de -1 a +1</li>
+          <li><strong>P/E: Portfolio vs Benchmark:</strong> Barras comparativas lado a lado com indicação de "mais barato" ou "mais caro"</li>
+        </ul>
+      </div>
+
+      <!-- Momentum Signal -->
+      <h3>9.1 Momentum Signal</h3>
+      <p>Indicador de tendência de curto prazo baseado no desempenho recente.</p>
+
+      <div class="formula-box">
+        <code>Momentum = (Preço Atual - Preço há N dias) / Preço há N dias</code><br>
+        <small>N geralmente é 20, 60 ou 252 dias</small>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Momentum positivo indica que a ação está em tendência de alta. Estratégias de momentum buscam "surfar" tendências existentes.
+      </div>
+
+      <!-- Portfolio P/E -->
+      <h3>9.2 Portfolio P/E</h3>
+      <p>P/E ponderado do portfolio, considerando o peso de cada ação.</p>
+
+      <div class="formula-box">
+        <code>Portfolio P/E = Σ (Peso_i × P/E_i)</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Permite comparar a "careza" do portfolio com o mercado ou benchmark. Um P/E baixo pode indicar subvalorização.
+      </div>
+
+      <!-- Benchmark P/E -->
+      <h3>9.3 Benchmark P/E</h3>
+      <p>P/E médio do benchmark (ex: Ibovespa).</p>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Se o Portfolio P/E for menor que o Benchmark P/E, o portfolio pode estar mais "barato" que o mercado.
+      </div>
+
+      <!-- Fwd P/E Implied Upside -->
+      <h3>9.4 Fwd P/E Implied Upside</h3>
+      <p>Potencial de valorização implícito baseado na convergência do Forward P/E para a mediana do setor.</p>
+
+      <div class="formula-box">
+        <code>Implied Upside = (Mediana Setor P/E - Forward P/E) / Forward P/E</code>
+      </div>
+
+      <!-- Dividend Yield -->
+      <h3>9.5 Dividend Yield (ponderado)</h3>
+      <p>Rendimento de dividendos ponderado pelo peso de cada ação.</p>
+
+      <div class="formula-box">
+        <code>Dividend Yield = Σ (Peso_i × DividendYield_i)</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Indica quanto o portfolio gera de renda passiva anual. Investidores focados em renda preferem portfolios com alto dividend yield.
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 10: PERFORMANCE ATTRIBUTION
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="attribution" class="help-section">
+      <h2>10. Performance Attribution</h2>
+      <p>Análise de quais fatores contribuíram para o retorno do portfolio.</p>
+
+      <!-- Total Active Return -->
+      <h3>10.1 Total Active Return</h3>
+      <p>Diferença entre o retorno do portfolio e o retorno do benchmark.</p>
+
+      <div class="formula-box">
+        <code>Active Return = Retorno Portfolio - Retorno Benchmark</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Mostra se a gestão ativa agregou valor comparado a simplesmente investir no benchmark.
+      </div>
+
+      <!-- Decomposição -->
+      <h3>10.2 Decomposição do Retorno</h3>
+      <p>O retorno ativo pode ser decomposto em:</p>
+
+      <table class="calc-table">
+        <tr>
+          <th>Componente</th>
+          <th>Descrição</th>
+        </tr>
+        <tr>
+          <td>Allocation Effect</td>
+          <td>Contribuição da escolha de setores (estar over/underweight em setores que performaram bem/mal)</td>
+        </tr>
+        <tr>
+          <td>Selection Effect</td>
+          <td>Contribuição da escolha de ações específicas dentro de cada setor</td>
+        </tr>
+        <tr>
+          <td>Interaction Effect</td>
+          <td>Efeito combinado de allocation e selection</td>
+        </tr>
+      </table>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Ajuda a entender se o gestor é melhor em escolher setores (allocation) ou ações específicas (selection).
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 11: BENCHMARKS
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="benchmarks" class="help-section">
+      <h2>11. Benchmarks</h2>
+      <p>O sistema utiliza dois benchmarks para comparação de performance:</p>
+
+      <table class="calc-table">
+        <tr>
+          <th>Benchmark</th>
+          <th>Símbolo</th>
+          <th>Descrição</th>
+        </tr>
+        <tr>
+          <td><strong>Ibovespa</strong></td>
+          <td>^BVSP</td>
+          <td>Principal índice da B3, composto pelas ações mais negociadas. Representa o desempenho médio do mercado brasileiro.</td>
+        </tr>
+        <tr>
+          <td><strong>iShares ESG Aware MSCI Brasil ETF</strong></td>
+          <td>ISUS11.SA</td>
+          <td>ETF que replica o índice de sustentabilidade da B3, focado em empresas com boas práticas ESG.</td>
+        </tr>
+      </table>
+
+      <h3>11.1 Uso dos Benchmarks</h3>
+
+      <div class="importance-box">
+        <strong>Por que usar benchmarks?</strong><br>
+        Benchmarks permitem avaliar se a gestão ativa está gerando valor. Se o portfolio não supera o benchmark de forma consistente, pode ser mais eficiente simplesmente investir no índice.
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Métrica</th>
+          <th>Como usa o Benchmark</th>
+        </tr>
+        <tr>
+          <td>Tracking Error</td>
+          <td>Desvio dos retornos do portfolio em relação ao Ibovespa</td>
+        </tr>
+        <tr>
+          <td>Information Ratio</td>
+          <td>Retorno excedente sobre Ibovespa / Tracking Error</td>
+        </tr>
+        <tr>
+          <td>Active Return</td>
+          <td>Retorno do portfolio - Retorno do Ibovespa</td>
+        </tr>
+        <tr>
+          <td>Benchmark P/E</td>
+          <td>P/E médio das top 50 ações do universo analisado (proxy do mercado)</td>
+        </tr>
+        <tr>
+          <td>Performance Attribution</td>
+          <td>Decomposição do retorno ativo vs Ibovespa</td>
+        </tr>
+      </table>
+
+      <h3>11.2 Benchmark P/E (proxy)</h3>
+      <p>Para o cálculo do Benchmark P/E, o sistema usa as top 50 ações com melhor score como proxy do mercado, calculando a média do Forward P/E.</p>
+
+      <div class="formula-box">
+        <code>Benchmark P/E = Média(Forward P/E das top 50 ações)</code>
+      </div>
+
+      <div class="source-box">
+        <strong>Nota:</strong> Este é um proxy simplificado. O P/E real do Ibovespa seria calculado ponderando pelo peso de cada ação no índice.
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SEÇÃO 12: FONTES DE DADOS
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="fontes-dados" class="help-section">
+      <h2>12. Fontes de Dados</h2>
+
+      <table class="calc-table">
+        <tr>
+          <th>Dado</th>
+          <th>Fonte</th>
+          <th>Atualização</th>
+        </tr>
+        <tr>
+          <td>Preços de ações</td>
+          <td>Yahoo Finance (yfinance)</td>
+          <td>Diária</td>
+        </tr>
+        <tr>
+          <td>Forward P/E</td>
+          <td>Yahoo Finance</td>
+          <td>Quando analistas revisam</td>
+        </tr>
+        <tr>
+          <td>Forward EPS</td>
+          <td>Yahoo Finance</td>
+          <td>Quando analistas revisam</td>
+        </tr>
+        <tr>
+          <td>Setor/Indústria</td>
+          <td>Yahoo Finance</td>
+          <td>Estático</td>
+        </tr>
+        <tr>
+          <td>Transações</td>
+          <td>Notas de Negociação (PDF)</td>
+          <td>A cada nova nota</td>
+        </tr>
+        <tr>
+          <td>Taxas</td>
+          <td>Notas de Negociação (PDF)</td>
+          <td>A cada nova nota</td>
+        </tr>
+      </table>
+
+      <h3>Sobre o Forward P/E do Yahoo Finance</h3>
+      <div class="source-box">
+        <strong>Definição:</strong><br>
+        O Forward P/E é calculado usando estimativas de consenso de analistas para os lucros dos próximos 12 meses (NTM - Next Twelve Months). É um horizonte "rolling", ou seja, sempre olha 12 meses à frente da data atual.
+      </div>
+
+      <h3>Limitações</h3>
+      <ul>
+        <li>Estimativas de analistas podem estar erradas</li>
+        <li>Mediana do setor pode não ser representativa para todas as ações</li>
+        <li>O modelo assume convergência de P/E, que nem sempre ocorre</li>
+        <li>Eventos extraordinários (fusões, mudanças regulatórias) não são capturados</li>
+      </ul>
+    </section>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+      <p>Documentação gerada para o PortfolioESG</p>
+      <p><small>Última atualização: Fevereiro 2026</small></p>
+    </footer>
+  </main>
+</body>
+</html>
+

@@ -30,11 +30,26 @@
          SEÇÃO 1: KPIs PRINCIPAIS - Métricas-chave de performance
          ═══════════════════════════════════════════════════════════════════════ -->
     <section id="kpis" class="card kpi-grid">
-      <div class="kpi" id="kpi-sharpe"><div class="kpi-val">—</div><div class="kpi-label">Sharpe</div></div>
+      <div class="kpi" id="kpi-sharpe">
+        <div class="kpi-val">—</div>
+        <div class="kpi-label">Sharpe</div>
+        <div class="kpi-qual-bar"><div class="kpi-qual-fill" id="sharpe-qual-bar"></div></div>
+        <div class="kpi-qual-label" id="sharpe-qual-label"></div>
+      </div>
       <div class="kpi" id="kpi-return"><div class="kpi-val">—</div><div class="kpi-label">Ann. Return</div></div>
       <div class="kpi" id="kpi-vol"><div class="kpi-val" id="kpi-vol-val">—</div><div class="kpi-label">Volatilidade</div></div>
-      <div class="kpi" id="kpi-hhi"><div class="kpi-val" id="kpi-hhi-val">—</div><div class="kpi-label">HHI</div></div>
-      <div class="kpi" id="kpi-top5"><div class="kpi-val">—</div><div class="kpi-label">Top 5 %</div></div>
+      <div class="kpi" id="kpi-hhi">
+        <div class="kpi-val" id="kpi-hhi-val">—</div>
+        <div class="kpi-label">HHI</div>
+        <div class="kpi-qual-bar"><div class="kpi-qual-fill" id="hhi-qual-bar"></div></div>
+        <div class="kpi-qual-label" id="hhi-qual-label"></div>
+      </div>
+      <div class="kpi" id="kpi-top5">
+        <div class="kpi-val">—</div>
+        <div class="kpi-label">Top 5 %</div>
+        <div class="kpi-qual-bar"><div class="kpi-qual-fill" id="top5-qual-bar"></div></div>
+        <div class="kpi-qual-label" id="top5-qual-label"></div>
+      </div>
       <div class="kpi" id="kpi-turnover"><div class="kpi-val" id="kpi-turnover-val">—</div><div class="kpi-label">Turnover</div></div>
     </section>
 
@@ -154,6 +169,10 @@
             <span class="metric-card-title">Information Ratio</span>
             <span class="metric-card-value" id="diag_info_ratio">—</span>
           </div>
+          <div class="metric-card-bar">
+            <div class="metric-bar-fill info-ratio-bar" id="diag_info_ratio_bar"></div>
+          </div>
+          <div class="metric-card-qual" id="diag_info_ratio_qual"></div>
           <div class="metric-card-desc">Retorno ativo / Tracking Error</div>
         </div>
         <div class="metric-card">
@@ -217,6 +236,23 @@
             <span class="metric-card-value" id="bpe">—</span>
           </div>
           <div class="metric-card-desc">P/E médio do benchmark</div>
+        </div>
+        <!-- Comparação visual P/E -->
+        <div class="metric-card metric-compare-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">P/E: Portfolio vs Benchmark</span>
+            <span class="metric-card-value" id="pe-compare-label">—</span>
+          </div>
+          <div class="pe-compare-container">
+            <div class="pe-compare-bar">
+              <div class="pe-compare-portfolio" id="pe-compare-portfolio-bar"></div>
+              <div class="pe-compare-benchmark" id="pe-compare-benchmark-bar"></div>
+            </div>
+            <div class="pe-compare-legend">
+              <span><span class="pe-legend-port"></span> Portfolio</span>
+              <span><span class="pe-legend-bench"></span> Benchmark</span>
+            </div>
+          </div>
         </div>
         <div class="metric-card">
           <div class="metric-card-header">

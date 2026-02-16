@@ -17,7 +17,10 @@
 #   --only-B          Run only B_Ledger pipeline
 #   --only-C          Run only C_OptimizedPortfolio
 #   --dry-run         Show what would be executed without running
-#   --verbose         Show detailed output
+#
+# Notes:
+#   - Shows heartbeat every 30s while stages are running
+#   - Detailed logs are saved to logs/run_all_<timestamp>.log
 #
 # Environment:
 #   SKIP_DOWNLOAD=1   Same as --skip-download
@@ -33,6 +36,10 @@ LOG_DIR="$PROJECT_ROOT/logs"
 TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
 MASTER_LOG="$LOG_DIR/run_all_$TIMESTAMP.log"
 
+# Force Python to run in unbuffered mode to avoid output pauses in terminal
+export PYTHONPATH="$PROJECT_ROOT"
+export PYTHONUNBUFFERED=1
+
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
 
@@ -42,7 +49,6 @@ RUN_B=true
 RUN_C=true
 SKIP_DOWNLOAD=${SKIP_DOWNLOAD:-false}
 DRY_RUN=false
-VERBOSE=false
 
 # --- Parse Arguments ---
 while [[ $# -gt 0 ]]; do
@@ -75,10 +81,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             DRY_RUN=true
-            shift
-            ;;
-        --verbose|-v)
-            VERBOSE=true
             shift
             ;;
         --help|-h)
@@ -124,14 +126,29 @@ run_stage() {
 
     local start_time=$(date +%s)
 
-    # Execute the script
-    if [ "$VERBOSE" = true ]; then
-        "$script_path" $extra_args 2>&1 | tee -a "$MASTER_LOG"
-        local exit_code=${PIPESTATUS[0]}
-    else
-        "$script_path" $extra_args >> "$MASTER_LOG" 2>&1
-        local exit_code=$?
-    fi
+    # Run the script in background, capturing output to log
+    "$script_path" $extra_args >> "$MASTER_LOG" 2>&1 &
+    local script_pid=$!
+
+    # Heartbeat: show progress every 30 seconds while script runs
+    local heartbeat_interval=30
+    local dots=""
+    while kill -0 $script_pid 2>/dev/null; do
+        sleep $heartbeat_interval
+        if kill -0 $script_pid 2>/dev/null; then
+            local elapsed=$(( $(date +%s) - start_time ))
+            local elapsed_min=$((elapsed / 60))
+            local elapsed_sec=$((elapsed % 60))
+            dots="${dots}."
+            # Show progress with elapsed time
+            echo -ne "\r[$(date '+%H:%M:%S')] $stage_name running... ${elapsed_min}m ${elapsed_sec}s ${dots}   "
+        fi
+    done
+    echo ""  # New line after progress dots
+
+    # Get exit code
+    wait $script_pid
+    local exit_code=$?
 
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))

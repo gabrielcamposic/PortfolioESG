@@ -850,6 +850,11 @@ def main():
         # This ensures that if a valid combo is found, its associated data is also valid.
         if isinstance(best_combo, list) and best_combo and isinstance(best_weights, (list, np.ndarray)):
             # 1. Save portfolio results
+            # Calculate final_value and roi_percent for backward compatibility with existing CSV header
+            initial_investment = params.get("initial_investment", 1000)
+            final_value = initial_investment * (1 + best_exp_ret)  # Approximate final value after 1 year
+            roi_percent = best_exp_ret * 100  # Same as expected return for annual basis
+
             results_df = pd.DataFrame([{
                 "run_id": run_id,
                 "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -859,6 +864,8 @@ def main():
                 "stocks": ', '.join(best_combo),
                 "weights": ', '.join(map(str, [round(w, 4) for w in best_weights])),
                 "sharpe_ratio": round(best_sharpe, 4),
+                "final_value": round(final_value, 2),
+                "roi_percent": round(roi_percent, 2),
                 "expected_return_annual_pct": round(best_exp_ret * 100, 2),
                 "expected_volatility_annual_pct": round(best_vol * 100, 2),
             }])
