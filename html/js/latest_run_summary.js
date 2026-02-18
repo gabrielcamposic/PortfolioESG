@@ -1871,15 +1871,15 @@
       const tdFpe = document.createElement('td');
       const meta = holdings_meta[stock] || {};
       const fpe = meta.forwardPE;
-      tdFpe.textContent = (fpe==null || isNaN(Number(fpe))) ? 'n/a' : Number(fpe).toFixed(1);
+      tdFpe.textContent = (fpe==null || isNaN(Number(fpe)) || Number(fpe) === 0) ? 'n/a' : Number(fpe).toFixed(1);
       // latest price cell
       const tdLatestPrice = document.createElement('td');
       const latestPrice = meta.currentPrice;
-      tdLatestPrice.textContent = (latestPrice==null || isNaN(Number(latestPrice))) ? 'n/a' : 'R$ ' + Number(latestPrice).toFixed(2);
+      tdLatestPrice.textContent = (latestPrice==null || isNaN(Number(latestPrice)) || Number(latestPrice) <= 0) ? 'n/a' : 'R$ ' + Number(latestPrice).toFixed(2);
       // target price cell
       const tdTargetPrice = document.createElement('td');
       const targetPrice = meta.targetPrice;
-      tdTargetPrice.textContent = (targetPrice==null || isNaN(Number(targetPrice))) ? 'n/a' : 'R$ ' + Number(targetPrice).toFixed(2);
+      tdTargetPrice.textContent = (targetPrice==null || isNaN(Number(targetPrice)) || Number(targetPrice) <= 0) ? 'n/a' : 'R$ ' + Number(targetPrice).toFixed(2);
       // weight cell
       const td2 = document.createElement('td'); td2.textContent = (Number(w)*100).toFixed(1)+'%';
       td2.dataset.weight = String(Number(w));

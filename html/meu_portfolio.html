@@ -189,42 +189,81 @@
         <div class="verdict-text">Carregando recomendação...</div>
       </div>
 
-      <!-- Métricas da Recomendação -->
-      <div class="rebalance-metrics-grid" id="optimizedMetrics" style="display:none;">
-        <div class="rebalance-metric-card">
-          <div class="metric-header">
-            <span class="metric-icon">📊</span>
-            <span class="metric-title">Retorno Esperado (Atual)</span>
-          </div>
-          <div class="metric-value" id="optHoldingsReturn">—</div>
-          <div class="metric-detail">Seu portfolio hoje → target prices</div>
-        </div>
+      <!-- Run ID e Timestamp -->
+      <div class="meta-row" style="margin: 10px 0; padding: 8px; background: #2a2a2a; border-radius: 4px; color: #ccc;">
+        <small><strong style="color: #fff;">Execução:</strong> <span id="optRunId">—</span> | <strong style="color: #fff;">Data:</strong> <span id="optTimestamp">—</span></small>
+      </div>
 
-        <div class="rebalance-metric-card">
-          <div class="metric-header">
-            <span class="metric-icon">🎯</span>
-            <span class="metric-title">Retorno Otimizado</span>
-          </div>
-          <div class="metric-value" id="optOptimalReturn">—</div>
-          <div class="metric-detail">Portfolio ideal (líquido de custos)</div>
-        </div>
+      <!-- Comparativo de Retornos (lado a lado) -->
+      <div class="comparison-section" style="margin: 20px 0;">
+        <h3 style="margin-bottom: 15px; font-size: 1.1em; color: #333;">📊 Comparativo de Retornos</h3>
 
-        <div class="rebalance-metric-card">
-          <div class="metric-header">
-            <span class="metric-icon">📈</span>
-            <span class="metric-title">Retorno Excedente</span>
+        <div class="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <!-- Coluna: Seu Portfolio Atual -->
+          <div class="comparison-column" style="background: #1a3a4a; padding: 15px; border-radius: 8px; border-left: 4px solid #17a2b8;">
+            <h4 style="margin: 0 0 12px 0; color: #5bc0de; font-size: 0.95em;">📁 Seu Portfolio Atual</h4>
+            <div class="comparison-metric">
+              <span class="label" style="font-size: 0.85em; color: #aaa;">Retorno (Target Prices):</span>
+              <span class="value" id="optHoldingsReturn" style="font-size: 1.4em; font-weight: bold; color: #fff;">—</span>
+            </div>
+            <p style="font-size: 0.75em; color: #888; margin: 8px 0 0 0;">Baseado nos target prices das ações que você possui</p>
           </div>
-          <div class="metric-value" id="optExcessReturn">—</div>
-          <div class="metric-detail">Ganho adicional esperado</div>
-        </div>
 
-        <div class="rebalance-metric-card">
-          <div class="metric-header">
-            <span class="metric-icon">💰</span>
-            <span class="metric-title">Custo de Transição</span>
+          <!-- Coluna: Portfolio Ideal Recomendado -->
+          <div class="comparison-column" style="background: #1a3a2a; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+            <h4 style="margin: 0 0 12px 0; color: #5cb85c; font-size: 0.95em;">🎯 Portfolio Ideal (Recomendado)</h4>
+            <div class="comparison-metric" style="margin-bottom: 8px;">
+              <span class="label" style="font-size: 0.85em; color: #aaa;">Retorno (Target Prices):</span>
+              <span class="value" id="optIdealTargetReturn" style="font-size: 1.4em; font-weight: bold; color: #fff;">—</span>
+            </div>
+            <div class="comparison-metric">
+              <span class="label" style="font-size: 0.85em; color: #aaa;">Retorno Histórico (Ann.):</span>
+              <span class="value" id="optIdealHistoricalReturn" style="font-size: 1.4em; font-weight: bold; color: #5cb85c;">—</span>
+            </div>
+            <p style="font-size: 0.75em; color: #888; margin: 8px 0 0 0;">Sharpe: <span id="optIdealSharpe">—</span></p>
           </div>
-          <div class="metric-value" id="optTransitionCost">—</div>
-          <div class="metric-detail">Custos estimados para rebalancear</div>
+        </div>
+      </div>
+
+      <!-- Métricas de Decisão -->
+      <div class="decision-metrics" style="margin: 20px 0;">
+        <h3 style="margin-bottom: 15px; font-size: 1.1em; color: #333;">⚖️ Análise de Rebalanceamento</h3>
+        <div class="rebalance-metrics-grid" id="optimizedMetrics" style="display:none;">
+          <div class="rebalance-metric-card">
+            <div class="metric-header">
+              <span class="metric-icon">🔄</span>
+              <span class="metric-title">Retorno Otimizado (Líquido)</span>
+            </div>
+            <div class="metric-value" id="optOptimalReturn">—</div>
+            <div class="metric-detail">Portfolio blended após custos de transição</div>
+          </div>
+
+          <div class="rebalance-metric-card">
+            <div class="metric-header">
+              <span class="metric-icon">📈</span>
+              <span class="metric-title">Retorno Excedente</span>
+            </div>
+            <div class="metric-value" id="optExcessReturn">—</div>
+            <div class="metric-detail">Ganho adicional vs manter atual</div>
+          </div>
+
+          <div class="rebalance-metric-card">
+            <div class="metric-header">
+              <span class="metric-icon">💰</span>
+              <span class="metric-title">Custo de Transição</span>
+            </div>
+            <div class="metric-value" id="optTransitionCost">—</div>
+            <div class="metric-detail">Custos estimados para rebalancear</div>
+          </div>
+
+          <div class="rebalance-metric-card">
+            <div class="metric-header">
+              <span class="metric-icon">🎚️</span>
+              <span class="metric-title">Blend Ratio</span>
+            </div>
+            <div class="metric-value" id="optBlendRatio">—</div>
+            <div class="metric-detail">% do portfolio ideal no mix ótimo</div>
+          </div>
         </div>
       </div>
 
@@ -245,11 +284,6 @@
             <tbody id="optimizedTransactionsBody"></tbody>
           </table>
         </div>
-      </div>
-
-      <!-- Timestamp -->
-      <div class="meta-row" style="margin-top:15px;">
-        <small class="meta-footnote">Última análise: <span id="optTimestamp">—</span></small>
       </div>
 
       <!-- Gráfico de Comparação de Retornos -->

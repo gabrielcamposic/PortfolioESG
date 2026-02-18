@@ -303,6 +303,14 @@
     <section id="retornos" class="help-section">
       <h2>3. Retornos Esperados <span class="time-horizon">Horizonte: 12 meses</span></h2>
 
+      <!-- Entenda a Diferença -->
+      <div class="importance-box" style="background: rgba(255, 193, 7, 0.15); border-left-color: #FFC107; margin-bottom: 20px;">
+        <strong style="color: #FFC107;">💡 Entenda a Diferença entre os Retornos:</strong><br><br>
+        <strong>Retorno (Target Prices):</strong> quanto os analistas acham que as ações ainda podem subir, baseado no preço-alvo calculado. É uma estimativa forward-looking (olhando para o futuro).<br><br>
+        <strong>Retorno Histórico (Ann.):</strong> quanto as ações subiram no passado, anualizado. É baseado em dados reais de preços históricos (olhando para o passado).<br><br>
+        <em>Esses valores podem diferir bastante! Uma ação com alto momentum (subiu muito recentemente) pode ter retorno histórico alto, mas os analistas podem achar que já está no preço justo (target price próximo do atual), resultando em baixo retorno esperado futuro.</em>
+      </div>
+
       <!-- Retorno Esperado do Portfolio -->
       <h3>3.1 Retorno Esperado do Portfolio</h3>
       <p>Média ponderada dos retornos esperados de cada ação, usando os pesos do portfolio.</p>
@@ -406,6 +414,60 @@
           <td>Tendência de curto prazo</td>
         </tr>
       </table>
+
+      <!-- Sistema de Perfil de Risco -->
+      <h3>4.4 Sistema de Perfil de Risco Adaptativo</h3>
+      <p>O sistema de scoring usa pesos dinâmicos que são ajustados conforme seu perfil de risco e o regime de mercado atual.</p>
+
+      <div class="formula-box">
+        <code>Peso Final = (1 - força_efetiva) × Peso_Dinâmico + força_efetiva × (Tendência × Multiplicador)</code><br><br>
+        Onde:<br>
+        <code>força_efetiva = força_base × multiplicador_regime</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Como funciona:</strong><br>
+        1. O sistema calcula pesos dinâmicos baseados na variância de cada métrica<br>
+        2. Detecta o regime de mercado (bull/bear/neutral) automaticamente<br>
+        3. Ajusta os pesos usando seu perfil (conservador/moderado/agressivo)<br>
+        4. Em bull market: permite mais dinamismo (força reduzida)<br>
+        5. Em bear market: aumenta conservadorismo (força aumentada)
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Perfil</th>
+          <th>Sharpe</th>
+          <th>Upside</th>
+          <th>Momentum</th>
+          <th>Características</th>
+        </tr>
+        <tr>
+          <td><strong>Conservador</strong></td>
+          <td>50%</td>
+          <td>35%</td>
+          <td>15%</td>
+          <td>Prioriza estabilidade, reduz especulação</td>
+        </tr>
+        <tr>
+          <td><strong>Moderado</strong></td>
+          <td>40%</td>
+          <td>35%</td>
+          <td>25%</td>
+          <td>Balanceado entre crescimento e proteção</td>
+        </tr>
+        <tr>
+          <td><strong>Agressivo</strong></td>
+          <td>25%</td>
+          <td>40%</td>
+          <td>35%</td>
+          <td>Busca crescimento, aceita mais risco</td>
+        </tr>
+      </table>
+
+      <div class="source-box">
+        <strong>Configuração:</strong> Edite o arquivo <code>parameters/risk_profile.txt</code> para ajustar seu perfil e a força de aplicação (0.0 a 1.0).
+      </div>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════

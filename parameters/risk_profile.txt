@@ -1,0 +1,77 @@
+# Risk Profile Configuration for PortfolioESG
+#
+# Este arquivo define seu perfil de risco pessoal, que influencia
+# como os pesos dinâmicos são ajustados no composite score.
+#
+# O sistema MANTÉM os pesos dinâmicos (baseados em variância),
+# mas AJUSTA os ranges e tendências centrais conforme seu perfil.
+
+# --- Perfil de Risco Ativo ---
+# Opções: conservador, moderado, agressivo
+# - conservador: prioriza Sharpe, reduz momentum, penaliza volatilidade
+# - moderado: balanceado entre retorno e risco
+# - agressivo: busca mais upside/momentum, tolera mais volatilidade
+risk_profile = moderado
+
+# --- Força do Perfil (0.0 a 1.0) ---
+# Quanto maior, mais os pesos dinâmicos são puxados para sua preferência
+# 0.0 = ignora perfil (100% dinâmico baseado em variância)
+# 1.0 = máxima influência do perfil (mas ainda adaptativo)
+# Recomendado: 0.3 a 0.6
+profile_strength = 0.4
+
+# --- Detecção Automática de Regime de Mercado ---
+# Se true, ajusta automaticamente a força do perfil baseado em bull/bear market
+# Em bear market: aumenta conservadorismo automaticamente
+# Em bull market: permite mais agressividade se o perfil permitir
+auto_regime_detection = true
+
+# Período (dias) para detectar regime de mercado (volatilidade e tendência)
+regime_lookback_days = 60
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CONFIGURAÇÕES POR PERFIL (não edite a menos que saiba o que está fazendo)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# --- Perfil Conservador ---
+# Prioriza estabilidade e retorno ajustado ao risco
+conservador_sharpe_tendency = 0.50
+conservador_upside_tendency = 0.35
+conservador_momentum_tendency = 0.15
+conservador_sharpe_mult = 1.3
+conservador_upside_mult = 0.9
+conservador_momentum_mult = 0.6
+
+# --- Perfil Moderado ---
+# Balanceado entre crescimento e proteção
+moderado_sharpe_tendency = 0.40
+moderado_upside_tendency = 0.35
+moderado_momentum_tendency = 0.25
+moderado_sharpe_mult = 1.0
+moderado_upside_mult = 1.0
+moderado_momentum_mult = 1.0
+
+# --- Perfil Agressivo ---
+# Busca crescimento, aceita mais risco
+agressivo_sharpe_tendency = 0.25
+agressivo_upside_tendency = 0.40
+agressivo_momentum_tendency = 0.35
+agressivo_sharpe_mult = 0.7
+agressivo_upside_mult = 1.2
+agressivo_momentum_mult = 1.4
+
+# --- Ajustes por Regime de Mercado ---
+# Multiplicadores aplicados à força do perfil em cada regime
+# Valores > 1.0 aumentam a influência do perfil (mais conservador)
+# Valores < 1.0 diminuem a influência (mais dinâmico)
+#
+# LÓGICA: Em bull market prolongado, há risco de bolha, então AUMENTAMOS
+# conservadorismo (mais Sharpe, menos Momentum especulativo).
+# Em bear market, o momentum negativo pode indicar oportunidades de
+# reversão, então permitimos mais dinamismo.
+regime_strong_bear_mult = 0.6
+regime_bear_mult = 0.8
+regime_neutral_mult = 1.0
+regime_bull_mult = 1.2
+regime_strong_bull_mult = 1.5
+

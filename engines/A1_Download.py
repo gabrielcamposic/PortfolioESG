@@ -405,7 +405,20 @@ def download_and_process_data(
     """
     logger.info("Starting main data download and processing pipeline.")
     loop_start_time = time.time()
-    tickers_to_process = tickers_df['Ticker'].tolist()
+
+    # Load skipped tickers and filter out permanently skipped ones BEFORE processing
+    all_skips = load_all_skipped_tickers(params, logger)
+    permanently_skipped = [ticker for ticker, skip_data in all_skips.items() if skip_data == ["ALL"]]
+
+    all_tickers = tickers_df['Ticker'].tolist()
+    tickers_to_process = [t for t in all_tickers if t not in permanently_skipped]
+    skipped_count = len(all_tickers) - len(tickers_to_process)
+
+    if skipped_count > 0:
+        logger.info(f"Skipping {skipped_count} permanently invalid/delisted tickers")
+        if skipped_count <= 10:
+            logger.info(f"Skipped tickers: {permanently_skipped}")
+
     total_tickers = len(tickers_to_process)
     all_financials_data = []
     all_new_price_data = []  # Accumulate all new price data for direct DB mode

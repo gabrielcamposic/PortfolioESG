@@ -785,6 +785,7 @@
     const isRebalance = decision === 'REBALANCE';
     const comparison = rec.comparison || {};
     const holdings = comparison.holdings || {};
+    const ideal = comparison.ideal || {};
     const optimal = comparison.optimal || {};
 
     // Render verdict
@@ -810,18 +811,51 @@
       `;
     }
 
-    // Show metrics
+    // Update Run ID and Timestamp
+    const runIdEl = document.getElementById('optRunId');
+    const timestampEl = document.getElementById('optTimestamp');
+    if (runIdEl) {
+      runIdEl.textContent = ideal.run_id || '—';
+    }
+    if (timestampEl) {
+      timestampEl.textContent = rec.timestamp || '—';
+    }
+
+    // Update comparison section - Holdings (your current portfolio)
+    const holdingsReturnEl = document.getElementById('optHoldingsReturn');
+    if (holdingsReturnEl) {
+      const val = holdings.expected_return_pct || 0;
+      holdingsReturnEl.textContent = formatPercent(val);
+      holdingsReturnEl.style.color = val >= 0 ? '#28a745' : '#dc3545';
+    }
+
+    // Update comparison section - Ideal portfolio
+    const idealTargetReturnEl = document.getElementById('optIdealTargetReturn');
+    const idealHistoricalReturnEl = document.getElementById('optIdealHistoricalReturn');
+    const idealSharpeEl = document.getElementById('optIdealSharpe');
+
+    if (idealTargetReturnEl) {
+      const val = ideal.expected_return_pct || 0;
+      idealTargetReturnEl.textContent = formatPercent(val);
+      idealTargetReturnEl.style.color = val >= 0 ? '#28a745' : '#dc3545';
+    }
+    if (idealHistoricalReturnEl) {
+      const val = ideal.historical_return_pct || 0;
+      idealHistoricalReturnEl.textContent = formatPercent(val);
+    }
+    if (idealSharpeEl) {
+      idealSharpeEl.textContent = (ideal.sharpe_ratio || 0).toFixed(2);
+    }
+
+    // Show decision metrics
     if (metricsEl) {
       metricsEl.style.display = 'grid';
 
-      const holdingsReturnEl = document.getElementById('optHoldingsReturn');
       const optimalReturnEl = document.getElementById('optOptimalReturn');
       const excessReturnEl = document.getElementById('optExcessReturn');
       const transitionCostEl = document.getElementById('optTransitionCost');
+      const blendRatioEl = document.getElementById('optBlendRatio');
 
-      if (holdingsReturnEl) {
-        holdingsReturnEl.textContent = formatPercent(holdings.expected_return_pct || 0);
-      }
       if (optimalReturnEl) {
         optimalReturnEl.textContent = formatPercent(optimal.net_return_pct || 0);
         optimalReturnEl.className = 'metric-value ' + ((optimal.net_return_pct || 0) >= 0 ? 'positive' : 'negative');
@@ -832,10 +866,13 @@
         excessReturnEl.className = 'metric-value ' + (excess >= 0 ? 'positive' : 'negative');
       }
       if (transitionCostEl) {
-        // Use 2 decimal places for small values like transition cost
         const costPct = optimal.transition_cost_pct || 0;
         transitionCostEl.textContent = '-' + Math.abs(costPct).toFixed(2) + '%';
         transitionCostEl.className = 'metric-value negative';
+      }
+      if (blendRatioEl) {
+        const blend = (optimal.blend_ratio || 0) * 100;
+        blendRatioEl.textContent = blend.toFixed(0) + '%';
       }
     }
 
@@ -874,12 +911,6 @@
       }
     } else if (transactionsEl) {
       transactionsEl.style.display = 'none';
-    }
-
-    // Update timestamp
-    const timestampEl = document.getElementById('optTimestamp');
-    if (timestampEl && rec.timestamp) {
-      timestampEl.textContent = rec.timestamp;
     }
   }
 

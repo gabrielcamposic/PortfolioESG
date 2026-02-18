@@ -123,6 +123,23 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
         logger.critical(f"Scored stocks file not found at '{filepath}'.")
         raise FileNotFoundError(f"Scored stocks file not found at '{filepath}'.")
 
+    # Load permanently skipped tickers to filter them out
+    skipped_tickers = set()
+    findb_path = params.get("FINDB_DIR") or os.path.dirname(params.get("FINDB_FILE", ""))
+    if not findb_path:
+        findb_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'findb')
+
+    skipped_tickers_file = os.path.join(findb_path, 'skipped_tickers.json')
+    if os.path.exists(skipped_tickers_file):
+        try:
+            with open(skipped_tickers_file, 'r') as f:
+                all_skips = json.load(f)
+            skipped_tickers = {ticker for ticker, skip_data in all_skips.items()
+                             if skip_data == ["ALL"]}
+            logger.info(f"Loaded {len(skipped_tickers)} permanently skipped tickers to exclude from portfolio")
+        except Exception as e:
+            logger.warning(f"Could not read skipped_tickers.json: {e}")
+
     try:
         df: pd.DataFrame = pd.read_csv(filepath)
         required_cols = ['run_id', 'CompositeScore', 'Stock', 'Sector']
@@ -132,6 +149,15 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
         latest_run_id = df['run_id'].max()
         # Explicitly construct a DataFrame view to help static analysis infer the correct type
         latest_run_df = pd.DataFrame(df.loc[df['run_id'] == latest_run_id]).copy()
+
+        # Filter out permanently skipped tickers
+        if skipped_tickers:
+            pre_filter_count = len(latest_run_df)
+            latest_run_df = latest_run_df[~latest_run_df['Stock'].isin(skipped_tickers)]
+            filtered_count = pre_filter_count - len(latest_run_df)
+            if filtered_count > 0:
+                logger.info(f"Filtered out {filtered_count} permanently skipped tickers from portfolio candidates")
+
         # Use non-inplace sort to avoid type-narrowing issues with Series.sort_values
         latest_run_df = latest_run_df.sort_values(by=['CompositeScore'], ascending=False)
         top_stocks_df = latest_run_df.head(top_n)
@@ -1129,31 +1155,71 @@ def main():
                     except Exception as e:
                         logger.warning(f"Could not load FinancialsDB: {e}")
 
+                # Load StockDataDB for price fallback
+                stock_data_db = pd.DataFrame()
+                stock_data_db_file = params.get("FINDB_FILE")
+                if stock_data_db_file and os.path.exists(stock_data_db_file):
+                    try:
+                        stock_data_db = pd.read_csv(stock_data_db_file)
+                        if 'Date' in stock_data_db.columns:
+                            stock_data_db['Date'] = pd.to_datetime(stock_data_db['Date'])
+                        logger.info(f"Loaded StockDataDB for price fallback")
+                    except Exception as e:
+                        logger.warning(f"Could not load StockDataDB: {e}")
+
                 for stock in best_combo:
                     stock_row = latest_scored[latest_scored['Stock'] == stock] if not latest_scored.empty else pd.DataFrame()
 
                     # Get values from scored_stocks if available
                     forward_pe = None
+                    forward_eps = None
+                    sector_median_pe = None
                     momentum_val = None
                     current_price = None
                     target_price = None
 
                     if not stock_row.empty:
                         forward_pe = stock_row['forwardPE'].values[0] if 'forwardPE' in stock_row.columns else None
+                        forward_eps = stock_row['forwardEPS'].values[0] if 'forwardEPS' in stock_row.columns else None
+                        sector_median_pe = stock_row['SectorMedianPE'].values[0] if 'SectorMedianPE' in stock_row.columns else None
                         momentum_val = stock_row['Momentum'].values[0] if 'Momentum' in stock_row.columns else None
                         current_price = stock_row['CurrentPrice'].values[0] if 'CurrentPrice' in stock_row.columns else None
                         target_price = stock_row['TargetPrice'].values[0] if 'TargetPrice' in stock_row.columns else None
 
-                    # Fallback to FinancialsDB for forwardPE if not found
-                    if (forward_pe is None or pd.isna(forward_pe)) and not financials_db.empty:
+                    # Fallback to FinancialsDB for forwardPE and forwardEPS if not found
+                    if not financials_db.empty:
                         fin_row = financials_db[financials_db['Stock'] == stock]
-                        if not fin_row.empty and 'forwardPE' in fin_row.columns:
-                            forward_pe = fin_row['forwardPE'].values[0]
-                            logger.debug(f"Using FinancialsDB fallback for {stock} forwardPE: {forward_pe}")
+                        if not fin_row.empty:
+                            if (forward_pe is None or pd.isna(forward_pe) or forward_pe == 0) and 'forwardPE' in fin_row.columns:
+                                forward_pe = fin_row['forwardPE'].values[0]
+                                logger.debug(f"Using FinancialsDB fallback for {stock} forwardPE: {forward_pe}")
+                            if (forward_eps is None or pd.isna(forward_eps)) and 'forwardEPS' in fin_row.columns:
+                                forward_eps = fin_row['forwardEPS'].values[0]
+                                logger.debug(f"Using FinancialsDB fallback for {stock} forwardEPS: {forward_eps}")
+
+                    # Fallback to StockDataDB for current price if not found
+                    if (current_price is None or pd.isna(current_price)) and not stock_data_db.empty:
+                        stock_prices = stock_data_db[stock_data_db['Stock'] == stock].sort_values('Date', ascending=False)
+                        if not stock_prices.empty and 'Close' in stock_prices.columns:
+                            current_price = stock_prices['Close'].values[0]
+                            logger.debug(f"Using StockDataDB fallback for {stock} currentPrice: {current_price}")
+
+                    # Calculate target price using forward PE/EPS and sector median PE if still missing
+                    if (target_price is None or pd.isna(target_price)) and current_price is not None and pd.notna(current_price):
+                        # Try to calculate target price using forward EPS and sector median PE
+                        if forward_eps is not None and pd.notna(forward_eps) and forward_eps > 0:
+                            if sector_median_pe is not None and pd.notna(sector_median_pe) and sector_median_pe > 0:
+                                target_price = forward_eps * sector_median_pe
+                                logger.debug(f"Calculated target price for {stock}: {target_price} (EPS * SectorPE)")
+                            elif forward_pe is not None and pd.notna(forward_pe) and forward_pe > 0:
+                                # If we have forward PE, assume target is fair value at sector median
+                                upside_potential = (sector_median_pe / forward_pe - 1) if sector_median_pe and forward_pe else 0
+                                target_price = current_price * (1 + upside_potential)
+                                logger.debug(f"Calculated target price for {stock}: {target_price} (CurrentPrice * (1 + Upside))")
 
                     holdings_meta[stock] = {
-                        'forwardPE': float(forward_pe) if pd.notna(forward_pe) else None,
-                        'Momentum': float(momentum_val) if pd.notna(momentum_val) else None,
+                        'forwardPE': float(forward_pe) if pd.notna(forward_pe) and forward_pe != 0 else 0.0,
+                        'Momentum': float(momentum_val) if pd.notna(momentum_val) else 0.0,
                         'currentPrice': float(current_price) if pd.notna(current_price) else None,
                         'targetPrice': float(target_price) if pd.notna(target_price) else None
                     }

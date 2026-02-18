@@ -128,11 +128,31 @@ def load_input_stocks_with_sectors(params: Dict[str, Any], logger: logging.Logge
         # Filter out tickers marked with 'Error'
         stocks_df = stocks_df[~stocks_df['Sector'].str.contains('Error', na=False, case=False)].copy()
 
-        # Filter out tickers that are marked as invalid/delisted (have skip.json with "ALL")
+        # Filter out tickers that are marked as invalid/delisted from consolidated skip file
+        findb_path = params.get("FINDB_DIR") or os.path.dirname(params.get("FINDB_FILE", ""))
+        if not findb_path:
+            # Fallback to data/findb
+            findb_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'findb')
+
+        skipped_tickers_file = os.path.join(findb_path, 'skipped_tickers.json')
+        invalid_tickers = []
+
+        if os.path.exists(skipped_tickers_file):
+            try:
+                with open(skipped_tickers_file, 'r') as f:
+                    all_skips = json.load(f)
+                # Find all tickers with ["ALL"] skip status (permanently invalid)
+                invalid_tickers = [ticker for ticker, skip_data in all_skips.items()
+                                 if skip_data == ["ALL"]]
+            except Exception as e:
+                logger.warning(f"Could not read skipped_tickers.json: {e}")
+
+        # Fallback: also check individual skip.json files (legacy support)
         findata_path = params.get("FINDATA_PATH") or params.get("findata_directory")
-        if findata_path:
-            invalid_tickers = []
+        if findata_path and os.path.exists(findata_path):
             for ticker in stocks_df['Ticker'].tolist():
+                if ticker in invalid_tickers:
+                    continue  # Already marked as invalid
                 skip_file = os.path.join(findata_path, ticker, 'skip.json')
                 if os.path.exists(skip_file):
                     try:
@@ -142,9 +162,10 @@ def load_input_stocks_with_sectors(params: Dict[str, Any], logger: logging.Logge
                             invalid_tickers.append(ticker)
                     except Exception:
                         pass
-            if invalid_tickers:
-                logger.info(f"Filtering out {len(invalid_tickers)} invalid/delisted tickers: {invalid_tickers}")
-                stocks_df = stocks_df[~stocks_df['Ticker'].isin(invalid_tickers)].copy()
+
+        if invalid_tickers:
+            logger.info(f"Filtering out {len(invalid_tickers)} invalid/delisted tickers from scoring")
+            stocks_df = stocks_df[~stocks_df['Ticker'].isin(invalid_tickers)].copy()
 
         # Sanitize for safety and consistency
         stocks_df['Sector'] = stocks_df['Sector'].str.replace('&', 'and', regex=False)
@@ -200,10 +221,182 @@ def calculate_individual_sharpe_ratios(stock_daily_returns: pd.DataFrame, params
 
 def normalize_series(column: pd.Series) -> pd.Series:
     """Normalizes a pandas Series to a 0-1 scale using Min-Max scaling."""
-    if pd.isna(column).all() or column.max() == column.min():
+    # Replace inf/-inf with NaN first, then handle
+    clean_column = column.replace([np.inf, -np.inf], np.nan)
+
+    if clean_column.isna().all() or clean_column.max() == clean_column.min():
         return pd.Series(0.5, index=column.index)
-    normalized = (column - column.min()) / (column.max() - column.min())
+
+    normalized = (clean_column - clean_column.min()) / (clean_column.max() - clean_column.min())
     return normalized.fillna(0)
+
+
+# ----------------------------------------------------------- #
+#                Risk Profile & Market Regime                 #
+# ----------------------------------------------------------- #
+
+def load_risk_profile(params: Dict[str, Any], logger: logging.Logger) -> Dict[str, Any]:
+    """Loads risk profile configuration from risk_profile.txt."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    risk_profile_path = os.path.join(script_dir, '..', 'parameters', 'risk_profile.txt')
+
+    # Default values if file not found
+    defaults = {
+        'risk_profile': 'moderado',
+        'profile_strength': 0.4,
+        'auto_regime_detection': True,
+        'regime_lookback_days': 60,
+    }
+
+    try:
+        profile_params = load_parameters_from_file(risk_profile_path, {k: type(v) for k, v in defaults.items()})
+        logger.info(f"Loaded risk profile: {profile_params.get('risk_profile', 'moderado')}, strength: {profile_params.get('profile_strength', 0.4)}")
+        return profile_params
+    except Exception as e:
+        logger.warning(f"Could not load risk_profile.txt: {e}. Using defaults.")
+        return defaults
+
+
+def detect_market_regime(price_df: pd.DataFrame, lookback_days: int, risk_profile_params: Dict[str, Any], logger: logging.Logger) -> Dict[str, Any]:
+    """
+    Detects current market regime based on benchmark performance and volatility.
+
+    Returns:
+        Dict with 'regime' (str), 'volatility_percentile' (float), 'trend' (float)
+    """
+    # Get multipliers from config (with defaults)
+    regime_mults = {
+        'strong_bull': float(risk_profile_params.get('regime_strong_bull_mult', 1.5)),
+        'bull': float(risk_profile_params.get('regime_bull_mult', 1.2)),
+        'neutral': float(risk_profile_params.get('regime_neutral_mult', 1.0)),
+        'bear': float(risk_profile_params.get('regime_bear_mult', 0.8)),
+        'strong_bear': float(risk_profile_params.get('regime_strong_bear_mult', 0.6)),
+    }
+
+    try:
+        # Use IBOV (^BVSP) or first available benchmark
+        benchmark_cols = [col for col in price_df.columns if 'BVSP' in col or 'IBOV' in col]
+        if not benchmark_cols:
+            # Fallback: use mean of all stocks
+            benchmark_series = price_df.mean(axis=1)
+        else:
+            benchmark_series = price_df[benchmark_cols[0]]
+
+        # Get recent data
+        recent = benchmark_series.tail(lookback_days).dropna()
+        if len(recent) < 20:
+            logger.warning("Insufficient data for regime detection. Assuming neutral.")
+            return {'regime': 'neutral', 'volatility_percentile': 0.5, 'trend': 0.0, 'strength_mult': regime_mults['neutral']}
+
+        # Calculate metrics
+        returns = recent.pct_change().dropna()
+        volatility = returns.std() * np.sqrt(252)  # Annualized
+        trend = (recent.iloc[-1] / recent.iloc[0] - 1) * (252 / len(recent))  # Annualized return
+
+        # Historical volatility percentile (compare to full history)
+        full_returns = price_df.mean(axis=1).pct_change().dropna()
+        rolling_vol = full_returns.rolling(lookback_days).std() * np.sqrt(252)
+        vol_percentile = (rolling_vol < volatility).mean() if len(rolling_vol) > 0 else 0.5
+
+        # Determine regime
+        if trend > 0.20 and vol_percentile < 0.7:
+            regime = 'strong_bull'
+        elif trend > 0.05:
+            regime = 'bull'
+        elif trend < -0.20 or vol_percentile > 0.85:
+            regime = 'strong_bear'
+        elif trend < -0.05:
+            regime = 'bear'
+        else:
+            regime = 'neutral'
+
+        strength_mult = regime_mults.get(regime, 1.0)
+
+        logger.info(f"Market regime detected: {regime} (trend: {trend:.2%}, vol_percentile: {vol_percentile:.2f}, strength_mult: {strength_mult})")
+
+        return {
+            'regime': regime,
+            'volatility_percentile': vol_percentile,
+            'trend': trend,
+            'strength_mult': strength_mult
+        }
+
+    except Exception as e:
+        logger.warning(f"Error detecting market regime: {e}. Assuming neutral.")
+        return {'regime': 'neutral', 'volatility_percentile': 0.5, 'trend': 0.0, 'strength_mult': regime_mults['neutral']}
+
+
+def adjust_weights_with_risk_profile(
+    base_weights: Dict[str, float],
+    risk_profile_params: Dict[str, Any],
+    market_regime: Dict[str, Any],
+    logger: logging.Logger
+) -> Dict[str, float]:
+    """
+    Adjusts dynamic weights based on risk profile and market regime.
+
+    The adjustment uses interpolation between the pure dynamic weights
+    and the profile's central tendencies, modified by the current market regime.
+
+    Formula:
+        adjusted_weight = (1 - effective_strength) * base_weight + effective_strength * (tendency * multiplier)
+
+    Args:
+        base_weights: Dict with 'sharpe', 'upside', 'momentum' weights from variance calculation
+        risk_profile_params: Configuration from risk_profile.txt
+        market_regime: Output from detect_market_regime()
+        logger: Logger instance
+
+    Returns:
+        Dict with adjusted weights (normalized to sum to 1.0)
+    """
+    profile = str(risk_profile_params.get('risk_profile', 'moderado')).lower()
+    base_strength = float(risk_profile_params.get('profile_strength', 0.4))
+    auto_regime = risk_profile_params.get('auto_regime_detection', True)
+    if isinstance(auto_regime, str):
+        auto_regime = auto_regime.lower() == 'true'
+
+    # Get profile tendencies and multipliers (convert to float)
+    tendencies = {
+        'sharpe': float(risk_profile_params.get(f'{profile}_sharpe_tendency', 0.40)),
+        'upside': float(risk_profile_params.get(f'{profile}_upside_tendency', 0.35)),
+        'momentum': float(risk_profile_params.get(f'{profile}_momentum_tendency', 0.25)),
+    }
+
+    multipliers = {
+        'sharpe': float(risk_profile_params.get(f'{profile}_sharpe_mult', 1.0)),
+        'upside': float(risk_profile_params.get(f'{profile}_upside_mult', 1.0)),
+        'momentum': float(risk_profile_params.get(f'{profile}_momentum_mult', 1.0)),
+    }
+
+    # Adjust strength based on market regime if auto-detection is enabled
+    if auto_regime:
+        regime_mult = float(market_regime.get('strength_mult', 1.0))
+        effective_strength = min(1.0, base_strength * regime_mult)
+        logger.info(f"Risk profile strength adjusted for {market_regime['regime']} regime: {base_strength:.2f} -> {effective_strength:.2f}")
+    else:
+        effective_strength = base_strength
+
+    # Calculate adjusted weights
+    adjusted = {}
+    for metric in ['sharpe', 'upside', 'momentum']:
+        base = float(base_weights.get(metric, 0.0))
+        tendency = float(tendencies.get(metric, base))
+        mult = float(multipliers.get(metric, 1.0))
+
+        # Interpolate between dynamic and profile preference
+        target = tendency * mult
+        adjusted[metric] = (1.0 - effective_strength) * base + effective_strength * target
+
+    # Normalize to sum to 1.0
+    total = sum(adjusted.values())
+    if total > 0:
+        adjusted = {k: v / total for k, v in adjusted.items()}
+
+    logger.info(f"Weights adjusted with {profile} profile: sharpe={adjusted['sharpe']:.3f}, upside={adjusted['upside']:.3f}, momentum={adjusted['momentum']:.3f}")
+
+    return adjusted
+
 
 # ----------------------------------------------------------- #
 #                     Execution Pipeline                      #
@@ -339,7 +532,11 @@ def main():
         sector_pe = sector_pe[final_sector_pe_columns]
 
         analysis_df = base_df.merge(sector_pe[['Sector', 'SectorMedianPE']], on='Sector', how='left')
-        analysis_df['UpsidePotential'] = ((analysis_df['SectorMedianPE'] / analysis_df['forwardPE']) - 1).fillna(0)
+        # Avoid division by zero - replace 0 forwardPE with NaN before division
+        safe_forward_pe = analysis_df['forwardPE'].replace(0, np.nan)
+        analysis_df['UpsidePotential'] = ((analysis_df['SectorMedianPE'] / safe_forward_pe) - 1).fillna(0)
+        # Cap extreme values to avoid inf affecting normalization
+        analysis_df['UpsidePotential'] = analysis_df['UpsidePotential'].clip(lower=-0.99, upper=10.0)
         analysis_df = analysis_df.merge(current_prices_df, on='Stock', how='left')
         analysis_df['TargetPrice'] = analysis_df['CurrentPrice'] * (1 + analysis_df['UpsidePotential'])
 
@@ -352,6 +549,18 @@ def main():
             scored_df['MomentumNorm'] = normalize_series(scored_df['MomentumScore'])
         else:
             scored_df['MomentumNorm'] = 0.0
+
+        # Load risk profile configuration
+        risk_profile_params = load_risk_profile(params, logger)
+
+        # Detect market regime for adaptive adjustment
+        market_regime = {'regime': 'neutral', 'strength_mult': 1.0}
+        if risk_profile_params.get('auto_regime_detection', True):
+            lookback = risk_profile_params.get('regime_lookback_days', 60)
+            if isinstance(lookback, str):
+                lookback = int(lookback)
+            market_regime = detect_market_regime(daily_close_prices, lookback, risk_profile_params, logger)
+
         if params.get("dynamic_score_weighting"):
             logger.info("Using DYNAMIC weighting for composite score.")
             variances = {
@@ -360,10 +569,14 @@ def main():
                 'momentum': scored_df['MomentumNorm'].var() if params.get("momentum_enabled") else 0
             }
             total_variance = sum(variances.values())
-            weights = {k: v / total_variance for k, v in variances.items()} if total_variance > 0 else {'sharpe': 0.5,
+            base_weights = {k: v / total_variance for k, v in variances.items()} if total_variance > 0 else {'sharpe': 0.5,
                                                                                                         'upside': 0.5,
                                                                                                         'momentum': 0.0}
-            logger.info(f"Dynamic weights calculated: {weights}")
+            logger.info(f"Base dynamic weights (variance-based): {base_weights}")
+
+            # Adjust weights with risk profile
+            weights = adjust_weights_with_risk_profile(base_weights, risk_profile_params, market_regime, logger)
+            logger.info(f"Final weights (profile-adjusted): {weights}")
         else:
             logger.info("Using STATIC weighting for composite score.")
             weights = {
@@ -382,6 +595,8 @@ def main():
         scored_df['sharpe_weight_used'] = weights.get('sharpe', 0)
         scored_df['upside_weight_used'] = weights.get('upside', 0)
         scored_df['momentum_weight_used'] = weights.get('momentum', 0)
+        scored_df['risk_profile_used'] = risk_profile_params.get('risk_profile', 'moderado')
+        scored_df['market_regime'] = market_regime.get('regime', 'neutral')
         scored_df.sort_values(by='CompositeScore', ascending=False, inplace=True)
         perf_data["stocks_successfully_scored"] = len(scored_df)
         perf_data["scoring_and_analysis_duration_s"] = time.time() - analysis_start_time
@@ -420,6 +635,30 @@ def main():
         else:
             filtered_df = scored_df.copy()
             logger.warning("Column 'PotentialUpside_pct' not found after renaming. No upside filter applied.")
+
+        # Filter out stocks with missing CurrentPrice or TargetPrice - they can't be properly evaluated
+        if 'CurrentPrice' in filtered_df.columns and 'TargetPrice' in filtered_df.columns:
+            pre_filter_count = len(filtered_df)
+            filtered_df = filtered_df[
+                filtered_df['CurrentPrice'].notna() &
+                (filtered_df['CurrentPrice'] > 0) &
+                filtered_df['TargetPrice'].notna() &
+                (filtered_df['TargetPrice'] > 0)
+            ].copy()
+            price_filtered_count = pre_filter_count - len(filtered_df)
+            if price_filtered_count > 0:
+                logger.info(f"Filtered out {price_filtered_count} stocks with missing or invalid CurrentPrice/TargetPrice.")
+
+        # Filter out stocks with forwardPE = 0 (invalid data from Yahoo Finance)
+        if 'forwardPE' in filtered_df.columns:
+            pre_filter_count = len(filtered_df)
+            filtered_df = filtered_df[
+                filtered_df['forwardPE'].notna() &
+                (filtered_df['forwardPE'] > 0)
+            ].copy()
+            pe_filtered_count = pre_filter_count - len(filtered_df)
+            if pe_filtered_count > 0:
+                logger.info(f"Filtered out {pe_filtered_count} stocks with missing or zero forwardPE.")
 
         # Validate required columns for downstream use
         required_columns = [

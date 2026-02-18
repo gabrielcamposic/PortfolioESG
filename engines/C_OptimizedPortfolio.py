@@ -116,23 +116,64 @@ def _load_financials_db(logger: logging.Logger):
         logger.info(f"Loading financials from {FINANCIALS_DB}...")
         df = pd.read_csv(FINANCIALS_DB)
 
-        # Keep only the latest entry per ticker
-        df['Timestamp'] = pd.to_datetime(df.get('Timestamp', df.get('Date', '')), errors='coerce')
-        df = df.sort_values('Timestamp', ascending=False).drop_duplicates(subset=['Ticker'], keep='first')
+        # Handle different column naming conventions
+        ticker_col = 'Stock' if 'Stock' in df.columns else 'Ticker'
+        timestamp_col = 'LastUpdated' if 'LastUpdated' in df.columns else ('Timestamp' if 'Timestamp' in df.columns else 'Date')
+
+        if timestamp_col in df.columns:
+            df[timestamp_col] = pd.to_datetime(df[timestamp_col], errors='coerce')
+            df = df.sort_values(timestamp_col, ascending=False).drop_duplicates(subset=[ticker_col], keep='first')
 
         for _, row in df.iterrows():
-            ticker = row.get('Ticker', '')
+            ticker = row.get(ticker_col, '')
             if not ticker:
                 continue
 
             _FINANCIALS_CACHE[ticker] = {
                 'current_price': row.get('currentPrice') or row.get('CurrentPrice'),
-                'target_price': row.get('targetMeanPrice') or row.get('TargetMeanPrice'),
+                'target_price': row.get('targetMeanPrice') or row.get('TargetMeanPrice') or row.get('TargetPrice'),
                 'forward_pe': row.get('forwardPE') or row.get('ForwardPE'),
-                'forward_eps': row.get('forwardEps') or row.get('ForwardEps'),
+                'forward_eps': row.get('forwardEPS') or row.get('forwardEps') or row.get('ForwardEps'),
             }
 
-        logger.info(f"Loaded financials for {len(_FINANCIALS_CACHE)} tickers")
+        logger.info(f"Loaded financials for {len(_FINANCIALS_CACHE)} tickers from FinancialsDB")
+
+        # Also try to load target prices from scored_stocks.csv (more complete data)
+        scored_stocks_path = os.path.join(FINDB_PATH, '..', 'Results', 'scored_stocks.csv')
+        if os.path.exists(scored_stocks_path):
+            try:
+                scored_df = pd.read_csv(scored_stocks_path)
+                if 'run_timestamp' in scored_df.columns:
+                    scored_df['run_timestamp'] = pd.to_datetime(scored_df['run_timestamp'], errors='coerce')
+                    scored_df = scored_df.sort_values('run_timestamp', ascending=False).drop_duplicates(subset=['Stock'], keep='first')
+
+                updated_count = 0
+                for _, row in scored_df.iterrows():
+                    stock = row.get('Stock', '')
+                    if not stock:
+                        continue
+
+                    current_price = row.get('CurrentPrice')
+                    target_price = row.get('TargetPrice')
+
+                    if stock not in _FINANCIALS_CACHE:
+                        _FINANCIALS_CACHE[stock] = {}
+
+                    # Update with scored_stocks data if available and valid
+                    if pd.notna(current_price) and current_price > 0:
+                        _FINANCIALS_CACHE[stock]['current_price'] = float(current_price)
+                    if pd.notna(target_price) and target_price > 0:
+                        _FINANCIALS_CACHE[stock]['target_price'] = float(target_price)
+                        updated_count += 1
+                    if pd.notna(row.get('forwardPE')) and row.get('forwardPE') > 0:
+                        _FINANCIALS_CACHE[stock]['forward_pe'] = float(row.get('forwardPE'))
+                    if pd.notna(row.get('forwardEPS')):
+                        _FINANCIALS_CACHE[stock]['forward_eps'] = float(row.get('forwardEPS'))
+
+                logger.info(f"Updated {updated_count} tickers with target prices from scored_stocks.csv")
+            except Exception as e:
+                logger.warning(f"Could not load scored_stocks.csv for target prices: {e}")
+
     except Exception as e:
         logger.error(f"Failed to load FinancialsDB: {e}")
 
@@ -891,14 +932,15 @@ def generate_recommendation(
             'ideal': {
                 'stocks': ideal.get('stocks', []),
                 'weights': ideal.get('weights', {}),
-                'expected_return_pct': round(ideal.get('expected_return', 0), 2),
+                'expected_return_pct': round(ideal.get('expected_return', 0), 2),  # Based on target prices
+                'historical_return_pct': round(ideal.get('expected_return_annual_pct', ideal.get('expected_return', 0)), 2),  # Based on historical data
                 'sharpe_ratio': round(ideal.get('sharpe_ratio', 0), 4),
                 'run_id': ideal.get('run_id', ''),
             },
             'optimal': {
                 'stocks': optimal.get('stocks', []),
                 'weights': optimal.get('weights', {}),
-                'expected_return_pct': round(optimal.get('expected_return', 0), 2),
+                'expected_return_pct': round(optimal.get('expected_return', 0), 2),  # Based on target prices
                 'net_return_pct': round(optimal_net_return, 2),
                 'blend_ratio': round(optimal.get('blend_ratio', 0), 2),
                 'transition_cost_pct': round(optimal.get('transition_cost', 0), 4),
@@ -1058,11 +1100,16 @@ def main():
         logger.info("Run A_Portfolio.sh first to generate the ideal portfolio.")
         return 1
 
-    # Recalculate ideal expected return using same methodology
+    # Save original historical return before recalculating with target prices
+    ideal['expected_return_annual_pct'] = ideal.get('expected_return', 0)
+
+    # Recalculate ideal expected return using target prices (forward-looking)
     ideal_return_recalc = calculate_ideal_expected_return(ideal, logger)
     if ideal_return_recalc != 0:
         ideal['expected_return'] = ideal_return_recalc
-    logger.info(f"Ideal portfolio: {len(ideal['stocks'])} stocks, expected return: {ideal['expected_return']:.2f}%")
+    logger.info(f"Ideal portfolio: {len(ideal['stocks'])} stocks, "
+               f"target-based return: {ideal['expected_return']:.2f}%, "
+               f"historical return: {ideal['expected_return_annual_pct']:.2f}%")
 
     # Calculate transaction cost
     cost_mode = params.get('TRANSACTION_COST_MODE', 'DYNAMIC')
