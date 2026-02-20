@@ -39,6 +39,12 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# --- Verify dependencies ---
+if ! command -v jq &> /dev/null; then
+    echo "ERROR: 'jq' is required but not installed. Please install it with: brew install jq"
+    exit 1
+fi
+
 # --- Helper Functions ---
 log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - PIPELINE - INFO - $1"
@@ -87,7 +93,7 @@ run_stage() {
 # --- Pipeline Execution ---
 log_message "Pipeline execution started."
 
-# 1. Initialize the progress JSON file for a fresh run
+# Initialize the progress JSON file for a fresh run
 jq -n --arg startTime "$(date '+%Y-%m-%d %H:%M:%S')" '{
     "pipeline_run_status": {
         "status_message": "Pipeline execution started.",
@@ -99,29 +105,33 @@ jq -n --arg startTime "$(date '+%Y-%m-%d %H:%M:%S')" '{
 
 # --- Main pipeline stages using the new function ---
 
-# 2. Run the Data Download script
+# 1. Run the Data Download script
 run_stage "Data Download" "$DOWNLOAD_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Data Download completed successfully."
 
-# 3. Run the Stock Scoring script
+# 2. Run the Stock Scoring script
 run_stage "Stock Scoring" "$SCORING_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Stock Scoring completed successfully."
 
-# 4. Run the Portfolio Optimization script
+# 3. Run the Portfolio Optimization script
 run_stage "Portfolio Optimization" "$PORTFOLIO_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Portfolio Optimization completed successfully."
 
-# 5. Run the Analysis KPIs script
+# 4. Run the Analysis KPIs script
 run_stage "Analysis" "$ANALYSIS_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Analysis completed successfully."
 
-# 5.5 Generate frontend assets JSON (ledger/pipeline) so UI can fetch precomputed JSON
+# 5. Generate frontend assets JSON (ledger/pipeline) so UI can fetch precomputed JSON
 run_stage "Generate Assets JSON" "$GENERATE_ASSETS_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Generated assets JSON for frontend."
 
-# 5.6 Update holdings metadata (forwardPE, currentPrice, targetPrice) in latest_run_summary.json
+# 6. Update holdings metadata (forwardPE, currentPrice, targetPrice) in latest_run_summary.json
 log_message "Updating holdings metadata..."
-python3 "$PROJECT_ROOT/scripts/update_holdings_meta.py" 2>/dev/null || true
+if [ -f "$VENV_PYTHON" ]; then
+    "$VENV_PYTHON" "$PROJECT_ROOT/scripts/update_holdings_meta.py" || log_message "WARNING: update_holdings_meta.py failed (non-critical)"
+else
+    python3 "$PROJECT_ROOT/scripts/update_holdings_meta.py" || log_message "WARNING: update_holdings_meta.py failed (non-critical)"
+fi
 
 # 7. Finalize the pipeline status
 log_message "Pipeline execution completed successfully."

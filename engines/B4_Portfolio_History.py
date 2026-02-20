@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-B4_Portfolio_History.py
+engines/B4_Portfolio_History.py
 
 Generates historical portfolio value data based on:
 - Transaction history (ledger.csv)
-- Daily stock prices (findata)
+- Daily stock prices (StockDataDB.csv)
 
 Output: html/data/portfolio_history.json
 """
 
+# --- Script Version ---
+PORTFOLIO_HISTORY_VERSION = "2.0.0"  # Refactored with consistent structure
+
 import json
 import csv
+import sys
+import logging
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -21,13 +26,21 @@ from pathlib import Path
 # ═══════════════════════════════════════════════════════════════════════════════
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Ensure project root is on sys.path
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 DATA_DIR = BASE_DIR / 'data'
 HTML_DATA_DIR = BASE_DIR / 'html' / 'data'
-FINDATA_DIR = DATA_DIR / 'findata'  # Legacy - kept for backward compatibility
 FINDB_DIR = DATA_DIR / 'findb'
 STOCK_DATA_DB = FINDB_DIR / 'StockDataDB.csv'
 LEDGER_CSV = HTML_DATA_DIR / 'ledger.csv'
 OUTPUT_FILE = HTML_DATA_DIR / 'portfolio_history.json'
+
+# Simple logging
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger('PortfolioHistory')
 
 # Global cache for stock prices loaded from StockDataDB
 _STOCK_PRICES_CACHE = None

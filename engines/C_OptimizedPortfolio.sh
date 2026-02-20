@@ -1,79 +1,101 @@
-#!/bin/zsh
+#!/bin/bash
+# ═══════════════════════════════════════════════════════════════════════════════
+# C_OptimizedPortfolio.sh - Portfolio Optimization Pipeline
+# ═══════════════════════════════════════════════════════════════════════════════
 #
-# C_OptimizedPortfolio.sh
-#
-# Wrapper script to run the optimized portfolio recommendation.
 # Combines ideal portfolio (from A_Portfolio) with current holdings (from B_Ledger)
 # to generate a cost-aware transition recommendation.
-#
-# Usage:
-#   ./engines/C_OptimizedPortfolio.sh
 #
 # Prerequisites:
 #   - A_Portfolio.sh should have been run (generates ideal portfolio)
 #   - B_Ledger.sh should have been run (processes trade notes and generates holdings)
 #
+# Usage:
+#   ./engines/C_OptimizedPortfolio.sh
+#
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+set -euo pipefail
+
+# --- Configuration ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Set Python path and force unbuffered output
 export PYTHONPATH="$PROJECT_ROOT"
 export PYTHONUNBUFFERED=1
 
+# Logging
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+LOG_FILE="$PROJECT_ROOT/logs/optimized_$TIMESTAMP.log"
+mkdir -p "$PROJECT_ROOT/logs"
+
 # Activate virtual environment if it exists
-if [ -d "$PROJECT_ROOT/.venv" ]; then
-    source "$PROJECT_ROOT/.venv/bin/activate"
+VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
+if [ -f "$VENV_PYTHON" ]; then
+    PY_EXEC="$VENV_PYTHON"
+else
+    PY_EXEC="python3"
 fi
 
-echo "=============================================="
-echo "  Optimized Portfolio Recommendation"
-echo "=============================================="
-echo ""
-echo "This script combines:"
-echo "  - Ideal portfolio from A_Portfolio.sh"
-echo "  - Current holdings from B_Ledger.sh"
-echo ""
-echo "To generate a cost-aware transition recommendation."
-echo ""
-echo "----------------------------------------------"
+# --- Helper Functions ---
+log() {
+    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$msg"
+    echo "$msg" >> "$LOG_FILE"
+}
+
+# --- Main ---
+log "╔══════════════════════════════════════════════════════════════╗"
+log "║     C_OptimizedPortfolio.sh - Portfolio Optimization         ║"
+log "╠══════════════════════════════════════════════════════════════╣"
+log "║  Timestamp: $TIMESTAMP"
+log "║  Log file:  $LOG_FILE"
+log "╚══════════════════════════════════════════════════════════════╝"
+log ""
+log "Combining:"
+log "  - Ideal portfolio from A_Portfolio.sh"
+log "  - Current holdings from B_Ledger.sh"
 
 # Check if required files exist
 if [ ! -f "$PROJECT_ROOT/html/data/latest_run_summary.json" ]; then
-    echo "ERROR: Ideal portfolio not found."
-    echo "Please run A_Portfolio.sh first."
+    log "ERROR: Ideal portfolio not found."
+    log "Please run A_Portfolio.sh first."
     exit 1
 fi
 
 if [ ! -f "$PROJECT_ROOT/html/data/ledger_positions.json" ]; then
-    echo "WARNING: Holdings file not found."
-    echo "Please run B_Ledger.sh first to process your trade notes."
-    echo ""
+    log "WARNING: Holdings file not found."
+    log "Please run B_Ledger.sh first to process your trade notes."
 fi
 
 # Run the optimization script
-echo "Running C_OptimizedPortfolio.py..."
-echo ""
+log ""
+log "▶ Running C_OptimizedPortfolio.py..."
+PIPELINE_START=$(date +%s)
 
-python3 "$SCRIPT_DIR/C_OptimizedPortfolio.py"
-EXIT_CODE=$?
+if "$PY_EXEC" "$SCRIPT_DIR/C_OptimizedPortfolio.py" 2>&1 | tee -a "$LOG_FILE"; then
+    PIPELINE_END=$(date +%s)
+    PIPELINE_DURATION=$((PIPELINE_END - PIPELINE_START))
 
-if [ $EXIT_CODE -eq 0 ]; then
-    echo ""
-    echo "----------------------------------------------"
-    echo "✓ Optimization complete!"
-    echo ""
-    echo "Output files:"
-    echo "  - html/data/optimized_recommendation.json (latest)"
-    echo "  - data/results/optimized_portfolio_history.csv (history)"
-    echo "  - logs/optimized.log (detailed log)"
-    echo ""
+    log ""
+    log "╔══════════════════════════════════════════════════════════════╗"
+    log "║              OPTIMIZATION COMPLETED SUCCESSFULLY             ║"
+    log "╠══════════════════════════════════════════════════════════════╣"
+    log "║  Duration: ${PIPELINE_DURATION}s"
+    log "╚══════════════════════════════════════════════════════════════╝"
+    log ""
+    log "Output files:"
+    log "  - $PROJECT_ROOT/html/data/optimized_recommendation.json"
+    log "  - $PROJECT_ROOT/data/results/optimized_portfolio_history.csv"
+    EXIT_CODE=0
 else
-    echo ""
-    echo "----------------------------------------------"
-    echo "✗ Optimization failed with exit code $EXIT_CODE"
-    echo "Check logs/optimized.log for details."
+    EXIT_CODE=$?
+    log ""
+    log "╔══════════════════════════════════════════════════════════════╗"
+    log "║              OPTIMIZATION FAILED                             ║"
+    log "╠══════════════════════════════════════════════════════════════╣"
+    log "║  Exit code: $EXIT_CODE"
+    log "╚══════════════════════════════════════════════════════════════╝"
 fi
 
 exit $EXIT_CODE

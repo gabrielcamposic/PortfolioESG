@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 import csv, json, os
 
-CSV = os.path.expanduser('~/PortfolioESG/data/results/scored_stocks.csv')
-JSON = os.path.join('html','data','latest_run_summary.json')
+# Use absolute paths based on script location
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+
+CSV = os.path.join(PROJECT_ROOT, 'data', 'results', 'scored_stocks.csv')
+JSON = os.path.join(PROJECT_ROOT, 'html', 'data', 'latest_run_summary.json')
 
 if not os.path.exists(CSV):
     print('Scored stocks CSV not found:', CSV)

@@ -75,3 +75,16 @@ regime_neutral_mult = 1.0
 regime_bull_mult = 1.2
 regime_strong_bull_mult = 1.5
 
+# --- Thresholds para Detecção de Regime ---
+# Trend = retorno anualizado do benchmark no período lookback
+# strong_bull: trend > strong_bull_threshold E volatility_percentile < 0.7
+# bull: trend > bull_threshold
+# strong_bear: trend < strong_bear_threshold OU volatility_percentile > bear_vol_threshold
+# bear: trend < bear_threshold
+# neutral: demais casos
+regime_strong_bull_threshold = 0.20
+regime_bull_threshold = 0.05
+regime_bear_threshold = -0.05
+regime_strong_bear_threshold = -0.20
+regime_bear_vol_threshold = 0.85
+

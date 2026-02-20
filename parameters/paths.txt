@@ -13,3 +13,20 @@ FINANCIALS_DB_FILE = ~/PortfolioESG/data/findb/FinancialsDB.csv
 # BENCHMARKS_DB_FILE = ~/PortfolioESG/data/findb/BenchmarksDB.csv
 TICKERS_FILE = ~/PortfolioESG/parameters/tickers.txt
 BENCHMARKS_FILE = ~/PortfolioESG/parameters/benchmarks.txt
+
+# --- --- --- --- --- --- --- --- --- --- ---
+# --- B1_Process_Notes.py paths             ---
+# --- --- --- --- --- --- --- --- --- --- ---
+NOTAS_DIR = ~/PortfolioESG/Notas_Negociação
+TX_FILE = ~/PortfolioESG/data/transactions_parsed.csv
+FEES_FILE = ~/PortfolioESG/data/fees_parsed.csv
+LEDGER_FILE = ~/PortfolioESG/data/ledger.csv
+PROCESSED_MANIFEST = ~/PortfolioESG/html/data/processed_notes.json
+PROCESS_NOTES_PERF_FILE = ~/PortfolioESG/data/Results/process_notes_performance.csv
+
+# --- --- --- --- --- --- --- --- --- --- ---
+# --- B2_Consolidate_Ledger.py paths        ---
+# --- --- --- --- --- --- --- --- --- --- ---
+SCORED_STOCKS_FILE = ~/PortfolioESG/data/results/scored_stocks.csv
+CONSOLIDATE_PERF_FILE = ~/PortfolioESG/data/Results/consolidate_ledger_performance.csv
+

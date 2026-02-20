@@ -8,6 +8,7 @@ SCORING_PY_VERSION = "3.0.0"  # Refactored to use shared_utils and new parameter
 # ----------------------------------------------------------- #
 import os
 import sys
+import csv
 # Ensure project root is on sys.path so imports like `shared_tools` work when
 # running engine scripts directly (python engines/A2_Scoring.py). When Python
 # executes a script, sys.path[0] is the script's containing folder (engines/),
@@ -19,7 +20,7 @@ if project_root not in sys.path:
 
 import pandas as pd
 import numpy as np
-import time, logging, shutil, json
+import time, logging, json
 from datetime import datetime
 from typing import Any, Dict
 
@@ -27,6 +28,7 @@ from typing import Any, Dict
 from shared_tools.shared_utils import (
     setup_logger,
     load_parameters_from_file,
+    copy_file_to_web_accessible_location,
 )
 from shared_tools.path_utils import resolve_paths_in_params
 
@@ -67,33 +69,8 @@ def log_performance_data(perf_data: Dict[str, Any], params: Dict[str, Any], logg
         file_exists = os.path.isfile(log_path)
         df.to_csv(log_path, mode='a', header=not file_exists, index=False)
         logger.info(f"Successfully logged performance data to: {log_path}")
-    except Exception as e:
-        logger.error(f"Failed to log performance data to '{log_path}': {e}")
-
-
-def copy_file_to_web_accessible_location(source_param_key: str, params: Dict[str, Any], logger: logging.Logger):
-    """Copies a file to the web-accessible data directory."""
-    source_path = params.get(source_param_key)
-    dest_folder = params.get("WEB_ACCESSIBLE_DATA_PATH")
-
-    if not isinstance(source_path, str) or not source_path:
-        logger.warning(f"Param '{source_param_key}' is missing or invalid. Cannot copy file.")
-        return
-    if not isinstance(dest_folder, str) or not dest_folder:
-        logger.warning("'WEB_ACCESSIBLE_DATA_PATH' is missing or invalid. Cannot copy file.")
-        return
-    if not os.path.exists(source_path):
-        logger.warning(f"Source file for '{source_param_key}' not found at '{source_path}'.")
-        return
-
-    try:
-        os.makedirs(dest_folder, exist_ok=True)
-        destination_path = os.path.join(dest_folder, os.path.basename(source_path))
-        shutil.copy2(source_path, destination_path)
-        logger.info(f"Copied '{os.path.basename(source_path)}' to web-accessible location.")
-    except Exception as e:
-        logger.error(f"Failed to copy file from '{source_path}' to '{dest_folder}': {e}")
-
+    except (IOError, OSError) as log_err:
+        logger.error(f"Failed to log performance data to '{log_path}': {log_err}")
 
 
 def load_input_stocks_with_sectors(params: Dict[str, Any], logger: logging.Logger) -> pd.DataFrame:
@@ -273,6 +250,15 @@ def detect_market_regime(price_df: pd.DataFrame, lookback_days: int, risk_profil
         'strong_bear': float(risk_profile_params.get('regime_strong_bear_mult', 0.6)),
     }
 
+    # Get thresholds from config (with defaults)
+    thresholds = {
+        'strong_bull': float(risk_profile_params.get('regime_strong_bull_threshold', 0.20)),
+        'bull': float(risk_profile_params.get('regime_bull_threshold', 0.05)),
+        'bear': float(risk_profile_params.get('regime_bear_threshold', -0.05)),
+        'strong_bear': float(risk_profile_params.get('regime_strong_bear_threshold', -0.20)),
+        'bear_vol': float(risk_profile_params.get('regime_bear_vol_threshold', 0.85)),
+    }
+
     try:
         # Use IBOV (^BVSP) or first available benchmark
         benchmark_cols = [col for col in price_df.columns if 'BVSP' in col or 'IBOV' in col]
@@ -298,14 +284,14 @@ def detect_market_regime(price_df: pd.DataFrame, lookback_days: int, risk_profil
         rolling_vol = full_returns.rolling(lookback_days).std() * np.sqrt(252)
         vol_percentile = (rolling_vol < volatility).mean() if len(rolling_vol) > 0 else 0.5
 
-        # Determine regime
-        if trend > 0.20 and vol_percentile < 0.7:
+        # Determine regime using parametrized thresholds
+        if trend > thresholds['strong_bull'] and vol_percentile < 0.7:
             regime = 'strong_bull'
-        elif trend > 0.05:
+        elif trend > thresholds['bull']:
             regime = 'bull'
-        elif trend < -0.20 or vol_percentile > 0.85:
+        elif trend < thresholds['strong_bear'] or vol_percentile > thresholds['bear_vol']:
             regime = 'strong_bear'
-        elif trend < -0.05:
+        elif trend < thresholds['bear']:
             regime = 'bear'
         else:
             regime = 'neutral'
@@ -321,8 +307,8 @@ def detect_market_regime(price_df: pd.DataFrame, lookback_days: int, risk_profil
             'strength_mult': strength_mult
         }
 
-    except Exception as e:
-        logger.warning(f"Error detecting market regime: {e}. Assuming neutral.")
+    except (KeyError, ValueError, ZeroDivisionError) as regime_err:
+        logger.warning(f"Error detecting market regime: {regime_err}. Assuming neutral.")
         return {'regime': 'neutral', 'volatility_percentile': 0.5, 'trend': 0.0, 'strength_mult': regime_mults['neutral']}
 
 
@@ -532,13 +518,51 @@ def main():
         sector_pe = sector_pe[final_sector_pe_columns]
 
         analysis_df = base_df.merge(sector_pe[['Sector', 'SectorMedianPE']], on='Sector', how='left')
-        # Avoid division by zero - replace 0 forwardPE with NaN before division
+        analysis_df = analysis_df.merge(current_prices_df, on='Stock', how='left')
+
+        # Calculate UpsidePotential: prefer Yahoo Finance targetMeanPrice, fallback to SectorMedianPE method
+        # Method 1: Direct from Yahoo Finance targetMeanPrice
+        if 'targetMeanPrice' in analysis_df.columns:
+            has_target = analysis_df['targetMeanPrice'].notna() & (analysis_df['targetMeanPrice'] > 0)
+            has_current = analysis_df['CurrentPrice'].notna() & (analysis_df['CurrentPrice'] > 0)
+            valid_target_mask = has_target & has_current
+
+            # Calculate upside from Yahoo target price
+            analysis_df.loc[valid_target_mask, 'UpsidePotential'] = (
+                (analysis_df.loc[valid_target_mask, 'targetMeanPrice'] /
+                 analysis_df.loc[valid_target_mask, 'CurrentPrice']) - 1
+            )
+            analysis_df.loc[valid_target_mask, 'TargetPrice'] = analysis_df.loc[valid_target_mask, 'targetMeanPrice']
+            analysis_df.loc[valid_target_mask, 'TargetPriceSource'] = 'YahooFinance'
+
+            yahoo_count = valid_target_mask.sum()
+            logger.info(f"Using Yahoo Finance targetMeanPrice for {yahoo_count} stocks")
+        else:
+            valid_target_mask = pd.Series(False, index=analysis_df.index)
+            yahoo_count = 0
+
+        # Method 2: Fallback - calculate from SectorMedianPE for stocks without Yahoo target
+        fallback_mask = ~valid_target_mask & analysis_df['CurrentPrice'].notna() & (analysis_df['CurrentPrice'] > 0)
         safe_forward_pe = analysis_df['forwardPE'].replace(0, np.nan)
-        analysis_df['UpsidePotential'] = ((analysis_df['SectorMedianPE'] / safe_forward_pe) - 1).fillna(0)
+        fallback_upside = ((analysis_df['SectorMedianPE'] / safe_forward_pe) - 1)
+
+        analysis_df.loc[fallback_mask, 'UpsidePotential'] = fallback_upside.loc[fallback_mask].fillna(0)
+        analysis_df.loc[fallback_mask, 'TargetPrice'] = (
+            analysis_df.loc[fallback_mask, 'CurrentPrice'] *
+            (1 + analysis_df.loc[fallback_mask, 'UpsidePotential'])
+        )
+        analysis_df.loc[fallback_mask, 'TargetPriceSource'] = 'SectorPE_Fallback'
+
+        fallback_count = fallback_mask.sum()
+        if fallback_count > 0:
+            logger.info(f"Using SectorMedianPE fallback for {fallback_count} stocks")
+
+        # Fill any remaining NaN values
+        analysis_df['UpsidePotential'] = analysis_df['UpsidePotential'].fillna(0)
+        analysis_df['TargetPriceSource'] = analysis_df['TargetPriceSource'].fillna('None')
+
         # Cap extreme values to avoid inf affecting normalization
         analysis_df['UpsidePotential'] = analysis_df['UpsidePotential'].clip(lower=-0.99, upper=10.0)
-        analysis_df = analysis_df.merge(current_prices_df, on='Stock', how='left')
-        analysis_df['TargetPrice'] = analysis_df['CurrentPrice'] * (1 + analysis_df['UpsidePotential'])
 
         scored_df = analysis_df.merge(sharpe_df, on='Stock', how='left')
         if not momentum_df.empty:
@@ -611,17 +635,12 @@ def main():
         sector_pe_file = params.get("SECTOR_PE_DB_FILE")
         correlation_matrix_file = params.get("CORRELATION_MATRIX_FILE")
 
-        # In /Users/gabrielcampos/PortfolioESG/engines/A2_Scoring.py
-        # ... inside the main() function, replacing the block that starts with rename_map ...
-
-        # --- PROPOSED REPLACEMENT ---
-        # Only rename columns once, just before saving
+        # Rename columns for downstream compatibility
         rename_map = {
             'UpsidePotential': 'PotentialUpside_pct', 'MomentumScore': 'Momentum',
             'SharpeNorm': 'SharpeRatio_norm', 'UpsideNorm': 'PotentialUpside_pct_norm',
             'MomentumNorm': 'Momentum_norm'
         }
-        # Only keep columns that exist in the DataFrame
         columns_to_rename = {k: v for k, v in rename_map.items() if k in scored_df.columns}
         scored_df.rename(columns=columns_to_rename, inplace=True)
 
@@ -667,7 +686,7 @@ def main():
             'SharpeRatio_norm', 'PotentialUpside_pct_norm', 'Momentum_norm',
             'sharpe_weight_used', 'upside_weight_used', 'momentum_weight_used',
             'AnnualizedMeanReturn', 'AnnualizedStdDev', 'CurrentPrice', 'TargetPrice',
-            'forwardPE', 'forwardEPS', 'SectorMedianPE'
+            'TargetPriceSource', 'forwardPE', 'forwardEPS', 'SectorMedianPE'
         ]
         missing_columns = [col for col in required_columns if col not in filtered_df.columns]
         if missing_columns:
@@ -680,8 +699,6 @@ def main():
         if 'Stock' in final_df_to_save.columns:
             final_df_to_save = final_df_to_save.drop_duplicates(subset=['Stock'], keep='first')
 
-        # --- END OF REPLACEMENT ---
-        # The rest of the file (saving logic) remains the same.
 
         if correlation_matrix_file:
             try:
@@ -700,7 +717,7 @@ def main():
         if scored_stocks_file:
             os.makedirs(os.path.dirname(scored_stocks_file), exist_ok=True)
             file_exists = os.path.isfile(scored_stocks_file)
-            final_df_to_save.to_csv(scored_stocks_file, mode='a', header=not file_exists, index=False)
+            final_df_to_save.to_csv(scored_stocks_file, mode='a', header=not file_exists, index=False, quoting=csv.QUOTE_MINIMAL)
             logger.info(f"Appended {len(final_df_to_save)} new records to {scored_stocks_file}")
 
         if sector_pe_file:

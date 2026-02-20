@@ -1,2 +1,6 @@
 OUTPUT_CSV=~/PortfolioESG/data/findb/portfolio_timeseries.csv
 BENCHMARK_TICKERS=^BVSP,ISUS11.SA
+
+# Logging and performance tracking
+ANALYSIS_LOG_FILE=~/PortfolioESG/logs/analysis.log
+ANALYSIS_PERFORMANCE_FILE=~/PortfolioESG/data/Results/analysis_performance.csv

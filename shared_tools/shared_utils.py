@@ -5,11 +5,101 @@ import os
 import sys
 import logging
 import tempfile
+import shutil
+import pandas as pd
 from datetime import datetime, timedelta
 from dateutil.easter import easter
 from holidays.countries.brazil import Brazil as BrazilHolidays
 from typing import List, Dict, Any, Union
 from os import PathLike
+
+
+# ----------------------------------------------------------- #
+#                  Shared Utility Functions                   #
+# ----------------------------------------------------------- #
+
+def copy_file_to_web_accessible_location(
+    source_param_key: str,
+    params: Dict[str, Any],
+    logger: logging.Logger
+) -> None:
+    """
+    Copies a file to the web-accessible data directory.
+
+    Args:
+        source_param_key: The parameter key that contains the source file path.
+        params: Dictionary of parameters containing both source path and destination.
+        logger: Logger instance for logging messages.
+    """
+    source_path = params.get(source_param_key)
+    dest_folder = params.get("WEB_ACCESSIBLE_DATA_PATH")
+
+    if not isinstance(source_path, str) or not source_path:
+        logger.warning(f"Parameter '{source_param_key}' is missing or invalid. Cannot copy file.")
+        return
+    if not isinstance(dest_folder, str) or not dest_folder:
+        logger.warning("'WEB_ACCESSIBLE_DATA_PATH' is missing or invalid. Cannot copy file.")
+        return
+    if not os.path.exists(source_path):
+        logger.warning(f"Source file for '{source_param_key}' not found at '{source_path}'.")
+        return
+
+    try:
+        os.makedirs(dest_folder, exist_ok=True)
+        destination_path = os.path.join(dest_folder, os.path.basename(source_path))
+        shutil.copy2(source_path, destination_path)
+        logger.info(f"Copied '{os.path.basename(source_path)}' to web-accessible location.")
+    except (IOError, OSError) as copy_err:
+        logger.error(f"Failed to copy file from '{source_path}' to '{dest_folder}': {copy_err}")
+
+
+def initialize_performance_data(script_version: str, script_name: str = "script") -> Dict[str, Any]:
+    """
+    Creates and initializes a dictionary to track script performance metrics.
+
+    Args:
+        script_version: Version string of the script.
+        script_name: Name of the script for the version key.
+
+    Returns:
+        Dictionary with initialized performance tracking fields.
+    """
+    return {
+        "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        f"{script_name}_version": script_version,
+        "param_load_duration_s": 0.0,
+        "data_load_duration_s": 0.0,
+        "overall_script_duration_s": 0.0,
+    }
+
+
+def log_performance_data(
+    perf_data: Dict[str, Any],
+    params: Dict[str, Any],
+    logger: logging.Logger,
+    performance_file_key: str = "PERFORMANCE_FILE"
+) -> None:
+    """
+    Logs the script's performance metrics to a CSV file.
+
+    Args:
+        perf_data: Dictionary of performance metrics to log.
+        params: Dictionary of parameters containing the log file path.
+        logger: Logger instance for logging messages.
+        performance_file_key: The parameter key for the performance log file.
+    """
+    log_path = params.get(performance_file_key)
+    if not log_path:
+        logger.warning(f"'{performance_file_key}' not in params. Skipping performance logging.")
+        return
+
+    try:
+        df = pd.DataFrame([perf_data])
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        df.to_csv(log_path, mode='a', header=not os.path.exists(log_path), index=False)
+        logger.info(f"Successfully logged performance data to: {log_path}")
+    except (IOError, OSError) as log_err:
+        logger.error(f"Failed to log performance data to '{log_path}': {log_err}")
 
 
 class FlushingStreamHandler(logging.StreamHandler):

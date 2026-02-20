@@ -1,33 +1,51 @@
 #!/usr/bin/env python3
 """
-Generate JSON files consumed by html/ledger.js:
- - data/ledger_positions.json   : array { positions: [...] }
- - data/pipeline_latest.json    : latest pipeline composition + computed projected quantities and totals
- - data/scored_targets.json     : mapping of normalized ticker -> target price and symbol map
+engines/B3_Generate_json.py
 
-This script mirrors logic from html/js/ledger.js but runs server-side so the frontend can fetch ready-made JSON.
+Generate JSON files consumed by html/meu_portfolio.html:
+ - html/data/ledger_positions.json   : array { positions: [...] }
+ - html/data/pipeline_latest.json    : latest pipeline composition + computed projected quantities and totals
+ - html/data/scored_targets.json     : mapping of normalized ticker -> target price and symbol map
+
+This script mirrors logic from html/js/meu_portfolio.js but runs server-side
+so the frontend can fetch ready-made JSON.
 """
+
+# --- Script Version ---
+GENERATE_JSON_VERSION = "2.0.0"  # Refactored with consistent structure
 
 import csv
 import json
 import math
 import os
+import sys
+import logging
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 
-# Explicit paths used in this repository
-LEDGER_CSV = os.path.join('data', 'ledger.csv')
-PIPELINE_CSV = os.path.join('data', 'results', 'portfolio_results_db.csv')
-FINDB_STOCKDB = os.path.join('data', 'findb', 'StockDataDB.csv')
-SCORED_STOCKS = os.path.join('data', 'results', 'scored_stocks.csv')
-LATEST_RUN_SUMMARY = os.path.join('html', 'data', 'latest_run_summary.json')
+# Ensure project root is on sys.path
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-OUTPUT_LEDGER_JSON = os.path.join('html','data','ledger_positions.json')
-OUTPUT_LEDGER_CSV = os.path.join('html','data','ledger.csv')
-OUTPUT_PIPELINE_JSON = os.path.join('html','data','pipeline_latest.json')
-OUTPUT_SCORED_JSON = os.path.join('html','data','scored_targets.json')
+# Explicit paths used in this repository
+LEDGER_CSV = ROOT / 'data' / 'ledger.csv'
+PIPELINE_CSV = ROOT / 'data' / 'results' / 'portfolio_results_db.csv'
+FINDB_STOCKDB = ROOT / 'data' / 'findb' / 'StockDataDB.csv'
+SCORED_STOCKS = ROOT / 'data' / 'results' / 'scored_stocks.csv'
+LATEST_RUN_SUMMARY = ROOT / 'html' / 'data' / 'latest_run_summary.json'
+
+OUTPUT_LEDGER_JSON = ROOT / 'html' / 'data' / 'ledger_positions.json'
+OUTPUT_LEDGER_CSV = ROOT / 'html' / 'data' / 'ledger.csv'
+OUTPUT_PIPELINE_JSON = ROOT / 'html' / 'data' / 'pipeline_latest.json'
+OUTPUT_SCORED_JSON = ROOT / 'html' / 'data' / 'scored_targets.json'
 
 CSV_ENCODING = 'utf-8'
+
+# Simple logging setup
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger('GenerateJson')
 
 # Utilities
 
@@ -254,7 +272,7 @@ def load_latest_pipeline(path: str) -> Dict[str, Any]:
                 ssum = sum(weights)
                 if ssum > 0 and ssum <= 1.1:
                     weights = [w * 100.0 for w in weights]
-            return {'stocks': stocks, 'weights': weights, 'used_path': LATEST_RUN_SUMMARY}
+            return {'stocks': stocks, 'weights': weights, 'used_path': str(LATEST_RUN_SUMMARY)}
         except Exception:
             # fall back to CSV approach below
             pass
@@ -266,7 +284,7 @@ def load_latest_pipeline(path: str) -> Dict[str, Any]:
         for r in reader:
             rows.append(r)
     if not rows:
-        return {'stocks': [], 'weights': [], 'used_path': path}
+        return {'stocks': [], 'weights': [], 'used_path': str(path)}
     # choose row with latest timestamp if possible
     best = None
     best_dt = None
@@ -301,7 +319,7 @@ def load_latest_pipeline(path: str) -> Dict[str, Any]:
         ssum = sum(weights)
         if ssum > 0 and ssum <= 1.1:
             weights = [w * 100.0 for w in weights]
-    return {'stocks': stocks, 'weights': weights, 'used_path': path}
+    return {'stocks': stocks, 'weights': weights, 'used_path': str(path)}
 
 
 # Stream StockDataDB.csv and keep last seen close price per symbol (memory efficient)
@@ -502,24 +520,24 @@ def build_pipeline_rows(stocks: List[str], weights: List[float], ledger_market_v
 
 # Main
 
-TICKERS_FILE = os.path.join('parameters', 'tickers.txt')
+TICKERS_FILE = ROOT / 'parameters' / 'tickers.txt'
 
 def main():
-    print('Generating assets JSON (revised)...')
+    print(f'Generating assets JSON (v{GENERATE_JSON_VERSION})...')
     # 1) aggregate ledger.csv
-    positions, _, total_invested_cash = aggregate_ledger_from_csv(LEDGER_CSV)
+    positions, _, total_invested_cash = aggregate_ledger_from_csv(str(LEDGER_CSV))
 
     # 2) load latest prices from StockDataDB.csv (streaming)
-    price_map = load_latest_prices(FINDB_STOCKDB)
+    price_map = load_latest_prices(str(FINDB_STOCKDB))
 
     # 2b) load scored maps (also contains name->symbol mapping) to help translate ledger names to trading symbols
-    scored = load_scored_maps(SCORED_STOCKS)
+    scored = load_scored_maps(str(SCORED_STOCKS))
     target_map = scored.get('targets', {})
     symbol_map = scored.get('symbols', {})
     name_to_symbol = scored.get('name_to_symbol', {})
 
     # 2c) load broker name mapping from tickers.txt
-    broker_mapping = load_broker_name_mapping(TICKERS_FILE)
+    broker_mapping = load_broker_name_mapping(str(TICKERS_FILE))
 
     # 3) compute current market value using price_map
     total_current_market = 0.0
@@ -600,34 +618,35 @@ def main():
 
     # If the ledger CSV does not exist, avoid overwriting an existing consolidated ledger JSON
     # This preserves the last known positions for the frontend when there are no new transactions.
-    if not os.path.exists(LEDGER_CSV):
-        html_existing = os.path.join('html', 'data', os.path.basename(OUTPUT_LEDGER_JSON))
-        if os.path.exists(html_existing):
-            print(f"Ledger CSV not found ({LEDGER_CSV}); keeping existing {html_existing} and skipping write of {OUTPUT_LEDGER_JSON}.")
+    if not LEDGER_CSV.exists():
+        if OUTPUT_LEDGER_JSON.exists():
+            print(f"Ledger CSV not found ({LEDGER_CSV}); keeping existing {OUTPUT_LEDGER_JSON}.")
         else:
-            # No source CSV and no existing HTML copy: write an empty ledger_positions.json so frontend shows 'No ledger data'
+            # No source CSV and no existing HTML copy: write an empty ledger_positions.json
             try:
-                os.makedirs(os.path.dirname(OUTPUT_LEDGER_JSON) or '.', exist_ok=True)
-                with open(OUTPUT_LEDGER_JSON, 'w', encoding='utf-8') as fh:
+                OUTPUT_LEDGER_JSON.parent.mkdir(parents=True, exist_ok=True)
+                with OUTPUT_LEDGER_JSON.open('w', encoding='utf-8') as fh:
                     json.dump(ledger_out, fh, ensure_ascii=False, indent=2)
                 print('Wrote', OUTPUT_LEDGER_JSON)
             except Exception as e:
                 print('Failed to write ledger json:', e)
     else:
         try:
-            # ensure output directory exists
-            os.makedirs(os.path.dirname(OUTPUT_LEDGER_JSON) or '.', exist_ok=True)
-            with open(OUTPUT_LEDGER_JSON, 'w', encoding='utf-8') as fh:
+            OUTPUT_LEDGER_JSON.parent.mkdir(parents=True, exist_ok=True)
+            with OUTPUT_LEDGER_JSON.open('w', encoding='utf-8') as fh:
                 json.dump(ledger_out, fh, ensure_ascii=False, indent=2)
             print('Wrote', OUTPUT_LEDGER_JSON)
         except Exception as e:
             print('Failed to write ledger json:', e)
 
     # 5) load latest pipeline run
-    pipeline = load_latest_pipeline(PIPELINE_CSV)
+    pipeline = load_latest_pipeline(str(PIPELINE_CSV))
     stocks = pipeline.get('stocks', [])
     weights = pipeline.get('weights', [])
     used_path = pipeline.get('used_path')
+    # Convert Path to string if necessary for JSON serialization
+    if used_path is not None and hasattr(used_path, '__fspath__'):
+        used_path = str(used_path)
     # normalize weights if missing
     if stocks and (not weights or len(weights) != len(stocks)):
         weights = [100.0 / len(stocks) for _ in stocks]
@@ -642,24 +661,20 @@ def main():
         'generated_at': datetime.now(timezone.utc).isoformat()
     }
     try:
-        # ensure output directory exists
-        os.makedirs(os.path.dirname(OUTPUT_PIPELINE_JSON) or '.', exist_ok=True)
-        with open(OUTPUT_PIPELINE_JSON, 'w', encoding='utf-8') as fh:
+        OUTPUT_PIPELINE_JSON.parent.mkdir(parents=True, exist_ok=True)
+        with OUTPUT_PIPELINE_JSON.open('w', encoding='utf-8') as fh:
             json.dump(pipeline_out, fh, ensure_ascii=False, indent=2)
         print('Wrote', OUTPUT_PIPELINE_JSON)
-        # No secondary copy needed; OUTPUT_PIPELINE_JSON already points to html/data
     except Exception as e:
         print('Failed to write pipeline json:', e)
 
     # 6) write scored targets map
     scored_out = {'targets': target_map, 'symbols': symbol_map, 'generated_at': datetime.now(timezone.utc).isoformat()}
     try:
-        # ensure output directory exists
-        os.makedirs(os.path.dirname(OUTPUT_SCORED_JSON) or '.', exist_ok=True)
-        with open(OUTPUT_SCORED_JSON, 'w', encoding='utf-8') as fh:
+        OUTPUT_SCORED_JSON.parent.mkdir(parents=True, exist_ok=True)
+        with OUTPUT_SCORED_JSON.open('w', encoding='utf-8') as fh:
             json.dump(scored_out, fh, ensure_ascii=False, indent=2)
         print('Wrote', OUTPUT_SCORED_JSON)
-        # No secondary copy needed; OUTPUT_SCORED_JSON already points to html/data
     except Exception as e:
         print('Failed to write scored json:', e)
 
@@ -667,13 +682,10 @@ def main():
 
     # 7) Copy ledger.csv to html/data for frontend access
     try:
-        if os.path.exists(LEDGER_CSV):
-            os.makedirs(os.path.dirname(OUTPUT_LEDGER_CSV) or '.', exist_ok=True)
-            # Read and write to ensure proper encoding
-            with open(LEDGER_CSV, 'r', encoding=CSV_ENCODING, errors='replace') as src:
-                content = src.read()
-            with open(OUTPUT_LEDGER_CSV, 'w', encoding=CSV_ENCODING) as dst:
-                dst.write(content)
+        if LEDGER_CSV.exists():
+            OUTPUT_LEDGER_CSV.parent.mkdir(parents=True, exist_ok=True)
+            content = LEDGER_CSV.read_text(encoding=CSV_ENCODING, errors='replace')
+            OUTPUT_LEDGER_CSV.write_text(content, encoding=CSV_ENCODING)
             print('Wrote', OUTPUT_LEDGER_CSV)
     except Exception as e:
         print('Failed to write ledger.csv to html/data:', e)

@@ -81,11 +81,6 @@ top_n_percent_refinement = 0.05
 # Number of simulations for the refinement phase, or for all combinations if adaptive_sim_enabled is false.
 sim_runs=1000
 
-# --- Stock Pool Sizing for Initial Sharpe Ratio Filtering ---
-# Defines how many top stocks (by Sharpe ratio) are initially filtered based on the MAX_STOCKS setting.
-# Format: min_max_portfolio_stocks:num_stocks_to_filter, e.g., "3-5:50,6-10:75,11-20:100"
-pool_size_tiers = 3-5:50,6-10:75,11-20:100
-pool_size_default_num_stocks = 50
 
 # --- Simulation Feedback & Advanced GA Settings ---
 # Brute-force progress logging percentage step increase (e.g., 5, 10, 50)

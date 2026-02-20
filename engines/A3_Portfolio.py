@@ -8,7 +8,7 @@ PORTFOLIO_PY_VERSION = "2.1.0"  # Performance improvements.
 # ----------------------------------------------------------- #
 import pandas as pd, collections
 import numpy as np
-import os, sys, time, json, shutil, logging, itertools, random
+import os, sys, time, json, shutil, logging, itertools, random, csv
 from datetime import datetime, timedelta
 from collections import Counter
 from typing import Dict, Any, List, Tuple
@@ -106,6 +106,10 @@ def copy_file_to_web_accessible_location(source_param_key: str, params: Dict, lo
     try:
         os.makedirs(dest_folder, exist_ok=True)
         destination_path = os.path.join(dest_folder, os.path.basename(source_path))
+        # Check if source and destination are the same file
+        if os.path.realpath(source_path) == os.path.realpath(destination_path):
+            logger.debug(f"Source and destination are the same file for '{source_param_key}'. Skipping copy.")
+            return
         shutil.copy2(source_path, destination_path)
         logger.info(f"Copied '{os.path.basename(source_path)}' to web-accessible location.")
     except Exception as e:
@@ -451,15 +455,13 @@ def _run_brute_force_iteration(
             max_sims = max(min(calc_sims, sim["PROGRESSIVE_MAX_SIMS_CAP"]), sim["PROGRESSIVE_MIN_SIMS"])
 
         for _ in range(max_sims):
-            # timer_instance.start() # Timer calls are expensive in hot loops
             weights = generate_portfolio_weights(k)
 
-            # --- PERFORMANCE OPTIMIZATION: Use the centralized, vectorized calculation function ---
+            # Use the centralized, vectorized calculation function
             exp_ret, vol, sharpe = _calculate_portfolio_metrics_from_precomputed(
                 weights, mean_returns_annualized, covariance_matrix_annualized, current_rf_rate
             )
 
-            # timer_instance.stop()
             sims_run += 1
 
             if isinstance(sharpe, Real) and pd.notna(sharpe) and sharpe > best_sharpe_this:
@@ -510,7 +512,7 @@ def _run_brute_force_iteration(
     return best_result_for_k, all_results_for_k
 
 def _run_refinement_phase(
-    all_results, source_stock_prices_df, sim, current_initial_investment,
+    all_results, source_stock_prices_df, sim,
     current_rf_rate, logger_instance, current_best_result
 ):
     """Helper to run the refinement phase on the top brute-force results."""
@@ -572,7 +574,7 @@ def find_best_stock_combination(
         if k <= sim["HEURISTIC_THRESHOLD_K"]:
             k_result, bf_results_for_k = _run_brute_force_iteration(
                 k, available_stocks, stock_sector_map, max_stocks_per_sector,
-                source_stock_prices_df, sim, timer_instance, current_initial_investment,
+                source_stock_prices_df, sim, timer_instance,
                 current_rf_rate, logger_instance, best_result['sharpe']
             )
             if sim["ADAPTIVE_SIM_ENABLED"]:
@@ -596,7 +598,7 @@ def find_best_stock_combination(
 
     if sim["ADAPTIVE_SIM_ENABLED"] and sim["TOP_N_PERCENT_REFINEMENT"] > 0 and all_bf_results:
         best_result = _run_refinement_phase(
-            all_bf_results, source_stock_prices_df, sim, current_initial_investment,
+            all_bf_results, source_stock_prices_df, sim,
             current_rf_rate, logger_instance, best_result
         )
 
@@ -863,9 +865,6 @@ def main():
     except Exception as e:
         logger.critical(f"An unhandled exception occurred: {e}", exc_info=True,
                         extra={'web_data': {"portfolio_status": "Failed", "status_message": str(e)}})
-        # In /Users/gabrielcampos/PortfolioESG/engines/A3_Portfolio.py
-
-        # ... inside the main() function, after the 'except' block ...
 
     finally:
         # 5. --- Finalization and Logging ---
@@ -1117,7 +1116,7 @@ def main():
                     "expected_volatility_annual_pct": round(best_vol * 100, 2),
                     "initial_investment": params.get("initial_investment"),
                     "sector_exposure": sector_exposure,
-                    "sector_exposure_list": locals().get('sector_exposure_list', []),
+                    "sector_exposure_list": sector_exposure_list,
                     "concentration_risk": {
                         "hhi": round(hhi, 4),
                         "top_5_holdings_pct": round(top_5_pct, 4),
@@ -1130,10 +1129,10 @@ def main():
                         "benchmark_forward_pe": benchmark_weighted_pe,
                         "portfolio_dividend_yield": portfolio_dividend_yield
                     },
-                    "portfolio_timeseries": locals().get('portfolio_timeseries', []),
-                    "stock_sparklines": locals().get('stock_sparklines', {}),
-                    "ga_fitness_history": locals().get('ga_fitness_history', []),
-                    "holdings_meta": locals().get('holdings_meta', {})
+                    "portfolio_timeseries": portfolio_timeseries,
+                    "stock_sparklines": stock_sparklines,
+                    "ga_fitness_history": ga_fitness_history,
+                    "holdings_meta": {}
                 }
             }
 

@@ -16,7 +16,8 @@ from shared_tools.shared_utils import (
     setup_logger,
     load_parameters_from_file,
     get_previous_business_day,
-    get_sao_paulo_holidays
+    get_sao_paulo_holidays,
+    copy_file_to_web_accessible_location,
 )
 from shared_tools.shared_utils import write_json_atomic
 from shared_tools.path_utils import resolve_paths_in_params
@@ -852,26 +853,6 @@ def log_performance_data(perf_data: dict[str, Any], params: dict[str, Any], logg
         logger.error(f"Failed to log performance data to '{log_path}': {perf_err}")
 
 
-def copy_file_to_web_accessible_location(source_param_key: str, params: dict[str, Any], logger: logging.Logger) -> None:
-    """Copy a file to the web-accessible data directory."""
-    source_path = params.get(source_param_key)
-    dest_folder = params.get("WEB_ACCESSIBLE_DATA_PATH")
-    if not isinstance(source_path, str) or not source_path:
-        logger.warning(f"Parameter key '{source_param_key}' is missing or not a valid string. Cannot copy file.")
-        return
-    if not isinstance(dest_folder, str) or not dest_folder:
-        logger.warning("'WEB_ACCESSIBLE_DATA_PATH' is missing or not a valid string. Cannot copy file.")
-        return
-    if not os.path.exists(source_path):
-        logger.warning(f"Source file for key '{source_param_key}' not found at '{source_path}'. Cannot copy.")
-        return
-    try:
-        os.makedirs(dest_folder, exist_ok=True)
-        destination_path = os.path.join(dest_folder, os.path.basename(source_path))
-        shutil.copy2(source_path, destination_path)
-        logger.info(f"Successfully copied '{os.path.basename(source_path)}' to web-accessible location: {destination_path}")
-    except OSError as copy_err:
-        logger.error(f"Failed to copy file from '{source_path}' to '{dest_folder}': {copy_err}")
 
 # ----------------------------------------------------------- #
 #                     The application                         #
