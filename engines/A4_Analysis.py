@@ -169,14 +169,23 @@ def calculate_brinson_attribution(portfolio: dict, portfolio_daily_return: pd.Se
             selection_effect += w_b * (r_p - r_b)
             interaction_effect += (w_p - w_b) * (r_p - r_b)
 
+        total_active_return = float((portfolio_return - benchmark_return) * 100)
+        sum_of_effects = float((allocation_effect + selection_effect + interaction_effect) * 100)
+
+        # Calculate residual (should be near zero with proper Brinson decomposition)
+        residual = total_active_return - sum_of_effects
+
         attribution_results = {
             'allocation_effect': float(allocation_effect * 100),
             'selection_effect': float(selection_effect * 100),
             'interaction_effect': float(interaction_effect * 100),
-            'total_active_return': float((portfolio_return - benchmark_return) * 100)
+            'total_active_return': total_active_return,
+            'sum_of_effects': sum_of_effects,
+            'residual': residual if abs(residual) > 0.01 else 0.0  # Only show if > 0.01%
         }
 
-        logger.info(f"Attribution calculated: Active Return = {attribution_results['total_active_return']:.2f}%")
+        logger.info(f"Attribution calculated: Active Return = {attribution_results['total_active_return']:.2f}%, "
+                    f"Sum of Effects = {sum_of_effects:.2f}%, Residual = {residual:.4f}%")
         return attribution_results
 
     except FileNotFoundError:
@@ -271,10 +280,17 @@ def calculate_diagnostics(portfolio: dict, portfolios: pd.DataFrame,
         excess_returns = merged['portfolio'] - merged['benchmark']
         tracking_error = float(excess_returns.std() * np.sqrt(252))
         diagnostics['tracking_error'] = tracking_error
-        diagnostics['information_ratio'] = float(excess_returns.mean() / tracking_error) if tracking_error != 0 else None
+        # Information Ratio: annualized excess return / tracking error
+        # Both numerator and denominator must be annualized for correct ratio
+        annualized_excess_return = float(excess_returns.mean() * 252)
+        diagnostics['information_ratio'] = annualized_excess_return / tracking_error if tracking_error != 0 else None
+        # Store benchmark return for frontend display
+        benchmark_annual_return = float(merged['benchmark'].mean() * 252)
+        diagnostics['benchmark_annual_return'] = benchmark_annual_return
     except (KeyError, ValueError, ZeroDivisionError):
         diagnostics['tracking_error'] = None
         diagnostics['information_ratio'] = None
+        diagnostics['benchmark_annual_return'] = None
 
     logger.info(f"Diagnostics calculated: {len([v for v in diagnostics.values() if v is not None])} metrics")
     return diagnostics

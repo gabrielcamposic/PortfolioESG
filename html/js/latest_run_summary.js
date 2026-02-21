@@ -1146,8 +1146,8 @@
     return out;
   }
 
-  // Render Volatility history chart (diagnostics)
-  async function renderVolatilityChart(data){
+    // Render Volatility history chart (diagnostics)
+    async function renderVolatilityChart(data){
     const canvas = els.volChartCanvas || document.getElementById('volChart');
     try{ if(volChart && volChart.destroy) volChart.destroy(); }catch(e){}
     if(!canvas) return;
@@ -1345,9 +1345,119 @@
         }
       }
     });
-  }
+    }
 
-  // Render sector donut and concentration bar (used by renderAll)
+    // Render Portfolio vs Benchmark comparison chart
+    let portfolioBenchmarkChart = null;
+
+    async function renderPortfolioBenchmarkChart(data) {
+    const canvas = document.getElementById('portfolioBenchmarkChart');
+    if (!canvas) return;
+
+    // Destroy existing chart
+    if (portfolioBenchmarkChart) {
+      try { portfolioBenchmarkChart.destroy(); } catch(e) {}
+      portfolioBenchmarkChart = null;
+    }
+
+    // Load diagnostics data which contains benchmark_annual_return
+    let diagnosticsData = null;
+    try {
+      const diagResp = await fetch('./data/diagnostics.json?_=' + Date.now());
+      if (diagResp.ok) {
+        diagnosticsData = await diagResp.json();
+      }
+    } catch(e) {
+      console.warn('Could not load diagnostics for benchmark chart:', e);
+    }
+
+    // Get portfolio return from current data
+    const portfolioReturn = data?.best_portfolio_details?.expected_return_annual_pct || null;
+    const benchmarkReturn = diagnosticsData?.benchmark_annual_return
+      ? diagnosticsData.benchmark_annual_return * 100
+      : null;
+
+    if (portfolioReturn == null && benchmarkReturn == null) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#888';
+      ctx.textAlign = 'center';
+      ctx.fillText('Dados insuficientes para comparação', canvas.width / 2, canvas.height / 2);
+      return;
+    }
+
+    // Prepare data
+    const labels = ['Portfolio', 'Benchmark (Ibovespa)'];
+    const values = [portfolioReturn || 0, benchmarkReturn || 0];
+    const colors = [
+      portfolioReturn >= (benchmarkReturn || 0) ? '#4CAF50' : '#FFC107',
+      '#2196F3'
+    ];
+
+    if (typeof window.Chart === 'undefined') {
+      drawBarFallback(canvas, labels, values, '#4CAF50');
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    try {
+      portfolioBenchmarkChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderColor: colors.map(c => c),
+            borderWidth: 1,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(30, 41, 59, 0.95)',
+              titleColor: '#f1f5f9',
+              bodyColor: '#cbd5e1',
+              callbacks: {
+                label: function(ctx) {
+                  const val = ctx.raw;
+                  return 'Retorno Anual: ' + (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8' }
+            },
+            y: {
+              grid: { color: 'rgba(71, 85, 105, 0.3)' },
+              ticks: {
+                color: '#94a3b8',
+                callback: function(v) { return v.toFixed(0) + '%'; }
+              },
+              title: {
+                display: true,
+                text: 'Retorno Anual (%)',
+                color: '#cbd5e1'
+              }
+            }
+          }
+        }
+      });
+    } catch(e) {
+      console.warn('Failed to create portfolio vs benchmark chart:', e);
+      drawBarFallback(canvas, labels, values, '#4CAF50');
+    }
+    }
+
+    // Render sector donut and concentration bar (used by renderAll)
   function renderSectorAndConcentration(data){
     const p = data.best_portfolio_details || {};
     // Concentration bar (top 5 holdings)
@@ -2086,30 +2196,38 @@
           const v = matrix[i][j];
           const colStock = headers[j];
           const colInPortfolio = currentPortfolioStocks.has(colStock);
+          const isDiagonal = (i === j); // Diagonal = correlation with self
 
           // Don't show text in cells (too crowded), show on hover via title
           td.textContent = '';
-          // Color: map -1..1 to red..green
-          const pct = Math.max(0, Math.min(1, (v + 1) / 2));
-          // Use gradient: red (negative) -> yellow (neutral) -> green (positive)
-          let r, g, b;
-          if(pct < 0.5){
-            // red to yellow
-            r = 220;
-            g = Math.round(180 * (pct * 2));
-            b = 80;
-          } else {
-            // yellow to green
-            r = Math.round(220 * (1 - (pct - 0.5) * 2));
-            g = 180;
-            b = 80;
-          }
-          td.style.background = `rgba(${r}, ${g}, ${b}, 0.85)`;
-          td.title = `${rowStock} / ${colStock}: ${Number.isFinite(v) ? v.toFixed(3) : 'n/a'}`;
 
-          // Highlight cell if both row and column are in portfolio
-          if(rowInPortfolio && colInPortfolio){
-            td.classList.add('portfolio-correlation');
+          // Diagonal cells (self-correlation = 1.0) get neutral gray color
+          if(isDiagonal){
+            td.style.background = 'rgba(100, 100, 100, 0.5)';
+            td.title = `${rowStock}: auto-correlação = 1.00`;
+          } else {
+            // Color: map -1..1 to red..green
+            const pct = Math.max(0, Math.min(1, (v + 1) / 2));
+            // Use gradient: red (negative) -> yellow (neutral) -> green (positive)
+            let r, g, b;
+            if(pct < 0.5){
+              // red to yellow
+              r = 220;
+              g = Math.round(180 * (pct * 2));
+              b = 80;
+            } else {
+              // yellow to green
+              r = Math.round(220 * (1 - (pct - 0.5) * 2));
+              g = 180;
+              b = 80;
+            }
+            td.style.background = `rgba(${r}, ${g}, ${b}, 0.85)`;
+            td.title = `${rowStock} / ${colStock}: ${Number.isFinite(v) ? v.toFixed(3) : 'n/a'}`;
+
+            // Highlight cell if both row and column are in portfolio (but not diagonal)
+            if(rowInPortfolio && colInPortfolio){
+              td.classList.add('portfolio-correlation');
+            }
           }
           tr.appendChild(td);
         }
@@ -2164,6 +2282,12 @@
         { key: 'selection_effect', label: 'Selection Effect', desc: 'Ganho por seleção de ações' },
         { key: 'interaction_effect', label: 'Interaction Effect', desc: 'Efeito combinado' }
       ];
+
+      // Add residual if present and > 0.01%
+      const residual = data.residual || 0;
+      if (Math.abs(residual) > 0.01) {
+        items.push({ key: 'residual', label: 'Residual', desc: 'Diferença de arredondamento' });
+      }
 
       // Find max absolute value for bar scaling
       const maxAbs = Math.max(
@@ -2433,6 +2557,20 @@
         infoRatioEl.textContent = '—';
       }
     }
+
+    // Benchmark Return (Ann.)
+    const benchReturnEl = document.getElementById('diag_benchmark_return');
+    if (benchReturnEl) {
+      const v = data.benchmark_annual_return;
+      if (v != null && !isNaN(v)) {
+        const pctVal = Number(v) * 100;
+        benchReturnEl.textContent = (pctVal >= 0 ? '+' : '') + pctVal.toFixed(2) + '%';
+        benchReturnEl.classList.toggle('positive', pctVal >= 0);
+        benchReturnEl.classList.toggle('negative', pctVal < 0);
+      } else {
+        benchReturnEl.textContent = '—';
+      }
+    }
   }
 
   // render everything
@@ -2457,6 +2595,7 @@
     await renderCorrelationMatrix();
     await renderGA(data);
     await renderVolatilityChart(data);
+    await renderPortfolioBenchmarkChart(data);
 
     // default portfolio range: all
     await updatePortfolioChart('all');

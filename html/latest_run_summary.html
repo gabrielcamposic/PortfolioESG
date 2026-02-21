@@ -50,7 +50,7 @@
         <div class="kpi-qual-bar"><div class="kpi-qual-fill" id="top5-qual-bar"></div></div>
         <div class="kpi-qual-label" id="top5-qual-label"></div>
       </div>
-      <div class="kpi" id="kpi-turnover"><div class="kpi-val" id="kpi-turnover-val">—</div><div class="kpi-label">Turnover</div></div>
+      <div class="kpi" id="kpi-turnover"><div class="kpi-val" id="kpi-turnover-val">—</div><div class="kpi-label">Rotatividade</div></div>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -144,6 +144,17 @@
           </div>
         </div>
       </div>
+
+      <!-- Portfolio vs Benchmark -->
+      <div class="subsection">
+        <div class="subsection-header">
+          <h3>Retorno: Portfolio vs Benchmark</h3>
+        </div>
+        <div class="chart-card" style="min-height:200px;">
+          <canvas id="portfolioBenchmarkChart" width="600" height="200" style="width:100%;height:200px;display:block;"></canvas>
+        </div>
+      </div>
+      </div>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -174,6 +185,13 @@
           </div>
           <div class="metric-card-qual" id="diag_info_ratio_qual"></div>
           <div class="metric-card-desc">Retorno ativo / Tracking Error</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-header">
+            <span class="metric-card-title">Retorno Benchmark (Ann.)</span>
+            <span class="metric-card-value" id="diag_benchmark_return">—</span>
+          </div>
+          <div class="metric-card-desc">Retorno anualizado do Ibovespa</div>
         </div>
         <div class="metric-card">
           <div class="metric-card-header">
@@ -267,13 +285,6 @@
             <span class="metric-card-value" id="diag_div_yield">—</span>
           </div>
           <div class="metric-card-desc">Rendimento de dividendos</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-card-header">
-            <span class="metric-card-title">Momentum</span>
-            <span class="metric-card-value" id="momentum">—</span>
-          </div>
-          <div class="metric-card-desc">Momentum do portfolio</div>
         </div>
       </div>
     </section>

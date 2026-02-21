@@ -468,6 +468,42 @@
       <div class="source-box">
         <strong>Configuração:</strong> Edite o arquivo <code>parameters/risk_profile.txt</code> para ajustar seu perfil e a força de aplicação (0.0 a 1.0).
       </div>
+
+      <!-- Intensidade de Mudança -->
+      <h3>4.5 Intensidade de Mudança (Blend Ratio)</h3>
+      <p>Percentual que indica quanto do portfolio recomendado deve ser incorporado à carteira atual no mix ótimo.</p>
+
+      <div class="formula-box">
+        <code>Portfolio Blended = Holdings × (1 - Intensidade) + Ideal × Intensidade</code>
+      </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Intensidade</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>0%</td>
+          <td>Manter 100% da carteira atual (HOLD)</td>
+        </tr>
+        <tr>
+          <td>25%</td>
+          <td>Ajuste parcial - 25% do ideal, 75% atual</td>
+        </tr>
+        <tr>
+          <td>50%</td>
+          <td>Meio-termo entre atual e ideal</td>
+        </tr>
+        <tr>
+          <td>100%</td>
+          <td>Ir totalmente para o portfolio ideal (REBALANCE completo)</td>
+        </tr>
+      </table>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        A intensidade ótima é calculada considerando o custo de transição. Às vezes uma mudança parcial oferece melhor relação retorno/custo do que ir totalmente para o ideal.
+      </div>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -476,13 +512,25 @@
     <section id="custos" class="help-section">
       <h2>5. Custos de Transação</h2>
 
+      <!-- Turnover de Rebalanceamento -->
+      <h3>5.1 Turnover de Rebalanceamento</h3>
+      <p>Percentual do portfolio que precisa ser movimentado para ir da carteira atual para a recomendada.</p>
+
+      <div class="formula-box">
+        <code>Turnover Rebalanceamento = Σ |Peso_Ideal - Peso_Atual| / 2</code>
+      </div>
+
+      <div class="source-box">
+        <strong>Diferença da Rotatividade do Modelo:</strong><br>
+        A <strong>Rotatividade</strong> (em Portfolio Recomendado) mede a mudança nas recomendações entre execuções do algoritmo, não a distância entre sua carteira atual e a recomendação.
+      </div>
+
       <!-- Custo de Transição -->
-      <h3>5.1 Custo de Transição</h3>
+      <h3>5.2 Custo de Transição</h3>
       <p>Custo estimado para mudar do portfolio atual para o portfolio recomendado.</p>
 
       <div class="formula-box">
-        <code>Turnover = Σ |Peso_Ideal - Peso_Atual| / 2</code><br><br>
-        <code>Custo de Transição = Turnover × Taxa de Transação</code>
+        <code>Custo de Transição = Turnover Rebalanceamento × Taxa de Transação</code>
       </div>
 
       <div class="example-box">
@@ -494,7 +542,7 @@
       </div>
 
       <!-- Taxa de Transação -->
-      <h3>5.2 Taxa de Transação</h3>
+      <h3>5.3 Taxa de Transação</h3>
       <p>Percentual cobrado por cada operação de compra ou venda.</p>
 
       <div class="source-box">
@@ -720,17 +768,23 @@
         </tr>
       </table>
 
-      <!-- Turnover -->
-      <h3>7.6 Turnover</h3>
-      <p>Percentual do portfolio que precisa ser rebalanceado.</p>
+      <!-- Turnover / Rotatividade -->
+      <h3>7.6 Rotatividade do Modelo (em Portfolio Recomendado)</h3>
+      <p>Mede a variação na composição do portfolio recomendado entre execuções consecutivas do algoritmo.</p>
 
       <div class="formula-box">
-        <code>Turnover = Σ |Peso_Novo - Peso_Anterior| / 2</code>
+        <code>Rotatividade = Σ |Peso_Execução_Atual - Peso_Execução_Anterior| / 2</code>
       </div>
 
       <div class="importance-box">
         <strong>Por que é importante?</strong><br>
-        Alto turnover implica mais custos de transação. É importante balancear entre otimização e custos.
+        Alta rotatividade indica que o modelo está mudando muito as recomendações entre execuções. Pode indicar instabilidade no modelo ou condições de mercado voláteis.
+      </div>
+
+      <div class="source-box">
+        <strong>Diferença do Turnover de Rebalanceamento:</strong><br>
+        O <strong>Turnover de Rebalanceamento</strong> (em Meu Portfolio) mede quanto você precisa movimentar para ir da sua carteira atual para a recomendada:
+        <code>Turnover Rebal. = Σ |Peso_Ideal - Peso_Atual| / 2</code>
       </div>
     </section>
 
@@ -783,10 +837,11 @@
 
       <!-- Information Ratio -->
       <h3>8.2 Information Ratio</h3>
-      <p>Retorno ativo (excesso sobre benchmark) dividido pelo tracking error.</p>
+      <p>Retorno ativo (excesso sobre benchmark) dividido pelo tracking error. Ambos são anualizados.</p>
 
       <div class="formula-box">
-        <code>Information Ratio = (Retorno_Portfolio - Retorno_Benchmark) / Tracking Error</code>
+        <code>Information Ratio = Retorno_Ativo_Anualizado / Tracking Error</code><br>
+        <code>Onde: Retorno_Ativo_Anualizado = (Retorno_Diário_Portfolio - Retorno_Diário_Benchmark).mean() × 252</code>
       </div>
 
       <div class="importance-box">
@@ -817,8 +872,21 @@
         </tr>
       </table>
 
+      <!-- Benchmark Return -->
+      <h3>8.3 Retorno Benchmark (Ann.)</h3>
+      <p>Retorno anualizado do benchmark (Ibovespa) no mesmo período analisado.</p>
+
+      <div class="formula-box">
+        <code>Retorno_Benchmark_Anualizado = Retorno_Diário_Benchmark.mean() × 252</code>
+      </div>
+
+      <div class="importance-box">
+        <strong>Por que é importante?</strong><br>
+        Permite comparar diretamente o retorno do portfolio com o mercado. Se o portfolio não supera consistentemente o benchmark, pode ser mais eficiente investir em ETFs de índice.
+      </div>
+
       <!-- Liquidity Score -->
-      <h3>8.3 Liquidity Score</h3>
+      <h3>8.4 Liquidity Score</h3>
       <p>Pontuação baseada no volume médio negociado das ações do portfolio.</p>
 
       <div class="importance-box">
@@ -827,7 +895,7 @@
       </div>
 
       <!-- Matriz de Correlação -->
-      <h3>8.4 Matriz de Correlação</h3>
+      <h3>8.5 Matriz de Correlação</h3>
       <p>Mostra a correlação entre pares de ações do portfolio.</p>
 
       <div class="formula-box">
@@ -879,18 +947,41 @@
       </div>
 
       <!-- Momentum Signal -->
-      <h3>9.1 Momentum Signal</h3>
-      <p>Indicador de tendência de curto prazo baseado no desempenho recente.</p>
+      <h3>9.1 Momentum Signal (Força do Momentum)</h3>
+      <p>Indicador agregado de tendência do portfolio, baseado na média ponderada dos retornos de 3, 6 e 12 meses de cada ação.</p>
 
       <div class="formula-box">
-        <code>Momentum = (Preço Atual - Preço há N dias) / Preço há N dias</code><br>
-        <small>N geralmente é 20, 60 ou 252 dias</small>
+        <code>Momentum_Ação = (Retorno_3M + Retorno_6M + Retorno_12M) / 3</code><br>
+        <code>Momentum_Signal = Σ (Peso_i × Momentum_i)</code>
       </div>
 
       <div class="importance-box">
         <strong>Por que é importante?</strong><br>
-        Momentum positivo indica que a ação está em tendência de alta. Estratégias de momentum buscam "surfar" tendências existentes.
+        Momentum positivo indica que o portfolio está em tendência de alta. Estratégias de momentum buscam "surfar" tendências existentes. Um sinal muito alto pode indicar sobrevalorização de curto prazo.
       </div>
+
+      <table class="calc-table">
+        <tr>
+          <th>Momentum Signal</th>
+          <th>Interpretação</th>
+        </tr>
+        <tr>
+          <td>&lt; -0.1</td>
+          <td>Negativo - tendência de baixa</td>
+        </tr>
+        <tr>
+          <td>-0.1 a 0.1</td>
+          <td>Neutro - sem tendência clara</td>
+        </tr>
+        <tr>
+          <td>0.1 a 0.3</td>
+          <td>Positivo - tendência de alta moderada</td>
+        </tr>
+        <tr>
+          <td>&gt; 0.3</td>
+          <td>Forte - momentum alto (possível sobrevalorização)</td>
+        </tr>
+      </table>
 
       <!-- Portfolio P/E -->
       <h3>9.2 Portfolio P/E</h3>
@@ -978,6 +1069,11 @@
           <td>Efeito combinado de allocation e selection</td>
         </tr>
       </table>
+
+      <div class="formula-box">
+        <code>Total Active Return ≈ Allocation + Selection + Interaction</code><br>
+        <small>Nota: A soma deve ser igual ao Active Return. Diferenças > 0.01% são exibidas como "Residual".</small>
+      </div>
 
       <div class="importance-box">
         <strong>Por que é importante?</strong><br>
