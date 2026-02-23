@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portfolio Strategy - PortfolioESG</title>
+  <link rel="stylesheet" href="./css/styles.css">
+  <style>
+    :root {
+      --color-model: #4CAF50;
+      --color-hold: #4fc3f7;
+      --color-benchmark: #9e9e9e;
+      --bg-dark: rgba(10, 30, 45, 0.95);
+      --bg-darker: rgba(5, 20, 35, 0.95);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BLOCO 1 - DECISÃO DE REBALANCEAMENTO (TOP PRIORITY)
+       ═══════════════════════════════════════════════════════════════════════ */
+    .decision-card {
+      background: linear-gradient(135deg, var(--bg-dark), var(--bg-darker));
+      border: 2px solid rgba(111, 227, 197, 0.3);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .decision-card.decision-hold {
+      border-color: rgba(79, 195, 247, 0.5);
+      background: linear-gradient(135deg, rgba(10, 30, 55, 0.95), rgba(5, 20, 45, 0.95));
+    }
+    .decision-card.decision-rebalance {
+      border-color: rgba(76, 175, 80, 0.6);
+      background: linear-gradient(135deg, rgba(10, 45, 30, 0.95), rgba(5, 35, 25, 0.95));
+    }
+    .decision-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .decision-title {
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    .decision-timestamp {
+      font-size: 11px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.05);
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+    .decision-verdict {
+      font-size: 42px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      letter-spacing: 3px;
+    }
+    .decision-verdict.hold { color: var(--color-hold); }
+    .decision-verdict.rebalance { color: var(--color-model); }
+    .decision-reason {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .decision-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    @media (max-width: 900px) {
+      .decision-metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+    .decision-metric {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .decision-metric-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .decision-metric-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .decision-metric-value.positive { color: var(--color-model); }
+    .decision-metric-value.negative { color: #f44336; }
+    .decision-metric-value.neutral { color: var(--color-hold); }
+    .decision-metric-sublabel {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BLOCO 2 - COMPARAÇÃO ESTRUTURAL
+       ═══════════════════════════════════════════════════════════════════════ */
+    .comparison-section {
+      margin-bottom: 24px;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .comparison-table th, .comparison-table td {
+      padding: 12px 14px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .comparison-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .comparison-table th:first-child, .comparison-table td:first-child {
+      text-align: left;
+    }
+    .comparison-table th.col-hold { color: var(--color-hold); }
+    .comparison-table th.col-model { color: var(--color-model); }
+    .comparison-table th.col-benchmark { color: var(--color-benchmark); }
+    .comparison-table td.better { color: var(--color-model); font-weight: 600; }
+    .comparison-table td.worse { color: #f44336; }
+    .comparison-table td.neutral { color: var(--muted); }
+    .metric-note {
+      font-size: 9px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BLOCO 3 - PORTFOLIO RECOMENDADO
+       ═══════════════════════════════════════════════════════════════════════ */
+    .portfolio-section {
+      margin-bottom: 24px;
+    }
+    .h-bar-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .h-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .h-bar-label {
+      width: 70px;
+      font-size: 12px;
+      color: #fff;
+      text-align: right;
+      font-weight: 500;
+    }
+    .h-bar-track {
+      flex: 1;
+      height: 22px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .h-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-model), #81C784);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #000;
+      border-radius: 4px;
+    }
+    .portfolio-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .portfolio-table th, .portfolio-table td {
+      padding: 10px 12px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+    }
+    .portfolio-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .portfolio-table th:first-child, .portfolio-table td:first-child {
+      text-align: left;
+    }
+    .upside-positive { color: var(--color-model); }
+    .upside-negative { color: #f44336; }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BLOCO 4 - DIFERENÇA ATUAL vs IDEAL
+       ═══════════════════════════════════════════════════════════════════════ */
+    .diff-section {
+      margin-bottom: 24px;
+    }
+    .diff-summary {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .diff-summary-card {
+      flex: 1;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .diff-summary-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .diff-summary-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .diff-table th, .diff-table td {
+      padding: 10px 12px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+    }
+    .diff-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .diff-table th:first-child, .diff-table td:first-child {
+      text-align: left;
+    }
+    .action-buy { color: var(--color-model); font-weight: 600; }
+    .action-sell { color: #f44336; font-weight: 600; }
+    .action-hold { color: var(--muted); }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BLOCO 5 - RISCO DO MODELO
+       ═══════════════════════════════════════════════════════════════════════ */
+    .risk-section {
+      margin-bottom: 24px;
+    }
+    .risk-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 768px) {
+      .risk-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .risk-card {
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .risk-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .risk-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .correlation-matrix {
+      background: rgba(255,255,255,0.02);
+      border-radius: 10px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BLOCO 6 - DIAGNÓSTICO DO MODELO
+       ═══════════════════════════════════════════════════════════════════════ */
+    .diagnostics-section {
+      margin-bottom: 24px;
+    }
+    .diagnostics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+    }
+    .diagnostic-card {
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .diagnostic-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .diagnostic-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .regime-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .regime-bull { background: rgba(76, 175, 80, 0.2); color: var(--color-model); }
+    .regime-bear { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+    .regime-neutral { background: rgba(255, 255, 255, 0.1); color: var(--muted); }
+    .profile-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .profile-conservative { background: rgba(79, 195, 247, 0.2); color: var(--color-hold); }
+    .profile-moderate { background: rgba(255, 193, 7, 0.2); color: #FFC107; }
+    .profile-aggressive { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+    .weight-chips {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .weight-chip {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 11px;
+    }
+    .weight-chip-label { color: var(--muted); }
+    .weight-chip-value { color: #fff; font-weight: 600; margin-left: 4px; }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BLOCO 7 - VALUATION & MOMENTUM
+       ═══════════════════════════════════════════════════════════════════════ */
+    .valuation-section {
+      margin-bottom: 24px;
+    }
+    .valuation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+    .valuation-card {
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .valuation-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .valuation-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .valuation-sublabel {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       PREMISSAS DO MODELO (Colapsável)
+       ═══════════════════════════════════════════════════════════════════════ */
+    .assumptions-section {
+      margin-top: 32px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 20px;
+    }
+    .assumptions-toggle {
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .assumptions-toggle:hover { color: #fff; }
+    .assumptions-content {
+      display: none;
+      background: rgba(255,255,255,0.02);
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .assumption-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 12px;
+    }
+    .assumption-item:last-child { border-bottom: none; }
+    .assumption-label { color: var(--muted); }
+    .assumption-value { color: #fff; text-align: right; max-width: 60%; }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       SECTION HEADERS
+       ═══════════════════════════════════════════════════════════════════════ */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .section-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .section-badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+    }
+    .section-badge.forward { background: rgba(76, 175, 80, 0.15); color: var(--color-model); }
+    .section-badge.backtest { background: rgba(79, 195, 247, 0.15); color: var(--color-hold); }
+
+    /* Card wrapper */
+    .card-dark {
+      background: var(--bg-dark);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation loaded dynamically -->
+  <script src="./js/load_nav.js"></script>
+
+  <main class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <!-- Page Header -->
+    <div class="page-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">Painel Estratégico do Modelo Quantitativo</h1>
+        <p style="color: var(--muted); font-size: 13px;">
+          Run: <span id="runId">—</span> | Atualizado: <span id="lastUpdated">—</span>
+        </p>
+      </div>
+      <button id="refreshBtn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;">⟳ Atualizar</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         BLOCO 1: DECISÃO DE REBALANCEAMENTO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section id="decisao" class="decision-card">
+      <div class="decision-header">
+        <span class="decision-title">Decisão de Rebalanceamento</span>
+        <span class="decision-timestamp" id="decisionDate">—</span>
+      </div>
+      <div class="decision-verdict" id="decisionVerdict">—</div>
+      <div class="decision-reason" id="decisionReason">Carregando...</div>
+
+      <div class="decision-metrics">
+        <div class="decision-metric">
+          <div class="decision-metric-label">Retorno Ideal (Líquido)</div>
+          <div class="decision-metric-value" id="idealReturn">—</div>
+          <div class="decision-metric-sublabel">Forward 12M</div>
+        </div>
+        <div class="decision-metric">
+          <div class="decision-metric-label">Retorno Hold</div>
+          <div class="decision-metric-value" id="holdReturn">—</div>
+          <div class="decision-metric-sublabel">Forward 12M</div>
+        </div>
+        <div class="decision-metric">
+          <div class="decision-metric-label">Excess Return</div>
+          <div class="decision-metric-value" id="excessReturn">—</div>
+          <div class="decision-metric-sublabel">Líquido de custos</div>
+        </div>
+        <div class="decision-metric">
+          <div class="decision-metric-label">Intensidade Ótima</div>
+          <div class="decision-metric-value" id="blendRatio">—</div>
+          <div class="decision-metric-sublabel">% do modelo</div>
+        </div>
+      </div>
+
+      <div class="decision-metrics" style="margin-top: 16px; grid-template-columns: repeat(3, 1fr);">
+        <div class="decision-metric">
+          <div class="decision-metric-label">Turnover</div>
+          <div class="decision-metric-value neutral" id="turnoverPct">—</div>
+          <div class="decision-metric-sublabel">% do portfolio</div>
+        </div>
+        <div class="decision-metric">
+          <div class="decision-metric-label">Custo Transição</div>
+          <div class="decision-metric-value neutral" id="transitionCostPct">—</div>
+          <div class="decision-metric-sublabel">% sobre portfolio</div>
+        </div>
+        <div class="decision-metric">
+          <div class="decision-metric-label">Custo Transição</div>
+          <div class="decision-metric-value neutral" id="transitionCostBRL">—</div>
+          <div class="decision-metric-sublabel">Valor estimado</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         BLOCO 2: COMPARAÇÃO ESTRUTURAL
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="comparison-section card-dark">
+      <div class="section-header">
+        <div>
+          <span class="section-title">Comparação Estrutural</span>
+          <span class="section-badge forward">Forward 12M</span>
+        </div>
+      </div>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Métrica</th>
+            <th class="col-hold">Atual (Hold)</th>
+            <th class="col-model">Ideal (Modelo)</th>
+            <th class="col-benchmark">Benchmark</th>
+          </tr>
+        </thead>
+        <tbody id="comparisonBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Two-column layout for Bloco 3 and 4 -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+      <!-- ═══════════════════════════════════════════════════════════════════════
+           BLOCO 3: PORTFOLIO RECOMENDADO
+           ═══════════════════════════════════════════════════════════════════════ -->
+      <section class="portfolio-section card-dark">
+        <div class="section-header">
+          <span class="section-title">Composição Recomendada</span>
+          <span class="section-badge">Modelo</span>
+        </div>
+
+        <div class="h-bar-container" id="weightBars">
+          <!-- Populated by JS -->
+        </div>
+
+        <table class="portfolio-table">
+          <thead>
+            <tr>
+              <th>Ativo</th>
+              <th>Peso</th>
+              <th>Fwd P/E</th>
+              <th>Target</th>
+              <th>Upside</th>
+            </tr>
+          </thead>
+          <tbody id="portfolioBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════════════════
+           BLOCO 4: DIFERENÇA ATUAL vs IDEAL
+           ═══════════════════════════════════════════════════════════════════════ -->
+      <section class="diff-section card-dark">
+        <div class="section-header">
+          <span class="section-title">Diferença: Atual → Ideal</span>
+        </div>
+
+        <div class="diff-summary">
+          <div class="diff-summary-card">
+            <div class="diff-summary-label">Total Turnover</div>
+            <div class="diff-summary-value" id="totalTurnover" style="color: var(--color-hold);">—</div>
+          </div>
+          <div class="diff-summary-card">
+            <div class="diff-summary-label">Valor a Movimentar</div>
+            <div class="diff-summary-value" id="totalMoveValue" style="color: var(--color-hold);">—</div>
+          </div>
+        </div>
+
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th>Ativo</th>
+              <th>Atual</th>
+              <th>Ideal</th>
+              <th>Diferença</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="diffBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         BLOCO 5: RISCO DO MODELO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="risk-section card-dark" style="margin-top: 24px;">
+      <div class="section-header">
+        <span class="section-title">Risco do Modelo</span>
+        <span class="section-badge forward">Estimado</span>
+      </div>
+
+      <div class="risk-grid">
+        <div class="risk-card">
+          <div class="risk-label">Sharpe Esperado</div>
+          <div class="risk-value" id="riskSharpe">—</div>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label">Volatilidade Esperada</div>
+          <div class="risk-value" id="riskVolatility">—</div>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label">Tracking Error</div>
+          <div class="risk-value" id="riskTE">—</div>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label">Information Ratio</div>
+          <div class="risk-value" id="riskIR">—</div>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label">HHI (Concentração)</div>
+          <div class="risk-value" id="riskHHI">—</div>
+        </div>
+        <div class="risk-card">
+          <div class="risk-label">Top 5 Holdings</div>
+          <div class="risk-value" id="riskTop5">—</div>
+        </div>
+      </div>
+
+      <div class="correlation-matrix" id="correlationMatrix">
+        <div class="section-subtitle" style="margin-bottom: 12px;">Correlação Interna (Modelo)</div>
+        <div id="correlationContent">
+          <p style="color: var(--muted); text-align: center; padding: 20px;">Matriz de correlação carregando...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         BLOCO 6: DIAGNÓSTICO DO MODELO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="diagnostics-section card-dark" style="margin-top: 24px;">
+      <div class="section-header">
+        <span class="section-title">Diagnóstico Interno do Motor Quantitativo</span>
+        <span class="section-badge backtest">Backtest</span>
+      </div>
+
+      <div class="diagnostics-grid">
+        <div class="diagnostic-card">
+          <div class="diagnostic-label">Retorno Histórico (Ann.)</div>
+          <div class="diagnostic-value" id="diagHistReturn">—</div>
+        </div>
+        <div class="diagnostic-card">
+          <div class="diagnostic-label">Sharpe Histórico</div>
+          <div class="diagnostic-value" id="diagSharpe">—</div>
+        </div>
+        <div class="diagnostic-card">
+          <div class="diagnostic-label">Rotatividade</div>
+          <div class="diagnostic-value" id="diagTurnover">—</div>
+        </div>
+        <div class="diagnostic-card">
+          <div class="diagnostic-label">Regime Detectado</div>
+          <div class="diagnostic-value">
+            <span class="regime-badge" id="regimeBadge">—</span>
+          </div>
+        </div>
+        <div class="diagnostic-card">
+          <div class="diagnostic-label">Perfil de Risco</div>
+          <div class="diagnostic-value">
+            <span class="profile-badge" id="profileBadge">—</span>
+          </div>
+        </div>
+        <div class="diagnostic-card">
+          <div class="diagnostic-label">Pesos do Scoring</div>
+          <div class="weight-chips" id="scoringWeights">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         BLOCO 7: VALUATION & MOMENTUM
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="valuation-section card-dark" style="margin-top: 24px;">
+      <div class="section-header">
+        <span class="section-title">Valuation & Momentum Agregado</span>
+        <span class="section-badge">Portfolio Ideal</span>
+      </div>
+
+      <div class="valuation-grid">
+        <div class="valuation-card">
+          <div class="valuation-label">Portfolio P/E</div>
+          <div class="valuation-value" id="portfolioPE">—</div>
+          <div class="valuation-sublabel">Forward</div>
+        </div>
+        <div class="valuation-card">
+          <div class="valuation-label">Benchmark P/E</div>
+          <div class="valuation-value" id="benchmarkPE">—</div>
+          <div class="valuation-sublabel">Forward</div>
+        </div>
+        <div class="valuation-card">
+          <div class="valuation-label">Desvio P/E</div>
+          <div class="valuation-value" id="peDeviation">—</div>
+          <div class="valuation-sublabel">vs Benchmark</div>
+        </div>
+        <div class="valuation-card">
+          <div class="valuation-label">Dividend Yield</div>
+          <div class="valuation-value" id="divYield">—</div>
+          <div class="valuation-sublabel">Ponderado</div>
+        </div>
+        <div class="valuation-card">
+          <div class="valuation-label">Momentum Signal</div>
+          <div class="valuation-value" id="momentumSignal">—</div>
+          <div class="valuation-sublabel">Agregado</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         PREMISSAS DO MODELO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="assumptions-section">
+      <button class="assumptions-toggle" id="assumptionsToggle">▶ Premissas do Modelo</button>
+      <div class="assumptions-content" id="assumptionsContent">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Load modelo.js first (engine) then portfolio.js (renderer) -->
+  <script src="./js/modelo.js"></script>
+  <script src="./js/portfolio.js"></script>
+</body>
+</html>
+

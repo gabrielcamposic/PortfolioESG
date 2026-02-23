@@ -148,10 +148,24 @@
       <!-- Portfolio vs Benchmark -->
       <div class="subsection">
         <div class="subsection-header">
-          <h3>Retorno: Portfolio vs Benchmark</h3>
+          <h3>Retorno: Portfolio vs Benchmark (Anual)</h3>
         </div>
         <div class="chart-card" style="min-height:200px;">
           <canvas id="portfolioBenchmarkChart" width="600" height="200" style="width:100%;height:200px;display:block;"></canvas>
+        </div>
+      </div>
+
+      <!-- Historical Portfolio vs Benchmark Line Chart -->
+      <div class="subsection">
+        <div class="subsection-header">
+          <h3>Evolução Histórica: Portfolio vs Benchmark (Ibovespa)</h3>
+        </div>
+        <div class="chart-card" style="min-height:250px;">
+          <canvas id="portfolioVsBenchmarkHistoryChart" width="600" height="250" style="width:100%;height:250px;display:block;"></canvas>
+        </div>
+        <div class="chart-legend" style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:12px;color:#aaa;">
+          <span><span style="display:inline-block;width:12px;height:3px;background:#4CAF50;margin-right:4px;vertical-align:middle;"></span>Portfolio</span>
+          <span><span style="display:inline-block;width:12px;height:3px;background:#2196F3;margin-right:4px;vertical-align:middle;"></span>Benchmark (Ibovespa)</span>
         </div>
       </div>
       </div>

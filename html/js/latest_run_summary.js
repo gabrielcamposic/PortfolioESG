@@ -1363,7 +1363,7 @@
     // Load diagnostics data which contains benchmark_annual_return
     let diagnosticsData = null;
     try {
-      const diagResp = await fetch('./data/diagnostics.json?_=' + Date.now());
+      const diagResp = await fetch('./data/portfolio_diagnostics.json?_=' + Date.now());
       if (diagResp.ok) {
         diagnosticsData = await diagResp.json();
       }
@@ -1455,6 +1455,177 @@
       console.warn('Failed to create portfolio vs benchmark chart:', e);
       drawBarFallback(canvas, labels, values, '#4CAF50');
     }
+    }
+
+    // ── Historical Portfolio vs Benchmark Line Chart ──────────────────────────
+    let portfolioVsBenchmarkHistoryChart = null;
+
+    async function renderPortfolioVsBenchmarkHistoryChart() {
+      const canvas = document.getElementById('portfolioVsBenchmarkHistoryChart');
+      if (!canvas) return;
+
+      // Destroy existing chart
+      if (portfolioVsBenchmarkHistoryChart) {
+        try { portfolioVsBenchmarkHistoryChart.destroy(); } catch(e) {}
+        portfolioVsBenchmarkHistoryChart = null;
+      }
+
+      // Load timeseries data from CSV
+      let timeseriesData = [];
+      try {
+        const resp = await fetch('./data/portfolio_timeseries.csv?_=' + Date.now());
+        if (!resp.ok) {
+          console.warn('Could not load portfolio_timeseries.csv:', resp.status);
+          return;
+        }
+        const csvText = await resp.text();
+        const lines = csvText.trim().split('\n');
+        if (lines.length < 2) return;
+
+        const headers = lines[0].split(',');
+        const dateIdx = headers.indexOf('date');
+        const portfolioAccumIdx = headers.indexOf('portfolio_accum_return');
+        const bench1AccumIdx = headers.indexOf('benchmark1_accum_return');
+
+        if (dateIdx < 0 || portfolioAccumIdx < 0 || bench1AccumIdx < 0) {
+          console.warn('Required columns not found in timeseries CSV');
+          return;
+        }
+
+        // Parse data - sample every N points to avoid chart overload
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',');
+          if (cols.length < Math.max(dateIdx, portfolioAccumIdx, bench1AccumIdx) + 1) continue;
+
+          const dateStr = cols[dateIdx];
+          const portfolioAccum = parseFloat(cols[portfolioAccumIdx]);
+          const benchAccum = parseFloat(cols[bench1AccumIdx]);
+
+          if (dateStr && !isNaN(portfolioAccum) && !isNaN(benchAccum)) {
+            timeseriesData.push({
+              date: dateStr,
+              portfolioReturn: ((portfolioAccum / 1000) - 1) * 100, // Convert to % return
+              benchmarkReturn: ((benchAccum / 1000) - 1) * 100
+            });
+          }
+        }
+      } catch(e) {
+        console.warn('Error loading timeseries data:', e);
+        return;
+      }
+
+      if (timeseriesData.length === 0) {
+        console.warn('No timeseries data available for chart');
+        return;
+      }
+
+      // Sample data if too many points (keep ~200 points max for performance)
+      const maxPoints = 200;
+      let sampledData = timeseriesData;
+      if (timeseriesData.length > maxPoints) {
+        const step = Math.ceil(timeseriesData.length / maxPoints);
+        sampledData = timeseriesData.filter((_, idx) => idx % step === 0);
+        // Always include the last point
+        if (sampledData[sampledData.length - 1] !== timeseriesData[timeseriesData.length - 1]) {
+          sampledData.push(timeseriesData[timeseriesData.length - 1]);
+        }
+      }
+
+      const labels = sampledData.map(d => d.date);
+      const portfolioValues = sampledData.map(d => d.portfolioReturn);
+      const benchmarkValues = sampledData.map(d => d.benchmarkReturn);
+
+      if (typeof window.Chart === 'undefined') {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#888';
+        ctx.textAlign = 'center';
+        ctx.fillText('Chart.js not loaded', canvas.width / 2, canvas.height / 2);
+        return;
+      }
+
+      const ctx = canvas.getContext('2d');
+      try {
+        portfolioVsBenchmarkHistoryChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Portfolio',
+                data: portfolioValues,
+                borderColor: '#4CAF50',
+                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                fill: false,
+                tension: 0.2,
+                pointRadius: 0,
+                borderWidth: 2
+              },
+              {
+                label: 'Benchmark (Ibovespa)',
+                data: benchmarkValues,
+                borderColor: '#2196F3',
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                fill: false,
+                tension: 0.2,
+                pointRadius: 0,
+                borderWidth: 2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                titleColor: '#f1f5f9',
+                bodyColor: '#cbd5e1',
+                callbacks: {
+                  title: function(tooltipItems) {
+                    return 'Data: ' + tooltipItems[0].label;
+                  },
+                  label: function(ctx) {
+                    const val = ctx.raw;
+                    return ctx.dataset.label + ': ' + (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: {
+                  color: '#94a3b8',
+                  maxRotation: 45,
+                  minRotation: 0,
+                  maxTicksLimit: 10
+                }
+              },
+              y: {
+                grid: { color: 'rgba(71, 85, 105, 0.3)' },
+                ticks: {
+                  color: '#94a3b8',
+                  callback: function(v) { return v.toFixed(0) + '%'; }
+                },
+                title: {
+                  display: true,
+                  text: 'Retorno Acumulado (%)',
+                  color: '#cbd5e1'
+                }
+              }
+            }
+          }
+        });
+      } catch(e) {
+        console.warn('Failed to create portfolio vs benchmark history chart:', e);
+      }
     }
 
     // Render sector donut and concentration bar (used by renderAll)
@@ -2596,6 +2767,7 @@
     await renderGA(data);
     await renderVolatilityChart(data);
     await renderPortfolioBenchmarkChart(data);
+    await renderPortfolioVsBenchmarkHistoryChart();
 
     // default portfolio range: all
     await updatePortfolioChart('all');

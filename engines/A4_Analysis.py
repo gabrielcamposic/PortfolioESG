@@ -58,17 +58,24 @@ def calculate_portfolio_value(stock_prices: pd.DataFrame, portfolio: dict,
     return portfolio_real_value, portfolio_daily_return, stock_returns, portfolio_prices
 
 
-def calculate_benchmark_values(stock_prices: pd.DataFrame, bench1: str, bench2: str,
+def calculate_benchmark_values(stock_prices: pd.DataFrame, bench1: str, bench2: Optional[str],
                                 logger: logging.Logger) -> tuple:
-    """Calculate benchmark value time series."""
+    """Calculate benchmark value time series. Second benchmark is optional."""
     if bench1 not in stock_prices.columns:
         raise ValueError(f"Benchmark ticker {bench1} not found in stock data.")
-    if bench2 not in stock_prices.columns:
-        raise ValueError(f"Benchmark ticker {bench2} not found in stock data.")
 
     bench1_prices = stock_prices[bench1].sort_index().ffill()
-    bench2_prices = stock_prices[bench2].sort_index().ffill()
-    logger.info(f"Loaded benchmarks: {bench1}, {bench2}")
+
+    # Second benchmark is optional
+    bench2_prices = None
+    if bench2 and bench2 in stock_prices.columns:
+        bench2_prices = stock_prices[bench2].sort_index().ffill()
+        logger.info(f"Loaded benchmarks: {bench1}, {bench2}")
+    else:
+        if bench2:
+            logger.warning(f"Secondary benchmark {bench2} not found, using primary only")
+        logger.info(f"Loaded benchmark: {bench1}")
+
     return bench1_prices, bench2_prices
 
 
@@ -372,21 +379,26 @@ def main():
             calculate_portfolio_value(stock_prices, portfolio, initial_value)
 
         # --- Load Benchmarks ---
-        benchmark_tickers = [t.strip() for t in params.get("BENCHMARK_TICKERS", "").split(',')]
-        if len(benchmark_tickers) != 2:
-            raise ValueError("Exactly two benchmark tickers must be specified in BENCHMARK_TICKERS.")
-        bench1, bench2 = benchmark_tickers
+        benchmark_tickers = [t.strip() for t in params.get("BENCHMARK_TICKERS", "").split(',') if t.strip()]
+        if len(benchmark_tickers) < 1:
+            raise ValueError("At least one benchmark ticker must be specified in BENCHMARK_TICKERS.")
+        bench1 = benchmark_tickers[0]
+        bench2 = benchmark_tickers[1] if len(benchmark_tickers) > 1 else None
 
         bench1_prices, bench2_prices = calculate_benchmark_values(stock_prices, bench1, bench2, logger)
 
         # --- Align Dates ---
         portfolio_first = portfolio_real_value.first_valid_index()
         bench1_first = bench1_prices.first_valid_index()
-        bench2_first = bench2_prices.first_valid_index()
-        start_date = max(d for d in [bench1_first, bench2_first, portfolio_first] if d is not None)
+        date_candidates = [bench1_first, portfolio_first]
+        if bench2_prices is not None:
+            bench2_first = bench2_prices.first_valid_index()
+            date_candidates.append(bench2_first)
+        start_date = max(d for d in date_candidates if d is not None)
 
         bench1_prices = bench1_prices.loc[start_date:]
-        bench2_prices = bench2_prices.loc[start_date:]
+        if bench2_prices is not None:
+            bench2_prices = bench2_prices.loc[start_date:]
         portfolio_real_value = portfolio_real_value.loc[start_date:]
         portfolio_daily_return = portfolio_daily_return.loc[start_date:]
         portfolio_prices = portfolio_prices.loc[start_date:]
@@ -394,15 +406,22 @@ def main():
         dates = portfolio_real_value.index
 
         bench1_daily_return = bench1_prices.pct_change(fill_method=None)
-        bench2_daily_return = bench2_prices.pct_change(fill_method=None)
+        if bench2_prices is not None:
+            bench2_daily_return = bench2_prices.pct_change(fill_method=None)
+        else:
+            bench2_daily_return = pd.Series(0.0, index=dates)
         portfolio_daily_return.iloc[0] = 0.0
         bench1_daily_return.iloc[0] = 0.0
-        bench2_daily_return.iloc[0] = 0.0
+        if bench2_prices is not None:
+            bench2_daily_return.iloc[0] = 0.0
 
         # --- Accumulated Returns ---
         portfolio_accum_return = 1000 * (1 + portfolio_daily_return).cumprod()
         bench1_accum_return = 1000 * (1 + bench1_daily_return).cumprod()
-        bench2_accum_return = 1000 * (1 + bench2_daily_return).cumprod()
+        if bench2_prices is not None:
+            bench2_accum_return = 1000 * (1 + bench2_daily_return).cumprod()
+        else:
+            bench2_accum_return = pd.Series(1000.0, index=dates)
 
         # --- Portfolio Composition ---
         portfolio_compositions = []
@@ -429,8 +448,8 @@ def main():
             'portfolio_real_value': portfolio_real_value.values,
             'benchmark1_name': bench1,
             'benchmark1_real_value': bench1_prices.values,
-            'benchmark2_name': bench2,
-            'benchmark2_real_value': bench2_prices.values,
+            'benchmark2_name': bench2 if bench2 else '',
+            'benchmark2_real_value': bench2_prices.values if bench2_prices is not None else None,
             'portfolio_daily_return': portfolio_daily_return.values,
             'benchmark1_daily_return': bench1_daily_return.values,
             'benchmark2_daily_return': bench2_daily_return.values,
