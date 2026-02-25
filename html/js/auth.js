@@ -5,35 +5,27 @@
   // FIREBASE CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════════════
   //
-  // INSTRUÇÕES PARA CONFIGURAR:
-  // 1. Acesse https://console.firebase.google.com/
-  // 2. Crie um novo projeto (ou use existente)
-  // 3. Vá em "Authentication" > "Sign-in method" > Ative "Google"
-  // 4. Vá em "Project settings" > "General" > role até "Your apps"
-  // 5. Clique em "</>" (Web) para adicionar um app web
-  // 6. Copie as credenciais e substitua abaixo
-  // 7. Em "Authentication" > "Settings" > "Authorized domains", adicione seu domínio AWS
+  // As credenciais são carregadas de firebase-config.js (não versionado no Git).
+  // Veja firebase-config.template.js para instruções de configuração.
   //
-  // IMPORTANTE: Adicione os emails autorizados na lista ALLOWED_EMAILS abaixo
+  // IMPORTANTE: Nunca commite credenciais no repositório!
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Firebase configuration - usando SDK compat via CDN (carregado dinamicamente)
-  const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyDkmazMpNPzKMqctiIxtmbA2-IHDJ3hxsM",
-    authDomain: "portfolioesg.firebaseapp.com",
-    projectId: "portfolioesg",
-    storageBucket: "portfolioesg.firebasestorage.app",
-    messagingSenderId: "366552664196",
-    appId: "1:366552664196:web:68a491833ce0a590659ad1",
-    measurementId: "G-4EWVXMGDSZ"
+  // Firebase configuration - carregada de arquivo externo (firebase-config.js)
+  // O arquivo firebase-config.js define window.FIREBASE_CONFIG e window.ALLOWED_EMAILS
+  const FIREBASE_CONFIG = window.FIREBASE_CONFIG || {
+    apiKey: "NOT_CONFIGURED",
+    authDomain: "NOT_CONFIGURED",
+    projectId: "NOT_CONFIGURED",
+    storageBucket: "NOT_CONFIGURED",
+    messagingSenderId: "NOT_CONFIGURED",
+    appId: "NOT_CONFIGURED",
+    measurementId: "NOT_CONFIGURED"
   };
 
 
-  // Lista de emails autorizados a acessar o sistema
-  // Adicione seu email do Google aqui
-  const ALLOWED_EMAILS = [
-    "gabrielcampos@icloud.com"
-  ];
+  // Lista de emails autorizados a acessar o sistema (carregada de firebase-config.js)
+  const ALLOWED_EMAILS = window.ALLOWED_EMAILS || [];
 
   // Se a lista estiver vazia, qualquer usuário autenticado pode acessar
   // Se tiver emails, apenas esses terão acesso

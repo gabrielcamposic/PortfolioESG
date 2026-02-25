@@ -71,6 +71,9 @@ gcp-sa-key.json
 *-key.json
 .gcp/
 
+# Firebase config com credenciais reais (nunca commitar!)
+html/js/firebase-config.js
+
 # AWS specific
 .aws/
 
