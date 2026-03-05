@@ -28,7 +28,6 @@ from typing import Any, Dict
 from shared_tools.shared_utils import (
     setup_logger,
     load_parameters_from_file,
-    copy_file_to_web_accessible_location,
 )
 from shared_tools.path_utils import resolve_paths_in_params
 
@@ -392,7 +391,7 @@ def main():
     """Main execution function for the scoring script."""
     # 1. --- Initial Setup ---
     overall_start_time = time.time()
-    run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
+    run_id = os.environ.get('PIPELINE_RUN_ID') or datetime.now().strftime('%Y%m%d-%H%M%S')
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     expected_params = {
@@ -738,11 +737,7 @@ def main():
         perf_data["overall_script_duration_s"] = time.time() - overall_start_time
         log_performance_data(perf_data, params, logger)
 
-        # Copy key results to the web-accessible directory
-        copy_file_to_web_accessible_location("SCORED_STOCKS_DB_FILE", params, logger)
-        copy_file_to_web_accessible_location("SECTOR_PE_DB_FILE", params, logger)
-        copy_file_to_web_accessible_location("CORRELATION_MATRIX_FILE", params, logger)
-        copy_file_to_web_accessible_location("SCORING_PERFORMANCE_FILE", params, logger)
+        # D_Publish.py handles copying to html/data/
 
         final_web_payload = {
             "scoring_status": "Failed" if script_failed else "Completed",

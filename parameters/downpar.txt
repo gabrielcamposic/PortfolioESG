@@ -3,7 +3,7 @@
 # --- Files and paths used by Download.py ---
 YFINANCE_SKIP_FILE = ~/PortfolioESG/html/data/findb/yfinance_skip.json
 DOWNLOAD_LOG_FILE = ~/PortfolioESG/logs/download.log
-DOWNLOAD_PERFORMANCE_FILE = ~/PortfolioESG/data/Results/download_performance.csv
+DOWNLOAD_PERFORMANCE_FILE = ~/PortfolioESG/data/results/download_performance.csv
 
 # --- General Settings ---
 # Enable extensive debug logging (true/false)

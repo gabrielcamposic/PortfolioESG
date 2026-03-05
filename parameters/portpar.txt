@@ -5,7 +5,7 @@ PORTFOLIO_RESULTS_DB_FILE = ~/PortfolioESG/data/results/portfolio_results_db.csv
 GA_FITNESS_NOISE_DB_FILE = ~/PortfolioESG/data/results/ga_fitness_noise_db.csv
 PORTFOLIO_VALUE_DB_FILE = ~/PortfolioESG/data/results/portfolio_value_db.csv
 PORTFOLIO_LOG_FILE=~/PortfolioESG/logs/portfolio.log
-PORTFOLIO_PERFORMANCE_FILE = ~/PortfolioESG/data/Results/portfolio_performance.csv
+PORTFOLIO_PERFORMANCE_FILE = ~/PortfolioESG/data/results/portfolio_performance.csv
 SCORED_STOCKS_DB_FILE = ~/PortfolioESG/data/results/scored_stocks.csv
 
 # --- General Settings

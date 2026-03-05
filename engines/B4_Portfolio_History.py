@@ -35,8 +35,8 @@ DATA_DIR = BASE_DIR / 'data'
 HTML_DATA_DIR = BASE_DIR / 'html' / 'data'
 FINDB_DIR = DATA_DIR / 'findb'
 STOCK_DATA_DB = FINDB_DIR / 'StockDataDB.csv'
-LEDGER_CSV = HTML_DATA_DIR / 'ledger.csv'
-OUTPUT_FILE = HTML_DATA_DIR / 'portfolio_history.json'
+LEDGER_CSV = DATA_DIR / 'ledger.csv'
+OUTPUT_FILE = DATA_DIR / 'portfolio_history.json'
 
 # Simple logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')

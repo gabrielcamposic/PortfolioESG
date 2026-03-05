@@ -12,6 +12,7 @@ import time
 import json
 import logging
 import csv
+from datetime import datetime
 import pandas as pd
 import numpy as np
 
@@ -29,6 +30,7 @@ from shared_tools.shared_utils import (
     initialize_performance_data,
     log_performance_data,
 )
+import math
 
 # ----------------------------------------------------------- #
 #                        Helper Functions                     #
@@ -304,6 +306,269 @@ def calculate_diagnostics(portfolio: dict, portfolios: pd.DataFrame,
 
 
 # ----------------------------------------------------------- #
+#  Real-Portfolio Metrics (migrated from D_MIS.py)            #
+# ----------------------------------------------------------- #
+
+def _safe_float(v, default=0.0) -> float:
+    if v is None or v == "":
+        return default
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return default
+
+
+def calculate_sortino(daily_returns: list, annual_return: float,
+                      trading_days: int = 252, risk_free: float = 0.1175) -> float:
+    """Sortino ratio: excess return / downside volatility."""
+    downside = [r for r in daily_returns if r < 0]
+    if len(downside) < 2:
+        return 0.0
+    downside_vol = float(np.std(downside, ddof=1) * np.sqrt(trading_days))
+    if downside_vol == 0:
+        return 0.0
+    return (annual_return - risk_free) / downside_vol
+
+
+def calculate_max_drawdown(values: list) -> float:
+    """Maximum drawdown from a series of portfolio values."""
+    if len(values) < 2:
+        return 0.0
+    peak = values[0]
+    max_dd = 0.0
+    for v in values[1:]:
+        if v > peak:
+            peak = v
+        dd = (peak - v) / peak if peak > 0 else 0.0
+        max_dd = max(max_dd, dd)
+    return max_dd
+
+
+def calculate_beta(portfolio_returns: list, benchmark_returns: list) -> Optional[float]:
+    """Beta of portfolio vs benchmark."""
+    if len(portfolio_returns) != len(benchmark_returns) or len(portfolio_returns) < 2:
+        return None
+    p = np.array(portfolio_returns)
+    b = np.array(benchmark_returns)
+    var_b = np.var(b, ddof=1)
+    if var_b == 0:
+        return None
+    cov = np.cov(p, b, ddof=1)[0, 1]
+    return float(cov / var_b)
+
+
+def calculate_twr(portfolio_values: list, dates: list, flows: dict) -> list:
+    """Time-Weighted Return with flow adjustments.
+    
+    Args:
+        portfolio_values: daily portfolio market values
+        dates: corresponding date strings
+        flows: dict of {date_str: net_cash_flow} (positive = inflow)
+    
+    Returns:
+        list of {date, value} daily TWR returns
+    """
+    if len(portfolio_values) < 2:
+        return []
+    returns = []
+    for i in range(1, len(portfolio_values)):
+        v_prev = _safe_float(portfolio_values[i - 1])
+        v_curr = _safe_float(portfolio_values[i])
+        f_t = _safe_float(flows.get(dates[i], 0.0))
+        if v_prev > 0:
+            r_t = (v_curr - f_t) / v_prev - 1
+            returns.append({"date": dates[i], "value": r_t})
+    return returns
+
+
+def calculate_performance_windows(twr_returns: list, bench_returns_with_dates: list,
+                                   end_date_str: str) -> dict:
+    """Calculate performance over standard windows (YTD, 3M, 6M, 12M, 24M)."""
+    end_date = pd.Timestamp(end_date_str)
+    windows = {}
+
+    def window_start(key):
+        if key == "YTD":
+            return pd.Timestamp(year=end_date.year, month=1, day=1)
+        months = {"3M": 3, "6M": 6, "12M": 12, "24M": 24}.get(key, 0)
+        return end_date - pd.DateOffset(months=months)
+
+    def window_return(returns_list, start, end):
+        product = 1.0
+        for r in returns_list:
+            dt = pd.Timestamp(r["date"])
+            if start <= dt <= end:
+                product *= (1 + _safe_float(r.get("value"), 0.0))
+        return product - 1.0
+
+    for key in ["YTD", "3M", "6M", "12M", "24M"]:
+        start = window_start(key)
+        windows[key] = {
+            "portfolio": window_return(twr_returns, start, end_date),
+            "benchmark": window_return(bench_returns_with_dates, start, end_date),
+        }
+    return windows
+
+
+def calculate_asset_attribution(portfolio_daily_return: pd.Series,
+                                 stock_returns: pd.DataFrame,
+                                 portfolio: dict,
+                                 dates: pd.DatetimeIndex) -> list:
+    """Calculate per-asset return attribution (avg_weight, contribution, volatility)."""
+    results = []
+    weights = pd.Series(portfolio)
+
+    for stock in portfolio.keys():
+        if stock not in stock_returns.columns:
+            continue
+        stock_ret = stock_returns[stock].dropna()
+        if stock_ret.empty:
+            continue
+
+        weight = weights[stock]
+        contribution = float((stock_ret * weight).sum())
+        vol = float(stock_ret.std() * np.sqrt(252)) if len(stock_ret) > 1 else 0.0
+
+        # Realized return
+        cumulative = (1 + stock_ret).prod() - 1
+
+        results.append({
+            "symbol": stock,
+            "avg_weight": float(weight),
+            "total_contribution": contribution,
+            "volatility": vol,
+            "realized_return": float(cumulative),
+            "observations": len(stock_ret),
+        })
+    return results
+
+
+def calculate_extended_diagnostics(
+    portfolio: dict,
+    portfolio_daily_return: pd.Series,
+    portfolio_real_value: pd.Series,
+    bench1_daily_return: pd.Series,
+    bench1_prices: pd.Series,
+    stock_returns: pd.DataFrame,
+    dates: pd.DatetimeIndex,
+    ledger_csv_path: str,
+    portfolio_history_path: str,
+    logger: logging.Logger,
+) -> dict:
+    """Calculate extended diagnostics including metrics from D_MIS.py."""
+    extended = {}
+    trading_days = 252
+    risk_free = 0.1175  # SELIC annual
+
+    try:
+        # Basic series
+        port_returns = portfolio_daily_return.dropna().tolist()
+        bench_returns = bench1_daily_return.reindex(portfolio_daily_return.index).dropna().tolist()
+        port_values = portfolio_real_value.dropna().tolist()
+
+        # Annual return & volatility
+        if len(port_returns) > 1:
+            total_return = (1 + pd.Series(port_returns)).prod() - 1
+            n_days = len(port_returns)
+            annual_return = (1 + total_return) ** (trading_days / n_days) - 1 if total_return > -1 else -1.0
+            annual_vol = float(np.std(port_returns, ddof=1) * np.sqrt(trading_days))
+        else:
+            total_return = 0.0
+            annual_return = 0.0
+            annual_vol = 0.0
+
+        extended["annual_return"] = annual_return
+        extended["annual_volatility"] = annual_vol
+
+        # Sharpe
+        extended["sharpe"] = (annual_return - risk_free) / annual_vol if annual_vol > 0 else 0.0
+
+        # Sortino
+        extended["sortino"] = calculate_sortino(port_returns, annual_return, trading_days, risk_free)
+
+        # Max Drawdown
+        extended["max_drawdown"] = calculate_max_drawdown(port_values)
+
+        # Calmar
+        extended["calmar"] = annual_return / extended["max_drawdown"] if extended["max_drawdown"] > 0 else 0.0
+
+        # Beta
+        aligned_port = []
+        aligned_bench = []
+        for i, (p, b) in enumerate(zip(port_returns, bench_returns)):
+            if not (np.isnan(p) or np.isnan(b)):
+                aligned_port.append(p)
+                aligned_bench.append(b)
+
+        extended["beta"] = calculate_beta(aligned_port, aligned_bench)
+
+        # Correlation
+        if len(aligned_port) > 1:
+            extended["correlation_vs_benchmark"] = float(np.corrcoef(aligned_port, aligned_bench)[0, 1])
+        else:
+            extended["correlation_vs_benchmark"] = None
+
+        # TWR (using ledger flows if available)
+        flows = {}
+        if ledger_csv_path and os.path.exists(ledger_csv_path):
+            try:
+                ledger_df = pd.read_csv(ledger_csv_path)
+                date_col = "trade_date" if "trade_date" in ledger_df.columns else "date"
+                side_col = "side" if "side" in ledger_df.columns else "Side"
+                total_col = "total_cost" if "total_cost" in ledger_df.columns else "gross_value"
+                for _, row in ledger_df.iterrows():
+                    d = str(row.get(date_col, "")).strip()
+                    side = str(row.get(side_col, "")).upper()
+                    total = _safe_float(row.get(total_col))
+                    if d:
+                        flow = total if side in ("BUY", "C", "COMPRA") else -total
+                        flows[d] = flows.get(d, 0.0) + flow
+            except Exception as e:
+                logger.warning(f"Could not parse ledger flows for TWR: {e}")
+
+        date_strs = [str(d.date()) if hasattr(d, 'date') else str(d) for d in dates]
+        twr_returns = calculate_twr(port_values, date_strs, flows)
+        if twr_returns:
+            twr_total = 1.0
+            for r in twr_returns:
+                twr_total *= (1 + _safe_float(r.get("value"), 0.0))
+            extended["twr_total_return"] = twr_total - 1.0
+        else:
+            extended["twr_total_return"] = total_return
+
+        # Concentration
+        weights_series = pd.Series(portfolio)
+        extended["hhi"] = float(sum(w ** 2 for w in weights_series))
+        sorted_w = sorted(weights_series.values, reverse=True)
+        extended["top3_concentration"] = float(sum(sorted_w[:3])) if len(sorted_w) >= 3 else float(sum(sorted_w))
+        extended["top5_concentration"] = float(sum(sorted_w[:5])) if len(sorted_w) >= 5 else float(sum(sorted_w))
+        extended["n_assets"] = len(portfolio)
+
+        # Performance windows
+        bench_returns_with_dates = []
+        for i in range(1, len(bench_returns)):
+            if i < len(date_strs):
+                bench_returns_with_dates.append({"date": date_strs[i], "value": bench_returns[i] if i < len(bench_returns) else 0.0})
+
+        if date_strs and twr_returns:
+            extended["performance_windows"] = calculate_performance_windows(
+                twr_returns, bench_returns_with_dates, date_strs[-1]
+            )
+        else:
+            extended["performance_windows"] = {}
+
+        # Per-asset attribution
+        extended["asset_attribution"] = calculate_asset_attribution(
+            portfolio_daily_return, stock_returns, portfolio, dates
+        )
+
+    except Exception as e:
+        logger.error(f"Error calculating extended diagnostics: {e}", exc_info=True)
+
+    return extended
+
+
+# ----------------------------------------------------------- #
 #                     Main Function                           #
 # ----------------------------------------------------------- #
 
@@ -465,34 +730,141 @@ def main():
             portfolio_real_value, bench1_prices, logger
         )
 
+        # --- Calculate Extended Diagnostics (TWR, Sortino, Beta, MaxDD, etc.) ---
+        project_root = os.path.abspath(os.path.join(script_dir, '..'))
+        ledger_csv_path = os.path.join(project_root, 'data', 'ledger.csv')
+        portfolio_history_path = os.path.join(project_root, 'data', 'portfolio_history.json')
+
+        extended = calculate_extended_diagnostics(
+            portfolio, portfolio_daily_return, portfolio_real_value,
+            bench1_daily_return, bench1_prices, stock_returns, dates,
+            ledger_csv_path, portfolio_history_path, logger,
+        )
+
+        # Merge extended into diagnostics
+        diagnostics.update({k: v for k, v in extended.items()
+                           if k not in ("performance_windows", "asset_attribution")})
+
         # --- Save Results ---
         results_save_start = time.time()
+        results_dir = os.path.join(project_root, 'data', 'results')
+        os.makedirs(results_dir, exist_ok=True)
+        run_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # Save main CSV
+        # Save main timeseries CSV to data/results/
         output_csv = params.get("OUTPUT_CSV")
         if output_csv:
             os.makedirs(os.path.dirname(output_csv), exist_ok=True)
             output.to_csv(output_csv, index=False)
             logger.info(f"Saved timeseries to {output_csv}")
 
-        # Save to web-accessible location
-        web_data_path = params.get("WEB_ACCESSIBLE_DATA_PATH")
-        if web_data_path:
-            os.makedirs(web_data_path, exist_ok=True)
+        # Also save timeseries to data/results/ for D_Publish
+        timeseries_path = os.path.join(results_dir, 'portfolio_timeseries.csv')
+        output.to_csv(timeseries_path, index=False)
+        logger.info(f"Saved timeseries to {timeseries_path}")
 
-            # Timeseries CSV
-            output.to_csv(os.path.join(web_data_path, 'portfolio_timeseries.csv'), index=False)
+        # Save diagnostics JSON to data/results/ (for D_Publish)
+        diag_json_path = os.path.join(results_dir, 'portfolio_diagnostics.json')
+        with open(diag_json_path, 'w') as f:
+            json.dump(diagnostics, f, indent=4)
+        logger.info(f"Saved diagnostics JSON to {diag_json_path}")
 
-            # Attribution JSON
-            if attribution_results:
-                with open(os.path.join(web_data_path, 'performance_attribution.json'), 'w') as f:
-                    json.dump(attribution_results, f, indent=4)
-                logger.info("Saved performance attribution")
+        # Append diagnostics to history CSV with run_id
+        diag_history_path = os.path.join(results_dir, 'portfolio_diagnostics_history.csv')
+        diag_row = {
+            'run_id': run_id,
+            'run_timestamp': run_timestamp,
+            'momentum_signal_strength': diagnostics.get('momentum_signal_strength'),
+            'forward_pe_implied_upside': diagnostics.get('forward_pe_implied_upside'),
+            'weighted_dividend_yield': diagnostics.get('weighted_dividend_yield'),
+            'turnover': diagnostics.get('turnover'),
+            'liquidity_score': diagnostics.get('liquidity_score'),
+            'tracking_error': diagnostics.get('tracking_error'),
+            'information_ratio': diagnostics.get('information_ratio'),
+            'benchmark_annual_return': diagnostics.get('benchmark_annual_return'),
+            'twr_total_return': diagnostics.get('twr_total_return'),
+            'annual_return': diagnostics.get('annual_return'),
+            'annual_volatility': diagnostics.get('annual_volatility'),
+            'sharpe': diagnostics.get('sharpe'),
+            'sortino': diagnostics.get('sortino'),
+            'max_drawdown': diagnostics.get('max_drawdown'),
+            'calmar': diagnostics.get('calmar'),
+            'beta': diagnostics.get('beta'),
+            'correlation_vs_benchmark': diagnostics.get('correlation_vs_benchmark'),
+            'hhi': diagnostics.get('hhi'),
+            'top3_concentration': diagnostics.get('top3_concentration'),
+            'top5_concentration': diagnostics.get('top5_concentration'),
+            'n_assets': diagnostics.get('n_assets'),
+        }
+        diag_df = pd.DataFrame([diag_row])
+        diag_df.to_csv(diag_history_path, mode='a',
+                       header=not os.path.exists(diag_history_path) or os.path.getsize(diag_history_path) == 0,
+                       index=False)
+        logger.info(f"Appended diagnostics to {diag_history_path}")
 
-            # Diagnostics JSON
-            with open(os.path.join(web_data_path, 'portfolio_diagnostics.json'), 'w') as f:
-                json.dump(diagnostics, f, indent=4)
-            logger.info("Saved portfolio diagnostics")
+        # Save attribution JSON to data/results/
+        if attribution_results:
+            attr_json_path = os.path.join(results_dir, 'performance_attribution.json')
+            with open(attr_json_path, 'w') as f:
+                json.dump(attribution_results, f, indent=4)
+            logger.info(f"Saved attribution JSON to {attr_json_path}")
+
+            # Append Brinson attribution to history CSV
+            attr_history_path = os.path.join(results_dir, 'performance_attribution_history.csv')
+            attr_row = {
+                'run_id': run_id,
+                'run_timestamp': run_timestamp,
+                'allocation_effect': attribution_results.get('allocation_effect'),
+                'selection_effect': attribution_results.get('selection_effect'),
+                'interaction_effect': attribution_results.get('interaction_effect'),
+                'total_active_return': attribution_results.get('total_active_return'),
+                'residual': attribution_results.get('residual'),
+            }
+            attr_df = pd.DataFrame([attr_row])
+            attr_df.to_csv(attr_history_path, mode='a',
+                          header=not os.path.exists(attr_history_path) or os.path.getsize(attr_history_path) == 0,
+                          index=False)
+            logger.info(f"Appended attribution to {attr_history_path}")
+
+        # Append per-asset attribution to history CSV
+        asset_attr = extended.get("asset_attribution", [])
+        if asset_attr:
+            asset_attr_path = os.path.join(results_dir, 'asset_attribution_history.csv')
+            for a in asset_attr:
+                a['run_id'] = run_id
+                a['run_timestamp'] = run_timestamp
+            asset_df = pd.DataFrame(asset_attr)
+            cols_order = ['run_id', 'run_timestamp', 'symbol', 'avg_weight',
+                         'total_contribution', 'volatility', 'beta', 'realized_return', 'observations']
+            # Add missing columns with None
+            for c in cols_order:
+                if c not in asset_df.columns:
+                    asset_df[c] = None
+            asset_df = asset_df[cols_order]
+            asset_df.to_csv(asset_attr_path, mode='a',
+                           header=not os.path.exists(asset_attr_path) or os.path.getsize(asset_attr_path) == 0,
+                           index=False)
+            logger.info(f"Appended {len(asset_attr)} asset attributions to {asset_attr_path}")
+
+        # Append performance windows to history CSV
+        perf_windows = extended.get("performance_windows", {})
+        if perf_windows:
+            perf_win_path = os.path.join(results_dir, 'performance_windows_history.csv')
+            win_row = {
+                'run_id': run_id,
+                'run_timestamp': run_timestamp,
+                'benchmark_ticker': bench1,
+            }
+            for key in ["ytd", "3m", "6m", "12m", "24m"]:
+                window_data = perf_windows.get(key.upper(), {})
+                win_row[f'perf_{key}_portfolio'] = window_data.get('portfolio')
+                win_row[f'perf_{key}_benchmark'] = window_data.get('benchmark')
+            win_df = pd.DataFrame([win_row])
+            win_df.to_csv(perf_win_path, mode='a',
+                         header=not os.path.exists(perf_win_path) or os.path.getsize(perf_win_path) == 0,
+                         index=False)
+            logger.info(f"Appended performance windows to {perf_win_path}")
+
 
         perf_data["results_save_duration_s"] = time.time() - results_save_start
 

@@ -744,7 +744,7 @@ def main():
     """Main execution function for the Portfolio script."""
     # 1. --- Initial Setup ---
     overall_start_time = time.time()    
-    run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
+    run_id = os.environ.get('PIPELINE_RUN_ID') or datetime.now().strftime('%Y%m%d-%H%M%S')
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     expected_params = {
@@ -1229,7 +1229,7 @@ def main():
                 # if anything fails, keep holdings_meta empty
                 logger.error(f"Failed to populate holdings_meta: {e}")
 
-            latest_summary_path = os.path.join(params.get("WEB_ACCESSIBLE_DATA_PATH"), "latest_run_summary.json")
+            latest_summary_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "results", "latest_run_summary.json")
             try:
                 with open(latest_summary_path, 'w') as f:
                     json.dump(latest_summary, f, indent=4)
@@ -1237,10 +1237,7 @@ def main():
             except Exception as e:
                 logger.error(f"Failed to create latest run summary: {e}")
 
-        # Copy all result files so the webpage can access them
-        copy_file_to_web_accessible_location("PORTFOLIO_PERFORMANCE_FILE", params, logger)
-        copy_file_to_web_accessible_location("PORTFOLIO_RESULTS_DB_FILE", params, logger)
-        copy_file_to_web_accessible_location("GA_FITNESS_NOISE_DB_FILE", params, logger)
+        # D_Publish.py handles copying to html/data/
 
         final_web_payload = {
             "portfolio_status": "Completed",

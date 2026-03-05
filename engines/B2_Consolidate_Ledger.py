@@ -76,7 +76,7 @@ def load_config(logger: logging.Logger) -> Dict[str, Any]:
         'TICKERS_FILE': Path(params.get('TICKERS_FILE', defaults['TICKERS_FILE'])),
         'FINDB_FILE': Path(params.get('FINDB_FILE', defaults['FINDB_FILE'])),
         'SCORED_STOCKS_FILE': Path(params.get('SCORED_STOCKS_FILE', defaults['SCORED_STOCKS_FILE'])),
-        'OUT_JSON': Path(params.get('WEB_ACCESSIBLE_DATA_PATH', defaults['WEB_ACCESSIBLE_DATA_PATH'])) / 'ledger_positions.json',
+        'OUT_JSON': ROOT / 'data' / 'ledger_positions.json',
         'PERFORMANCE_FILE': Path(params.get('CONSOLIDATE_PERF_FILE', defaults['CONSOLIDATE_PERF_FILE'])),
     }
 
@@ -447,10 +447,24 @@ def main() -> int:
             key = p.get('symbol') or p.get('ticker')
             p['current_price'] = prices_map.get(key)
 
+        # Calculate portfolio totals
+        total_current_market = 0.0
+        total_invested_cash = 0.0
+        for p in positions:
+            qty = p.get('net_qty', 0) or 0
+            invested = p.get('net_invested', 0) or 0
+            price = p.get('current_price')
+            total_invested_cash += invested
+            if price and qty:
+                total_current_market += qty * price
+
         # Write output
         output = {
             'generated_at': datetime.now(timezone.utc).isoformat(),
             'source': str(config['LEDGER_FILE'].relative_to(ROOT)),
+            'total_current_market': round(total_current_market, 2),
+            'total_invested_cash': round(total_invested_cash, 2),
+            'total_unrealized_pnl': round(total_current_market - total_invested_cash, 2),
             'positions': positions
         }
 

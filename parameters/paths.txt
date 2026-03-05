@@ -1,11 +1,11 @@
 # --- --- --- --- --- --- --- --- --- --- ---
 # --- Files and paths used by all scripts ---
 # --- --- --- --- --- --- --- --- --- --- ---
-PIPELINE_PROGRESS_JSON_FILE = ~/PortfolioESG/html/data/pipeline_progress.json
-DOWNLOAD_PROGRESS_JSON_FILE = ~/PortfolioESG/html/data/download_progress.json
-SCORING_PROGRESS_JSON_FILE = ~/PortfolioESG/html/data/scoring_progress.json
-PORTFOLIO_PROGRESS_JSON_FILE = ~/PortfolioESG/html/data/portfolio_progress.json
-BACKTESTING_PROGRESS_JSON_FILE = ~/PortfolioESG/html/data/backtesting_progress.json
+PIPELINE_PROGRESS_JSON_FILE = ~/PortfolioESG/data/pipeline_progress.json
+DOWNLOAD_PROGRESS_JSON_FILE = ~/PortfolioESG/data/download_progress.json
+SCORING_PROGRESS_JSON_FILE = ~/PortfolioESG/data/scoring_progress.json
+PORTFOLIO_PROGRESS_JSON_FILE = ~/PortfolioESG/data/portfolio_progress.json
+BACKTESTING_PROGRESS_JSON_FILE = ~/PortfolioESG/data/backtesting_progress.json
 WEB_ACCESSIBLE_DATA_PATH = ~/PortfolioESG/html/data/
 FINDATA_PATH = ~/PortfolioESG/data/findata/
 FINDB_FILE = ~/PortfolioESG/data/findb/StockDataDB.csv
@@ -21,7 +21,7 @@ NOTAS_DIR = ~/PortfolioESG/Notas_Negociação
 TX_FILE = ~/PortfolioESG/data/transactions_parsed.csv
 FEES_FILE = ~/PortfolioESG/data/fees_parsed.csv
 LEDGER_FILE = ~/PortfolioESG/data/ledger.csv
-PROCESSED_MANIFEST = ~/PortfolioESG/html/data/processed_notes.json
+PROCESSED_MANIFEST = ~/PortfolioESG/data/processed_notes.json
 PROCESS_NOTES_PERF_FILE = ~/PortfolioESG/data/Results/process_notes_performance.csv
 
 # --- --- --- --- --- --- --- --- --- --- ---

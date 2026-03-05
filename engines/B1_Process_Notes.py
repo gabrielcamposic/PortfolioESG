@@ -58,7 +58,7 @@ def load_config(logger: logging.Logger) -> Dict[str, Any]:
         'TX_FILE': str(ROOT / 'data' / 'transactions_parsed.csv'),
         'FEES_FILE': str(ROOT / 'data' / 'fees_parsed.csv'),
         'LEDGER_FILE': str(ROOT / 'data' / 'ledger.csv'),
-        'PROCESSED_MANIFEST': str(ROOT / 'html' / 'data' / 'processed_notes.json'),
+        'PROCESSED_MANIFEST': str(ROOT / 'data' / 'processed_notes.json'),
         'TICKERS_FILE': str(ROOT / 'parameters' / 'tickers.txt'),
         'PROCESS_NOTES_PERF_FILE': str(ROOT / 'data' / 'Results' / 'process_notes_performance.csv'),
     }

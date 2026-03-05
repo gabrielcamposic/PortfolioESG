@@ -17,6 +17,7 @@
 #   --only-B          Run only B_Ledger pipeline
 #   --only-C          Run only C_OptimizedPortfolio
 #   --dry-run         Show what would be executed without running
+#   --skip-publish    Skip D_Publish (frontend asset publishing)
 #
 # Notes:
 #   - Shows heartbeat every 30s while stages are running
@@ -40,6 +41,10 @@ MASTER_LOG="$LOG_DIR/run_all_$TIMESTAMP.log"
 export PYTHONPATH="$PROJECT_ROOT"
 export PYTHONUNBUFFERED=1
 
+# Generate a shared run ID for the entire pipeline
+# All engines (A2, A3, A4) will use this instead of generating their own
+export PIPELINE_RUN_ID="$TIMESTAMP"
+
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
 
@@ -47,6 +52,7 @@ mkdir -p "$LOG_DIR"
 RUN_A=true
 RUN_B=true
 RUN_C=true
+RUN_D=true
 SKIP_DOWNLOAD=${SKIP_DOWNLOAD:-false}
 DRY_RUN=false
 
@@ -65,18 +71,25 @@ while [[ $# -gt 0 ]]; do
             RUN_A=true
             RUN_B=false
             RUN_C=false
+            RUN_D=false
             shift
             ;;
         --only-B)
             RUN_A=false
             RUN_B=true
             RUN_C=false
+            RUN_D=false
             shift
             ;;
         --only-C)
             RUN_A=false
             RUN_B=false
             RUN_C=true
+            RUN_D=false
+            shift
+            ;;
+        --skip-publish)
+            RUN_D=false
             shift
             ;;
         --dry-run)
@@ -184,6 +197,11 @@ preflight_check() {
         fi
     done
 
+    if [ ! -f "$SCRIPT_DIR/D_Publish.py" ]; then
+        log_error "Publish script not found: $SCRIPT_DIR/D_Publish.py"
+        ((errors++))
+    fi
+
     # Check required directories
     for dir in data/findb parameters html/data; do
         if [ ! -d "$PROJECT_ROOT/$dir" ]; then
@@ -216,6 +234,7 @@ main() {
     log "  Run A (Portfolio):     $RUN_A"
     log "  Run B (Ledger):        $RUN_B"
     log "  Run C (Optimization):  $RUN_C"
+    log "  Run D (Publish):       $RUN_D"
     log "  Skip Download:         $SKIP_DOWNLOAD"
     log "  Dry Run:               $DRY_RUN"
     log ""
@@ -275,6 +294,16 @@ main() {
         fi
     fi
 
+    # --- Stage D: Publish Frontend Assets ---
+    if [ "$RUN_D" = true ]; then
+        log ""
+        log "▶ STAGE D: Publish Frontend Assets"
+
+        if ! run_stage "D_Publish" "$PROJECT_ROOT/.venv/bin/python" "$SCRIPT_DIR/D_Publish.py"; then
+            failed_stages+=("D_Publish")
+        fi
+    fi
+
     # --- Summary ---
     local overall_end=$(date +%s)
     local total_duration=$((overall_end - overall_start))
@@ -296,6 +325,8 @@ main() {
         log "  - History:      $PROJECT_ROOT/html/data/portfolio_history.json"
         log "  - Ledger:       $PROJECT_ROOT/html/data/ledger_positions.json"
         log "  - Recommendation: $PROJECT_ROOT/html/data/optimized_recommendation.json"
+        log "  - MIS (Model):    $PROJECT_ROOT/html/data/mis_model_latest.json"
+        log "  - MIS (Real):     $PROJECT_ROOT/html/data/mis_real_latest.json"
         log ""
         log "View dashboard: http://localhost:8000/latest_run_summary.html"
         return 0

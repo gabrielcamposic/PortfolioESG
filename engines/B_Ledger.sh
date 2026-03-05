@@ -9,8 +9,8 @@
 # Stages:
 #   B1: Process broker notes (PDF parsing)
 #   B2: Consolidate ledger positions
-#   B3: Generate frontend JSON assets
 #   B4: Generate portfolio history for charts
+#   D:  Publish frontend assets
 #
 # Usage:
 #   ./B_Ledger.sh
@@ -31,7 +31,6 @@ export PYTHONUNBUFFERED=1
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 PROCESS_NOTES_SCRIPT="$PROJECT_ROOT/engines/B1_Process_Notes.py"
 CONSOLIDATE_LEDGER_SCRIPT="$PROJECT_ROOT/engines/B2_Consolidate_Ledger.py"
-GENERATE_ASSETS_SCRIPT="$PROJECT_ROOT/engines/B3_Generate_json.py"
 PORTFOLIO_HISTORY_SCRIPT="$PROJECT_ROOT/engines/B4_Portfolio_History.py"
 
 # Logging
@@ -92,15 +91,15 @@ if ! run_stage "B2_Consolidate_Ledger" "$CONSOLIDATE_LEDGER_SCRIPT"; then
     exit 1
 fi
 
-# 3) Regenerate frontend JSON assets (copies to html/data)
-if ! run_stage "B3_Generate_json" "$GENERATE_ASSETS_SCRIPT"; then
-    log "Generate assets JSON failed. Aborting." >&2
+# 3) Generate portfolio history for charts
+if ! run_stage "B4_Portfolio_History" "$PORTFOLIO_HISTORY_SCRIPT"; then
+    log "Generate portfolio history failed. Aborting." >&2
     exit 1
 fi
 
-# 4) Generate portfolio history for charts
-if ! run_stage "B4_Portfolio_History" "$PORTFOLIO_HISTORY_SCRIPT"; then
-    log "Generate portfolio history failed. Aborting." >&2
+# 4) Publish frontend assets
+if ! run_stage "D_Publish" "$PROJECT_ROOT/engines/D_Publish.py"; then
+    log "Publish assets failed. Aborting." >&2
     exit 1
 fi
 
@@ -114,6 +113,6 @@ log "║  Total Duration: ${PIPELINE_DURATION}s"
 log "╚══════════════════════════════════════════════════════════════╝"
 log ""
 log "Results available at:"
-log "  - Positions:  $PROJECT_ROOT/html/data/ledger_positions.json"
-log "  - History:    $PROJECT_ROOT/html/data/portfolio_history.json"
-log "  - Pipeline:   $PROJECT_ROOT/html/data/pipeline_latest.json"
+log "  - Positions:  $PROJECT_ROOT/data/ledger_positions.json"
+log "  - History:    $PROJECT_ROOT/data/portfolio_history.json"
+log "  - Frontend:   $PROJECT_ROOT/html/data/ (via D_Publish)"

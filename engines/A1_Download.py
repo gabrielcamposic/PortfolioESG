@@ -17,7 +17,6 @@ from shared_tools.shared_utils import (
     load_parameters_from_file,
     get_previous_business_day,
     get_sao_paulo_holidays,
-    copy_file_to_web_accessible_location,
 )
 from shared_tools.shared_utils import write_json_atomic
 from shared_tools.path_utils import resolve_paths_in_params
@@ -498,15 +497,6 @@ def download_and_process_data(
                 # Normalize and ensure we pass a plain `str` to the writer
                 download_progress_file_str = str(os.fspath(download_progress_file))
                 write_json_atomic(download_progress_file_str, web_payload)
-                # also write into web-accessible data folder if configured
-                web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
-                if web_folder:
-                    try:
-                        os.makedirs(web_folder, exist_ok=True)
-                        web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
-                        write_json_atomic(web_path, web_payload)
-                    except Exception:
-                        pass
         except Exception as e:
             logger.debug(f"Could not write download progress JSON for {ticker}: {e}")
 
@@ -610,14 +600,6 @@ def download_and_process_data(
         if download_progress_file:
             download_progress_file_str = str(os.fspath(download_progress_file))
             write_json_atomic(download_progress_file_str, final_web_payload)
-            web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
-            if web_folder:
-                try:
-                    os.makedirs(web_folder, exist_ok=True)
-                    web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
-                    write_json_atomic(web_path, final_web_payload)
-                except Exception:
-                    pass
     except Exception as e:
         logger.debug(f"Could not write final download progress JSON: {e}")
 
@@ -907,15 +889,6 @@ def main():
             # Use atomic writer to create initial progress JSON for the frontend
             download_progress_file_str = str(os.fspath(download_progress_file))
             write_json_atomic(download_progress_file_str, initial_progress_data)
-            # Also write a copy into the web-accessible data folder if configured
-            web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH') if 'params' in locals() else None
-            if web_folder:
-                try:
-                    os.makedirs(web_folder, exist_ok=True)
-                    web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
-                    write_json_atomic(web_path, initial_progress_data)
-                except OSError:
-                    pass
     except OSError as prog_err:
         print(f"CRITICAL: Could not initialize progress file {download_progress_file}. Error: {prog_err}")
 
@@ -1010,7 +983,7 @@ def main():
     finally:
         perf_data["overall_script_duration_s"] = time.time() - overall_start_time
         log_performance_data(perf_data, params, logger)
-        copy_file_to_web_accessible_location("DOWNLOAD_PERFORMANCE_FILE", params, logger)
+        # D_Publish.py handles copying to html/data/
         logger.info("Execution complete.")
 
 if __name__ == "__main__":

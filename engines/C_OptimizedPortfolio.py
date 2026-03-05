@@ -46,8 +46,8 @@ PATHS_FILE = os.path.join(ROOT, 'parameters', 'paths.txt')
 
 # Data files
 LEDGER_CSV = os.path.join(ROOT, 'data', 'ledger.csv')
-LEDGER_POSITIONS_JSON = os.path.join(ROOT, 'html', 'data', 'ledger_positions.json')
-LATEST_RUN_JSON = os.path.join(ROOT, 'html', 'data', 'latest_run_summary.json')
+LEDGER_POSITIONS_JSON = os.path.join(ROOT, 'data', 'ledger_positions.json')
+LATEST_RUN_JSON = os.path.join(ROOT, 'data', 'results', 'latest_run_summary.json')
 PORTFOLIO_RESULTS_DB = os.path.join(ROOT, 'data', 'results', 'portfolio_results_db.csv')
 WEB_DATA_PATH = os.path.join(ROOT, 'html', 'data')
 FINDATA_PATH = os.path.join(ROOT, 'data', 'findata')  # Legacy - kept for backward compatibility
@@ -545,8 +545,9 @@ def calculate_holdings_metrics(
     window_days = int(params.get('EXPECTED_RETURN_WINDOW_DAYS', 252))
 
     for _, row in holdings.iterrows():
-        ticker = row.get('ticker', row.get('symbol', ''))
-        symbol = normalize_symbol(ticker, ticker_mapping)
+        # Prefer 'symbol' (Yahoo format like PETR3.SA) over 'ticker' (broker name)
+        symbol_raw = row.get('symbol') or row.get('ticker', '')
+        symbol = normalize_symbol(symbol_raw, ticker_mapping)
         net_qty = float(row.get('net_qty', 0))
         net_invested = float(row.get('net_invested', 0))
 
@@ -970,7 +971,7 @@ def save_recommendation(
     # Save latest JSON
     json_path = os.path.expanduser(
         params.get('OPTIMIZED_LATEST_JSON',
-                   os.path.join(ROOT, 'html', 'data', 'optimized_recommendation.json'))
+                   os.path.join(ROOT, 'data', 'results', 'optimized_recommendation.json'))
     )
     os.makedirs(os.path.dirname(json_path), exist_ok=True)
 
@@ -1019,7 +1020,8 @@ def save_recommendation(
         logger.error(f"Error saving CSV history: {e}")
 
     # Copy portfolio_results_db.csv to html/data for web access
-    copy_results_to_web(logger)
+    # NOTE: D_Publish.py now handles this
+    pass
 
 
 def copy_results_to_web(logger: logging.Logger):
