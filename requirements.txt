@@ -1,0 +1,25 @@
+# ============================================================
+# PortfolioESG — Python dependencies
+# ============================================================
+# Install:  python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+# ============================================================
+
+# ── Core (used by the main pipeline: engines A, B, C) ──────
+pandas>=2.0
+numpy>=1.24
+yfinance>=0.2
+holidays>=0.40
+python-dateutil>=2.8
+
+# ── PDF parsing / OCR (needed only for broker-note processing in B1/B11) ──
+pdfplumber>=0.10
+Pillow>=10.0
+pytesseract>=0.3
+
+# ── Resource profiling & cloud cost estimation (scripts/) ──
+psutil>=5.9
+memory-profiler>=0.61
+
+# ── GCP integration (optional — only if using BigQuery/GCS) ──
+# google-cloud-bigquery>=3.0
+

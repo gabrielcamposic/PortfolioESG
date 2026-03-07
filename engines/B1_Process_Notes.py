@@ -432,7 +432,8 @@ def main():
 
             perf_data['status'] = 'success'
             perf_data['execution_time'] = time.time() - start_time
-            log_performance_data(perf_data, config['PERFORMANCE_FILE'], logger)
+            perf_params = {'PERFORMANCE_FILE': str(config['PERFORMANCE_FILE'])}
+            log_performance_data(perf_data, perf_params, logger, 'PERFORMANCE_FILE')
             return
 
         logger.info(f"Found {len(pdfs)} PDFs in {config['NOTAS_DIR']}")

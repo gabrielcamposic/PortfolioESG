@@ -1,16 +1,5 @@
-# Core dependencies used by engines/
-pandas
-numpy
-yfinance
-holidays
-python-dateutil
-
-# Optional dependencies for PDF parsing / OCR (install only if you need automatic broker note parsing)
-pdfplumber
-Pillow
-pytesseract
-
-# Resource profiling for cloud cost estimation
-memory-profiler>=0.61
-psutil>=5.9
+# This file is kept for backward compatibility.
+# The canonical requirements live at the project root:
+#   pip install -r requirements.txt  (from the repo root)
+-r ../requirements.txt
 
