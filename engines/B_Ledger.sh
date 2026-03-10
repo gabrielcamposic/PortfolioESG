@@ -114,5 +114,5 @@ log "╚════════════════════════
 log ""
 log "Results available at:"
 log "  - Positions:  $PROJECT_ROOT/data/ledger_positions.json"
-log "  - History:    $PROJECT_ROOT/data/portfolio_history.json"
+log "  - History:    $PROJECT_ROOT/data/portfolio_history.csv"
 log "  - Frontend:   $PROJECT_ROOT/html/data/ (via D_Publish)"

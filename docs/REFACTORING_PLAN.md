@@ -1,7 +1,7 @@
 # PortfolioESG — Plano de Refatoração Backend + Frontend
 
 **Início:** 2026-03-03  
-**Última atualização:** 2026-03-09  
+**Última atualização:** 2026-03-10  
 **Objetivo:** Racionalizar a produção e armazenamento de dados do pipeline para que o frontend seja puramente render, sem cálculos.
 
 ---
@@ -20,7 +20,7 @@
 ## Pipeline de Dados (estado atual)
 
 ```
-A1_Download.py    → data/findb/StockDataDB.csv, FinancialsDB.csv, skipped_tickers.json
+A1_Download.py    → data/findb/StockDataDB.csv, FinancialsDB.csv, skipped_tickers.jsonl
 A2_Scoring.py     → data/results/scored_stocks.csv, sector_pe.csv, correlation_matrix.csv
 A3_Portfolio.py   → data/results/portfolio_results_db.csv, ga_fitness_noise_db.csv, latest_run_summary.json
 A4_Analysis.py    → data/results/portfolio_timeseries.csv,
@@ -29,12 +29,12 @@ A4_Analysis.py    → data/results/portfolio_timeseries.csv,
 
 B1_Process_Notes  → data/transactions_parsed.csv, fees_parsed.csv, processed_notes.json
 B2_Consolidate    → data/ledger.csv, ledger_positions.json
-B4_Portfolio_Hist → data/portfolio_history.json
+B4_Portfolio_Hist → data/portfolio_history.csv
 
-C_Optimized       → data/results/optimized_recommendation.json, optimized_portfolio_history.csv
+C_Optimized       → data/results/optimized_recommendation.json, optimized_portfolio_history.jsonl
 
 D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
-                    pipeline_latest.json, mis_model_latest.json, mis_real_latest.json,
+                    pipeline_latest.json, dashboard_latest.json,
                     portfolio_diagnostics.json, performance_attribution.json
 ```
 
@@ -65,6 +65,7 @@ D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
 | `performance_attribution_history.csv` | A4 | Brinson attribution por run |
 | `asset_attribution_history.csv` | A4 | Attribution por ativo/run |
 | `performance_windows_history.csv` | A4 | Janelas de performance (YTD, 3M, etc.) |
+| `portfolio_history.csv` | B4 | Histórico diário por posição (migrado de JSON na Fase 3.3) |
 | `ledger.csv` | B2 | Transações consolidadas |
 | `transactions_parsed.csv` | B1 | Transações brutas das notas |
 | `fees_parsed.csv` | B1 | Taxas detalhadas |
@@ -73,27 +74,34 @@ D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
 #### JSONs (manter)
 | Arquivo | Engine | Descrição |
 |---|---|---|
-| `latest_run_summary.json` | A3 | Snapshot do melhor portfólio (a simplificar — Fase 2.3) |
+| `latest_run_summary.json` | A3 | Snapshot do melhor portfólio (simplificado na Fase 2.3) |
 | `optimized_recommendation.json` | C | Recomendação de rebalanceamento |
 | `ledger_positions.json` | B2 | Posições atuais com totais |
 | `scored_targets.json` | D | Mapa ticker→targetPrice |
 | `pipeline_latest.json` | D | Projeção do portfólio modelo sobre capital real |
+| `dashboard_latest.json` | D | Consolidação model + real (substituiu mis_model + mis_real na Fase 3.2) |
 | `processed_notes.json` | B1 | Manifesto de notas processadas |
 | `*_progress.json` (4) | A1-A3 | Status efêmero para frontend polling |
 
-#### Mudanças de formato planejadas
+#### JSONLs
+| Arquivo | Engine | Descrição |
+|---|---|---|
+| `skipped_tickers.jsonl` | A1 | Tickers inválidos, append-only (migrado de JSON na Fase 3.5) |
+| `optimized_portfolio_history.jsonl` | C | Histórico de decisões com arrays nativos (migrado de CSV na Fase 3.4) |
+
+#### Mudanças de formato realizadas (Fase 3)
 | Arquivo | De → Para | Engine | Razão |
 |---|---|---|---|
-| `portfolio_history.json` | JSON → CSV | B4 | Série temporal com aninhamento desnecessário. CSV flat ~10x menor. |
-| `optimized_portfolio_history.csv` | CSV → JSONL | C | Listas de stocks em campos CSV = parsing frágil. JSONL preserva arrays. |
-| `skipped_tickers.json` | JSON → JSONL | A1 | ~1.5MB reescrito inteiro a cada skip. JSONL = append-only. |
+| `portfolio_history.json` → `.csv` | JSON → CSV | B4 | Série temporal com aninhamento desnecessário. CSV flat ~10x menor. ✅ |
+| `optimized_portfolio_history.csv` → `.jsonl` | CSV → JSONL | C | Listas de stocks em campos CSV = parsing frágil. JSONL preserva arrays. ✅ |
+| `skipped_tickers.json` → `.jsonl` | JSON → JSONL | A1 | ~1.5MB reescrito inteiro a cada skip. JSONL = append-only. ✅ |
 
-#### Eliminações planejadas
+#### Eliminações realizadas
 | Arquivo | Razão |
 |---|---|
 | `portfolio_diagnostics.json` | Agora derivado por D_Publish (não mais escrito por A4) ✅ |
 | `performance_attribution.json` | Agora derivado por D_Publish (não mais escrito por A4) ✅ |
-| `mis_model_latest.json` + `mis_real_latest.json` | Consolidar em `dashboard_latest.json` |
+| `mis_model_latest.json` + `mis_real_latest.json` | Consolidados em `dashboard_latest.json` ✅ |
 | `cloud_cost_comparison.json` | Sem consumidor no pipeline/frontend |
 | `resource_metrics.json` | Sem consumidor no pipeline/frontend |
 
@@ -152,33 +160,44 @@ D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
 
 ---
 
-### Fase 3 — Clareza Semântica e Formato (pendente)
+### Fase 3 — Clareza Semântica e Formato ✅ (2026-03-10)
 
-**3.1 Renomear Sharpe modelo → `sharpe_forward`**  
+> Renomeados campos ambíguos, consolidados JSONs derivados, migrados 3 arquivos para formatos mais adequados.
+
+**3.1 Renomear Sharpe modelo → `sharpe_forward`** ✅  
 - `A3_Portfolio.py`: campo `sharpe_ratio` → `sharpe_forward` em `portfolio_results_db.csv` e `latest_run_summary.json`
+- `C_OptimizedPortfolio.py`: leitura com fallback (`sharpe_forward` || `sharpe_ratio`)
+- `D_Publish.py`: leitura com fallback (`sharpe_forward` || `sharpe_ratio`)
 - A4 mantém `sharpe` (realizado). Sem ambiguidade.
-- Arquivos: `engines/A3_Portfolio.py`
+- Arquivos: `engines/A3_Portfolio.py`, `engines/C_OptimizedPortfolio.py`, `engines/D_Publish.py`
 
-**3.2 Simplificar D_Publish — consolidar JSONs derivados**  
-- Eliminar `mis_model_latest.json` e `mis_real_latest.json`
-- Gerar um único `dashboard_latest.json` que agrega última linha de cada CSV history
-- Zero cálculos, só formatação
-- Arquivos: `engines/D_Publish.py`
+**3.2 Consolidar `mis_model_latest.json` + `mis_real_latest.json` → `dashboard_latest.json`** ✅  
+- `D_Publish.py` v2.0.0: funções `publish_mis_model()` e `publish_mis_real()` substituídas por `publish_dashboard_latest()`
+- JSON único com `{ "generated_at", "model": {...}, "real": {...} }`
+- Symlinks antigos (`mis_model_latest.json`, `mis_real_latest.json`) removidos de html/data/
+- Steps renumerados: 0→1→2→3→4→5→6 (antes 0→1→2→3→4→5→6→7)
+- Arquivos: `engines/D_Publish.py`, `engines/run_all.sh`
 
-**3.3 Migrar `portfolio_history.json` → CSV**  
-- `B4_Portfolio_History.py` grava CSV flat: `date,symbol,qty,price,value,market_value,cost_basis,pnl,pnl_pct`
-- De 91KB para ~10KB. Legível por pandas e browser.
-- Posições por dia são reconstruíveis a partir das linhas do mesmo date.
-- Arquivos: `engines/B4_Portfolio_History.py`, `engines/D_Publish.py`
+**3.3 Migrar `portfolio_history.json` → CSV** ✅  
+- `B4_Portfolio_History.py` v3.0.0: output CSV flat com `date,symbol,qty,price,value,market_value,cost_basis,pnl,pnl_pct`
+- Cada linha = uma posição num dia; agregados diários via `GROUP BY date`
+- Campo `transactions` removido (redundante com `ledger.csv`)
+- `D_Publish.py`: lê CSV com `pd.read_csv` para `history_start/end/observations` (usa `date.nunique()`)
+- `A4_Analysis.py`: parâmetro morto `portfolio_history_path` removido de `calculate_extended_diagnostics()`
+- Symlink antigo (`portfolio_history.json`) removido de html/data/
+- Arquivos: `engines/B4_Portfolio_History.py`, `engines/D_Publish.py`, `engines/A4_Analysis.py`, `engines/run_all.sh`, `engines/B_Ledger.sh`
 
-**3.4 Migrar `optimized_portfolio_history.csv` → JSONL**  
-- `C_OptimizedPortfolio.py` grava 1 linha JSON por registro
-- Preserva arrays nativos de stocks em vez de listas comma-separated dentro de CSV
-- Arquivos: `engines/C_OptimizedPortfolio.py`, `engines/D_Publish.py`
+**3.4 Migrar `optimized_portfolio_history.csv` → JSONL** ✅  
+- `C_OptimizedPortfolio.py`: append de 1 linha JSON por run com arrays nativos de stocks
+- Elimina `','.join()` frágil; preserva `["PETR3.SA", ...]` como array nativo
+- Parâmetro `OPTIMIZED_RESULTS_FILE` atualizado em `optpar.txt`
+- Arquivos: `engines/C_OptimizedPortfolio.py`, `engines/C_OptimizedPortfolio.sh`, `parameters/optpar.txt`
 
-**3.5 Migrar `skipped_tickers.json` → JSONL**  
-- `A1_Download.py` grava append-only (1 linha/skip)
-- Elimina reescrita de ~1.5MB a cada ticker adicionado
+**3.5 Migrar `skipped_tickers.json` → JSONL** ✅  
+- `A1_Download.py`: `save_ticker_skip_data()` faz append de 1 linha `{"ticker": ..., "skip_data": [...]}` 
+- `load_all_skipped_tickers()` reconstrói dict a partir do JSONL (last-entry-per-ticker wins)
+- Migração automática one-time: se `.json` existe e `.jsonl` não, converte e carrega
+- Elimina reescrita de ~1.5MB a cada skip
 - Arquivos: `engines/A1_Download.py`
 
 ---
@@ -196,7 +215,7 @@ D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
 ### Frontend — Reset (2026-03-05)
 
 Frontend antigo removido e backupado em `backups/refactor_20260303/frontend_old/`.  
-`html/data/` (30 symlinks) preservado.
+`html/data/` (~29 symlinks) preservado.
 
 O novo frontend será construído do zero sobre os dados racionalizados, seguindo o princípio **render-only**: receber dados prontos e apenas exibi-los.
 
@@ -209,7 +228,7 @@ data/
 ├── findb/
 │   ├── StockDataDB.csv          ← A1: preços OHLCV (~41MB)
 │   ├── FinancialsDB.csv         ← A1: dados financeiros (~890KB)
-│   └── skipped_tickers.json     ← A1: tickers inválidos (~1.5MB)
+│   └── skipped_tickers.jsonl    ← A1: tickers inválidos, append-only
 ├── results/
 │   ├── scored_stocks.csv        ← A2: scoring histórico
 │   ├── sector_pe.csv            ← A2: P/E setorial histórico
@@ -225,11 +244,10 @@ data/
 │   ├── asset_attribution_history.csv     ← A4: attribution por ativo
 │   ├── performance_windows_history.csv   ← A4: janelas de performance
 │   ├── optimized_recommendation.json     ← C: recomendação de rebalanceamento
-│   ├── optimized_portfolio_history.csv   ← C: histórico de decisões
+│   ├── optimized_portfolio_history.jsonl  ← C: histórico de decisões (JSONL)
 │   ├── scored_targets.json      ← D: mapa ticker→targetPrice
 │   ├── pipeline_latest.json     ← D: projeção modelo→real
-│   ├── mis_model_latest.json    ← D: dashboard modelo (a consolidar)
-│   ├── mis_real_latest.json     ← D: dashboard real (a consolidar)
+│   ├── dashboard_latest.json    ← D: dashboard consolidado (model + real)
 │   ├── *_performance.csv (6)    ← Todos: logs operacionais
 │   └── analysis_performance.csv ← A4: log operacional
 ├── transactions_parsed.csv      ← B1: transações brutas
@@ -237,14 +255,14 @@ data/
 ├── processed_notes.json         ← B1: manifesto de notas
 ├── ledger.csv                   ← B2: transações consolidadas
 ├── ledger_positions.json        ← B2: posições atuais + totais
-├── portfolio_history.json       ← B4: histórico diário (a migrar para CSV)
+├── portfolio_history.csv        ← B4: histórico diário por posição
 ├── pipeline_progress.json       ← A_Portfolio.sh: status efêmero
 ├── download_progress.json       ← A1: status efêmero
 ├── scoring_progress.json        ← A2: status efêmero
 └── portfolio_progress.json      ← A3: status efêmero
 
 html/data/
-└── (30 symlinks → data/)        ← D_Publish: janela para frontend
+└── (~29 symlinks → data/)       ← D_Publish: janela para frontend
 ```
 
 ---
@@ -260,11 +278,11 @@ html/data/
 | 5 | `portfolio_timeseries.csv` escrito 2x | Removida escrita duplicada em A4 | 2.1 ✅ |
 | 6 | JSONs snapshot redundantes com CSVs history | D_Publish gera snapshots de history CSVs | 2.2 ✅ |
 | 7 | `latest_run_summary.json` com ~24KB inline | Removidos timeseries, sparklines, ga_history | 2.3 ✅ |
-| 8 | Sharpe forward vs realizado sem distinção | Pendente | 3.1 |
-| 9 | `mis_model` e `mis_real` como JSONs separados | Pendente | 3.2 |
-| 10 | `portfolio_history.json` 91KB aninhado | Pendente | 3.3 |
-| 11 | CSVs com arrays em campos texto | Pendente | 3.4 |
-| 12 | `skipped_tickers.json` 1.5MB reescrito inteiro | Pendente | 3.5 |
+| 8 | Sharpe forward vs realizado sem distinção | `sharpe_ratio` → `sharpe_forward` em A3, C, D | 3.1 ✅ |
+| 9 | `mis_model` e `mis_real` como JSONs separados | Consolidados em `dashboard_latest.json` | 3.2 ✅ |
+| 10 | `portfolio_history.json` 91KB aninhado | Migrado para CSV flat | 3.3 ✅ |
+| 11 | CSVs com arrays em campos texto | Migrado para JSONL com arrays nativos | 3.4 ✅ |
+| 12 | `skipped_tickers.json` 1.5MB reescrito inteiro | Migrado para JSONL append-only | 3.5 ✅ |
 
 ---
 

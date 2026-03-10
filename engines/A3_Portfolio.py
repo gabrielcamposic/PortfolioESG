@@ -888,7 +888,7 @@ def main():
                 "max_stocks": params.get("max_stocks"),
                 "stocks": ', '.join(best_combo),
                 "weights": ', '.join(map(str, [round(w, 4) for w in best_weights])),
-                "sharpe_ratio": round(best_sharpe, 4),
+                "sharpe_forward": round(best_sharpe, 4),
                 "final_value": round(final_value, 2),
                 "roi_percent": round(roi_percent, 2),
                 "expected_return_annual_pct": round(best_exp_ret * 100, 2),
@@ -1028,7 +1028,7 @@ def main():
                 "best_portfolio_details": {
                     "stocks": best_combo,
                     "weights": [round(w, 4) for w in best_weights],
-                    "sharpe_ratio": round(best_sharpe, 4),
+                    "sharpe_forward": round(best_sharpe, 4),
                     "expected_return_annual_pct": round(best_exp_ret * 100, 2),
                     "expected_volatility_annual_pct": round(best_vol * 100, 2),
                     "initial_investment": params.get("initial_investment"),

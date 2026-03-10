@@ -86,7 +86,7 @@ if "$PY_EXEC" "$SCRIPT_DIR/C_OptimizedPortfolio.py" 2>&1 | tee -a "$LOG_FILE"; t
     log ""
     log "Output files:"
     log "  - $PROJECT_ROOT/data/results/optimized_recommendation.json"
-    log "  - $PROJECT_ROOT/data/results/optimized_portfolio_history.csv"
+    log "  - $PROJECT_ROOT/data/results/optimized_portfolio_history.jsonl"
 
     # Publish frontend assets
     log ""

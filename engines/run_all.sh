@@ -322,11 +322,10 @@ main() {
         log ""
         log "Results available at:"
         log "  - Portfolio:    $PROJECT_ROOT/html/data/pipeline_latest.json"
-        log "  - History:      $PROJECT_ROOT/html/data/portfolio_history.json"
+        log "  - History:      $PROJECT_ROOT/html/data/portfolio_history.csv"
         log "  - Ledger:       $PROJECT_ROOT/html/data/ledger_positions.json"
         log "  - Recommendation: $PROJECT_ROOT/html/data/optimized_recommendation.json"
-        log "  - MIS (Model):    $PROJECT_ROOT/html/data/mis_model_latest.json"
-        log "  - MIS (Real):     $PROJECT_ROOT/html/data/mis_real_latest.json"
+        log "  - Dashboard:      $PROJECT_ROOT/html/data/dashboard_latest.json"
         log ""
         log "View dashboard: http://localhost:8000/latest_run_summary.html"
         return 0

@@ -2,7 +2,7 @@
 # Script C_OptimizedPortfolio.py: combines ideal portfolio (A) with holdings (B)
 
 # --- Files and paths ---
-OPTIMIZED_RESULTS_FILE = ~/PortfolioESG/data/results/optimized_portfolio_history.csv
+OPTIMIZED_RESULTS_FILE = ~/PortfolioESG/data/results/optimized_portfolio_history.jsonl
 OPTIMIZED_LATEST_JSON = ~/PortfolioESG/data/results/optimized_recommendation.json
 OPTIMIZED_LOG_FILE = ~/PortfolioESG/logs/optimized.log
 

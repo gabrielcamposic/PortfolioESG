@@ -7,13 +7,12 @@ Generates historical portfolio value data based on:
 - Transaction history (ledger.csv)
 - Daily stock prices (StockDataDB.csv)
 
-Output: html/data/portfolio_history.json
+Output: data/portfolio_history.csv
 """
 
 # --- Script Version ---
-PORTFOLIO_HISTORY_VERSION = "2.0.0"  # Refactored with consistent structure
+PORTFOLIO_HISTORY_VERSION = "3.0.0"  # Migrated output from JSON to flat CSV
 
-import json
 import csv
 import sys
 import logging
@@ -36,7 +35,7 @@ HTML_DATA_DIR = BASE_DIR / 'html' / 'data'
 FINDB_DIR = DATA_DIR / 'findb'
 STOCK_DATA_DB = FINDB_DIR / 'StockDataDB.csv'
 LEDGER_CSV = DATA_DIR / 'ledger.csv'
-OUTPUT_FILE = DATA_DIR / 'portfolio_history.json'
+OUTPUT_FILE = DATA_DIR / 'portfolio_history.csv'
 
 # Simple logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -336,23 +335,20 @@ def build_portfolio_history(transactions_df):
                     'value': round(market_value, 2)
                 })
 
-        # Only add entry if we have holdings and price data
+        # Only add entries if we have holdings and price data
         if has_price_data and total_cost > 0:
-            day_transactions = transactions_by_date.get(current_date, None)
-
-            entry = {
-                'date': current_date.isoformat(),
-                'market_value': round(total_market_value, 2),
-                'cost_basis': round(total_cost, 2),
-                'profit_loss': round(total_market_value - total_cost, 2),
-                'profit_loss_pct': round(((total_market_value / total_cost) - 1) * 100, 2) if total_cost > 0 else 0,
-                'positions': position_details
-            }
-
-            if day_transactions:
-                entry['transactions'] = day_transactions
-
-            history.append(entry)
+            for pos in position_details:
+                history.append({
+                    'date': current_date.isoformat(),
+                    'symbol': pos['symbol'],
+                    'qty': pos['qty'],
+                    'price': pos['price'],
+                    'value': pos['value'],
+                    'market_value': round(total_market_value, 2),
+                    'cost_basis': round(total_cost, 2),
+                    'pnl': round(total_market_value - total_cost, 2),
+                    'pnl_pct': round(((total_market_value / total_cost) - 1) * 100, 2) if total_cost > 0 else 0,
+                })
 
         current_date += timedelta(days=1)
 
@@ -369,23 +365,21 @@ def main():
 
     if transactions_df.empty:
         print("[WARN] No transactions found. Creating empty history.")
-        history = []
+        rows = []
     else:
         print(f"[INFO] Loaded {len(transactions_df)} transactions")
 
         # Build history
-        history = build_portfolio_history(transactions_df)
-        print(f"[INFO] Generated {len(history)} daily records")
+        rows = build_portfolio_history(transactions_df)
+        n_dates = len(set(r['date'] for r in rows))
+        print(f"[INFO] Generated {len(rows)} position rows across {n_dates} dates")
 
-    # Save output
-    output = {
-        'generated_at': datetime.now().isoformat(),
-        'history': history
-    }
-
+    # Save output as CSV
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
+    df = pd.DataFrame(rows) if rows else pd.DataFrame(
+        columns=['date', 'symbol', 'qty', 'price', 'value', 'market_value', 'cost_basis', 'pnl', 'pnl_pct']
+    )
+    df.to_csv(OUTPUT_FILE, index=False)
 
     print(f"[INFO] Saved portfolio history to: {OUTPUT_FILE}")
 

@@ -452,7 +452,6 @@ def calculate_extended_diagnostics(
     stock_returns: pd.DataFrame,
     dates: pd.DatetimeIndex,
     ledger_csv_path: str,
-    portfolio_history_path: str,
     logger: logging.Logger,
 ) -> dict:
     """Calculate extended diagnostics including metrics from D_MIS.py."""
@@ -733,12 +732,11 @@ def main():
         # --- Calculate Extended Diagnostics (TWR, Sortino, Beta, MaxDD, etc.) ---
         project_root = os.path.abspath(os.path.join(script_dir, '..'))
         ledger_csv_path = os.path.join(project_root, 'data', 'ledger.csv')
-        portfolio_history_path = os.path.join(project_root, 'data', 'portfolio_history.json')
 
         extended = calculate_extended_diagnostics(
             portfolio, portfolio_daily_return, portfolio_real_value,
             bench1_daily_return, bench1_prices, stock_returns, dates,
-            ledger_csv_path, portfolio_history_path, logger,
+            ledger_csv_path, logger,
         )
 
         # Merge extended into diagnostics
