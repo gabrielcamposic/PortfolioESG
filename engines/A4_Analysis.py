@@ -758,18 +758,8 @@ def main():
             output.to_csv(output_csv, index=False)
             logger.info(f"Saved timeseries to {output_csv}")
 
-        # Also save timeseries to data/results/ for D_Publish
-        timeseries_path = os.path.join(results_dir, 'portfolio_timeseries.csv')
-        output.to_csv(timeseries_path, index=False)
-        logger.info(f"Saved timeseries to {timeseries_path}")
-
-        # Save diagnostics JSON to data/results/ (for D_Publish)
-        diag_json_path = os.path.join(results_dir, 'portfolio_diagnostics.json')
-        with open(diag_json_path, 'w') as f:
-            json.dump(diagnostics, f, indent=4)
-        logger.info(f"Saved diagnostics JSON to {diag_json_path}")
-
         # Append diagnostics to history CSV with run_id
+        # (snapshot JSON is derived by D_Publish from this history CSV)
         diag_history_path = os.path.join(results_dir, 'portfolio_diagnostics_history.csv')
         diag_row = {
             'run_id': run_id,
@@ -802,12 +792,9 @@ def main():
                        index=False)
         logger.info(f"Appended diagnostics to {diag_history_path}")
 
-        # Save attribution JSON to data/results/
+        # Save attribution to history CSV
+        # (snapshot JSON is derived by D_Publish from this history CSV)
         if attribution_results:
-            attr_json_path = os.path.join(results_dir, 'performance_attribution.json')
-            with open(attr_json_path, 'w') as f:
-                json.dump(attribution_results, f, indent=4)
-            logger.info(f"Saved attribution JSON to {attr_json_path}")
 
             # Append Brinson attribution to history CSV
             attr_history_path = os.path.join(results_dir, 'performance_attribution_history.csv')

@@ -1,7 +1,7 @@
 # PortfolioESG — Plano de Refatoração Backend + Frontend
 
 **Início:** 2026-03-03  
-**Última atualização:** 2026-03-05  
+**Última atualização:** 2026-03-09  
 **Objetivo:** Racionalizar a produção e armazenamento de dados do pipeline para que o frontend seja puramente render, sem cálculos.
 
 ---
@@ -23,10 +23,9 @@
 A1_Download.py    → data/findb/StockDataDB.csv, FinancialsDB.csv, skipped_tickers.json
 A2_Scoring.py     → data/results/scored_stocks.csv, sector_pe.csv, correlation_matrix.csv
 A3_Portfolio.py   → data/results/portfolio_results_db.csv, ga_fitness_noise_db.csv, latest_run_summary.json
-A4_Analysis.py    → data/results/portfolio_timeseries.csv, portfolio_diagnostics.json,
-                    portfolio_diagnostics_history.csv, performance_attribution.json,
-                    performance_attribution_history.csv, asset_attribution_history.csv,
-                    performance_windows_history.csv
+A4_Analysis.py    → data/results/portfolio_timeseries.csv,
+                    portfolio_diagnostics_history.csv, performance_attribution_history.csv,
+                    asset_attribution_history.csv, performance_windows_history.csv
 
 B1_Process_Notes  → data/transactions_parsed.csv, fees_parsed.csv, processed_notes.json
 B2_Consolidate    → data/ledger.csv, ledger_positions.json
@@ -35,7 +34,8 @@ B4_Portfolio_Hist → data/portfolio_history.json
 C_Optimized       → data/results/optimized_recommendation.json, optimized_portfolio_history.csv
 
 D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
-                    pipeline_latest.json, mis_model_latest.json, mis_real_latest.json
+                    pipeline_latest.json, mis_model_latest.json, mis_real_latest.json,
+                    portfolio_diagnostics.json, performance_attribution.json
 ```
 
 ---
@@ -91,8 +91,8 @@ D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
 #### Eliminações planejadas
 | Arquivo | Razão |
 |---|---|
-| `portfolio_diagnostics.json` | Redundante com `portfolio_diagnostics_history.csv` (última linha) |
-| `performance_attribution.json` | Redundante com `performance_attribution_history.csv` (última linha) |
+| `portfolio_diagnostics.json` | Agora derivado por D_Publish (não mais escrito por A4) ✅ |
+| `performance_attribution.json` | Agora derivado por D_Publish (não mais escrito por A4) ✅ |
 | `mis_model_latest.json` + `mis_real_latest.json` | Consolidar em `dashboard_latest.json` |
 | `cloud_cost_comparison.json` | Sem consumidor no pipeline/frontend |
 | `resource_metrics.json` | Sem consumidor no pipeline/frontend |
@@ -126,25 +126,28 @@ D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
 
 ---
 
-### Fase 2 — Eliminar Duplicações (pendente)
+### Fase 2 — Eliminar Duplicações ✅ (2026-03-09)
 
-**2.1 Eliminar escrita dupla de `portfolio_timeseries.csv`**  
-- `A4_Analysis.py` escreve 2x no mesmo path (via `OUTPUT_CSV` e hardcoded)
-- Remover a segunda `to_csv()` (linhas 762-764)
+> Removidas escritas duplicadas e dados inline volumosos. D_Publish assume geração de snapshots.
+
+**2.1 Eliminar escrita dupla de `portfolio_timeseries.csv`** ✅  
+- Removida segunda `to_csv()` hardcoded em `A4_Analysis.py` (redundante com `OUTPUT_CSV`)
 - Arquivos: `engines/A4_Analysis.py`
 
-**2.2 Eliminar JSONs snapshot redundantes**  
-- `A4_Analysis.py` para de gravar `portfolio_diagnostics.json` e `performance_attribution.json`
-- `D_Publish.py` passa a gerar esses JSONs extraindo a última linha dos CSVs history
+**2.2 Eliminar JSONs snapshot redundantes** ✅  
+- `A4_Analysis.py` não grava mais `portfolio_diagnostics.json` nem `performance_attribution.json`
+- `D_Publish.py` v1.3.0: nova função `publish_derived_snapshots()` (Step 0) gera os snapshots a partir da última linha dos CSVs history
+- Executa antes de `publish_symlink_files()` para que os symlinks apontem para os JSONs recém-gerados
 - Arquivos: `engines/A4_Analysis.py`, `engines/D_Publish.py`
 
-**2.3 Simplificar `latest_run_summary.json`**  
-- `A3_Portfolio.py` remove dados inline volumosos:
-  - `portfolio_timeseries` (~24KB de data points) — dados já existem em `portfolio_results_db.csv`
-  - `stock_sparklines` — dados já existem em `StockDataDB.csv`
-  - `ga_fitness_history` — dados já existem em `ga_fitness_noise_db.csv`
-- Mantém: `run_id`, `stocks`, `weights`, `sharpe_forward`, `expected_return`, `volatility`, `sector_exposure`, `concentration_risk`, `momentum_valuation`, `holdings_meta`
-- Reduz de ~27KB para ~3KB
+**2.3 Simplificar `latest_run_summary.json`** ✅  
+- Removidos dados inline volumosos de `A3_Portfolio.py`:
+  - `portfolio_timeseries` (~24KB) — dados existem em `portfolio_results_db.csv`
+  - `stock_sparklines` — dados existem em `StockDataDB.csv`
+  - `ga_fitness_history` — dados existem em `ga_fitness_noise_db.csv`
+- Removido bloco de ~90 linhas que construía essas estruturas
+- Mantido: `sector_exposure_list` (usado por `publish_mis_model()` em D_Publish)
+- Redução de ~27KB para ~3KB
 - Arquivos: `engines/A3_Portfolio.py`
 
 ---
@@ -215,9 +218,9 @@ data/
 │   ├── ga_fitness_noise_db.csv  ← A3: convergência GA
 │   ├── latest_run_summary.json  ← A3: snapshot última run
 │   ├── portfolio_timeseries.csv ← A4: série temporal diária
-│   ├── portfolio_diagnostics.json       ← A4: métricas última run (a eliminar)
+│   ├── portfolio_diagnostics.json       ← D: snapshot última run (derivado de history CSV)
 │   ├── portfolio_diagnostics_history.csv ← A4: métricas histórico
-│   ├── performance_attribution.json      ← A4: attribution última run (a eliminar)
+│   ├── performance_attribution.json      ← D: snapshot última run (derivado de history CSV)
 │   ├── performance_attribution_history.csv ← A4: attribution histórico
 │   ├── asset_attribution_history.csv     ← A4: attribution por ativo
 │   ├── performance_windows_history.csv   ← A4: janelas de performance
@@ -254,9 +257,9 @@ html/data/
 | 2 | `ledger_positions.json` sem totais | B2 calcula totais | 1.2 ✅ |
 | 3 | C_Optimized usava broker name como ticker | Usa `symbol` (Yahoo) | 1.3 ✅ |
 | 4 | `data/Results` (case) nos parâmetros | Corrigido para `data/results` | 1.4 ✅ |
-| 5 | `portfolio_timeseries.csv` escrito 2x | Pendente | 2.1 |
-| 6 | JSONs snapshot redundantes com CSVs history | Pendente | 2.2 |
-| 7 | `latest_run_summary.json` com ~24KB inline | Pendente | 2.3 |
+| 5 | `portfolio_timeseries.csv` escrito 2x | Removida escrita duplicada em A4 | 2.1 ✅ |
+| 6 | JSONs snapshot redundantes com CSVs history | D_Publish gera snapshots de history CSVs | 2.2 ✅ |
+| 7 | `latest_run_summary.json` com ~24KB inline | Removidos timeseries, sparklines, ga_history | 2.3 ✅ |
 | 8 | Sharpe forward vs realizado sem distinção | Pendente | 3.1 |
 | 9 | `mis_model` e `mis_real` como JSONs separados | Pendente | 3.2 |
 | 10 | `portfolio_history.json` 91KB aninhado | Pendente | 3.3 |
