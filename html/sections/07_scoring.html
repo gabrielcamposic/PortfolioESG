@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07 — Scoring ESG</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1d27;
+    --border: #2a2e3d;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ac;
+    --text-muted: #636978;
+    --accent-blue: #4dabf7;
+    --accent-green: #51cf66;
+    --accent-red: #ff6b6b;
+    --accent-yellow: #ffd43b;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    user-select: none;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 3px; height: 18px;
+    background: var(--accent-blue); border-radius: 2px;
+  }
+  .section-title .toggle {
+    font-size: 12px; color: var(--text-muted); margin-left: auto;
+    transition: transform 0.2s;
+  }
+  .section-title .toggle.collapsed { transform: rotate(-90deg); }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; overflow-x: auto;
+  }
+
+  .run-info {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 12px;
+    font-family: var(--font-mono);
+  }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  th {
+    text-align: left; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-muted); padding: 8px 10px;
+    border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+    position: sticky; top: 0; background: var(--bg-card);
+  }
+  th:hover { color: var(--accent-blue); }
+  th.right, td.right { text-align: right; }
+  td {
+    padding: 7px 10px; font-family: var(--font-mono); font-size: 12px;
+    border-bottom: 1px solid rgba(42,46,61,0.4);
+  }
+  td.stock { font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); }
+  td.sector { font-family: var(--font-sans); color: var(--text-secondary); font-size: 12px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(77,171,247,0.04); }
+
+  /* ── Score bar ── */
+  .score-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .score-bar-track {
+    width: 60px; height: 6px; background: rgba(42,46,61,0.6);
+    border-radius: 3px; overflow: hidden;
+  }
+  .score-bar-fill { height: 100%; border-radius: 3px; }
+
+  .positive { color: var(--accent-green); }
+  .negative { color: var(--accent-red); }
+  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
+
+  @media (max-width: 700px) {
+    .card { padding: 12px; }
+    table { font-size: 11px; }
+    th, td { padding: 6px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="section-title" onclick="toggleSection()">
+  Scoring ESG
+  <span class="toggle" id="toggle-icon">▼</span>
+</div>
+
+<div class="card" id="scoring-section">
+  <div id="scoring-container"><span class="loading">Carregando scoring...</span></div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+let sectionVisible = true;
+function toggleSection() {
+  sectionVisible = !sectionVisible;
+  document.getElementById('scoring-section').style.display = sectionVisible ? 'block' : 'none';
+  document.getElementById('toggle-icon').classList.toggle('collapsed', !sectionVisible);
+}
+
+function parseCSV(url) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+      complete: (results) => resolve(results.data),
+      error: (err) => reject(err),
+    });
+  });
+}
+
+function fmtNum(v, d = 2) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(d);
+}
+
+function fmtBRL(v) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function colorClass(v) {
+  if (v == null || isNaN(v)) return '';
+  return v >= 0 ? 'positive' : 'negative';
+}
+
+// Score color gradient: low=red, mid=yellow, high=green
+function scoreColor(score, max) {
+  const ratio = Math.min(score / max, 1);
+  if (ratio < 0.5) {
+    const r = 255, g = Math.round(ratio * 2 * 200);
+    return `rgb(${r},${g},80)`;
+  } else {
+    const r = Math.round((1 - (ratio - 0.5) * 2) * 200), g = 200;
+    return `rgb(${r},${g},80)`;
+  }
+}
+
+let sortCol = 'CompositeScore';
+let sortAsc = false;
+let allRows = [];
+
+function renderTable() {
+  const sorted = [...allRows].sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb || '').toLowerCase(); }
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    return sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+
+  const maxScore = Math.max(...allRows.map(r => r.CompositeScore || 0), 1);
+
+  const cols = [
+    { key: 'Stock', label: 'Ativo', cls: '' },
+    { key: 'Sector', label: 'Setor', cls: '' },
+    { key: 'CompositeScore', label: 'Score', cls: 'right' },
+    { key: 'SharpeRatio', label: 'Sharpe', cls: 'right' },
+    { key: 'PotentialUpside_pct', label: 'Upside %', cls: 'right' },
+    { key: 'CurrentPrice', label: 'Preço', cls: 'right' },
+    { key: 'TargetPrice', label: 'Alvo', cls: 'right' },
+  ];
+
+  let html = `<table><thead><tr>`;
+  for (const c of cols) {
+    const arrow = sortCol === c.key ? (sortAsc ? ' ↑' : ' ↓') : '';
+    html += `<th class="${c.cls}" onclick="sortBy('${c.key}')">${c.label}${arrow}</th>`;
+  }
+  html += `</tr></thead><tbody>`;
+
+  for (const r of sorted) {
+    const score = r.CompositeScore || 0;
+    const barPct = (score / maxScore) * 100;
+    const barColor = scoreColor(score, maxScore);
+    const upside = r.PotentialUpside_pct;
+    html += `<tr>
+      <td class="stock">${r.Stock || '—'}</td>
+      <td class="sector">${r.Sector || '—'}</td>
+      <td class="right">
+        <div class="score-cell">
+          <span>${fmtNum(score, 3)}</span>
+          <div class="score-bar-track">
+            <div class="score-bar-fill" style="width:${barPct}%;background:${barColor}"></div>
+          </div>
+        </div>
+      </td>
+      <td class="right">${fmtNum(r.SharpeRatio, 4)}</td>
+      <td class="right ${colorClass(upside)}">${upside != null ? fmtNum(upside, 1) + '%' : '—'}</td>
+      <td class="right">${fmtBRL(r.CurrentPrice)}</td>
+      <td class="right">${fmtBRL(r.TargetPrice)}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  document.getElementById('scoring-container').innerHTML =
+    document.getElementById('scoring-container').querySelector('.run-info')?.outerHTML + html ||
+    html;
+}
+
+window.sortBy = function(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = false; }
+  renderTable();
+};
+
+async function render() {
+  try {
+    const rows = await parseCSV(`${DATA_BASE}/scored_stocks.csv`);
+
+    // Find latest run_id
+    const runIds = [...new Set(rows.map(r => r.run_id).filter(Boolean))].sort();
+    const latestRunId = runIds[runIds.length - 1];
+
+    allRows = rows.filter(r => r.run_id === latestRunId);
+
+    const container = document.getElementById('scoring-container');
+    container.innerHTML = `<div class="run-info">Run: ${latestRunId} · ${allRows.length} ativos</div>`;
+    renderTable();
+
+  } catch (err) {
+    console.error('Scoring error:', err);
+    document.getElementById('scoring-container').innerHTML =
+      `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
+

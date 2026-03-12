@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>08 — Histórico de Runs</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1d27;
+    --border: #2a2e3d;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ac;
+    --text-muted: #636978;
+    --accent-blue: #4dabf7;
+    --accent-green: #51cf66;
+    --accent-red: #ff6b6b;
+    --accent-yellow: #ffd43b;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    user-select: none;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 3px; height: 18px;
+    background: var(--accent-blue); border-radius: 2px;
+  }
+  .section-title .toggle {
+    font-size: 12px; color: var(--text-muted); margin-left: auto;
+    transition: transform 0.2s;
+  }
+  .section-title .toggle.collapsed { transform: rotate(-90deg); }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; overflow-x: auto;
+  }
+
+  .summary {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 12px;
+    font-family: var(--font-mono);
+  }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  th {
+    text-align: left; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-muted); padding: 8px 10px;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0;
+    background: var(--bg-card);
+  }
+  th.right, td.right { text-align: right; }
+  td {
+    padding: 7px 10px; font-family: var(--font-mono); font-size: 12px;
+    border-bottom: 1px solid rgba(42,46,61,0.4);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(77,171,247,0.04); }
+  tr.latest td { background: rgba(77,171,247,0.06); }
+
+  /* ── Expandable stocks ── */
+  .expand-btn {
+    background: none; border: none; color: var(--accent-blue);
+    font-size: 11px; cursor: pointer; padding: 2px 6px;
+    border-radius: 4px; font-family: var(--font-sans);
+  }
+  .expand-btn:hover { background: rgba(77,171,247,0.1); }
+  .stocks-detail {
+    display: none; padding: 6px 10px; font-size: 11px;
+    color: var(--text-secondary); background: rgba(15,17,23,0.5);
+  }
+  .stocks-detail.visible { display: table-row; }
+  .stocks-detail td {
+    padding: 8px 10px; border-bottom: 1px solid rgba(42,46,61,0.2);
+  }
+  .stock-chip {
+    display: inline-block; padding: 2px 8px; margin: 2px;
+    background: rgba(77,171,247,0.1); border: 1px solid rgba(77,171,247,0.2);
+    border-radius: 4px; font-size: 11px; color: var(--accent-blue);
+    font-family: var(--font-mono);
+  }
+  .weight-chip {
+    font-size: 10px; color: var(--text-muted); margin-left: 2px;
+  }
+
+  .positive { color: var(--accent-green); }
+  .negative { color: var(--accent-red); }
+  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
+
+  @media (max-width: 700px) {
+    .card { padding: 12px; }
+    table { font-size: 11px; }
+    th, td { padding: 6px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="section-title" onclick="toggleSection()">
+  Histórico de Runs
+  <span class="toggle" id="toggle-icon">▼</span>
+</div>
+
+<div class="card" id="history-section">
+  <div id="history-container"><span class="loading">Carregando histórico...</span></div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+let sectionVisible = true;
+function toggleSection() {
+  sectionVisible = !sectionVisible;
+  document.getElementById('history-section').style.display = sectionVisible ? 'block' : 'none';
+  document.getElementById('toggle-icon').classList.toggle('collapsed', !sectionVisible);
+}
+
+function parseCSV(url) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+      complete: (results) => resolve(results.data),
+      error: (err) => reject(err),
+    });
+  });
+}
+
+function fmtNum(v, d = 2) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(d);
+}
+
+function fmtPctDirect(v, d = 2) {
+  if (v == null || isNaN(v)) return '—';
+  const sign = v >= 0 ? '+' : '';
+  return sign + v.toFixed(d) + '%';
+}
+
+function colorClass(v) {
+  if (v == null || isNaN(v)) return '';
+  return v >= 0 ? 'positive' : 'negative';
+}
+
+function fmtRunId(rid) {
+  if (!rid) return '—';
+  const m = String(rid).match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
+  if (!m) return rid;
+  return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+}
+
+function parseStocks(stocksStr) {
+  if (!stocksStr) return [];
+  // Could be: "PETR3.SA,VALE3.SA" or "['PETR3.SA','VALE3.SA']"
+  const cleaned = String(stocksStr).replace(/[\[\]']/g, '');
+  return cleaned.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function parseWeights(weightsStr) {
+  if (!weightsStr) return [];
+  const cleaned = String(weightsStr).replace(/[\[\]]/g, '');
+  return cleaned.split(',').map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
+}
+
+window.toggleDetail = function(id) {
+  const el = document.getElementById(`detail-${id}`);
+  el?.classList.toggle('visible');
+};
+
+async function render() {
+  try {
+    const rows = await parseCSV(`${DATA_BASE}/portfolio_results_db.csv`);
+
+    // Sort by run_id descending (newest first)
+    rows.sort((a, b) => String(b.run_id || '').localeCompare(String(a.run_id || '')));
+
+    const latestRunId = rows[0]?.run_id;
+
+    document.getElementById('history-container').innerHTML = `
+      <div class="summary">${rows.length} runs · Mais recente: ${fmtRunId(latestRunId)}</div>
+    `;
+
+    let html = `<table>
+      <thead><tr>
+        <th>Run ID</th>
+        <th>Data</th>
+        <th class="right">Sharpe Fwd</th>
+        <th class="right">ROI %</th>
+        <th class="right">Ret. Esp. %</th>
+        <th class="right">Vol. %</th>
+        <th class="right">Ativos</th>
+        <th></th>
+      </tr></thead><tbody>`;
+
+    rows.forEach((r, i) => {
+      const isLatest = r.run_id === latestRunId;
+      const stocks = parseStocks(r.stocks);
+      const weights = parseWeights(r.weights);
+
+      html += `<tr class="${isLatest ? 'latest' : ''}">
+        <td style="color:var(--accent-blue)">${r.run_id || '—'}</td>
+        <td style="color:var(--text-secondary)">${fmtRunId(r.run_id)}</td>
+        <td class="right">${fmtNum(r.sharpe_forward, 4)}</td>
+        <td class="right ${colorClass(r.roi_percent)}">${fmtPctDirect(r.roi_percent)}</td>
+        <td class="right">${fmtNum(r.expected_return_annual_pct, 1)}%</td>
+        <td class="right">${fmtNum(r.expected_volatility_annual_pct, 1)}%</td>
+        <td class="right">${stocks.length}</td>
+        <td><button class="expand-btn" onclick="toggleDetail(${i})">▸ ver</button></td>
+      </tr>`;
+
+      // Expandable detail row
+      let chipsHTML = '';
+      stocks.forEach((s, j) => {
+        const w = weights[j];
+        chipsHTML += `<span class="stock-chip">${s}${w != null ? `<span class="weight-chip">${(w * 100).toFixed(1)}%</span>` : ''}</span>`;
+      });
+
+      html += `<tr class="stocks-detail" id="detail-${i}">
+        <td colspan="8">${chipsHTML || '<span style="color:var(--text-muted)">Sem dados</span>'}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table>`;
+    document.getElementById('history-container').innerHTML += html;
+
+  } catch (err) {
+    console.error('History error:', err);
+    document.getElementById('history-container').innerHTML =
+      `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
+

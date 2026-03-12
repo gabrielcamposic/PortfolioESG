@@ -1,7 +1,7 @@
 # PortfolioESG — Frontend Build Plan
 
 **Início:** 2026-03-12  
-**Última atualização:** 2026-03-12  
+**Última atualização:** 2026-03-12 (sections 01–08 built)  
 **Estratégia:** Standalone HTML sections → visual validation → assembly into single-page dashboard.
 
 ---
@@ -34,7 +34,7 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 ## Sections
 
-### Section 01 — Header / Status Bar ❌
+### Section 01 — Header / Status Bar ✅
 
 **File:** `html/sections/01_header.html`  
 **Data sources:** `dashboard_latest.json`, `pipeline_progress.json`  
@@ -52,7 +52,7 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 ---
 
-### Section 02 — Portfolio Overview (Model vs Real) ❌
+### Section 02 — Portfolio Overview (Model vs Real) ✅
 
 **File:** `html/sections/02_overview.html`  
 **Data sources:** `dashboard_latest.json`  
@@ -70,7 +70,7 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 ---
 
-### Section 03 — Performance Chart ❌
+### Section 03 — Performance Chart ✅
 
 **File:** `html/sections/03_performance_chart.html`  
 **Data sources:** `portfolio_timeseries.csv`, `dashboard_latest.json`  
@@ -88,7 +88,7 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 ---
 
-### Section 04 — Current Holdings ❌
+### Section 04 — Current Holdings ✅
 
 **File:** `html/sections/04_holdings.html`  
 **Data sources:** `ledger_positions.json`, `scored_targets.json`  
@@ -104,7 +104,7 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 ---
 
-### Section 05 — Model Portfolio & Rebalancing ❌
+### Section 05 — Model Portfolio & Rebalancing ✅
 
 **File:** `html/sections/05_rebalancing.html`  
 **Data sources:** `pipeline_latest.json`, `optimized_recommendation.json`  
@@ -121,7 +121,7 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 ---
 
-### Section 06 — Risk & Diagnostics ❌
+### Section 06 — Risk & Diagnostics ✅
 
 **File:** `html/sections/06_risk.html`  
 **Data sources:** `dashboard_latest.json`, `performance_attribution.json`  
@@ -137,7 +137,7 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 ---
 
-### Section 07 — ESG Scoring (collapsible) ❌
+### Section 07 — ESG Scoring (collapsible) ✅
 
 **File:** `html/sections/07_scoring.html`  
 **Data sources:** `scored_stocks.csv`  
@@ -153,7 +153,7 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 ---
 
-### Section 08 — History (collapsible) ❌
+### Section 08 — History (collapsible) ✅
 
 **File:** `html/sections/08_history.html`  
 **Data sources:** `portfolio_results_db.csv`  
@@ -183,15 +183,15 @@ Build the frontend **one section at a time** as standalone HTML files in `html/s
 
 | # | Section | Status | Date | Notes |
 |---|---|---|---|---|
-| 01 | Header / Status Bar | ❌ | — | |
-| 02 | Portfolio Overview | ❌ | — | |
-| 03 | Performance Chart | ❌ | — | |
-| 04 | Current Holdings | ❌ | — | |
-| 05 | Model & Rebalancing | ❌ | — | |
-| 06 | Risk & Diagnostics | ❌ | — | |
-| 07 | ESG Scoring | ❌ | — | |
-| 08 | History | ❌ | — | |
-| 09 | Final Assembly | ❌ | — | Depends on 01–08 ✅ |
+| 01 | Header / Status Bar | ✅ | 2026-03-12 | run_id, status, decision badge, portfolio value + P&L |
+| 02 | Portfolio Overview | ✅ | 2026-03-12 | Model vs Real cards, sector doughnut chart |
+| 03 | Performance Chart | ✅ | 2026-03-12 | Chart.js line chart + PapaParse CSV + windows table |
+| 04 | Current Holdings | ✅ | 2026-03-12 | Positions table with P&L, upside bars, totals row |
+| 05 | Model & Rebalancing | ✅ | 2026-03-12 | Decision banner, allocation table, transactions table |
+| 06 | Risk & Diagnostics | ✅ | 2026-03-12 | Metric cards, Brinson attribution bars + doughnut |
+| 07 | ESG Scoring | ✅ | 2026-03-12 | Sortable table, score color bars, collapsible |
+| 08 | History | ✅ | 2026-03-12 | Expandable rows with stock chips, sorted newest first |
+| 09 | Final Assembly | ❌ | — | Depends on 01–08 ✅ — ready to start |
 
 ---
 
