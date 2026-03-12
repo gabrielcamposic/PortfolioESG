@@ -922,8 +922,19 @@ def main():
             if results_db_path:
                 try:
                     os.makedirs(os.path.dirname(results_db_path), exist_ok=True)
-                    results_df.to_csv(results_db_path, mode='a', header=not os.path.exists(results_db_path),
-                                      index=False)
+                    if os.path.exists(results_db_path) and os.path.getsize(results_db_path) > 0:
+                        # Read existing header to reconcile schemas
+                        existing_df = pd.read_csv(results_db_path, nrows=0)
+                        # Merge columns: existing + any new ones from results_df
+                        all_cols = list(existing_df.columns) + [c for c in results_df.columns if c not in existing_df.columns]
+                        # Reindex new row to match merged schema (missing old cols get NaN)
+                        results_df = results_df.reindex(columns=all_cols)
+                        # Rewrite file with updated header + all old data + new row
+                        old_data = pd.read_csv(results_db_path).reindex(columns=all_cols)
+                        merged = pd.concat([old_data, results_df], ignore_index=True)
+                        merged.to_csv(results_db_path, index=False)
+                    else:
+                        results_df.to_csv(results_db_path, index=False)
                     logger.info(f"Successfully appended results to {results_db_path}")
                 except Exception as e:
                     logger.error(f"Failed to save portfolio results to {results_db_path}: {e}")
