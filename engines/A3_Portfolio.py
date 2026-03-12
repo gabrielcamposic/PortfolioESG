@@ -64,6 +64,7 @@ class ExecutionTimer:
 def initialize_performance_data(script_version: str) -> Dict[str, Any]:
     """Creates and initializes a dictionary to track script performance metrics."""
     return {
+        "run_id": os.environ.get('PIPELINE_RUN_ID', ''),
         "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         "portfolio_py_version": script_version,
         "param_load_duration_s": 0.0,
@@ -115,8 +116,12 @@ def copy_file_to_web_accessible_location(source_param_key: str, params: Dict, lo
     except Exception as e:
         logger.error(f"Failed to copy file from '{source_path}' to '{dest_folder}': {e}")
 
-def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str], Dict[str, str]]:
-    """Loads the top N scored stocks from the most recent scoring run."""
+def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str], Dict[str, str], str]:
+    """Loads the top N scored stocks from the most recent scoring run.
+
+    Returns:
+        Tuple of (top_stocks, stock_to_sector_map, scoring_run_id)
+    """
     filepath = params.get("SCORED_STOCKS_DB_FILE")
     top_n = params.get("top_n_stocks_from_score", 50)
     if not filepath:
@@ -133,14 +138,31 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
     if not findb_path:
         findb_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'findb')
 
-    skipped_tickers_file = os.path.join(findb_path, 'skipped_tickers.json')
-    if os.path.exists(skipped_tickers_file):
+    # Try JSONL first (Phase 3.5 format), fall back to legacy JSON
+    skipped_jsonl = os.path.join(findb_path, 'skipped_tickers.jsonl')
+    skipped_json = os.path.join(findb_path, 'skipped_tickers.json')
+    if os.path.exists(skipped_jsonl):
         try:
-            with open(skipped_tickers_file, 'r') as f:
+            all_skips = {}
+            with open(skipped_jsonl, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    entry = json.loads(line)
+                    all_skips[entry['ticker']] = entry['skip_data']
+            skipped_tickers = {ticker for ticker, skip_data in all_skips.items()
+                             if skip_data == ["ALL"]}
+            logger.info(f"Loaded {len(skipped_tickers)} permanently skipped tickers from JSONL")
+        except Exception as e:
+            logger.warning(f"Could not read skipped_tickers.jsonl: {e}")
+    elif os.path.exists(skipped_json):
+        try:
+            with open(skipped_json, 'r') as f:
                 all_skips = json.load(f)
             skipped_tickers = {ticker for ticker, skip_data in all_skips.items()
                              if skip_data == ["ALL"]}
-            logger.info(f"Loaded {len(skipped_tickers)} permanently skipped tickers to exclude from portfolio")
+            logger.info(f"Loaded {len(skipped_tickers)} permanently skipped tickers from legacy JSON")
         except Exception as e:
             logger.warning(f"Could not read skipped_tickers.json: {e}")
 
@@ -151,6 +173,7 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
             raise ValueError(f"Scored stocks file is missing one or more required columns: {required_cols}")
 
         latest_run_id = df['run_id'].max()
+        scoring_run_id = str(latest_run_id)
         # Explicitly construct a DataFrame view to help static analysis infer the correct type
         latest_run_df = pd.DataFrame(df.loc[df['run_id'] == latest_run_id]).copy()
 
@@ -169,10 +192,10 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
         # Use set_index/to_dict to build a mapping; avoids use of .values which can confuse type inference
         stock_to_sector_map = top_stocks_df.set_index('Stock')['Sector'].to_dict()
 
-        logger.info(f"Loaded {len(top_stocks)} top stocks from run '{latest_run_id}'.")
+        logger.info(f"Loaded {len(top_stocks)} top stocks from scoring run '{scoring_run_id}'.")
         if params.get('debug_mode'):
             logger.debug(f"Top stocks: {', '.join(top_stocks)}")
-        return top_stocks, stock_to_sector_map
+        return top_stocks, stock_to_sector_map, scoring_run_id
     except Exception as e:
         logger.critical(f"Failed to read or parse scored stocks file '{filepath}': {e}", exc_info=True)
         raise
@@ -817,7 +840,7 @@ def main():
     try:
         # 4. --- Main Execution Block ---
         data_load_start = time.time()
-        top_scored_stocks, stock_sector_map = load_scored_stocks(params, logger)
+        top_scored_stocks, stock_sector_map, scoring_run_id = load_scored_stocks(params, logger)
         stock_data_file = params.get("FINDB_FILE")
         if not stock_data_file or not os.path.exists(stock_data_file):
             raise FileNotFoundError(f"Master stock data file not found at '{stock_data_file}'.")
@@ -882,6 +905,7 @@ def main():
 
             results_df = pd.DataFrame([{
                 "run_id": run_id,
+                "scoring_run_id": scoring_run_id,
                 "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 "engine_version": PORTFOLIO_PY_VERSION,
                 "min_stocks": params.get("min_stocks"),
@@ -1024,6 +1048,7 @@ def main():
 
             latest_summary = {
                 "last_updated_run_id": run_id,
+                "scoring_run_id": scoring_run_id,
                 "last_updated_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 "best_portfolio_details": {
                     "stocks": best_combo,

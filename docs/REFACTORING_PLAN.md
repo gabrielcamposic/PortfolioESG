@@ -1,7 +1,7 @@
 # PortfolioESG — Plano de Refatoração Backend + Frontend
 
 **Início:** 2026-03-03  
-**Última atualização:** 2026-03-10  
+**Última atualização:** 2026-03-11  
 **Objetivo:** Racionalizar a produção e armazenamento de dados do pipeline para que o frontend seja puramente render, sem cálculos.
 
 ---
@@ -202,13 +202,31 @@ D_Publish.py      → html/data/ (symlinks) + data/results/scored_targets.json,
 
 ---
 
-### Fase 4 — Nice-to-have (pós-frontend)
+### Fase 4 — Nice-to-have ✅ (2026-03-11)
 
-**4.1** Adicionar `run_id` unificado aos performance CSVs para correlação com outputs.
+> Melhorias de rastreabilidade e limpeza de artefatos.
 
-**4.2** Mover `cloud_cost_comparison.json` e `resource_metrics.json` para backup.
+**4.1 Adicionar `run_id` unificado aos performance CSVs** ✅  
+- `PIPELINE_RUN_ID` (env var, sem fallback) adicionado como primeiro campo em `initialize_performance_data()` de:
+  - `shared_tools/shared_utils.py` (usado por A4, B1, B2)
+  - `engines/A1_Download.py` (cópia local)
+  - `engines/A2_Scoring.py` (cópia local)
+  - `engines/A3_Portfolio.py` (cópia local)
+- Todas as 6 performance CSVs agora incluem `run_id` na primeira coluna
 
-**4.3** Adicionar `scoring_run_id` ao `portfolio_results_db.csv` para rastreabilidade scoring → selection.
+**4.2 Mover scripts de cloud para backup** ✅  
+- Movidos para `backups/refactor_20260303/scripts_cloud/`:
+  - `scripts/cloud_pricing.py`
+  - `scripts/profile_resources.py`
+  - `scripts/estimate_cloud_costs.sh`
+- Outputs (`cloud_cost_comparison.json`, `resource_metrics.json`) nunca existiram no pipeline; sem consumidores
+
+**4.3 Adicionar `scoring_run_id` ao `portfolio_results_db.csv` e `latest_run_summary.json`** ✅  
+- `load_scored_stocks()` agora retorna `Tuple[List, Dict, str]` (terceiro elemento = scoring_run_id)
+- `scoring_run_id` gravado em `portfolio_results_db.csv` (coluna) e `latest_run_summary.json` (campo)
+- Rastreabilidade completa: scoring run → portfolio selection
+- Também corrigida leitura de `skipped_tickers.json` → `.jsonl` (resquício da Fase 3.5)
+- Arquivos: `engines/A3_Portfolio.py`
 
 ---
 
@@ -283,11 +301,15 @@ html/data/
 | 10 | `portfolio_history.json` 91KB aninhado | Migrado para CSV flat | 3.3 ✅ |
 | 11 | CSVs com arrays em campos texto | Migrado para JSONL com arrays nativos | 3.4 ✅ |
 | 12 | `skipped_tickers.json` 1.5MB reescrito inteiro | Migrado para JSONL append-only | 3.5 ✅ |
+| 13 | Performance CSVs sem `run_id` | `PIPELINE_RUN_ID` como primeiro campo | 4.1 ✅ |
+| 14 | Scripts de cloud sem consumidor no pipeline | Movidos para backup | 4.2 ✅ |
+| 15 | Sem rastreabilidade scoring → portfolio | `scoring_run_id` em CSV e JSON | 4.3 ✅ |
 
 ---
 
 ## Backups
 
 Todos os arquivos removidos estão em `backups/refactor_20260303/`.  
+Inclui: `frontend_old/` (Fase 1), `scripts_cloud/` (Fase 4.2).  
 Ver `backups/refactor_20260303/README.md` para inventário detalhado.
 

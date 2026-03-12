@@ -319,6 +319,7 @@ def initialize_performance_data(script_version: str) -> dict[str, Any]:
         "overall_script_duration_s"
     ]
     perf_data: dict[str, Any] = {
+        "run_id": os.environ.get('PIPELINE_RUN_ID', ''),
         "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         "download_py_version": script_version,
         "total_tickers_processed": 0,

@@ -39,6 +39,7 @@ def initialize_performance_data(script_version: str) -> Dict[str, Any]:
     """Creates and initializes a dictionary to track script performance metrics."""
     return {
         # Metadata
+        "run_id": os.environ.get('PIPELINE_RUN_ID', ''),
         "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         "scoring_py_version": script_version,
         # Counters
