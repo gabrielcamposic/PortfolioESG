@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1 — Portfólio</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1d27;
+    --border: #2a2e3d;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ac;
+    --text-muted: #636978;
+    --accent-green: #51cf66;
+    --accent-red: #ff6b6b;
+    --accent-gold: #fcc419;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .period-header {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .period-header .dates {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── Card grid ── */
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .section-label {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    padding: 8px 0 0 4px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .card .value {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+  }
+  .card .value.positive { color: var(--accent-green); }
+  .card .value.negative { color: var(--accent-red); }
+  .card .value.gold { color: var(--accent-gold); }
+  .card .sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
+
+  /* ── Charts ── */
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  .chart-card .chart-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .chart-wrapper { position: relative; height: 380px; }
+
+  /* ── Performance table ── */
+  .perf-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  .perf-table-card .table-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .perf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .perf-table th {
+    text-align: right;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .perf-table th:first-child { text-align: left; }
+  .perf-table td {
+    text-align: right;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(42,46,61,0.3);
+  }
+  .perf-table td:first-child {
+    text-align: left;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+  .perf-table td.pos { color: var(--accent-green); }
+  .perf-table td.neg { color: var(--accent-red); }
+  .perf-table td.gold { color: var(--accent-gold); font-weight: 600; }
+  .perf-table tr:last-child td { border-bottom: none; }
+
+  /* ── Bar chart ── */
+  .bar-chart-wrapper { position: relative; height: 220px; }
+
+  @media (max-width: 800px) {
+    .cards-row { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 400px) {
+    .cards-row { grid-template-columns: 1fr; }
+    .chart-wrapper { height: 260px; }
+    .bar-chart-wrapper { height: 180px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="period-header" id="period-header"></div>
+
+<!-- Row 1: Snapshot -->
+<div class="cards-row" id="cards-snapshot">
+  <div class="card"><span class="loading">Carregando...</span></div>
+</div>
+
+<!-- Row 2: Benchmarks -->
+<div class="cards-row" id="cards-bench"></div>
+
+<!-- Line chart -->
+<div class="chart-card">
+  <div class="chart-title">Evolução base 100 — Portfólio vs Ibovespa vs CDI</div>
+  <div class="chart-wrapper">
+    <canvas id="perf-chart"></canvas>
+  </div>
+</div>
+
+<!-- Performance windows table + bar chart -->
+<div class="perf-table-card">
+  <div class="table-title">Retorno por janela — Portfólio vs Ibovespa vs CDI</div>
+  <div id="perf-table-container"></div>
+  <div class="bar-chart-wrapper" style="margin-top:16px">
+    <canvas id="bar-chart"></canvas>
+  </div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+function fmtBRL(v) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return '—';
+  return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%';
+}
+function fmtNum(v, d = 2) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(d);
+}
+function cls(v) {
+  if (v == null || isNaN(v)) return '';
+  return v >= 0 ? 'positive' : 'negative';
+}
+function card(label, value, colorCls, sub) {
+  return `<div class="card">
+    <div class="label">${label}</div>
+    <div class="value ${colorCls}">${value}</div>
+    ${sub ? `<div class="sub">${sub}</div>` : ''}
+  </div>`;
+}
+function parseCSV(url) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+      complete: r => resolve(r.data), error: e => reject(e),
+    });
+  });
+}
+
+async function render() {
+  try {
+    const [dashboard, dailyRows] = await Promise.all([
+      fetch(`${DATA_BASE}/dashboard_latest.json`).then(r => r.json()),
+      parseCSV(`${DATA_BASE}/portfolio_real_daily.csv`),
+    ]);
+
+    const real = dashboard.real || {};
+    const snap = real.snapshot || {};
+    const twr  = real.twr || {};
+    const bench = real.benchmark || {};
+    const cdi  = real.cdi || {};
+    const alpha = real.alpha || {};
+    const meta = real.meta || {};
+    const perf = real.performance || {};
+    const safe = meta.annualize_safe;
+
+    // ── Period header ──
+    const MO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    if (meta.history_start && meta.history_end) {
+      const [sy,sm] = meta.history_start.split('-');
+      const [ey,em] = meta.history_end.split('-');
+      document.getElementById('period-header').innerHTML =
+        `Período de análise · <span class="dates">${MO[+sm-1]}/${sy.slice(2)} – ${MO[+em-1]}/${ey.slice(2)} · ${meta.trading_days||'?'} pregões</span>`;
+    }
+
+    // ── Row 1: Snapshot cards ──
+    // Sub-text for TWR card: show annualized only if safe, otherwise "desde out/25"
+    const twrSub = safe
+      ? `anualiz. ${fmtPct(twr.annual_return)}`
+      : `desde ${MO[+meta.history_start.split('-')[1]-1]}/${meta.history_start.split('-')[0].slice(2)}`;
+
+    document.getElementById('cards-snapshot').innerHTML =
+      card('Patrimônio', fmtBRL(snap.total_market), '', `investido ${fmtBRL(snap.total_invested)}`) +
+      card('Retorno (R$)', (snap.unrealized_pnl>=0?'+':'') + fmtBRL(snap.unrealized_pnl), cls(snap.unrealized_pnl)) +
+      card('Retorno (%)', fmtPct(snap.simple_roi_pct/100), cls(snap.simple_roi_pct), 'ROI · lucro / investido') +
+      card('Retorno TWR', fmtPct(twr.total_return), cls(twr.total_return), twrSub);
+
+    // ── Row 2: Benchmark comparison cards ──
+    const pctCdi = twr.pct_cdi;
+    const pctCdiCls = pctCdi != null && pctCdi >= 100 ? 'gold' : '';
+    const pctCdiStr = pctCdi != null ? pctCdi.toFixed(0) + '%' : '—';
+
+    const rfPct = twr.risk_free_annual != null ? (twr.risk_free_annual * 100).toFixed(1) : '?';
+
+    document.getElementById('cards-bench').innerHTML =
+      card('% do CDI', pctCdiStr, pctCdiCls, `CDI ${fmtPct(cdi.total_return)} no período`) +
+      card('Volatilidade', fmtPct(twr.volatility), '', `sharpe ${fmtNum(twr.sharpe)}`) +
+      card('Ibovespa', fmtPct(bench.total_return), cls(bench.total_return), 'mesmo período') +
+      card('Alpha vs Ibov', fmtPct(alpha.total), cls(alpha.total), 'TWR − bench');
+
+    // ── Line chart: Portfolio vs Ibovespa vs CDI, base 100 ──
+    if (dailyRows.length > 0) {
+      const labels = [dailyRows[0].date];
+      const pS = [100], bS = [100], cS = [100];
+      let pB = 100, bB = 100, cB = 100;
+
+      for (let i = 1; i < dailyRows.length; i++) {
+        const r = dailyRows[i];
+        labels.push(r.date);
+        const pr = parseFloat(r.portfolio_return);
+        const br = parseFloat(r.benchmark_return);
+        const cr = parseFloat(r.cdi_return);
+        pB *= isNaN(pr)?1:(1+pr); bB *= isNaN(br)?1:(1+br); cB *= isNaN(cr)?1:(1+cr);
+        pS.push(pB); bS.push(bB); cS.push(cB);
+      }
+
+      new Chart(document.getElementById('perf-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label:'Portfólio', data:pS, borderColor:'#4dabf7', backgroundColor:'rgba(77,171,247,0.08)',
+              fill:true, borderWidth:2, pointRadius:0, pointHitRadius:6, tension:0.1 },
+            { label:'Ibovespa', data:bS, borderColor:'#636978', borderWidth:1.5,
+              borderDash:[4,3], pointRadius:0, pointHitRadius:6, tension:0.1, fill:false },
+            { label:'CDI', data:cS, borderColor:'#fcc419', borderWidth:1.5,
+              borderDash:[2,2], pointRadius:0, pointHitRadius:6, tension:0, fill:false },
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          scales: {
+            x:{ ticks:{color:'#636978',font:{size:10},maxTicksLimit:10,maxRotation:0}, grid:{color:'rgba(42,46,61,0.4)'} },
+            y:{ ticks:{color:'#636978',font:{size:10,family:"'SF Mono',monospace"},callback:v=>v.toFixed(0)}, grid:{color:'rgba(42,46,61,0.4)'} }
+          },
+          plugins: {
+            legend:{ labels:{color:'#9aa0ac',font:{size:12},usePointStyle:true,pointStyleWidth:8} },
+            tooltip:{
+              backgroundColor:'#1a1d27',borderColor:'#2a2e3d',borderWidth:1,
+              titleColor:'#e8eaed',bodyColor:'#9aa0ac',
+              bodyFont:{family:"'SF Mono',monospace",size:12},
+              callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}` }
+            }
+          }
+        }
+      });
+    }
+
+    // ── Performance windows table ──
+    const winOrder = ['YTD','3M','6M','12M','24M'];
+    const winLabels = {YTD:'YTD',  '3M':'3 meses','6M':'6 meses','12M':'12 meses','24M':'24 meses'};
+    const available = winOrder.filter(w => perf[w]);
+
+    if (available.length) {
+      let html = '<table class="perf-table"><thead><tr>';
+      html += '<th>Janela</th><th>Portfólio</th><th>Ibovespa</th><th>CDI</th><th>% do CDI</th>';
+      html += '</tr></thead><tbody>';
+      for (const w of available) {
+        const p = perf[w];
+        const pCls = p.portfolio>=0?'pos':'neg';
+        const bCls = p.benchmark>=0?'pos':'neg';
+        html += `<tr>
+          <td>${winLabels[w]||w}</td>
+          <td class="${pCls}">${fmtPct(p.portfolio)}</td>
+          <td class="${bCls}">${fmtPct(p.benchmark)}</td>
+          <td>${fmtPct(p.cdi)}</td>
+          <td class="gold">${p.pct_cdi!=null?p.pct_cdi.toFixed(0)+'%':'—'}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById('perf-table-container').innerHTML = html;
+
+      // ── Grouped bar chart ──
+      const barLabels = available.map(w=>winLabels[w]||w);
+      const portData = available.map(w=> +(perf[w].portfolio*100).toFixed(2));
+      const benchData = available.map(w=> +(perf[w].benchmark*100).toFixed(2));
+      const cdiData = available.map(w=> +(perf[w].cdi*100).toFixed(2));
+
+      new Chart(document.getElementById('bar-chart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: barLabels,
+          datasets: [
+            { label:'Portfólio', data:portData, backgroundColor:'#4dabf7', borderRadius:4 },
+            { label:'Ibovespa', data:benchData, backgroundColor:'#636978', borderRadius:4 },
+            { label:'CDI', data:cdiData, backgroundColor:'#fcc419', borderRadius:4 },
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          indexAxis:'y',
+          scales: {
+            x:{ ticks:{color:'#636978',font:{size:10,family:"'SF Mono',monospace"},callback:v=>v+'%'},
+                grid:{color:'rgba(42,46,61,0.3)'} },
+            y:{ ticks:{color:'#9aa0ac',font:{size:11}}, grid:{display:false} }
+          },
+          plugins: {
+            legend:{ labels:{color:'#9aa0ac',font:{size:11},usePointStyle:true,pointStyleWidth:8} },
+            tooltip:{
+              backgroundColor:'#1a1d27',borderColor:'#2a2e3d',borderWidth:1,
+              titleColor:'#e8eaed',bodyColor:'#9aa0ac',
+              bodyFont:{family:"'SF Mono',monospace",size:12},
+              callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(2)}%` }
+            }
+          }
+        }
+      });
+    }
+
+  } catch (err) {
+    document.getElementById('cards-snapshot').innerHTML =
+      `<div class="card"><span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span></div>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
+
