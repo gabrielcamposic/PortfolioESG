@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2 — Risco</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1d27;
+    --border: #2a2e3d;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ac;
+    --text-muted: #636978;
+    --accent-blue: #4dabf7;
+    --accent-green: #51cf66;
+    --accent-red: #ff6b6b;
+    --accent-gold: #fcc419;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .period-header {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .period-header .dates {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── Card grid ── */
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .card .value {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+  }
+  .card .sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
+
+  /* ── Table ── */
+  .table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .table-card .table-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .risk-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .risk-table th {
+    text-align: right;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .risk-table th:first-child { text-align: left; }
+  .risk-table td {
+    text-align: right;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(42,46,61,0.3);
+    color: var(--text-primary);
+  }
+  .risk-table td:first-child {
+    text-align: left;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+  .risk-table tr:last-child td { border-bottom: none; }
+  .risk-table tr.row-all td {
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Bar chart ── */
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .chart-card .chart-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .bar-chart-wrapper { position: relative; height: 280px; }
+
+  @media (max-width: 600px) {
+    .cards-row { grid-template-columns: 1fr; }
+    .bar-chart-wrapper { height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="period-header" id="period-header"></div>
+
+<!-- 3 KPI cards -->
+<div class="cards-row" id="cards-risk">
+  <div class="card"><span class="loading">Carregando...</span></div>
+</div>
+
+<!-- Risk windows table -->
+<div class="table-card">
+  <div class="table-title">Métricas de risco por janela temporal</div>
+  <div id="risk-table-container"></div>
+</div>
+
+<!-- Concentration bar chart -->
+<div class="chart-card">
+  <div class="chart-title">Concentração do portfólio — peso por ativo</div>
+  <div class="bar-chart-wrapper">
+    <canvas id="concentration-chart"></canvas>
+  </div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return '—';
+  return (v * 100).toFixed(2) + '%';
+}
+function fmtNum(v, d = 2) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(d);
+}
+function fmtHHI(v) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(4);
+}
+function hhiLabel(v) {
+  if (v == null || isNaN(v)) return '';
+  if (v < 0.10) return 'diversificado';
+  if (v <= 0.25) return 'moderado';
+  return 'concentrado';
+}
+
+function card(label, value, sub) {
+  return `<div class="card">
+    <div class="label">${label}</div>
+    <div class="value">${value}</div>
+    ${sub ? `<div class="sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+async function render() {
+  try {
+    const [dashboard, positions] = await Promise.all([
+      fetch(`${DATA_BASE}/dashboard_latest.json`).then(r => r.json()),
+      fetch(`${DATA_BASE}/ledger_positions.json`).then(r => r.json()),
+    ]);
+
+    const real = dashboard.real || {};
+    const meta = real.meta || {};
+    const rw   = real.risk_windows || {};
+    const all  = rw.All || {};
+
+    // ── Period header ──
+    const MO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    if (meta.history_start && meta.history_end) {
+      const [sy,sm] = meta.history_start.split('-');
+      const [ey,em] = meta.history_end.split('-');
+      document.getElementById('period-header').innerHTML =
+        `Período de análise · <span class="dates">${MO[+sm-1]}/${sy.slice(2)} – ${MO[+em-1]}/${ey.slice(2)} · ${meta.trading_days||'?'} pregões</span>`;
+    }
+
+    // ── 3 KPI cards (global = "All" window) ──
+    const teSub = 'anualiz. vs ^BVSP';
+    const irSub = 'alpha / tracking error';
+    const hhiSub = `${all.n_assets || '?'} ativos · ${hhiLabel(all.hhi)}`;
+
+    document.getElementById('cards-risk').innerHTML =
+      card('Tracking Error', fmtPct(all.tracking_error), teSub) +
+      card('Information Ratio', fmtNum(all.information_ratio), irSub) +
+      card('HHI', fmtHHI(all.hhi), hhiSub);
+
+    // ── Risk windows table ──
+    const winOrder = ['All','YTD','3M','6M','12M','24M'];
+    const winLabels = { All:'Período total', YTD:'YTD', '3M':'3 meses', '6M':'6 meses', '12M':'12 meses', '24M':'24 meses' };
+    const available = winOrder.filter(w => rw[w]);
+
+    if (available.length) {
+      let html = '<table class="risk-table"><thead><tr>';
+      html += '<th>Janela</th><th>Tracking Error</th><th>Info Ratio</th><th>HHI</th><th>Nº Ativos</th><th>Pregões</th>';
+      html += '</tr></thead><tbody>';
+      for (const w of available) {
+        const r = rw[w];
+        const rowCls = w === 'All' ? ' class="row-all"' : '';
+        html += `<tr${rowCls}>
+          <td>${winLabels[w]||w}</td>
+          <td>${fmtPct(r.tracking_error)}</td>
+          <td>${fmtNum(r.information_ratio)}</td>
+          <td>${fmtHHI(r.hhi)}</td>
+          <td>${r.n_assets != null ? r.n_assets : '—'}</td>
+          <td>${r.trading_days != null ? r.trading_days : '—'}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById('risk-table-container').innerHTML = html;
+    }
+
+    // ── Concentration bar chart ──
+    const totalMarket = positions.total_current_market || 0;
+    if (positions.positions && totalMarket > 0) {
+      const items = positions.positions
+        .map(p => ({
+          symbol: (p.resolved_symbol || p.symbol || '').replace('.SA', ''),
+          weight: (p.net_qty * p.current_price) / totalMarket,
+        }))
+        .filter(p => p.weight > 0)
+        .sort((a, b) => b.weight - a.weight);
+
+      new Chart(document.getElementById('concentration-chart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: items.map(i => i.symbol),
+          datasets: [{
+            label: 'Peso (%)',
+            data: items.map(i => +(i.weight * 100).toFixed(2)),
+            backgroundColor: '#4dabf7',
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          indexAxis: 'y',
+          scales: {
+            x: {
+              ticks: { color: '#636978', font: { size: 10, family: "'SF Mono',monospace" }, callback: v => v + '%' },
+              grid: { color: 'rgba(42,46,61,0.3)' },
+            },
+            y: {
+              ticks: { color: '#9aa0ac', font: { size: 12 } },
+              grid: { display: false },
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1d27', borderColor: '#2a2e3d', borderWidth: 1,
+              titleColor: '#e8eaed', bodyColor: '#9aa0ac',
+              bodyFont: { family: "'SF Mono',monospace", size: 12 },
+              callbacks: { label: ctx => `${ctx.parsed.x.toFixed(2)}%` }
+            }
+          }
+        }
+      });
+    }
+
+  } catch (err) {
+    document.getElementById('cards-risk').innerHTML =
+      `<div class="card"><span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span></div>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
+

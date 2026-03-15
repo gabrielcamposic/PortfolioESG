@@ -57,11 +57,11 @@ Feb 19: Sold AXIA6 for R$318.42
 Mar 13: Current. 9 positions, R$2,961.55
 ```
 
-### The zero-position gap is the key challenge
-`portfolio_history.csv` has data only for dates with positions (Oct 17 – Nov 10, Jan 2 – present). The broker tracks the full account including the zero-position period (Nov 11 – Jan 1) where cash earned 0%. D_Publish needs to detect this gap and fill it with 0% return months.
+### The zero-position gap (handled ✅)
+`portfolio_history.csv` has data only for dates with positions (Oct 17 – Nov 10, Jan 2 – present). The broker tracks the full account including the zero-position period (Nov 11 – Jan 1) where cash earned 0%. `_compute_broker_return()` in D_Publish detects full liquidation via cumulative ledger shares and fills gap months with 0% return.
 
-### Data limitations
-- `ledger.csv` has stock transactions but NOT external deposits/withdrawals from the bank. The heuristic `external_deposit = buy_cost - max(available_cash, 0)` is an approximation.
+### Data sources for cash tracking
+- `data/cash_movements.csv` — Real deposits, withdrawals, dividends, and fund transfers parsed from Ágora statement PDFs by `engines/B13_Cash_Parser.py`. Covers Oct 2025 – Mar 2026.
 - Yahoo Finance prices may differ ±0.5% from B3 official prices the broker uses.
 - Settlement is T+2 in Brazil; broker may use settlement dates, we use trade dates.
 
