@@ -44,7 +44,7 @@
   /* ── Card grid ── */
   .cards-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 12px;
     margin-bottom: 12px;
   }
@@ -152,7 +152,7 @@
   .bar-chart-wrapper { position: relative; height: 220px; }
 
   @media (max-width: 800px) {
-    .cards-row { grid-template-columns: repeat(2, 1fr); }
+    .cards-row { grid-template-columns: repeat(3, 1fr); }
   }
   @media (max-width: 400px) {
     .cards-row { grid-template-columns: 1fr; }
@@ -240,6 +240,7 @@ async function render() {
     const alpha = real.alpha || {};
     const meta = real.meta || {};
     const perf = real.performance || {};
+    const br   = real.broker_return || {};
     const safe = meta.annualize_safe;
 
     // ── Period header ──
@@ -260,6 +261,7 @@ async function render() {
     document.getElementById('cards-snapshot').innerHTML =
       card('Patrimônio', fmtBRL(snap.total_market), '', `investido ${fmtBRL(snap.total_invested)}`) +
       card('Retorno (R$)', (snap.unrealized_pnl>=0?'+':'') + fmtBRL(snap.unrealized_pnl), cls(snap.unrealized_pnl)) +
+      card('Retorno Corretora', fmtPct(br.total), cls(br.total), 'MWR · visão da corretora') +
       card('Retorno (%)', fmtPct(snap.simple_roi_pct/100), cls(snap.simple_roi_pct), 'ROI · lucro / investido') +
       card('Retorno TWR', fmtPct(twr.total_return), cls(twr.total_return), twrSub);
 

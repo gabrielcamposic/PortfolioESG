@@ -516,6 +516,14 @@ def main():
         summary = rebuild_ledger(config, logger)
         _log_rebuild_summary(summary, logger)
 
+        # Parse brokerage account statements (Extratos) for cash movements
+        try:
+            from engines.B13_Cash_Parser import main as parse_cash_statements
+            logger.info("Parsing brokerage account statements...")
+            parse_cash_statements()
+        except Exception as e:
+            logger.warning(f"Cash statement parsing failed (non-fatal): {e}")
+
         perf_data['total_invested'] = str(summary.get('total_invested', 0))
         perf_data['implementation_cost_pct'] = str(summary.get('implementation_pct', 0))
         perf_data['status'] = 'success'

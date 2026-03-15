@@ -6,70 +6,91 @@ Paste this at the start of a new chat to resume implementation.
 
 ## Context
 
-I'm refactoring **PortfolioESG**, a Python pipeline for ESG stock portfolio analysis that runs on macOS and publishes results via GitHub Pages. The project lives at `/Users/gabrielcampos/PortfolioESG`.
+I'm building **PortfolioESG**, a Python pipeline for ESG stock portfolio analysis that runs on macOS and publishes results as a static site. The project lives at `/Users/gabrielcampos/PortfolioESG`.
 
-## What was done
+## What was done (all complete ✅)
 
-1. **Backend refactoring phases 1–4** are complete (documented in `docs/REFACTORING_PLAN.md`).
-2. **Frontend rebuild** started: `html/sections/1_portfolio.html` exists with 8 metric cards + a line chart, but the metrics are inconsistent (different data sources, methodologies, and asset universes). The old frontend sections (`01_header.html` through `08_history.html`) will be replaced.
-3. **Metrics audit** was completed and documented in `docs/METRICS_REFERENCE.md` — it lists every metric, its formula, source, and the 6 inconsistencies found.
-4. **Fix plan** was written and approved: `docs/D_PUBLISH_METRICS_PLAN.md` — this is the master document for the next implementation.
+1. **Backend refactoring phases 1–4** — Documented in `docs/REFACTORING_PLAN.md`.
+2. **Metrics alignment** — All 6 inconsistencies (A–F) fixed. Real TWR, benchmark, CDI, alpha all derive from the same daily series (`portfolio_real_daily.csv`). HHI corrected from model→real. Documented in `docs/D_PUBLISH_METRICS_PLAN.md`.
+3. **Frontend page `1_portfolio.html`** — 9 metric cards (Patrimônio, Retorno R$, Retorno Corretora, Retorno %, TWR, % CDI, Volatilidade, Ibovespa, Alpha) in 5-column grid + line chart (base 100) + performance windows table + bar chart. Uses `dashboard_latest.json` + `portfolio_real_daily.csv`.
+4. **Frontend page `2_risk.html`** — 3 risk KPI cards (Tracking Error, Information Ratio, HHI) + time-windowed table (All/YTD/3M/6M/12M/24M) + concentration bar chart. Uses `dashboard_latest.json` + `ledger_positions.json`. Plan: `docs/2_RISK_PAGE_PLAN.md`.
+5. **Metrics reference** — Every metric documented with formula, source, and worked calculation example using real data. File: `docs/METRICS_REFERENCE.md`.
+6. **Broker return analysis & implementation** — Full analysis in `docs/BROKER_RETURN_PLAN.md`. Implemented Modified Dietz monthly return with cash tracking from Ágora statement PDFs. Parser: `engines/B13_Cash_Parser.py` → `data/cash_movements.csv`. Computation: `engines/D_Publish.py → _compute_broker_return()`. Frontend: "Retorno Corretora" card in Row 1.
 
 ## What needs to be done now
 
-Read `docs/D_PUBLISH_METRICS_PLAN.md` first. It contains:
-- 3 pre-requisites (T1, T2, T3) — fix ticker normalization in B4/B2 and exclude weekends
-- 4 changes (Mudanças 1–4) — new D_Publish step for real daily returns, compute real metrics, restructure dashboard JSON, update frontend
-- Implementation order (Steps 1–9)
-- Success criteria
+**Evaluate the Modified Dietz results.** The current implementation shows +33.19% total vs broker's −2.66%. The gap is documented in `docs/METRICS_REFERENCE.md` (section "Retorno Corretora"). Main causes: Yahoo vs B3 prices, Modified Dietz day-weighting amplification in months with large deposits, and unknown broker methodology. Next steps could include:
+- Trying an alternative formula (daily quota method instead of monthly Dietz)
+- Using settlement dates (T+2) instead of trade dates
+- Sourcing B3 official prices
 
-**Start from Step 1** in the "Ordem de implementação" table.
+## Key files
 
-## Key files to read before starting
-
-| File | Why |
+| File | Purpose |
 |---|---|
-| `docs/D_PUBLISH_METRICS_PLAN.md` | The full implementation plan — READ THIS FIRST |
-| `docs/METRICS_REFERENCE.md` | Detailed diagnosis of each metric's formula and source |
-| `docs/REFACTORING_PLAN.md` | Architecture principles and pipeline map |
-| `engines/D_Publish.py` | The publisher script to modify (Mudanças 1–3) |
-| `engines/B4_Portfolio_History.py` | Portfolio history generator to fix (T1, T3) |
-| `engines/B2_Consolidate_Ledger.py` | Ledger consolidator to fix (T2) |
-| `engines/B12_Transactions_Ledger.py` | May share normalization logic with B2 |
-| `parameters/tickers.txt` | Ticker mappings (BrokerName column) — may need new entries |
-| `data/ledger.csv` | All 42 transactions — reference for ticker variants |
-| `html/sections/1_portfolio.html` | Current frontend to update (Mudança 4) |
+| `docs/BROKER_RETURN_PLAN.md` | Full analysis + implementation plan (completed) |
+| `docs/METRICS_REFERENCE.md` | All metrics documented with formulas and calculation examples |
+| `docs/2_RISK_PAGE_PLAN.md` | Risk page plan (completed) |
+| `engines/D_Publish.py` | Publisher script — all frontend data flows through here |
+| `engines/B13_Cash_Parser.py` | Ágora statement PDF parser → `data/cash_movements.csv` |
+| `data/ledger.csv` | All 43 transactions (trade_date, side, ticker, qty, price, total_cost) |
+| `data/cash_movements.csv` | External cash flows: deposits, withdrawals, dividends, fund transfers |
+| `data/portfolio_history.csv` | Daily per-position values (date, symbol, qty, price, value, market_value) |
+| `data/results/portfolio_real_daily.csv` | Daily TWR returns (portfolio_return, benchmark_return, cdi_return) |
+| `data/results/dashboard_latest.json` | Consolidated JSON consumed by frontend (includes `real.broker_return`) |
+| `data/ledger_positions.json` | Current positions snapshot (9 positions, R$2,961.55 total) |
+| `html/sections/1_portfolio.html` | Portfolio page (9 cards in 5-col grid + chart + table) |
+| `html/sections/2_risk.html` | Risk page (3 cards + table + concentration chart) |
+
+## Critical context for the broker return implementation
+
+### Portfolio timeline
+```
+Oct 17: First purchase. 3 stocks, R$987.88
+Nov 03: Bought more of same 3 stocks, R$923.23
+Nov 10-11: SOLD EVERYTHING. Zero positions until Jan 2.
+  → Cash from sales (~R$1,937) sat in brokerage earning 0%
+  → portfolio_history.csv has NO rows for Nov 11 – Jan 1
+Jan 02: New portfolio. 6 stocks, R$977.03 (partially funded from Nov cash)
+Feb 02: Major deposit. 4 more stocks, R$1,962.35
+Feb 19: Sold AXIA6 for R$318.42
+Mar 13: Current. 9 positions, R$2,961.55
+```
+
+### The zero-position gap is the key challenge
+`portfolio_history.csv` has data only for dates with positions (Oct 17 – Nov 10, Jan 2 – present). The broker tracks the full account including the zero-position period (Nov 11 – Jan 1) where cash earned 0%. D_Publish needs to detect this gap and fill it with 0% return months.
+
+### Data limitations
+- `ledger.csv` has stock transactions but NOT external deposits/withdrawals from the bank. The heuristic `external_deposit = buy_cost - max(available_cash, 0)` is an approximation.
+- Yahoo Finance prices may differ ±0.5% from B3 official prices the broker uses.
+- Settlement is T+2 in Brazil; broker may use settlement dates, we use trade dates.
 
 ## Project structure
 
 ```
 engines/run_all.sh          — Master orchestrator (A→B→C→D)
-engines/A_Portfolio.sh      — Sub-orchestrator A (A1→A2→A3→A4)
-engines/B_Ledger.sh         — Sub-orchestrator B (B1→B2→B4)
 engines/D_Publish.py        — Publisher (generates html/data/ for frontend)
 data/                       — Canonical data source
 data/results/               — Engine outputs
-html/data/                  — Symlinks to data/ (frontend window)
-html/sections/              — Standalone frontend sections
-shared_tools/               — Shared utilities (path_utils, shared_utils)
-parameters/                 — Config files per engine
+html/data/                  — Symlinks to data/ (frontend reads from here)
+html/sections/              — Standalone frontend pages
 docs/                       — All documentation
 ```
 
 ## Rules
 
-1. **Render-only frontend** — No calculations in JS beyond formatting and composing `∏(1+r)` for the chart. If a derived metric is needed, add it to D_Publish.py.
+1. **Render-only frontend** — No calculations in JS beyond formatting and composing `∏(1+r)` for charts. If a derived metric is needed, add it to D_Publish.py.
 2. **No frameworks** — Vanilla JS, Chart.js, PapaParse only. No npm, no bundler.
 3. **data/ is the single source of truth** — html/data/ contains only symlinks.
-4. **Validate with run_all.sh** after backend changes. Full run takes ~30 minutes.
-5. **Portuguese (pt-BR)** for UI labels, English for code/docs.
-6. **The CSV `portfolio_real_daily.csv` must NOT contain accumulated indices (base 100).** Only daily returns. The frontend computes the accumulated index dynamically for whatever start date the user selects.
+4. **Portuguese (pt-BR)** for UI labels, English for code/docs.
+5. **Dark theme** — Same CSS variables as existing pages.
 
 ## Testing
 
-A local HTTP server runs on port 8000 serving from `html/`:
+```bash
+cd /Users/gabrielcampos/PortfolioESG
+python3 engines/D_Publish.py          # Regenerate dashboard JSON
+cd html && python3 -m http.server 8000  # Serve frontend
+# Visit http://localhost:8000/sections/1_portfolio.html
+# Visit http://localhost:8000/sections/2_risk.html
 ```
-http://localhost:8000/sections/1_portfolio.html
-```
-Start one if not running: `cd html && python3 -m http.server 8000`
-
