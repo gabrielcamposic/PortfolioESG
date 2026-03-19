@@ -15,14 +15,11 @@ I'm building **PortfolioESG**, a Python pipeline for ESG stock portfolio analysi
 3. **Frontend page `1_portfolio.html`** — 9 metric cards (Patrimônio, Retorno R$, Retorno Corretora, Retorno %, TWR, % CDI, Volatilidade, Ibovespa, Alpha) in 5-column grid + line chart (base 100) + performance windows table + bar chart. Uses `dashboard_latest.json` + `portfolio_real_daily.csv`.
 4. **Frontend page `2_risk.html`** — 3 risk KPI cards (Tracking Error, Information Ratio, HHI) + time-windowed table (All/YTD/3M/6M/12M/24M) + concentration bar chart. Uses `dashboard_latest.json` + `ledger_positions.json`. Plan: `docs/2_RISK_PAGE_PLAN.md`.
 5. **Metrics reference** — Every metric documented with formula, source, and worked calculation example using real data. File: `docs/METRICS_REFERENCE.md`.
-6. **Broker return analysis & implementation** — Full analysis in `docs/BROKER_RETURN_PLAN.md`. Implemented Modified Dietz monthly return with cash tracking from Ágora statement PDFs. Parser: `engines/B13_Cash_Parser.py` → `data/cash_movements.csv`. Computation: `engines/D_Publish.py → _compute_broker_return()`. Frontend: "Retorno Corretora" card in Row 1.
+6. **Broker return analysis & implementation** — Análise documentada em `docs/BROKER_RETURN_PLAN.md`. Implementação foi feita (Modified Dietz mensal) mas **abandonada em 2026-03-19** por divergência irreconciliável (+33,19% vs −2,66% da corretora). Código removido do backend e frontend.
 
 ## What needs to be done now
 
-**Evaluate the Modified Dietz results.** The current implementation shows +33.19% total vs broker's −2.66%. The gap is documented in `docs/METRICS_REFERENCE.md` (section "Retorno Corretora"). Main causes: Yahoo vs B3 prices, Modified Dietz day-weighting amplification in months with large deposits, and unknown broker methodology. Next steps could include:
-- Trying an alternative formula (daily quota method instead of monthly Dietz)
-- Using settlement dates (T+2) instead of trade dates
-- Sourcing B3 official prices
+Pipeline estável. Próximos passos a definir (ex: nova página, análise adicional).
 
 ## Key files
 
@@ -32,9 +29,7 @@ I'm building **PortfolioESG**, a Python pipeline for ESG stock portfolio analysi
 | `docs/METRICS_REFERENCE.md` | All metrics documented with formulas and calculation examples |
 | `docs/2_RISK_PAGE_PLAN.md` | Risk page plan (completed) |
 | `engines/D_Publish.py` | Publisher script — all frontend data flows through here |
-| `engines/B13_Cash_Parser.py` | Ágora statement PDF parser → `data/cash_movements.csv` |
 | `data/ledger.csv` | All 43 transactions (trade_date, side, ticker, qty, price, total_cost) |
-| `data/cash_movements.csv` | External cash flows: deposits, withdrawals, dividends, fund transfers |
 | `data/portfolio_history.csv` | Daily per-position values (date, symbol, qty, price, value, market_value) |
 | `data/results/portfolio_real_daily.csv` | Daily TWR returns (portfolio_return, benchmark_return, cdi_return) |
 | `data/results/dashboard_latest.json` | Consolidated JSON consumed by frontend (includes `real.broker_return`) |

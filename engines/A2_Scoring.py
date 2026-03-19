@@ -167,7 +167,7 @@ def load_financials_data(params: Dict[str, Any], logger: logging.Logger) -> pd.D
     filepath = params.get("FINANCIALS_DB_FILE")
     if not filepath:
         logger.warning("'FINANCIALS_DB_FILE' not in params. Scoring will proceed without P/E data.")
-        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEPS'])
+        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEPS', 'targetMeanPrice'])
 
     try:
         logger.info(f"Loading financial data from {filepath}...")
@@ -175,10 +175,16 @@ def load_financials_data(params: Dict[str, Any], logger: logging.Logger) -> pd.D
         financials_df['LastUpdated'] = pd.to_datetime(financials_df['LastUpdated'])
         latest_financials = financials_df.sort_values('LastUpdated').drop_duplicates(subset='Stock', keep='last')
         logger.info(f"Found latest financial data for {len(latest_financials)} stocks.")
-        return latest_financials[['Stock', 'forwardPE', 'forwardEPS']]
+        # Include targetMeanPrice so Method 1 (Yahoo target) fires before SectorPE fallback.
+        # This is critical for BDRs (e.g. AURA33.SA) whose forwardEPS is reported in USD
+        # by the underlying company — the Yahoo targetMeanPrice is already in BRL.
+        cols = ['Stock', 'forwardPE', 'forwardEPS']
+        if 'targetMeanPrice' in latest_financials.columns:
+            cols.append('targetMeanPrice')
+        return latest_financials[cols]
     except FileNotFoundError:
         logger.warning(f"Financials data file not found at '{filepath}'. Scoring will proceed without P/E data.")
-        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEPS'])
+        return pd.DataFrame(columns=['Stock', 'forwardPE', 'forwardEPS', 'targetMeanPrice'])
 
 
 def calculate_individual_sharpe_ratios(stock_daily_returns: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
@@ -561,8 +567,15 @@ def main():
         analysis_df['UpsidePotential'] = analysis_df['UpsidePotential'].fillna(0)
         analysis_df['TargetPriceSource'] = analysis_df['TargetPriceSource'].fillna('None')
 
-        # Cap extreme values to avoid inf affecting normalization
+        # Cap extreme values to avoid inf affecting normalization and recompute fallback target after cap
         analysis_df['UpsidePotential'] = analysis_df['UpsidePotential'].clip(lower=-0.99, upper=10.0)
+
+        # Recalculate fallback target prices using the clipped upside so outliers don't leak through
+        fallback_recalc_mask = analysis_df['TargetPriceSource'] == 'SectorPE_Fallback'
+        analysis_df.loc[fallback_recalc_mask, 'TargetPrice'] = (
+            analysis_df.loc[fallback_recalc_mask, 'CurrentPrice'] *
+            (1 + analysis_df.loc[fallback_recalc_mask, 'UpsidePotential'])
+        )
 
         scored_df = analysis_df.merge(sharpe_df, on='Stock', how='left')
         if not momentum_df.empty:

@@ -44,7 +44,7 @@
   /* ── Card grid ── */
   .cards-row {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     margin-bottom: 12px;
   }
@@ -151,6 +151,17 @@
   /* ── Bar chart ── */
   .bar-chart-wrapper { position: relative; height: 220px; }
 
+  /* ── Monthly returns table (TWR) ── */
+  .perf-table tr.total-row td {
+    border-top: 2px solid var(--border);
+    font-weight: 700;
+    padding-top: 10px;
+  }
+  .perf-table td.gap {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
   @media (max-width: 800px) {
     .cards-row { grid-template-columns: repeat(3, 1fr); }
   }
@@ -188,6 +199,12 @@
   <div class="bar-chart-wrapper" style="margin-top:16px">
     <canvas id="bar-chart"></canvas>
   </div>
+</div>
+
+<!-- Monthly TWR returns table -->
+<div class="perf-table-card">
+  <div class="table-title">Rentabilidade Mensal — TWR (método da cota)</div>
+  <div id="monthly-returns-container"></div>
 </div>
 
 <script>
@@ -240,7 +257,6 @@ async function render() {
     const alpha = real.alpha || {};
     const meta = real.meta || {};
     const perf = real.performance || {};
-    const br   = real.broker_return || {};
     const safe = meta.annualize_safe;
 
     // ── Period header ──
@@ -261,7 +277,6 @@ async function render() {
     document.getElementById('cards-snapshot').innerHTML =
       card('Patrimônio', fmtBRL(snap.total_market), '', `investido ${fmtBRL(snap.total_invested)}`) +
       card('Retorno (R$)', (snap.unrealized_pnl>=0?'+':'') + fmtBRL(snap.unrealized_pnl), cls(snap.unrealized_pnl)) +
-      card('Retorno Corretora', fmtPct(br.total), cls(br.total), 'MWR · visão da corretora') +
       card('Retorno (%)', fmtPct(snap.simple_roi_pct/100), cls(snap.simple_roi_pct), 'ROI · lucro / investido') +
       card('Retorno TWR', fmtPct(twr.total_return), cls(twr.total_return), twrSub);
 
@@ -386,6 +401,56 @@ async function render() {
           }
         }
       });
+    }
+
+    // ── Monthly TWR returns table ──
+    const mr = real.monthly_returns || {};
+    const meses = mr.meses || [];
+    if (meses.length > 0) {
+      const MO_LABEL = {
+        '01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun',
+        '07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'
+      };
+      function mesLabel(m) {
+        const [y, mo] = m.split('-');
+        return `${MO_LABEL[mo] || mo}/${y.slice(2)}`;
+      }
+
+      let html = '<table class="perf-table"><thead><tr>';
+      html += '<th style="text-align:left">Mês</th><th>Retorno</th><th>CDI</th><th>Acumulado</th><th>Pregões</th>';
+      html += '</tr></thead><tbody>';
+
+      for (const m of meses) {
+        const ret = m.retorno_mes;
+        const cdi = m.retorno_cdi;
+        const acum = m.retorno_acumulado;
+        const isGap = m.pregoes === 0;
+        const retCls = isGap ? 'gap' : (ret >= 0 ? 'pos' : 'neg');
+        const acumCls = acum >= 0 ? 'pos' : 'neg';
+
+        html += `<tr>
+          <td>${mesLabel(m.mes)}</td>
+          <td class="${retCls}">${isGap ? '—' : fmtPct(ret)}</td>
+          <td>${cdi != null && !isGap ? fmtPct(cdi) : '—'}</td>
+          <td class="${acumCls}">${fmtPct(acum)}</td>
+          <td style="color:var(--text-muted)">${m.pregoes}</td>
+        </tr>`;
+      }
+
+      // Total row
+      const twrTotal = mr.twr_total;
+      const cdiTotal = mr.cdi_total;
+      const totalCls = twrTotal >= 0 ? 'pos' : 'neg';
+      html += `<tr class="total-row">
+        <td><strong>Total</strong></td>
+        <td class="${totalCls}"><strong>${fmtPct(twrTotal)}</strong></td>
+        <td>${cdiTotal != null ? fmtPct(cdiTotal) : '—'}</td>
+        <td class="${totalCls}"><strong>${fmtPct(twrTotal)}</strong></td>
+        <td style="color:var(--text-muted)">${meses.reduce((s,m)=>s+m.pregoes,0)}</td>
+      </tr>`;
+
+      html += '</tbody></table>';
+      document.getElementById('monthly-returns-container').innerHTML = html;
     }
 
   } catch (err) {

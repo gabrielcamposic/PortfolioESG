@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 — Portfólio Modelo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1d27;
+    --bg-card-alt: #1e2231;
+    --border: #2a2e3d;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ac;
+    --text-muted: #636978;
+    --accent-blue: #4dabf7;
+    --accent-green: #51cf66;
+    --accent-red: #ff6b6b;
+    --accent-yellow: #ffd43b;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    padding: 16px;
+  }
+  .section-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 3px; height: 18px;
+    background: var(--accent-blue); border-radius: 2px;
+  }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .card-header {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-header .badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    color: var(--bg-card);
+  }
+  .badge.rebalance { background: rgba(255,107,107,0.8); }
+  .badge.hold { background: rgba(81,207,102,0.8); }
+  .meta-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .meta-row span { font-family: var(--font-mono); }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 14px;
+    margin-bottom: 10px;
+  }
+  .metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+  }
+  .metric .label { color: var(--text-secondary); }
+  .metric .value { font-family: var(--font-mono); font-weight: 600; }
+  .metric .positive { color: var(--accent-green); }
+  .metric .negative { color: var(--accent-red); }
+  .reason { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+  .chart-container { position: relative; height: 220px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 8px;
+    border-bottom: 1px solid rgba(42,46,61,0.4);
+    font-family: var(--font-mono);
+  }
+  td.symbol { font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); }
+  td.right, th.right { text-align: right; }
+  tr:last-child td { border-bottom: none; }
+  tr.totals td { border-top: 2px solid var(--border); font-weight: 700; font-family: var(--font-sans); }
+  tr:hover td { background: rgba(77,171,247,0.04); }
+  .action-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-sans);
+  }
+  .action-badge.buy { background: rgba(81,207,102,0.15); color: var(--accent-green); }
+  .action-badge.sell { background: rgba(255,107,107,0.15); color: var(--accent-red); }
+  .action-badge.hold { background: rgba(99,105,120,0.2); color: var(--text-muted); }
+  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="section-title">Portfólio Modelo (Forward)</div>
+
+<div class="cards-grid">
+  <div class="card" id="summary-card"><span class="loading">Carregando modelo...</span></div>
+  <div class="card">
+    <div class="card-header">Exposição por Setor</div>
+    <div class="chart-container"><canvas id="sector-chart"></canvas></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Alocação do Modelo</div>
+  <div id="allocation-table"><span class="loading">Carregando alocação...</span></div>
+</div>
+
+<div class="card">
+  <div class="card-header">Transações Recomendadas</div>
+  <div id="tx-table"><span class="loading">Carregando recomendações...</span></div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return '—';
+  return `${Number(v).toFixed(2)}%`;
+}
+function fmtBRL(v) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtNum(v, d = 0) {
+  if (v == null || isNaN(v)) return '—';
+  return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function colorClass(v) {
+  if (v == null || isNaN(v)) return '';
+  return v >= 0 ? 'positive' : 'negative';
+}
+async function fetchJSON(file) {
+  const r = await fetch(`${DATA_BASE}/${file}`);
+  if (!r.ok) throw new Error(`${file}: ${r.status}`);
+  return r.json();
+}
+
+// Palette reused from overview
+const SECTOR_COLORS = [
+  '#4dabf7', '#51cf66', '#ff922b', '#ffd43b', '#ff6b6b',
+  '#cc5de8', '#20c997', '#748ffc', '#e8590c', '#adb5bd',
+];
+
+function renderSummary(dashboard, recommendation) {
+  const model = dashboard.model || {};
+  const meta = model.meta || {};
+  const ret = model.returns || {};
+  const risk = model.risk || {};
+  const decision = recommendation?.decision || model.decision?.verdict || 'HOLD';
+  const reason = recommendation?.reason || '';
+  const excess = recommendation?.excess_return_pct;
+  const threshold = recommendation?.min_threshold_pct || model.decision?.threshold_pct;
+  const badgeCls = decision === 'REBALANCE' ? 'rebalance' : 'hold';
+  const badgeText = decision === 'REBALANCE' ? 'Rebalancear' : 'Manter';
+
+  const metrics = [
+    { label: 'Retorno Esperado (12M)', value: fmtPct(ret.gross_12m) },
+    { label: 'Retorno Líquido (12M)', value: fmtPct(ret.net_12m) },
+    { label: 'Excesso s/ Benchmark', value: fmtPct(ret.excess_net_12m), cls: colorClass(ret.excess_net_12m) },
+    { label: 'Retorno Anual Histórico', value: fmtPct(ret.historical_annual) },
+    { label: 'Volatilidade Anual', value: fmtPct(risk.volatility_annual) },
+    { label: 'Sharpe Forward', value: fmtNum(risk.sharpe, 2) },
+    { label: 'HHI', value: fmtNum(risk.hhi, 4) },
+    { label: 'Top5', value: fmtPct(risk.top5 ? risk.top5 * 100 : null) },
+  ];
+
+  const excessLine = excess != null ? `${fmtPct(excess)} (limiar ${fmtPct(threshold)})` : '—';
+
+  const html = `
+    <div class="card-header">Meta do Modelo
+      <span class="badge ${badgeCls}">${badgeText}</span>
+    </div>
+    <div class="meta-row">
+      <div>Run ID: <span>${meta.run_id || '—'}</span></div>
+      <div>Timestamp: <span>${meta.timestamp || '—'}</span></div>
+      <div>Excesso vs limiar: <span class="${colorClass(excess)}">${excessLine}</span></div>
+    </div>
+    <div class="metrics-grid">
+      ${metrics.map(m => `
+        <div class="metric">
+          <span class="label">${m.label}</span>
+          <span class="value ${m.cls || ''}">${m.value}</span>
+        </div>`).join('')}
+    </div>
+    <div class="reason">${reason || 'Sem justificativa fornecida.'}</div>
+  `;
+  document.getElementById('summary-card').innerHTML = html;
+}
+
+function renderSectors(dashboard) {
+  const sectors = dashboard.model?.composition?.sector_exposure || [];
+  if (!sectors.length) return;
+  const ctx = document.getElementById('sector-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: sectors.map(s => s.sector),
+      datasets: [{
+        data: sectors.map(s => (s.pct * 100).toFixed(2)),
+        backgroundColor: SECTOR_COLORS.slice(0, sectors.length),
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            color: '#9aa0ac',
+            font: { size: 11 },
+            usePointStyle: true,
+            pointStyle: 'circle',
+            generateLabels(chart) {
+              const data = chart.data;
+              return data.labels.map((label, i) => ({
+                text: `${label} (${data.datasets[0].data[i]}%)`,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                strokeStyle: 'transparent',
+                pointStyle: 'circle',
+                index: i,
+              }));
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${ctx.parsed}%`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderAllocation(pipeline) {
+  const rows = pipeline.rows || [];
+  const totals = pipeline.totals || {};
+  if (!rows.length) {
+    document.getElementById('allocation-table').innerHTML = '<span class="loading">Sem dados de alocação.</span>';
+    return;
+  }
+  let html = `<table>
+    <thead><tr>
+      <th>Ativo</th>
+      <th class="right">Peso</th>
+      <th class="right">Preço Atual</th>
+      <th class="right">Qtd Proj.</th>
+      <th class="right">Invest. Proj.</th>
+      <th class="right">Alvo (BRL)</th>
+    </tr></thead><tbody>`;
+
+  for (const r of rows) {
+    html += `<tr>
+      <td class="symbol">${r.ticker}</td>
+      <td class="right">${fmtPct(r.weight)}</td>
+      <td class="right">${fmtBRL(r.current)}</td>
+      <td class="right">${fmtNum(r.projectedQty)}</td>
+      <td class="right">${fmtBRL(r.projectedInvested)}</td>
+      <td class="right">${fmtBRL(r.target)}</td>
+    </tr>`;
+  }
+
+  html += `<tr class="totals">
+    <td>Total</td>
+    <td class="right">${fmtPct(totals.totalPct)}</td>
+    <td></td>
+    <td class="right">${fmtNum(totals.totalProjectedQty)}</td>
+    <td class="right">${fmtBRL(totals.totalProjectedInvested)}</td>
+    <td class="right">${fmtBRL(totals.totalProjectedBRL)}</td>
+  </tr>`;
+  html += '</tbody></table>';
+  document.getElementById('allocation-table').innerHTML = html;
+}
+
+function renderTransactions(recommendation) {
+  const txs = recommendation.transactions || [];
+  if (!txs.length) {
+    document.getElementById('tx-table').innerHTML = '<span class="loading">Nenhuma transação recomendada.</span>';
+    return;
+  }
+  const sorted = [...txs].sort((a, b) => {
+    if (a.action === b.action) return Math.abs(b.value_change) - Math.abs(a.value_change);
+    return a.action === 'SELL' ? -1 : 1;
+  });
+
+  let html = `<table>
+    <thead><tr>
+      <th>Ativo</th>
+      <th>Ação</th>
+      <th class="right">Peso Atual</th>
+      <th class="right">Peso Alvo</th>
+      <th class="right">Δ Peso</th>
+      <th class="right">Valor Est.</th>
+    </tr></thead><tbody>`;
+
+  for (const tx of sorted) {
+    const cls = tx.action === 'BUY' ? 'buy' : tx.action === 'SELL' ? 'sell' : 'hold';
+    const label = tx.action === 'BUY' ? 'Comprar' : tx.action === 'SELL' ? 'Vender' : tx.action;
+    const delta = (tx.weight_change || 0) * 100;
+    const current = (tx.current_weight || 0) * 100;
+    const target = (tx.target_weight || 0) * 100;
+    html += `<tr>
+      <td class="symbol">${tx.symbol}</td>
+      <td><span class="action-badge ${cls}">${label}</span></td>
+      <td class="right">${fmtPct(current)}</td>
+      <td class="right">${fmtPct(target)}</td>
+      <td class="right ${colorClass(delta)}">${delta >= 0 ? '+' : ''}${fmtPct(delta)}</td>
+      <td class="right">${fmtBRL(Math.abs(tx.value_change))}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('tx-table').innerHTML = html;
+}
+
+async function render() {
+  try {
+    const [dashboard, pipeline, recommendation] = await Promise.all([
+      fetchJSON('dashboard_latest.json'),
+      fetchJSON('pipeline_latest.json'),
+      fetchJSON('optimized_recommendation.json'),
+    ]);
+    renderSummary(dashboard, recommendation);
+    renderSectors(dashboard);
+    renderAllocation(pipeline);
+    renderTransactions(recommendation);
+  } catch (err) {
+    console.error('Model page error:', err);
+    document.getElementById('summary-card').innerHTML = `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
+
