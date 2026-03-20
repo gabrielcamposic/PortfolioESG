@@ -21,7 +21,7 @@ top_n_stocks_from_score = 50
 min_stocks=5
 max_stocks=20
 initial_investment=5000
-rf=0.15
+rf=0.1475
 
 # --- Diversification Constraints ---
 # The maximum number of stocks allowed from any single sector in a portfolio.
