@@ -203,6 +203,9 @@ function renderSummary(dashboard, recommendation) {
   const badgeCls = decision === 'REBALANCE' ? 'rebalance' : 'hold';
   const badgeText = decision === 'REBALANCE' ? 'Rebalancear' : 'Manter';
 
+  const txs = recommendation?.transactions || [];
+  const totalRebCost = txs.reduce((acc, tx) => acc + (tx.cost || 0), 0);
+
   const metrics = [
     { label: 'Retorno Esperado (12M)', value: fmtPct(ret.gross_12m) },
     { label: 'Retorno Líquido (12M)', value: fmtPct(ret.net_12m) },
@@ -212,6 +215,7 @@ function renderSummary(dashboard, recommendation) {
     { label: 'Sharpe Forward', value: fmtNum(risk.sharpe, 2) },
     { label: 'HHI', value: fmtNum(risk.hhi, 4) },
     { label: 'Top5', value: fmtPct(risk.top5 ? risk.top5 * 100 : null) },
+    { label: 'Custo Total Rebalanceamento', value: fmtBRL(totalRebCost), cls: totalRebCost > 0 ? 'negative' : '' },
   ];
 
   const excessLine = excess != null ? `${fmtPct(excess)} (limiar ${fmtPct(threshold)})` : '—';
