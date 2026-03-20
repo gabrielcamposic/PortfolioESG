@@ -1056,13 +1056,12 @@ def _build_model_section() -> dict:
     expected_return_hold = clamp_pct(expected_return_hold)
     historical_return = clamp_pct(historical_return)
 
-    # Sharpe
-    risk_free = 11.75  # SELIC annual %
-    sharpe_forward = None
-    if expected_volatility > 0:
-        sharpe_forward = (expected_return_gross - risk_free) / expected_volatility
-    sharpe_backtest = bp.get("sharpe_forward", bp.get("sharpe_ratio"))
-    sharpe = sharpe_forward if sharpe_forward is not None else sharpe_backtest
+    # Sharpe — use the value from A3 optimization (computed consistently with
+    # historical returns + volatility).  Recomputing here with target-price
+    # returns (ideal.expected_return_pct ≈ 11 %) against historical volatility
+    # (≈ 20 %) always yields ≈ 0 and is misleading.
+    risk_free = 14.75  # SELIC annual %
+    sharpe = bp.get("sharpe_forward", bp.get("sharpe_ratio"))
 
     # Decision
     cost_pct = safe_float(optimal.get("transition_cost_pct"), 0.0)
@@ -1090,7 +1089,7 @@ def _build_model_section() -> dict:
             "volatility_annual": expected_volatility,
             "risk_free_annual": risk_free,
             "sharpe": sharpe,
-            "sharpe_source": "forward" if sharpe_forward is not None else "backtest",
+            "sharpe_source": "optimization",
             "hhi": bp.get("concentration_risk", {}).get("hhi"),
             "top5": bp.get("concentration_risk", {}).get("top_5_holdings_pct"),
         },
