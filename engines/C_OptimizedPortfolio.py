@@ -680,6 +680,7 @@ def calculate_transition_cost(
         total_traded_value += value_change
 
         action = 'BUY' if weight_diff > 0 else 'SELL'
+        estimated_cost = round(value_change * transaction_cost_pct / 100, 4)
         transactions.append({
             'symbol': stock,
             'action': action,
@@ -687,6 +688,7 @@ def calculate_transition_cost(
             'value_change': value_change,
             'current_weight': current_weight,
             'target_weight': target_weight,
+            'cost': estimated_cost,
         })
 
     # Total cost as percentage of portfolio

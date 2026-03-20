@@ -344,6 +344,7 @@ function renderTransactions(recommendation) {
       <th class="right">Peso Alvo</th>
       <th class="right">Δ Peso</th>
       <th class="right">Valor Est.</th>
+      <th class="right">Custo por Operação</th>
     </tr></thead><tbody>`;
 
   for (const tx of sorted) {
@@ -352,6 +353,7 @@ function renderTransactions(recommendation) {
     const delta = (tx.weight_change || 0) * 100;
     const current = (tx.current_weight || 0) * 100;
     const target = (tx.target_weight || 0) * 100;
+    const cost = tx.cost != null ? fmtBRL(tx.cost) : '—';
     html += `<tr>
       <td class="symbol">${tx.symbol}</td>
       <td><span class="action-badge ${cls}">${label}</span></td>
@@ -359,6 +361,7 @@ function renderTransactions(recommendation) {
       <td class="right">${fmtPct(target)}</td>
       <td class="right ${colorClass(delta)}">${delta >= 0 ? '+' : ''}${fmtPct(delta)}</td>
       <td class="right">${fmtBRL(Math.abs(tx.value_change))}</td>
+      <td class="right">${cost}</td>
     </tr>`;
   }
 
