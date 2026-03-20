@@ -4,42 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2 — Risco</title>
+<link rel="stylesheet" href="../css/base.css">
+<script src="../js/header.js" data-page="risk"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-  :root {
-    --bg-primary: #0f1117;
-    --bg-card: #1a1d27;
-    --border: #2a2e3d;
-    --text-primary: #e8eaed;
-    --text-secondary: #9aa0ac;
-    --text-muted: #636978;
-    --accent-blue: #4dabf7;
-    --accent-green: #51cf66;
-    --accent-red: #ff6b6b;
-    --accent-gold: #fcc419;
-    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-    padding: 16px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .period-header {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-  }
-  .period-header .dates {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-muted);
-  }
+  body { max-width: 1200px; margin: 0 auto; }
 
   /* ── Card grid ── */
   .cards-row {
@@ -49,33 +18,6 @@
     margin-bottom: 16px;
   }
 
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px 20px;
-  }
-  .card .label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-  }
-  .card .value {
-    font-size: 22px;
-    font-weight: 700;
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-  }
-  .card .sub {
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-top: 4px;
-    font-family: var(--font-mono);
-  }
-
-  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
 
   /* ── Table ── */
   .table-card {
@@ -271,7 +213,7 @@ async function render() {
           datasets: [{
             label: 'Peso (%)',
             data: items.map(i => +(i.weight * 100).toFixed(2)),
-            backgroundColor: '#4dabf7',
+            backgroundColor: '#1971c2',
             borderRadius: 4,
           }]
         },
@@ -280,19 +222,19 @@ async function render() {
           indexAxis: 'y',
           scales: {
             x: {
-              ticks: { color: '#636978', font: { size: 10, family: "'SF Mono',monospace" }, callback: v => v + '%' },
-              grid: { color: 'rgba(42,46,61,0.3)' },
+              ticks: { color: '#8b93a5', font: { size: 10, family: "'SF Mono',monospace" }, callback: v => v + '%' },
+              grid: { color: 'rgba(0,0,0,0.06)' },
             },
             y: {
-              ticks: { color: '#9aa0ac', font: { size: 12 } },
+              ticks: { color: '#4b5468', font: { size: 12 } },
               grid: { display: false },
             }
           },
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#1a1d27', borderColor: '#2a2e3d', borderWidth: 1,
-              titleColor: '#e8eaed', bodyColor: '#9aa0ac',
+              backgroundColor: '#ffffff', borderColor: '#dde1ea', borderWidth: 1,
+              titleColor: '#1c1f2e', bodyColor: '#4b5468',
               bodyFont: { family: "'SF Mono',monospace", size: 12 },
               callbacks: { label: ctx => `${ctx.parsed.x.toFixed(2)}%` }
             }

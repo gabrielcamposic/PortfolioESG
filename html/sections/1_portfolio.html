@@ -4,42 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>1 — Portfólio</title>
+<link rel="stylesheet" href="../css/base.css">
+<script src="../js/header.js" data-page="portfolio"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-  :root {
-    --bg-primary: #0f1117;
-    --bg-card: #1a1d27;
-    --border: #2a2e3d;
-    --text-primary: #e8eaed;
-    --text-secondary: #9aa0ac;
-    --text-muted: #636978;
-    --accent-green: #51cf66;
-    --accent-red: #ff6b6b;
-    --accent-gold: #fcc419;
-    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-    padding: 16px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .period-header {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-  }
-  .period-header .dates {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-muted);
-  }
+  body { max-width: 1200px; margin: 0 auto; }
 
   /* ── Card grid ── */
   .cards-row {
@@ -57,36 +27,6 @@
     padding: 8px 0 0 4px;
   }
 
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px 20px;
-  }
-  .card .label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-  }
-  .card .value {
-    font-size: 22px;
-    font-weight: 700;
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-  }
-  .card .value.positive { color: var(--accent-green); }
-  .card .value.negative { color: var(--accent-red); }
-  .card .value.gold { color: var(--accent-gold); }
-  .card .sub {
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-top: 4px;
-    font-family: var(--font-mono);
-  }
-
-  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
 
   /* ── Charts ── */
   .chart-card {
@@ -314,11 +254,11 @@ async function render() {
         data: {
           labels,
           datasets: [
-            { label:'Portfólio', data:pS, borderColor:'#4dabf7', backgroundColor:'rgba(77,171,247,0.08)',
+            { label:'Portfólio', data:pS, borderColor:'#1971c2', backgroundColor:'rgba(25,113,194,0.07)',
               fill:true, borderWidth:2, pointRadius:0, pointHitRadius:6, tension:0.1 },
-            { label:'Ibovespa', data:bS, borderColor:'#636978', borderWidth:1.5,
+            { label:'Ibovespa', data:bS, borderColor:'#8b93a5', borderWidth:1.5,
               borderDash:[4,3], pointRadius:0, pointHitRadius:6, tension:0.1, fill:false },
-            { label:'CDI', data:cS, borderColor:'#fcc419', borderWidth:1.5,
+            { label:'CDI', data:cS, borderColor:'#e67700', borderWidth:1.5,
               borderDash:[2,2], pointRadius:0, pointHitRadius:6, tension:0, fill:false },
           ]
         },
@@ -326,14 +266,14 @@ async function render() {
           responsive:true, maintainAspectRatio:false,
           interaction:{mode:'index',intersect:false},
           scales: {
-            x:{ ticks:{color:'#636978',font:{size:10},maxTicksLimit:10,maxRotation:0}, grid:{color:'rgba(42,46,61,0.4)'} },
-            y:{ ticks:{color:'#636978',font:{size:10,family:"'SF Mono',monospace"},callback:v=>v.toFixed(0)}, grid:{color:'rgba(42,46,61,0.4)'} }
+            x:{ ticks:{color:'#8b93a5',font:{size:10},maxTicksLimit:10,maxRotation:0}, grid:{color:'rgba(0,0,0,0.06)'} },
+            y:{ ticks:{color:'#8b93a5',font:{size:10,family:"'SF Mono',monospace"},callback:v=>v.toFixed(0)}, grid:{color:'rgba(0,0,0,0.06)'} }
           },
           plugins: {
-            legend:{ labels:{color:'#9aa0ac',font:{size:12},usePointStyle:true,pointStyleWidth:8} },
+            legend:{ labels:{color:'#4b5468',font:{size:12},usePointStyle:true,pointStyleWidth:8} },
             tooltip:{
-              backgroundColor:'#1a1d27',borderColor:'#2a2e3d',borderWidth:1,
-              titleColor:'#e8eaed',bodyColor:'#9aa0ac',
+              backgroundColor:'#ffffff',borderColor:'#dde1ea',borderWidth:1,
+              titleColor:'#1c1f2e',bodyColor:'#4b5468',
               bodyFont:{family:"'SF Mono',monospace",size:12},
               callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}` }
             }
@@ -377,24 +317,24 @@ async function render() {
         data: {
           labels: barLabels,
           datasets: [
-            { label:'Portfólio', data:portData, backgroundColor:'#4dabf7', borderRadius:4 },
-            { label:'Ibovespa', data:benchData, backgroundColor:'#636978', borderRadius:4 },
-            { label:'CDI', data:cdiData, backgroundColor:'#fcc419', borderRadius:4 },
+            { label:'Portfólio', data:portData, backgroundColor:'#1971c2', borderRadius:4 },
+            { label:'Ibovespa', data:benchData, backgroundColor:'#8b93a5', borderRadius:4 },
+            { label:'CDI', data:cdiData, backgroundColor:'#e67700', borderRadius:4 },
           ]
         },
         options: {
           responsive:true, maintainAspectRatio:false,
           indexAxis:'y',
           scales: {
-            x:{ ticks:{color:'#636978',font:{size:10,family:"'SF Mono',monospace"},callback:v=>v+'%'},
-                grid:{color:'rgba(42,46,61,0.3)'} },
-            y:{ ticks:{color:'#9aa0ac',font:{size:11}}, grid:{display:false} }
+            x:{ ticks:{color:'#8b93a5',font:{size:10,family:"'SF Mono',monospace"},callback:v=>v+'%'},
+                grid:{color:'rgba(0,0,0,0.06)'} },
+            y:{ ticks:{color:'#4b5468',font:{size:11}}, grid:{display:false} }
           },
           plugins: {
-            legend:{ labels:{color:'#9aa0ac',font:{size:11},usePointStyle:true,pointStyleWidth:8} },
+            legend:{ labels:{color:'#4b5468',font:{size:11},usePointStyle:true,pointStyleWidth:8} },
             tooltip:{
-              backgroundColor:'#1a1d27',borderColor:'#2a2e3d',borderWidth:1,
-              titleColor:'#e8eaed',bodyColor:'#9aa0ac',
+              backgroundColor:'#ffffff',borderColor:'#dde1ea',borderWidth:1,
+              titleColor:'#1c1f2e',bodyColor:'#4b5468',
               bodyFont:{family:"'SF Mono',monospace",size:12},
               callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(2)}%` }
             }

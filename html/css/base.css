@@ -1,0 +1,84 @@
+/* ─────────────────────────────────────────────────────────────
+   base.css — PortfolioESG · shared design tokens & components
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Design tokens ── */
+:root {
+  --bg-primary:    #f4f6f9;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #eef0f4;
+  --bg-card-alt:   #f8f9fc;
+  --border:        #dde1ea;
+
+  --text-primary:   #1c1f2e;
+  --text-secondary: #4b5468;
+  --text-muted:     #8b93a5;
+
+  --accent-blue:   #1971c2;
+  --accent-green:  #2f9e44;
+  --accent-red:    #c92a2a;
+  --accent-yellow: #e67700;
+  --accent-orange: #d9480f;
+  --accent-gold:   #e67700;
+
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── Reset ── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ── Base body ── */
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  padding: 16px;
+}
+
+/* ── Utility ── */
+.loading   { color: var(--text-muted); font-style: italic; font-size: 13px; }
+.error-msg { color: var(--accent-red); font-size: 13px; }
+
+/* ── Period header ── */
+.period-header {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+.period-header .dates {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Card ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+.card .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.card .value {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+.card .value.positive { color: var(--accent-green); }
+.card .value.negative { color: var(--accent-red); }
+.card .value.gold     { color: var(--accent-gold); }
+.card .sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+

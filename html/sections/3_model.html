@@ -4,30 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>03 — Portfólio Modelo</title>
+<link rel="stylesheet" href="../css/base.css">
+<script src="../js/header.js" data-page="model"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-  :root {
-    --bg-primary: #0f1117;
-    --bg-card: #1a1d27;
-    --bg-card-alt: #1e2231;
-    --border: #2a2e3d;
-    --text-primary: #e8eaed;
-    --text-secondary: #9aa0ac;
-    --text-muted: #636978;
-    --accent-blue: #4dabf7;
-    --accent-green: #51cf66;
-    --accent-red: #ff6b6b;
-    --accent-yellow: #ffd43b;
-    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-    padding: 16px;
-  }
+  /* card padding override for this page */
+  .card { padding: 18px 20px; }
   .section-title {
     font-size: 16px; font-weight: 600; margin-bottom: 12px;
     display: flex; align-items: center; gap: 8px;
@@ -41,12 +23,6 @@
     grid-template-columns: 2fr 1fr;
     gap: 16px;
     margin-bottom: 16px;
-  }
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
   }
   .card-header {
     font-size: 13px;
@@ -69,8 +45,8 @@
     font-weight: 700;
     color: var(--bg-card);
   }
-  .badge.rebalance { background: rgba(255,107,107,0.8); }
-  .badge.hold { background: rgba(81,207,102,0.8); }
+  .badge.rebalance { background: #c92a2a; }
+  .badge.hold { background: #2f9e44; }
   .meta-row {
     display: flex;
     gap: 16px;
@@ -123,7 +99,7 @@
   td.right, th.right { text-align: right; }
   tr:last-child td { border-bottom: none; }
   tr.totals td { border-top: 2px solid var(--border); font-weight: 700; font-family: var(--font-sans); }
-  tr:hover td { background: rgba(77,171,247,0.04); }
+  tr:hover td { background: rgba(25,113,194,0.04); }
   .action-badge {
     display: inline-block;
     padding: 2px 8px;
@@ -132,10 +108,9 @@
     font-weight: 700;
     font-family: var(--font-sans);
   }
-  .action-badge.buy { background: rgba(81,207,102,0.15); color: var(--accent-green); }
-  .action-badge.sell { background: rgba(255,107,107,0.15); color: var(--accent-red); }
-  .action-badge.hold { background: rgba(99,105,120,0.2); color: var(--text-muted); }
-  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
+  .action-badge.buy  { background: rgba(47,158,68,0.12);  color: var(--accent-green); }
+  .action-badge.sell { background: rgba(201,42,42,0.12);  color: var(--accent-red); }
+  .action-badge.hold { background: rgba(139,147,165,0.15); color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -187,8 +162,8 @@ async function fetchJSON(file) {
 
 // Palette reused from overview
 const SECTOR_COLORS = [
-  '#4dabf7', '#51cf66', '#ff922b', '#ffd43b', '#ff6b6b',
-  '#cc5de8', '#20c997', '#748ffc', '#e8590c', '#adb5bd',
+  '#1971c2', '#2f9e44', '#d9480f', '#e67700', '#c92a2a',
+  '#6741d9', '#0c8599', '#3b5bdb', '#c0392b', '#8b93a5',
 ];
 
 function renderSummary(dashboard, recommendation) {
@@ -263,7 +238,7 @@ function renderSectors(dashboard) {
         legend: {
           position: 'right',
           labels: {
-            color: '#9aa0ac',
+            color: '#4b5468',
             font: { size: 11 },
             usePointStyle: true,
             pointStyle: 'circle',

@@ -4,30 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>07 — Scoring ESG</title>
+<link rel="stylesheet" href="../css/base.css">
+<script src="../js/header.js" data-page="scoring"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
 <style>
-  :root {
-    --bg-primary: #0f1117;
-    --bg-card: #1a1d27;
-    --border: #2a2e3d;
-    --text-primary: #e8eaed;
-    --text-secondary: #9aa0ac;
-    --text-muted: #636978;
-    --accent-blue: #4dabf7;
-    --accent-green: #51cf66;
-    --accent-red: #ff6b6b;
-    --accent-yellow: #ffd43b;
-    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-    padding: 16px;
-  }
-
   .section-title {
     font-size: 16px; font-weight: 600; margin-bottom: 12px;
     display: flex; align-items: center; gap: 8px; cursor: pointer;
@@ -43,10 +23,8 @@
   }
   .section-title .toggle.collapsed { transform: rotate(-90deg); }
 
-  .card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 10px; padding: 20px; overflow-x: auto;
-  }
+  /* card: base.css default + overflow override */
+  .card { padding: 20px; overflow-x: auto; }
 
   .run-info {
     font-size: 12px; color: var(--text-muted); margin-bottom: 12px;
@@ -65,24 +43,23 @@
   th.right, td.right { text-align: right; }
   td {
     padding: 7px 10px; font-family: var(--font-mono); font-size: 12px;
-    border-bottom: 1px solid rgba(42,46,61,0.4);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
   }
-  td.stock { font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); }
+  td.stock  { font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); }
   td.sector { font-family: var(--font-sans); color: var(--text-secondary); font-size: 12px; }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(77,171,247,0.04); }
+  tr:hover td { background: rgba(25,113,194,0.04); }
 
   /* ── Score bar ── */
   .score-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
   .score-bar-track {
-    width: 60px; height: 6px; background: rgba(42,46,61,0.6);
+    width: 60px; height: 6px; background: rgba(0,0,0,0.1);
     border-radius: 3px; overflow: hidden;
   }
   .score-bar-fill { height: 100%; border-radius: 3px; }
 
   .positive { color: var(--accent-green); }
   .negative { color: var(--accent-red); }
-  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
 
   @media (max-width: 700px) {
     .card { padding: 12px; }

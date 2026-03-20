@@ -4,30 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>08 — Histórico de Runs</title>
+<link rel="stylesheet" href="../css/base.css">
+<script src="../js/header.js" data-page="history"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
 <style>
-  :root {
-    --bg-primary: #0f1117;
-    --bg-card: #1a1d27;
-    --border: #2a2e3d;
-    --text-primary: #e8eaed;
-    --text-secondary: #9aa0ac;
-    --text-muted: #636978;
-    --accent-blue: #4dabf7;
-    --accent-green: #51cf66;
-    --accent-red: #ff6b6b;
-    --accent-yellow: #ffd43b;
-    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-    padding: 16px;
-  }
-
   .section-title {
     font-size: 16px; font-weight: 600; margin-bottom: 12px;
     display: flex; align-items: center; gap: 8px; cursor: pointer;
@@ -43,10 +23,8 @@
   }
   .section-title .toggle.collapsed { transform: rotate(-90deg); }
 
-  .card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 10px; padding: 20px; overflow-x: auto;
-  }
+  /* card: base.css default + overflow override */
+  .card { padding: 20px; overflow-x: auto; }
 
   .summary {
     font-size: 12px; color: var(--text-muted); margin-bottom: 12px;
@@ -64,11 +42,11 @@
   th.right, td.right { text-align: right; }
   td {
     padding: 7px 10px; font-family: var(--font-mono); font-size: 12px;
-    border-bottom: 1px solid rgba(42,46,61,0.4);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
   }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(77,171,247,0.04); }
-  tr.latest td { background: rgba(77,171,247,0.06); }
+  tr:hover td { background: rgba(25,113,194,0.04); }
+  tr.latest td { background: rgba(25,113,194,0.06); }
 
   /* ── Expandable stocks ── */
   .expand-btn {
@@ -76,28 +54,25 @@
     font-size: 11px; cursor: pointer; padding: 2px 6px;
     border-radius: 4px; font-family: var(--font-sans);
   }
-  .expand-btn:hover { background: rgba(77,171,247,0.1); }
+  .expand-btn:hover { background: rgba(25,113,194,0.1); }
   .stocks-detail {
     display: none; padding: 6px 10px; font-size: 11px;
-    color: var(--text-secondary); background: rgba(15,17,23,0.5);
+    color: var(--text-secondary); background: var(--bg-card-alt);
   }
   .stocks-detail.visible { display: table-row; }
   .stocks-detail td {
-    padding: 8px 10px; border-bottom: 1px solid rgba(42,46,61,0.2);
+    padding: 8px 10px; border-bottom: 1px solid rgba(0,0,0,0.04);
   }
   .stock-chip {
     display: inline-block; padding: 2px 8px; margin: 2px;
-    background: rgba(77,171,247,0.1); border: 1px solid rgba(77,171,247,0.2);
+    background: rgba(25,113,194,0.08); border: 1px solid rgba(25,113,194,0.22);
     border-radius: 4px; font-size: 11px; color: var(--accent-blue);
     font-family: var(--font-mono);
   }
-  .weight-chip {
-    font-size: 10px; color: var(--text-muted); margin-left: 2px;
-  }
+  .weight-chip { font-size: 10px; color: var(--text-muted); margin-left: 2px; }
 
   .positive { color: var(--accent-green); }
   .negative { color: var(--accent-red); }
-  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
 
   @media (max-width: 700px) {
     .card { padding: 12px; }
