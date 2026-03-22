@@ -1064,6 +1064,14 @@ def _build_model_section() -> dict:
     sharpe = bp.get("sharpe_forward", bp.get("sharpe_ratio"))
 
     # Decision
+    # ─────────────────────────────────────────────────────────────────────────
+    # net_return     = model gross expected return  −  one-time transition cost
+    # excess_return  = net_return  −  current holdings expected return (hold_12m)
+    #   > 0  →  model beats current holdings  →  REBALANCE
+    #   < 0  →  current holdings beat model   →  HOLD
+    # NOTE: excess_return is excess over the *current portfolio*, NOT over
+    # any external market index.  Do not label it "vs benchmark" in the UI.
+    # ─────────────────────────────────────────────────────────────────────────
     cost_pct = safe_float(optimal.get("transition_cost_pct"), 0.0)
     net_return = expected_return_gross - cost_pct
     excess_return = net_return - expected_return_hold
@@ -1079,6 +1087,10 @@ def _build_model_section() -> dict:
             "timestamp": latest_summary.get("last_updated_timestamp", ""),
         },
         "returns": {
+            # hold_12m    : expected return of the *current* portfolio (target-price method)
+            # gross_12m   : expected return of the *model* portfolio (before transition cost)
+            # net_12m     : gross_12m  −  transition_cost_pct  (what you'd actually earn)
+            # excess_net_12m: net_12m  −  hold_12m  (positive = model wins)
             "hold_12m": expected_return_hold,
             "gross_12m": expected_return_gross,
             "net_12m": net_return,
@@ -1281,6 +1293,104 @@ def publish_progress_symlinks() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+def publish_correlation_heatmap(window_days: int = 252) -> None:
+    """Step 7: Compute correlation matrix for current holdings + model tickers.
+
+    Reads tickers from optimized_recommendation.json (holdings + optimal
+    weights), loads the last `window_days` of daily closes from StockDataDB,
+    and writes correlation_model_portfolio.json to html/data/.
+
+    Ticker ordering in the output:
+        [holdings-only] + [in-both] + [model-only]
+
+    so that a heatmap shows the two portfolios as distinct visual blocks.
+    """
+    logger.info("Step 7: Generating correlation heatmap (holdings vs model)")
+
+    out_path = DST / "correlation_model_portfolio.json"
+
+    # --- Load tickers from recommendation ---
+    rec = read_json_safe(resolve_source(OPTIMIZED_RECOMMENDATION_JSON))
+    if not rec:
+        logger.warning("  optimized_recommendation.json not found — skipping correlation")
+        return
+
+    holdings_tickers = set(rec.get("comparison", {}).get("holdings", {}).get("weights", {}).keys())
+    model_tickers    = set(rec.get("comparison", {}).get("optimal",  {}).get("weights", {}).keys())
+    all_tickers      = sorted(holdings_tickers | model_tickers)
+
+    if not all_tickers:
+        logger.warning("  No tickers found in recommendation — skipping correlation")
+        return
+
+    logger.info(f"  Holdings: {sorted(holdings_tickers)}")
+    logger.info(f"  Model:    {sorted(model_tickers)}")
+
+    # --- Load prices from StockDataDB ---
+    if not STOCK_DATA_DB.exists():
+        logger.warning(f"  {STOCK_DATA_DB.name} not found — skipping correlation")
+        return
+
+    try:
+        db = pd.read_csv(STOCK_DATA_DB, parse_dates=["Date"])
+        db = db[db["Stock"].isin(all_tickers)][["Date", "Stock", "Close"]].dropna()
+        pivot = (
+            db.pivot_table(index="Date", columns="Stock", values="Close")
+            .sort_index()
+            .tail(window_days)
+        )
+        missing = [t for t in all_tickers if t not in pivot.columns]
+        if missing:
+            logger.warning(f"  Tickers missing from StockDataDB: {missing}")
+            all_tickers = [t for t in all_tickers if t in pivot.columns]
+            holdings_tickers -= set(missing)
+            model_tickers    -= set(missing)
+
+        returns = pivot[all_tickers].pct_change().dropna()
+        corr    = returns.corr().round(4)
+        date    = pivot.index[-1].strftime("%Y-%m-%d")
+        actual_window = len(returns)
+        logger.info(f"  Window: {pivot.index[0].date()} → {date} ({actual_window} return days)")
+    except Exception as e:
+        logger.error(f"  Failed to compute correlations: {e}")
+        return
+
+    # --- Group labels and display order ---
+    groups: Dict[str, str] = {}
+    for t in all_tickers:
+        in_h = t in holdings_tickers
+        in_m = t in model_tickers
+        groups[t] = "both" if (in_h and in_m) else ("holdings" if in_h else "model")
+
+    order: List[str] = (
+        [t for t in sorted(holdings_tickers) if groups[t] == "holdings"] +
+        [t for t in sorted(all_tickers)      if groups[t] == "both"]     +
+        [t for t in sorted(model_tickers)    if groups[t] == "model"]
+    )
+
+    matrix: List[List[Optional[float]]] = []
+    for r in order:
+        row: List[Optional[float]] = []
+        for c in order:
+            try:
+                v = float(corr.loc[r, c])
+                row.append(None if not math.isfinite(v) else round(v, 4))
+            except (KeyError, TypeError):
+                row.append(None)
+        matrix.append(row)
+
+    payload = {
+        "date":        date,
+        "window_days": actual_window,
+        "tickers":     order,
+        "groups":      groups,
+        "matrix":      matrix,
+    }
+
+    write_json(out_path, payload)
+    logger.info(f"  Saved {out_path.name} ({len(order)}×{len(order)} matrix)")
+
+
 def main() -> int:
     start_time = datetime.now()
     logger.info(f"D_Publish.py v{D_PUBLISH_VERSION} — Starting frontend asset publication")
@@ -1330,6 +1440,9 @@ def main() -> int:
 
         # Step 6: Progress file symlinks
         publish_progress_symlinks()
+
+        # Step 7: Correlation heatmap JSON (portfolio holdings vs model tickers)
+        publish_correlation_heatmap()
 
         elapsed = (datetime.now() - start_time).total_seconds()
         logger.info(f"D_Publish.py completed in {elapsed:.1f}s")

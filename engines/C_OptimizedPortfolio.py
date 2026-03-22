@@ -883,12 +883,48 @@ def generate_recommendation(
     params: Dict,
     logger: logging.Logger
 ) -> Dict[str, Any]:
-    """Generate the final recommendation"""
+    """Generate the final HOLD / REBALANCE recommendation.
+
+    Decision formula
+    ----------------
+    excess_return = optimal_net_return − holdings_return
+
+        holdings_return   : expected return of the current portfolio,
+                            computed as Σ(weight_i × target_price_i/current_price_i − 1).
+                            Exposed in dashboard_latest.json as model.returns.hold_12m.
+
+        optimal_net_return: expected return of the chosen candidate portfolio,
+                            already net of the one-time transition cost
+                            (transition_cost_pct).  Exposed as model.returns.net_12m.
+
+        excess_return     : how much MORE (%) the model delivers vs. keeping the
+                            current portfolio.  Positive → model wins → REBALANCE.
+                            Exposed as model.returns.excess_net_12m.
+                            NOTE: this is excess over the *current holdings*, NOT
+                            over any external market index.
+
+    The threshold (MIN_EXCESS_RETURN_THRESHOLD, default 0.5 pp) protects against
+    rebalancing for a marginal gain that could be wiped out by market noise.
+
+    # TODO (future improvement): the candidate selection step already uses a
+    # composite score (40% expected_return + 40% Sharpe + 20% momentum), so the
+    # chosen optimal portfolio may score far higher than holdings even when its
+    # raw return is lower.  Consider adding a score-gap clause to the decision:
+    #
+    #   if score_gap > SCORE_GAP_THRESHOLD and excess_return > SOFT_RETURN_FLOOR:
+    #       decision = 'REBALANCE'
+    #
+    # This would allow switching to a portfolio with a better risk-adjusted
+    # profile even when the pure expected-return excess is below the main
+    # threshold.  See generate_recommendation for context.
+    """
 
     min_excess_threshold = float(params.get('MIN_EXCESS_RETURN_THRESHOLD', 0.5))
 
     holdings_return = holdings.get('expected_return', 0)
     optimal_net_return = optimal.get('net_return', 0)
+    # excess_return > 0  → model beats current holdings → favour REBALANCE
+    # excess_return < 0  → current holdings beat model  → favour HOLD
     excess_return = optimal_net_return - holdings_return
 
     # Calculate transactions

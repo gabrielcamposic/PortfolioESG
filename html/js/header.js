@@ -20,6 +20,12 @@
       border-radius: 10px;
       margin-bottom: 16px;
     }
+    /* Logo + date stacked vertically */
+    .header-logo-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
     .header-logo {
       font-size: 18px;
       font-weight: 700;
@@ -29,6 +35,11 @@
       text-decoration: none;
     }
     .header-logo span { color: var(--accent-blue); }
+    .header-date {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
     .header-separator {
       width: 1px;
       height: 24px;
@@ -58,18 +69,18 @@
       background: rgba(25,113,194,.1);
       border-color: rgba(25,113,194,.3);
     }
+    /* Pipeline status — only rendered when running or errored */
     .pipeline-status { display: flex; align-items: center; gap: 6px; font-size: 13px; }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .status-dot.completed { background: var(--accent-green); }
-    .status-dot.running   { background: var(--accent-yellow); animation: hdr-pulse 1.2s ease-in-out infinite; }
-    .status-dot.error     { background: var(--accent-red); }
-    .status-dot.idle      { background: var(--text-muted); }
+    .status-dot.running { background: var(--accent-yellow); animation: hdr-pulse 1.2s ease-in-out infinite; }
+    .status-dot.error   { background: var(--accent-red); }
     @keyframes hdr-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
     .status-text { color: var(--text-secondary); }
+    /* Decision badge — lives inside the portfolio-value block */
     .decision-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 4px 12px; border-radius: 6px;
-      font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      display: inline-flex; align-items: center;
+      padding: 3px 10px; border-radius: 6px;
+      font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
     }
     .decision-badge.rebalance {
       background: rgba(201,42,42,.1); color: var(--accent-red);
@@ -79,27 +90,25 @@
       background: rgba(47,158,68,.1); color: var(--accent-green);
       border: 1px solid rgba(47,158,68,.3);
     }
+    /* Portfolio value block — pushes to the right */
     .portfolio-value { margin-left: auto; text-align: right; }
-    .portfolio-value .label {
+    .portfolio-value .pv-label {
       font-size: 11px; color: var(--text-muted);
       text-transform: uppercase; letter-spacing: .5px;
     }
-    .portfolio-value .amount {
+    .portfolio-value .pv-amount {
       font-size: 20px; font-weight: 700;
       font-family: var(--font-mono); color: var(--text-primary);
+      line-height: 1.1;
     }
-    .portfolio-value .pnl { font-size: 12px; font-family: var(--font-mono); }
-    .portfolio-value .pnl.positive { color: var(--accent-green); }
-    .portfolio-value .pnl.negative { color: var(--accent-red); }
-    .portfolio-value .run-meta {
-      font-size: 10px; color: var(--text-muted);
-      font-family: var(--font-mono); margin-top: 3px;
-    }
+    .portfolio-value .pv-pnl { font-size: 12px; font-family: var(--font-mono); margin-bottom: 5px; }
+    .portfolio-value .pv-pnl.positive { color: var(--accent-green); }
+    .portfolio-value .pv-pnl.negative { color: var(--accent-red); }
     @media (max-width: 640px) {
       .header-bar { padding: 12px 14px; gap: 8px; }
       .header-separator { display: none; }
       .portfolio-value { margin-left: 0; width: 100%; text-align: left; margin-top: 4px; }
-      .nav-tab  { padding: 4px 10px; font-size: 12px; }
+      .nav-tab { padding: 4px 10px; font-size: 12px; }
     }
   `;
   document.head.appendChild(style);
@@ -121,18 +130,17 @@
     el.id = 'header-bar';
     el.className = 'header-bar';
     el.innerHTML = `
-      <a class="header-logo" href="1_portfolio.html">Portfolio<span>ESG</span></a>
+      <div class="header-logo-block">
+        <a class="header-logo" href="1_portfolio.html">Portfolio<span>ESG</span></a>
+        <span id="header-date" class="header-date">—</span>
+      </div>
       <div class="header-separator"></div>
       <nav class="nav-tabs">${navHTML}</nav>
-      <div class="header-separator"></div>
-      <div id="pipeline-status" class="pipeline-status">
-        <div class="status-dot idle"></div>
-        <span class="status-text">—</span>
-      </div>
-      <div id="decision-container"></div>
+      <div id="pipeline-separator" class="header-separator" style="display:none"></div>
+      <div id="pipeline-status" class="pipeline-status" style="display:none"></div>
       <div class="portfolio-value" id="portfolio-value">
-        <div class="label">Patrimônio Real</div>
-        <div class="amount">—</div>
+        <div class="pv-label">Valor do Portfolio</div>
+        <div class="pv-amount">—</div>
       </div>
     `;
     return el;
@@ -147,11 +155,13 @@
     if (v == null || isNaN(v)) return '—';
     return (v * 100).toFixed(2) + '%';
   }
-  function fmtRunId(rid) {
+  // "20260321-060232" → "21 mar 2026"
+  function fmtRunDate(rid) {
     if (!rid) return '—';
-    const m = rid.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
+    const m = rid.match(/^(\d{4})(\d{2})(\d{2})-/);
     if (!m) return rid;
-    return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+    const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    return `${parseInt(m[3])} ${months[parseInt(m[2]) - 1]} ${m[1]}`;
   }
 
   /* ─── 4. Fetch & render data ─── */
@@ -169,56 +179,59 @@
         fetchJSON('pipeline_progress.json').catch(() => null),
       ]);
 
-      // Run info
+      // ── Date below logo (from run_id) ──────────────────────────────────
       const runId = dashboard.model?.meta?.run_id;
+      const dateEl = document.getElementById('header-date');
+      if (dateEl) dateEl.textContent = fmtRunDate(runId);
 
-      // Pipeline status
+      // ── Pipeline status — only show when actively running or errored ───
       const pStatus = progress?.pipeline_run_status;
       if (pStatus) {
         const stage = (pStatus.current_stage || '').toLowerCase();
-        let dotClass = 'idle';
-        let text = pStatus.status_message || pStatus.current_stage || 'Desconhecido';
-        if (stage === 'completed' || pStatus.status_message === 'Completed') {
-          dotClass = 'completed'; text = 'Concluído';
-        } else if (pStatus.end_time) {
-          dotClass = 'completed';
-        } else if (pStatus.start_time && !pStatus.end_time) {
+        let dotClass = null;
+        let text = '';
+        if (pStatus.start_time && !pStatus.end_time) {
           dotClass = 'running';
-          text = pStatus.current_stage || 'Em execução...';
+          text = pStatus.current_stage || 'Em execução…';
+        } else if (stage === 'error' || pStatus.status_message?.toLowerCase().includes('error')) {
+          dotClass = 'error';
+          text = pStatus.status_message || 'Erro';
         }
-        document.getElementById('pipeline-status').innerHTML = `
-          <div class="status-dot ${dotClass}"></div>
-          <span class="status-text">${text}</span>
-        `;
+        // Only render if there's something actionable to show
+        if (dotClass) {
+          document.getElementById('pipeline-status').style.display = 'flex';
+          document.getElementById('pipeline-status').innerHTML =
+            `<div class="status-dot ${dotClass}"></div><span class="status-text">${text}</span>`;
+          document.getElementById('pipeline-separator').style.display = '';
+        }
       }
 
-      // Decision badge
-      const verdict = dashboard.model?.decision?.verdict;
-      if (verdict) {
-        const cls   = verdict.toUpperCase() === 'REBALANCE' ? 'rebalance' : 'hold';
-        const label = verdict.toUpperCase() === 'REBALANCE' ? 'Rebalancear' : 'Manter';
-        document.getElementById('decision-container').innerHTML =
-          `<span class="decision-badge ${cls}">${label}</span>`;
-      }
-
-      // Portfolio value
+      // ── Portfolio value + decision badge ──────────────────────────────
       const market   = positions.total_current_market;
       const invested = positions.total_invested_cash;
       const pnl      = positions.total_unrealized_pnl;
       const pnlClass = pnl >= 0 ? 'positive' : 'negative';
       const pnlSign  = pnl >= 0 ? '+' : '';
       const pnlPct   = invested ? pnl / invested : 0;
+
+      const verdict  = dashboard.model?.decision?.verdict;
+      const decCls   = verdict?.toUpperCase() === 'REBALANCE' ? 'rebalance' : 'hold';
+      const decLabel = verdict?.toUpperCase() === 'REBALANCE' ? 'Rebalancear' : 'Manter';
+      const decHTML  = verdict
+        ? `<span class="decision-badge ${decCls}">${decLabel}</span>`
+        : '';
+
       document.getElementById('portfolio-value').innerHTML = `
-        <div class="label">Patrimônio Real</div>
-        <div class="amount">${fmtBRL(market)}</div>
-        <div class="pnl ${pnlClass}">${pnlSign}${fmtBRL(pnl)} (${pnlSign}${fmtPct(pnlPct)})</div>
-        <div class="run-meta">${runId ? `Run ID: ${runId} | Data: ${fmtRunId(runId)}` : '—'}</div>
+        <div class="pv-label">Valor do Portfolio</div>
+        <div class="pv-amount">${fmtBRL(market)}</div>
+        <div class="pv-pnl ${pnlClass}">${pnlSign}${fmtBRL(pnl)} (${pnlSign}${fmtPct(pnlPct)})</div>
+        ${decHTML}
       `;
 
     } catch (err) {
       console.error('Header render error:', err);
       document.getElementById('portfolio-value').innerHTML =
-        `<div class="label">Patrimônio Real</div><div class="amount">—</div><div class="run-meta error-msg">Erro: ${err.message}</div>`;
+        `<div class="pv-label">Valor do Portfolio</div><div class="pv-amount">—</div>`;
     }
   }
 

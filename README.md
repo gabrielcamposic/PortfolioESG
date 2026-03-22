@@ -11,8 +11,16 @@ Sistema de análise e otimização de portfólio de ações brasileiras com foco
 - **Otimização de portfólio** usando algoritmo genético (GA)
 - **Dashboard interativo** para visualização de resultados
 - **Tracking de investimentos reais** via notas de negociação
-- **Análise de rebalanceamento** com cálculo de custos de transação
+- **Análise de rebalanceamento** com cálculo de custos de transação e comparação explícita entre modelo e carteira atual
 - **Autenticação Google** para acesso seguro
+
+## 📚 Documentação técnica (docs/)
+
+| Arquivo | Descrição | Status |
+|---------|-----------|--------|
+| [METRICS_REFERENCE.md](docs/METRICS_REFERENCE.md) | Fórmulas, fontes e exemplos de cada métrica das páginas `1_portfolio.html` e `2_risk.html` | ✅ Completo |
+| [BROKER_RETURN_PLAN.md](docs/BROKER_RETURN_PLAN.md) | Diagnóstico e implementação do MWR / Modified Dietz (paridade com retorno da corretora) | ✅ Completo |
+| [MODEL_DECISION_CLARITY.md](docs/MODEL_DECISION_CLARITY.md) | Diagnóstico e implementação das melhorias de clareza da página `3_model.html` (decisão HOLD/REBALANCE) | ✅ Steps 1–4 · 🔲 Step 5 |
 
 ## 🏗️ Arquitetura
 
@@ -383,19 +391,52 @@ Sharpe = (Retorno_Esperado - Taxa_Livre_Risco) / Volatilidade
 #### Exemplo de Uso
 
 ```bash
-# Via pipeline (recomendado)
+# Via pipeline C (recomendado)
 cd engines
-./A_Portfolio.sh
+./C_OptimizedPortfolio.sh
 
 # Direto (para debug)
-python A3_Portfolio.py
+python C_OptimizedPortfolio.py
 ```
 
 ---
 
-### A4_Analysis.py - Análise de Performance e Atribuição
+### D_Publish.py - Geração do Dashboard JSON
 
-**Propósito:** Calcular métricas de análise do portfólio incluindo Performance Attribution (Brinson-Fachler), tracking error, information ratio, momentum e outras métricas de diagnóstico.
+**Propósito:** Consolidar todos os resultados parciais (A, B, C) num único arquivo `dashboard_latest.json` consumido pelo frontend.  É o ponto central onde os campos expostos na UI são calculados e nomeados.
+
+#### Funcionalidades
+
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| Seção `model` | Agrega retornos, risco, decisão, valuation e composição do portfólio modelo |
+| Seção `real` | Métricas TWR reais calculadas a partir de `portfolio_history.csv` + `ledger.csv` |
+| Campos `returns` | Calcula `hold_12m`, `gross_12m`, `net_12m`, `excess_net_12m` com fórmulas documentadas |
+| Decisão espelhada | Replica HOLD/REBALANCE a partir de `optimized_recommendation.json` |
+
+#### Campos `model.returns` (dashboard_latest.json)
+
+| Campo | Fórmula | Descrição |
+|-------|---------|-----------|
+| `hold_12m` | Σ(w_i × target_i/current_i − 1) | Retorno esperado da **carteira atual** |
+| `gross_12m` | Σ(w_i × target_i/current_i − 1) | Retorno esperado do **modelo** (bruto) |
+| `net_12m` | `gross_12m − transition_cost_pct` | Retorno do modelo já líquido do custo de transição |
+| `excess_net_12m` | `net_12m − hold_12m` | Excesso do modelo sobre a carteira atual (> 0 → REBALANCE) |
+
+> ⚠️ `excess_net_12m` é excesso sobre a **carteira atual**, não sobre índice de mercado.
+> Não nomear como "vs benchmark" na UI.
+
+#### Arquivos de Saída
+
+| Arquivo | Localização | Descrição |
+|---------|-------------|-----------|
+| `dashboard_latest.json` | `html/data/` | JSON unificado para o frontend |
+
+---
+
+## 📄 Licença
+
+Projeto pessoal - uso privado.
 
 #### Funcionalidades
 
@@ -609,13 +650,15 @@ python B1_Process_Notes.py
 
 **Propósito:** Combinar o portfolio ideal (de A) com holdings atuais (de B) para gerar uma recomendação de transição que maximiza retorno considerando custos de transação.
 
+> 📄 Veja [docs/MODEL_DECISION_CLARITY.md](docs/MODEL_DECISION_CLARITY.md) para o diagnóstico completo da lógica de decisão, fórmulas e a melhoria futura pendente (Step 5 — score-gap clause).
+
 #### Funcionalidades
 
 | Funcionalidade | Descrição |
 |----------------|-----------|
 | Análise de custos | Calcula custo médio de transação do histórico |
 | Geração de candidatos | Cria portfólios de transição (blends entre ideal e atual) |
-| Score composto | Avalia candidatos por retorno, sharpe e momentum |
+| Score composto | Avalia candidatos por retorno esperado, Sharpe e momentum |
 | Recomendação | REBALANCE se retorno excedente > threshold, senão HOLD |
 | Histórico de decisões | Registra cada recomendação para análise |
 
@@ -640,24 +683,46 @@ python B1_Process_Notes.py
 
 | Parâmetro | Default | Descrição |
 |-----------|---------|-----------|
-| `WEIGHT_EXPECTED_RETURN` | 0.4 | Peso do retorno esperado no score |
-| `WEIGHT_SHARPE_RATIO` | 0.4 | Peso do sharpe ratio no score |
-| `WEIGHT_MOMENTUM` | 0.2 | Peso do momentum no score |
-| `MIN_EXCESS_RETURN_THRESHOLD` | 0.5 | Mínimo de retorno excedente para REBALANCE (%) |
+| `WEIGHT_EXPECTED_RETURN` | 0.4 | Peso do retorno esperado no score composto |
+| `WEIGHT_SHARPE_RATIO` | 0.4 | Peso do Sharpe no score composto |
+| `WEIGHT_MOMENTUM` | 0.2 | Peso do momentum no score composto |
+| `MIN_EXCESS_RETURN_THRESHOLD` | 0.5 | Mínimo de retorno excedente para REBALANCE (pp) |
 | `TRANSACTION_COST_MODE` | DYNAMIC | DYNAMIC ou FIXED |
 | `TRANSACTION_COST_FIXED_PCT` | 0.1 | Custo fixo se mode=FIXED (%) |
+
+#### Fórmula de Decisão
+
+```
+excess_return = optimal_net_return − holdings_return
+
+  holdings_return    = retorno esperado da carteira atual (target_price/current_price − 1,
+                       ponderado pelos pesos atuais).
+                       → Exposto em dashboard_latest.json como model.returns.hold_12m
+
+  optimal_net_return = retorno esperado do modelo, já líquido do custo único de transição.
+                       → Exposto como model.returns.net_12m
+
+  excess_return      = quanto a mais (%) o modelo entrega vs. manter a carteira atual.
+                       Positivo → modelo ganha → REBALANCE
+                       Negativo → carteira atual ganha → HOLD
+                       → Exposto como model.returns.excess_net_12m
+
+⚠️  excess_return é excesso sobre a CARTEIRA ATUAL, não sobre índice de mercado externo.
+```
+
+Se `excess_return ≥ MIN_EXCESS_RETURN_THRESHOLD` → **REBALANCE**; caso contrário → **HOLD**.
 
 #### Fluxo de Decisão
 
 ```
 1. Carrega portfolio ideal (A) e holdings atuais (B)
-2. Calcula retorno esperado de holdings (baseado em target prices)
-3. Calcula retorno esperado do portfolio ideal
-4. Calcula custo de transação para ir de B → A
-5. Se (retorno_ideal - custo - retorno_holdings) > threshold:
-   → Recomenda REBALANCE com transações detalhadas
-6. Senão:
-   → Recomenda HOLD
+2. Calcula retorno esperado de holdings via target prices (→ hold_12m)
+3. Calcula retorno esperado do modelo via target prices (→ gross_12m)
+4. Calcula custo de transição B → modelo (→ transition_cost_pct)
+5. net_12m = gross_12m − transition_cost_pct
+6. excess_return = net_12m − hold_12m
+7. Se excess_return ≥ threshold → REBALANCE com transações detalhadas
+   Senão → HOLD
 ```
 
 #### Exemplo de Uso
@@ -671,9 +736,4 @@ cd engines
 python C_OptimizedPortfolio.py
 ```
 
----
-
-## 📄 Licença
-
-Projeto pessoal - uso privado.
 
