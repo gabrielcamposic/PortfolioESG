@@ -85,8 +85,14 @@ if "$PY_EXEC" "$SCRIPT_DIR/C_OptimizedPortfolio.py" 2>&1 | tee -a "$LOG_FILE"; t
     log "╚══════════════════════════════════════════════════════════════╝"
     log ""
     log "Output files:"
-    log "  - $PROJECT_ROOT/html/data/optimized_recommendation.json"
-    log "  - $PROJECT_ROOT/data/results/optimized_portfolio_history.csv"
+    log "  - $PROJECT_ROOT/data/results/optimized_recommendation.json"
+    log "  - $PROJECT_ROOT/data/results/optimized_portfolio_history.jsonl"
+
+    # Publish frontend assets
+    log ""
+    log "▶ Running D_Publish.py..."
+    "$PY_EXEC" "$SCRIPT_DIR/D_Publish.py" 2>&1 | tee -a "$LOG_FILE"
+
     EXIT_CODE=0
 else
     EXIT_CODE=$?

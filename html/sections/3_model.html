@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 — Portfólio Modelo</title>
+<link rel="stylesheet" href="../css/base.css">
+<script src="../js/header.js" data-page="model"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  /* card padding override for this page */
+  .card { padding: 18px 20px; }
+  .section-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 3px; height: 18px;
+    background: var(--accent-blue); border-radius: 2px;
+  }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-header .badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    color: var(--bg-card);
+  }
+  .badge.rebalance { background: #c92a2a; }
+  .badge.hold { background: #2f9e44; }
+  .reason { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+  .positive { color: var(--accent-green); }
+  .negative { color: var(--accent-red); }
+
+  /* ── Return comparison: two boxes (current vs model) + excess in between ── */
+  .return-comparison {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .rc-box {
+    background: rgba(139, 147, 165, 0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .rc-box--model {
+    background: rgba(25, 113, 194, 0.06);
+    border-color: rgba(25, 113, 194, 0.18);
+  }
+  .rc-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+  .rc-value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+  .rc-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+  }
+  .rc-cost-brl {
+    color: var(--accent-red);
+  }
+  .rc-middle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 0 4px;
+  }
+  .rc-excess {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .rc-excess-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+
+  /* ── Risk profile — compact row below the comparison boxes ── */
+  .risk-section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .risk-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px 10px;
+    margin-bottom: 8px;
+  }
+  .risk-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .risk-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+  .risk-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .chart-container { position: relative; height: 220px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 8px;
+    border-bottom: 1px solid rgba(42,46,61,0.4);
+    font-family: var(--font-mono);
+  }
+  td.symbol { font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); }
+  td.right, th.right { text-align: right; }
+  tr:last-child td { border-bottom: none; }
+  tr.totals td { border-top: 2px solid var(--border); font-weight: 700; font-family: var(--font-sans); }
+  tr:hover td { background: rgba(25,113,194,0.04); }
+  .action-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-sans);
+  }
+  .action-badge.buy  { background: rgba(47,158,68,0.12);  color: var(--accent-green); }
+  .action-badge.sell { background: rgba(201,42,42,0.12);  color: var(--accent-red); }
+  .action-badge.hold { background: rgba(139,147,165,0.15); color: var(--text-muted); }
+
+  /* ── Correlation heatmap ── */
+  .corr-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px 12px;
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+  .corr-grp-tag { font-weight: 600; }
+  .corr-grp-tag.holdings { color: var(--text-secondary); }
+  .corr-grp-tag.both     { color: #f59f00; }
+  .corr-grp-tag.model    { color: var(--accent-blue); }
+  .corr-scale-label { color: var(--text-muted); margin-left: 6px; }
+  .corr-scale-chip {
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .corr-table-wrap { overflow-x: auto; }
+  .corr-table {
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  /* scoped overrides to prevent generic td/th rules from leaking in */
+  .corr-table td, .corr-table th { border: none; }
+  .corr-table tr:hover td { background: unset; }
+  .corr-table tr:last-child td { border-bottom: none; }
+  .corr-table .ch {              /* column header — rotated */
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    height: 68px;
+    text-align: left;
+    vertical-align: bottom;
+    padding: 0 4px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    font-family: var(--font-sans);
+    border-bottom: 2px solid var(--border);
+  }
+  .corr-table .rh {              /* row header */
+    text-align: right;
+    padding: 2px 8px 2px 0;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    font-family: var(--font-sans);
+    width: 68px;
+    border-right: 2px solid var(--border);
+  }
+  .corr-table td.cv {            /* correlation value cell */
+    width: 36px;
+    height: 26px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 0;
+    border: 1px solid rgba(0,0,0,0.04);
+    color: var(--text-muted);
+  }
+  .corr-table .ch.holdings, .corr-table .rh.holdings { color: var(--text-secondary); }
+  .corr-table .ch.both,     .corr-table .rh.both     { color: #f59f00; }
+  .corr-table .ch.model,    .corr-table .rh.model    { color: var(--accent-blue); }
+  .corr-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+
+<div class="section-title">Portfólio Modelo (Forward)</div>
+
+<div class="cards-grid">
+  <div class="card" id="summary-card"><span class="loading">Carregando modelo...</span></div>
+  <div class="card">
+    <div class="card-header">Exposição por Setor</div>
+    <div class="chart-container"><canvas id="sector-chart"></canvas></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Alocação do Modelo</div>
+  <div id="allocation-table"><span class="loading">Carregando alocação...</span></div>
+</div>
+
+<div class="card">
+  <div class="card-header">Correlação — Carteira Atual vs. Modelo</div>
+  <div id="corr-heatmap"><span class="loading">Carregando correlações...</span></div>
+</div>
+
+<div class="card">
+  <div class="card-header">Transações Recomendadas</div>
+  <div id="tx-table"><span class="loading">Carregando recomendações...</span></div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return '—';
+  return `${Number(v).toFixed(2)}%`;
+}
+function fmtBRL(v) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtNum(v, d = 0) {
+  if (v == null || isNaN(v)) return '—';
+  return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function colorClass(v) {
+  if (v == null || isNaN(v)) return '';
+  return v >= 0 ? 'positive' : 'negative';
+}
+async function fetchJSON(file) {
+  const r = await fetch(`${DATA_BASE}/${file}`);
+  if (!r.ok) throw new Error(`${file}: ${r.status}`);
+  return r.json();
+}
+
+// Palette reused from overview
+const SECTOR_COLORS = [
+  '#1971c2', '#2f9e44', '#d9480f', '#e67700', '#c92a2a',
+  '#6741d9', '#0c8599', '#3b5bdb', '#c0392b', '#8b93a5',
+];
+
+function renderSummary(dashboard, recommendation) {
+  const model = dashboard.model || {};
+  const ret   = model.returns || {};
+  const risk  = model.risk    || {};
+  const decision  = recommendation?.decision || model.decision?.verdict || 'HOLD';
+  const badgeCls  = decision === 'REBALANCE' ? 'rebalance' : 'hold';
+  const badgeText = decision === 'REBALANCE' ? 'Rebalancear' : 'Manter';
+
+  // Cost: BRL sum of per-trade fees + % of portfolio (already deducted from net_12m)
+  const txs          = recommendation?.transactions || [];
+  const totalRebCost = txs.reduce((acc, tx) => acc + (tx.cost || 0), 0);
+  const costPct      = recommendation?.comparison?.optimal?.transition_cost_pct;
+
+  // cost sub-line: "18,42% bruto − 0,05% custo  R$ 1,53"
+  const costSub = costPct != null
+    ? `${fmtPct(ret.gross_12m)} bruto &minus; ${fmtPct(costPct)} custo`
+      + (totalRebCost > 0 ? ` &nbsp;<span class="rc-cost-brl">${fmtBRL(totalRebCost)}</span>` : '')
+    : fmtPct(ret.gross_12m);
+
+  const returnComparisonHtml = `
+    <div class="return-comparison">
+      <div class="rc-box">
+        <div class="rc-label">Carteira Atual</div>
+        <div class="rc-value">${fmtPct(ret.hold_12m)}</div>
+        <div class="rc-sub">retorno esperado 12M</div>
+      </div>
+      <div class="rc-middle">
+        <div class="rc-excess ${colorClass(ret.excess_net_12m)}">${fmtPct(ret.excess_net_12m)}</div>
+        <div class="rc-excess-label">excesso</div>
+      </div>
+      <div class="rc-box rc-box--model">
+        <div class="rc-label">Portfólio Modelo</div>
+        <div class="rc-value">${fmtPct(ret.net_12m)}</div>
+        <div class="rc-sub">${costSub}</div>
+      </div>
+    </div>`;
+
+  const riskItems = [
+    { label: 'Histórico Anual',  value: fmtPct(ret.historical_annual)                   },
+    { label: 'Volatilidade',     value: fmtPct(risk.volatility_annual)                  },
+    { label: 'Sharpe Forward',   value: fmtNum(risk.sharpe, 2)                          },
+    { label: 'HHI',              value: fmtNum(risk.hhi, 4)                             },
+    { label: 'Top 5 posições',   value: fmtPct(risk.top5 ? risk.top5 * 100 : null)     },
+  ];
+
+  const riskRowHtml = `
+    <div class="risk-section-label">Perfil de risco — Portfólio Modelo</div>
+    <div class="risk-row">
+      ${riskItems.map(r => `
+        <div class="risk-item">
+          <span class="risk-label">${r.label}</span>
+          <span class="risk-value">${r.value}</span>
+        </div>`).join('')}
+    </div>`;
+
+  document.getElementById('summary-card').innerHTML = `
+    <div class="card-header">Meta do Modelo
+      <span class="badge ${badgeCls}">${badgeText}</span>
+    </div>
+    ${returnComparisonHtml}
+    ${riskRowHtml}
+  `;
+}
+
+function renderCorrelation(corr) {
+  const el = document.getElementById('corr-heatmap');
+  if (!corr || !corr.tickers) {
+    el.innerHTML = '<span class="loading">Sem dados de correlação disponíveis.</span>';
+    return;
+  }
+
+  const { tickers, groups, matrix, window_days, date } = corr;
+  const n = tickers.length;
+  const labels = tickers.map(t => t.replace('.SA', ''));
+
+  // Background color for a correlation value
+  function cellBg(v, isDiag) {
+    if (isDiag) return 'rgba(74,78,105,0.18)';
+    if (v === null || Math.abs(v) < 0.05) return '';
+    if (v >= 0.7) return `rgba(201,42,42,${Math.min(0.82, 0.30 + (v - 0.7) * 2.2).toFixed(2)})`;
+    if (v >= 0.4) return `rgba(230,119,0,${(0.14 + (v - 0.4) * 0.67).toFixed(2)})`;
+    if (v >= 0.05) return `rgba(230,119,0,${(0.05 + (v - 0.05) * 0.26).toFixed(2)})`;
+    if (v <= -0.1) return `rgba(25,113,194,${Math.min(0.55, 0.08 + Math.abs(v + 0.1) * 0.9).toFixed(2)})`;
+    return '';
+  }
+  // Text color: white on dark cells
+  function cellColor(v, isDiag) {
+    if (isDiag) return 'var(--text-muted)';
+    if (v !== null && v >= 0.65) return 'rgba(255,255,255,0.88)';
+    return '';  // inherits .cv default (var(--text-muted))
+  }
+
+  const grpCls = t => ({ both: 'both', model: 'model', holdings: 'holdings' }[groups[t]] || '');
+
+  // Legend
+  let html = `
+    <div class="corr-legend">
+      <span class="corr-grp-tag holdings">⬤ Carteira Atual</span>
+      <span class="corr-grp-tag both">⬤ Ambos</span>
+      <span class="corr-grp-tag model">⬤ Modelo</span>
+      <span class="corr-scale-label">Correlação:</span>
+      <span class="corr-scale-chip" style="background:rgba(230,119,0,0.10)">&lt; 0.4</span>
+      <span class="corr-scale-chip" style="background:rgba(230,119,0,0.34)">0.4</span>
+      <span class="corr-scale-chip" style="background:rgba(201,42,42,0.45)">0.7</span>
+      <span class="corr-scale-chip" style="background:rgba(201,42,42,0.82);color:#fff">1.0</span>
+    </div>
+    <div class="corr-table-wrap"><table class="corr-table">
+      <thead><tr><th></th>`;
+
+  for (let j = 0; j < n; j++) {
+    html += `<th class="ch ${grpCls(tickers[j])}" title="${tickers[j]}">${labels[j]}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (let i = 0; i < n; i++) {
+    html += `<tr><th class="rh ${grpCls(tickers[i])}">${labels[i]}</th>`;
+    for (let j = 0; j < n; j++) {
+      const v     = matrix[i][j];
+      const isDiag = i === j;
+      const bg    = cellBg(v, isDiag);
+      const tc    = cellColor(v, isDiag);
+      const disp  = isDiag ? '—' : (v != null ? v.toFixed(2) : '—');
+      const style = [bg ? `background:${bg}` : '', tc ? `color:${tc}` : ''].filter(Boolean).join(';');
+      const tip   = `${tickers[i]} × ${tickers[j]}: ${v != null ? v.toFixed(4) : 'N/A'}`;
+      html += `<td class="cv"${style ? ` style="${style}"` : ''} title="${tip}">${disp}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  html += `</tbody></table></div>
+    <div class="corr-note">Correlação de Pearson dos retornos diários — ${window_days} pregões até ${date}</div>`;
+
+  el.innerHTML = html;
+}
+
+function renderSectors(dashboard) {
+  const sectors = dashboard.model?.composition?.sector_exposure || [];
+  if (!sectors.length) return;
+  const ctx = document.getElementById('sector-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: sectors.map(s => s.sector),
+      datasets: [{
+        data: sectors.map(s => (s.pct * 100).toFixed(2)),
+        backgroundColor: SECTOR_COLORS.slice(0, sectors.length),
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            color: '#4b5468',
+            font: { size: 11 },
+            usePointStyle: true,
+            pointStyle: 'circle',
+            generateLabels(chart) {
+              const data = chart.data;
+              return data.labels.map((label, i) => ({
+                text: `${label} (${data.datasets[0].data[i]}%)`,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                strokeStyle: 'transparent',
+                pointStyle: 'circle',
+                index: i,
+              }));
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${ctx.parsed}%`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderAllocation(pipeline) {
+  const rows = pipeline.rows || [];
+  const totals = pipeline.totals || {};
+  if (!rows.length) {
+    document.getElementById('allocation-table').innerHTML = '<span class="loading">Sem dados de alocação.</span>';
+    return;
+  }
+  let html = `<table>
+    <thead><tr>
+      <th>Ativo</th>
+      <th class="right">Peso</th>
+      <th class="right">Preço Atual</th>
+      <th class="right">Qtd Proj.</th>
+      <th class="right">Invest. Proj.</th>
+      <th class="right">Alvo (BRL)</th>
+    </tr></thead><tbody>`;
+
+  for (const r of rows) {
+    html += `<tr>
+      <td class="symbol">${r.ticker}</td>
+      <td class="right">${fmtPct(r.weight)}</td>
+      <td class="right">${fmtBRL(r.current)}</td>
+      <td class="right">${fmtNum(r.projectedQty)}</td>
+      <td class="right">${fmtBRL(r.projectedInvested)}</td>
+      <td class="right">${fmtBRL(r.target)}</td>
+    </tr>`;
+  }
+
+  html += `<tr class="totals">
+    <td>Total</td>
+    <td class="right">${fmtPct(totals.totalPct)}</td>
+    <td></td>
+    <td class="right">${fmtNum(totals.totalProjectedQty)}</td>
+    <td class="right">${fmtBRL(totals.totalProjectedInvested)}</td>
+    <td class="right">${fmtBRL(totals.totalProjectedBRL)}</td>
+  </tr>`;
+  html += '</tbody></table>';
+  document.getElementById('allocation-table').innerHTML = html;
+}
+
+function renderTransactions(recommendation) {
+  const txs = recommendation.transactions || [];
+  if (!txs.length) {
+    document.getElementById('tx-table').innerHTML = '<span class="loading">Nenhuma transação recomendada.</span>';
+    return;
+  }
+  const sorted = [...txs].sort((a, b) => {
+    if (a.action === b.action) return Math.abs(b.value_change) - Math.abs(a.value_change);
+    return a.action === 'SELL' ? -1 : 1;
+  });
+
+  let html = `<table>
+    <thead><tr>
+      <th>Ativo</th>
+      <th>Ação</th>
+      <th class="right">Peso Atual</th>
+      <th class="right">Peso Alvo</th>
+      <th class="right">Δ Peso</th>
+      <th class="right">Valor Est.</th>
+      <th class="right">Custo por Operação</th>
+    </tr></thead><tbody>`;
+
+  for (const tx of sorted) {
+    const cls = tx.action === 'BUY' ? 'buy' : tx.action === 'SELL' ? 'sell' : 'hold';
+    const label = tx.action === 'BUY' ? 'Comprar' : tx.action === 'SELL' ? 'Vender' : tx.action;
+    const delta = (tx.weight_change || 0) * 100;
+    const current = (tx.current_weight || 0) * 100;
+    const target = (tx.target_weight || 0) * 100;
+    const cost = tx.cost != null ? fmtBRL(tx.cost) : '—';
+    html += `<tr>
+      <td class="symbol">${tx.symbol}</td>
+      <td><span class="action-badge ${cls}">${label}</span></td>
+      <td class="right">${fmtPct(current)}</td>
+      <td class="right">${fmtPct(target)}</td>
+      <td class="right ${colorClass(delta)}">${delta >= 0 ? '+' : ''}${fmtPct(delta)}</td>
+      <td class="right">${fmtBRL(Math.abs(tx.value_change))}</td>
+      <td class="right">${cost}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('tx-table').innerHTML = html;
+}
+
+async function render() {
+  try {
+    const [dashboard, pipeline, recommendation] = await Promise.all([
+      fetchJSON('dashboard_latest.json'),
+      fetchJSON('pipeline_latest.json'),
+      fetchJSON('optimized_recommendation.json'),
+    ]);
+    renderSummary(dashboard, recommendation);
+    renderSectors(dashboard);
+    renderAllocation(pipeline);
+    renderTransactions(recommendation);
+  } catch (err) {
+    console.error('Model page error:', err);
+    document.getElementById('summary-card').innerHTML = `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+  }
+
+  // Correlation heatmap loaded separately — non-blocking, graceful fallback
+  try {
+    const corr = await fetchJSON('correlation_model_portfolio.json');
+    renderCorrelation(corr);
+  } catch (err) {
+    console.warn('Correlation data unavailable:', err.message);
+    renderCorrelation(null);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
+

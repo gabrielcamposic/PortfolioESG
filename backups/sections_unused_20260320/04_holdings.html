@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04 — Posições Atuais</title>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1d27;
+    --border: #2a2e3d;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ac;
+    --text-muted: #636978;
+    --accent-blue: #4dabf7;
+    --accent-green: #51cf66;
+    --accent-red: #ff6b6b;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 3px; height: 18px;
+    background: var(--accent-blue); border-radius: 2px;
+  }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; overflow-x: auto;
+  }
+
+  /* ── Table ── */
+  .holdings-table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  .holdings-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-muted); padding: 8px 10px;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0;
+    background: var(--bg-card);
+  }
+  .holdings-table th.right, .holdings-table td.right { text-align: right; }
+  .holdings-table td {
+    padding: 8px 10px; font-family: var(--font-mono); font-size: 12px;
+    border-bottom: 1px solid rgba(42,46,61,0.4);
+  }
+  .holdings-table td.symbol {
+    font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue);
+  }
+  .holdings-table tr:last-child td { border-bottom: none; }
+  .holdings-table tr.totals-row td {
+    border-top: 2px solid var(--border); font-weight: 700;
+    color: var(--text-primary); padding-top: 12px;
+  }
+  .holdings-table tr:hover:not(.totals-row) td { background: rgba(77,171,247,0.04); }
+
+  .positive { color: var(--accent-green); }
+  .negative { color: var(--accent-red); }
+
+  /* ── Upside bar ── */
+  .upside-cell { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .upside-bar {
+    height: 4px; border-radius: 2px; min-width: 2px; max-width: 60px;
+  }
+  .upside-bar.up { background: var(--accent-green); }
+  .upside-bar.down { background: var(--accent-red); }
+
+  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
+
+  @media (max-width: 700px) {
+    .card { padding: 12px; }
+    .holdings-table { font-size: 11px; }
+    .holdings-table th, .holdings-table td { padding: 6px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="section-title">Posições Atuais</div>
+
+<div class="card">
+  <div id="holdings-container"><span class="loading">Carregando posições...</span></div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+function fmtBRL(v) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function fmtNum(v, d = 2) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return '—';
+  const sign = v >= 0 ? '+' : '';
+  return sign + (v * 100).toFixed(2) + '%';
+}
+
+function colorClass(v) {
+  if (v == null || isNaN(v)) return '';
+  return v >= 0 ? 'positive' : 'negative';
+}
+
+async function fetchJSON(file) {
+  const r = await fetch(`${DATA_BASE}/${file}`);
+  if (!r.ok) throw new Error(`${file}: ${r.status}`);
+  return r.json();
+}
+
+async function render() {
+  try {
+    const positions = await fetchJSON('ledger_positions.json');
+    const posArr = positions.positions || [];
+
+    // Sort by market value descending
+    const rows = posArr.map(p => {
+      const marketValue = p.net_qty * p.current_price;
+      const pnl = marketValue - p.net_invested;
+      const pnlPct = p.net_invested !== 0 ? pnl / p.net_invested : 0;
+      const avgCost = p.net_qty !== 0 ? p.net_invested / p.net_qty : 0;
+      const upside = p.current_price > 0 ? (p.target_price - p.current_price) / p.current_price : 0;
+      return { ...p, marketValue, pnl, pnlPct, avgCost, upside };
+    }).sort((a, b) => b.marketValue - a.marketValue);
+
+    let html = `<table class="holdings-table">
+      <thead><tr>
+        <th>Ativo</th>
+        <th class="right">Qtd</th>
+        <th class="right">Custo Méd.</th>
+        <th class="right">Preço Atual</th>
+        <th class="right">Investido</th>
+        <th class="right">Valor Mercado</th>
+        <th class="right">P&L</th>
+        <th class="right">P&L %</th>
+        <th class="right">Upside</th>
+      </tr></thead><tbody>`;
+
+    for (const r of rows) {
+      const upsidePct = (r.upside * 100).toFixed(1);
+      const upsideWidth = Math.min(Math.abs(r.upside) * 200, 60);
+      const upsideCls = r.upside >= 0 ? 'up' : 'down';
+      html += `<tr>
+        <td class="symbol">${r.symbol}</td>
+        <td class="right">${fmtNum(r.net_qty, 0)}</td>
+        <td class="right">${fmtBRL(r.avgCost)}</td>
+        <td class="right">${fmtBRL(r.current_price)}</td>
+        <td class="right">${fmtBRL(r.net_invested)}</td>
+        <td class="right">${fmtBRL(r.marketValue)}</td>
+        <td class="right ${colorClass(r.pnl)}">${fmtBRL(r.pnl)}</td>
+        <td class="right ${colorClass(r.pnlPct)}">${fmtPct(r.pnlPct)}</td>
+        <td class="right">
+          <div class="upside-cell">
+            <span class="${colorClass(r.upside)}">${(r.upside >= 0 ? '+' : '') + upsidePct}%</span>
+            <div class="upside-bar ${upsideCls}" style="width:${upsideWidth}px"></div>
+          </div>
+        </td>
+      </tr>`;
+    }
+
+    // Totals row
+    const totMkt = positions.total_current_market;
+    const totInv = positions.total_invested_cash;
+    const totPnl = positions.total_unrealized_pnl;
+    const totPnlPct = totInv !== 0 ? totPnl / totInv : 0;
+    html += `<tr class="totals-row">
+      <td style="font-family:var(--font-sans)">Total (${rows.length} ativos)</td>
+      <td class="right"></td>
+      <td class="right"></td>
+      <td class="right"></td>
+      <td class="right">${fmtBRL(totInv)}</td>
+      <td class="right">${fmtBRL(totMkt)}</td>
+      <td class="right ${colorClass(totPnl)}">${fmtBRL(totPnl)}</td>
+      <td class="right ${colorClass(totPnlPct)}">${fmtPct(totPnlPct)}</td>
+      <td class="right"></td>
+    </tr>`;
+
+    html += `</tbody></table>`;
+    document.getElementById('holdings-container').innerHTML = html;
+
+  } catch (err) {
+    console.error('Holdings error:', err);
+    document.getElementById('holdings-container').innerHTML =
+      `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
+

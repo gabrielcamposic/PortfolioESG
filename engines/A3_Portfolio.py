@@ -64,6 +64,7 @@ class ExecutionTimer:
 def initialize_performance_data(script_version: str) -> Dict[str, Any]:
     """Creates and initializes a dictionary to track script performance metrics."""
     return {
+        "run_id": os.environ.get('PIPELINE_RUN_ID', ''),
         "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         "portfolio_py_version": script_version,
         "param_load_duration_s": 0.0,
@@ -115,8 +116,12 @@ def copy_file_to_web_accessible_location(source_param_key: str, params: Dict, lo
     except Exception as e:
         logger.error(f"Failed to copy file from '{source_path}' to '{dest_folder}': {e}")
 
-def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str], Dict[str, str]]:
-    """Loads the top N scored stocks from the most recent scoring run."""
+def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str], Dict[str, str], str]:
+    """Loads the top N scored stocks from the most recent scoring run.
+
+    Returns:
+        Tuple of (top_stocks, stock_to_sector_map, scoring_run_id)
+    """
     filepath = params.get("SCORED_STOCKS_DB_FILE")
     top_n = params.get("top_n_stocks_from_score", 50)
     if not filepath:
@@ -133,14 +138,31 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
     if not findb_path:
         findb_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'findb')
 
-    skipped_tickers_file = os.path.join(findb_path, 'skipped_tickers.json')
-    if os.path.exists(skipped_tickers_file):
+    # Try JSONL first (Phase 3.5 format), fall back to legacy JSON
+    skipped_jsonl = os.path.join(findb_path, 'skipped_tickers.jsonl')
+    skipped_json = os.path.join(findb_path, 'skipped_tickers.json')
+    if os.path.exists(skipped_jsonl):
         try:
-            with open(skipped_tickers_file, 'r') as f:
+            all_skips = {}
+            with open(skipped_jsonl, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    entry = json.loads(line)
+                    all_skips[entry['ticker']] = entry['skip_data']
+            skipped_tickers = {ticker for ticker, skip_data in all_skips.items()
+                             if skip_data == ["ALL"]}
+            logger.info(f"Loaded {len(skipped_tickers)} permanently skipped tickers from JSONL")
+        except Exception as e:
+            logger.warning(f"Could not read skipped_tickers.jsonl: {e}")
+    elif os.path.exists(skipped_json):
+        try:
+            with open(skipped_json, 'r') as f:
                 all_skips = json.load(f)
             skipped_tickers = {ticker for ticker, skip_data in all_skips.items()
                              if skip_data == ["ALL"]}
-            logger.info(f"Loaded {len(skipped_tickers)} permanently skipped tickers to exclude from portfolio")
+            logger.info(f"Loaded {len(skipped_tickers)} permanently skipped tickers from legacy JSON")
         except Exception as e:
             logger.warning(f"Could not read skipped_tickers.json: {e}")
 
@@ -151,6 +173,7 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
             raise ValueError(f"Scored stocks file is missing one or more required columns: {required_cols}")
 
         latest_run_id = df['run_id'].max()
+        scoring_run_id = str(latest_run_id)
         # Explicitly construct a DataFrame view to help static analysis infer the correct type
         latest_run_df = pd.DataFrame(df.loc[df['run_id'] == latest_run_id]).copy()
 
@@ -169,10 +192,10 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
         # Use set_index/to_dict to build a mapping; avoids use of .values which can confuse type inference
         stock_to_sector_map = top_stocks_df.set_index('Stock')['Sector'].to_dict()
 
-        logger.info(f"Loaded {len(top_stocks)} top stocks from run '{latest_run_id}'.")
+        logger.info(f"Loaded {len(top_stocks)} top stocks from scoring run '{scoring_run_id}'.")
         if params.get('debug_mode'):
             logger.debug(f"Top stocks: {', '.join(top_stocks)}")
-        return top_stocks, stock_to_sector_map
+        return top_stocks, stock_to_sector_map, scoring_run_id
     except Exception as e:
         logger.critical(f"Failed to read or parse scored stocks file '{filepath}': {e}", exc_info=True)
         raise
@@ -744,7 +767,7 @@ def main():
     """Main execution function for the Portfolio script."""
     # 1. --- Initial Setup ---
     overall_start_time = time.time()    
-    run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
+    run_id = os.environ.get('PIPELINE_RUN_ID') or datetime.now().strftime('%Y%m%d-%H%M%S')
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     expected_params = {
@@ -817,7 +840,7 @@ def main():
     try:
         # 4. --- Main Execution Block ---
         data_load_start = time.time()
-        top_scored_stocks, stock_sector_map = load_scored_stocks(params, logger)
+        top_scored_stocks, stock_sector_map, scoring_run_id = load_scored_stocks(params, logger)
         stock_data_file = params.get("FINDB_FILE")
         if not stock_data_file or not os.path.exists(stock_data_file):
             raise FileNotFoundError(f"Master stock data file not found at '{stock_data_file}'.")
@@ -882,13 +905,14 @@ def main():
 
             results_df = pd.DataFrame([{
                 "run_id": run_id,
+                "scoring_run_id": scoring_run_id,
                 "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 "engine_version": PORTFOLIO_PY_VERSION,
                 "min_stocks": params.get("min_stocks"),
                 "max_stocks": params.get("max_stocks"),
                 "stocks": ', '.join(best_combo),
                 "weights": ', '.join(map(str, [round(w, 4) for w in best_weights])),
-                "sharpe_ratio": round(best_sharpe, 4),
+                "sharpe_forward": round(best_sharpe, 4),
                 "final_value": round(final_value, 2),
                 "roi_percent": round(roi_percent, 2),
                 "expected_return_annual_pct": round(best_exp_ret * 100, 2),
@@ -898,8 +922,19 @@ def main():
             if results_db_path:
                 try:
                     os.makedirs(os.path.dirname(results_db_path), exist_ok=True)
-                    results_df.to_csv(results_db_path, mode='a', header=not os.path.exists(results_db_path),
-                                      index=False)
+                    if os.path.exists(results_db_path) and os.path.getsize(results_db_path) > 0:
+                        # Read existing header to reconcile schemas
+                        existing_df = pd.read_csv(results_db_path, nrows=0)
+                        # Merge columns: existing + any new ones from results_df
+                        all_cols = list(existing_df.columns) + [c for c in results_df.columns if c not in existing_df.columns]
+                        # Reindex new row to match merged schema (missing old cols get NaN)
+                        results_df = results_df.reindex(columns=all_cols)
+                        # Rewrite file with updated header + all old data + new row
+                        old_data = pd.read_csv(results_db_path).reindex(columns=all_cols)
+                        merged = pd.concat([old_data, results_df], ignore_index=True)
+                        merged.to_csv(results_db_path, index=False)
+                    else:
+                        results_df.to_csv(results_db_path, index=False)
                     logger.info(f"Successfully appended results to {results_db_path}")
                 except Exception as e:
                     logger.error(f"Failed to save portfolio results to {results_db_path}: {e}")
@@ -1012,106 +1047,24 @@ def main():
                 except Exception as e:
                     logger.warning(f"Could not calculate portfolio dividend yield: {e}")
 
-            # --- Additional precomputed series for frontend (render-only) ---
-            # Build portfolio_timeseries from historical results (final_value) and
-            # stock_sparklines from the stock_close_df_sim_pool price history.
-
-            # initialize defaults to avoid potential unbound local reference warnings
-            portfolio_timeseries = []
-            stock_sparklines = {}
+            # --- Build sector_exposure_list for predictable chart rendering ---
             sector_exposure_list = []
-            # Note: latest_scored is already set above when loading scored_stocks_file
-
             try:
-                max_points = 100
-
-                # 1) Portfolio timeseries: use PORTFOLIO_RESULTS_DB_FILE (final_value per run)
-                pr_file = params.get("PORTFOLIO_RESULTS_DB_FILE")
-                if pr_file and os.path.exists(pr_file):
-                    try:
-                        pr_df = pd.read_csv(pr_file)
-                        if 'timestamp' in pr_df.columns and 'final_value' in pr_df.columns:
-                            pr_df = pr_df.dropna(subset=['final_value']).copy()
-                            pr_df['timestamp'] = pd.to_datetime(pr_df['timestamp'], errors='coerce')
-                            pr_df = pr_df.dropna(subset=['timestamp']).sort_values('timestamp')
-                            if not pr_df.empty:
-                                total = len(pr_df)
-                                if total <= max_points:
-                                    sample_idx = list(range(total))
-                                else:
-                                    sample_idx = np.unique(np.linspace(0, total - 1, max_points).astype(int)).tolist()
-                                for i in sample_idx:
-                                    row = pr_df.iloc[i]
-                                    ts_val = row['timestamp']
-                                    try:
-                                        ts_str = ts_val.strftime('%Y-%m-%d')
-                                    except Exception:
-                                        ts_str = str(ts_val)
-                                    try:
-                                        fv = float(row['final_value'])
-                                    except Exception:
-                                        fv = None
-                                    portfolio_timeseries.append({
-                                        'ts': ts_str,
-                                        'final_value': fv
-                                    })
-                    except Exception as e:
-                        logger.warning(f"Could not build portfolio_timeseries from {pr_file}: {e}")
-
-                # 2) Stock sparklines: derive from stock_close_df_sim_pool (Date + price cols)
-                try:
-                    if isinstance(stock_close_df_sim_pool, pd.DataFrame) and not stock_close_df_sim_pool.empty:
-                        df_prices = stock_close_df_sim_pool.copy()
-                        # Ensure Date is datetime-like and sorted
-                        try:
-                            df_prices['Date'] = pd.to_datetime(df_prices['Date'])
-                        except Exception:
-                            pass
-                        df_prices = df_prices.sort_values('Date')
-
-                        # prepare an index to sample (last N points)
-                        total_rows = len(df_prices)
-                        if total_rows > 0:
-                            if total_rows <= max_points:
-                                row_idx = list(range(total_rows))
-                            else:
-                                row_idx = np.unique(np.linspace(0, total_rows - 1, max_points).astype(int)).tolist()
-
-                            for stock in best_combo:
-                                if stock in df_prices.columns:
-                                    series = df_prices[stock].iloc[row_idx].ffill().bfill().tolist()
-                                    # normalize series to start at 1.0 if possible
-                                    try:
-                                        if series and series[0] and series[0] != 0:
-                                            normalized = [round(float(v)/float(series[0]), 6) for v in series]
-                                        else:
-                                            normalized = [round(float(v) if pd.notna(v) else 0.0, 6) for v in series]
-                                    except Exception:
-                                        normalized = [round(float(v) if pd.notna(v) else 0.0, 6) for v in series]
-                                    stock_sparklines[stock] = normalized
-                                else:
-                                    stock_sparklines[stock] = []
-                except Exception as e:
-                    logger.warning(f"Could not build stock_sparklines: {e}")
-
-                # 3) sector_exposure_list: ordered list for predictable chart rendering
-                try:
-                    if isinstance(sector_exposure, dict) and sector_exposure:
-                        sector_exposure_list = sorted([
-                            {'sector': k, 'pct': float(v)} for k, v in sector_exposure.items()
-                        ], key=lambda x: x['pct'], reverse=True)
-                except Exception:
-                    sector_exposure_list = []
-            except Exception as e:
-                logger.warning(f"Error preparing frontend series: {e}")
+                if isinstance(sector_exposure, dict) and sector_exposure:
+                    sector_exposure_list = sorted([
+                        {'sector': k, 'pct': float(v)} for k, v in sector_exposure.items()
+                    ], key=lambda x: x['pct'], reverse=True)
+            except Exception:
+                sector_exposure_list = []
 
             latest_summary = {
                 "last_updated_run_id": run_id,
+                "scoring_run_id": scoring_run_id,
                 "last_updated_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 "best_portfolio_details": {
                     "stocks": best_combo,
                     "weights": [round(w, 4) for w in best_weights],
-                    "sharpe_ratio": round(best_sharpe, 4),
+                    "sharpe_forward": round(best_sharpe, 4),
                     "expected_return_annual_pct": round(best_exp_ret * 100, 2),
                     "expected_volatility_annual_pct": round(best_vol * 100, 2),
                     "initial_investment": params.get("initial_investment"),
@@ -1129,9 +1082,6 @@ def main():
                         "benchmark_forward_pe": benchmark_weighted_pe,
                         "portfolio_dividend_yield": portfolio_dividend_yield
                     },
-                    "portfolio_timeseries": portfolio_timeseries,
-                    "stock_sparklines": stock_sparklines,
-                    "ga_fitness_history": ga_fitness_history,
                     "holdings_meta": {}
                 }
             }
@@ -1229,7 +1179,7 @@ def main():
                 # if anything fails, keep holdings_meta empty
                 logger.error(f"Failed to populate holdings_meta: {e}")
 
-            latest_summary_path = os.path.join(params.get("WEB_ACCESSIBLE_DATA_PATH"), "latest_run_summary.json")
+            latest_summary_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "results", "latest_run_summary.json")
             try:
                 with open(latest_summary_path, 'w') as f:
                     json.dump(latest_summary, f, indent=4)
@@ -1237,10 +1187,7 @@ def main():
             except Exception as e:
                 logger.error(f"Failed to create latest run summary: {e}")
 
-        # Copy all result files so the webpage can access them
-        copy_file_to_web_accessible_location("PORTFOLIO_PERFORMANCE_FILE", params, logger)
-        copy_file_to_web_accessible_location("PORTFOLIO_RESULTS_DB_FILE", params, logger)
-        copy_file_to_web_accessible_location("GA_FITNESS_NOISE_DB_FILE", params, logger)
+        # D_Publish.py handles copying to html/data/
 
         final_web_payload = {
             "portfolio_status": "Completed",

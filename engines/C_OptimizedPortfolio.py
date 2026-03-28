@@ -10,7 +10,7 @@ Usage:
     python3 engines/C_OptimizedPortfolio.py
 
 Outputs:
-    - data/results/optimized_portfolio_history.csv (histórico de decisões)
+    - data/results/optimized_portfolio_history.jsonl (histórico de decisões)
     - html/data/optimized_recommendation.json (última recomendação)
 """
 
@@ -46,8 +46,8 @@ PATHS_FILE = os.path.join(ROOT, 'parameters', 'paths.txt')
 
 # Data files
 LEDGER_CSV = os.path.join(ROOT, 'data', 'ledger.csv')
-LEDGER_POSITIONS_JSON = os.path.join(ROOT, 'html', 'data', 'ledger_positions.json')
-LATEST_RUN_JSON = os.path.join(ROOT, 'html', 'data', 'latest_run_summary.json')
+LEDGER_POSITIONS_JSON = os.path.join(ROOT, 'data', 'ledger_positions.json')
+LATEST_RUN_JSON = os.path.join(ROOT, 'data', 'results', 'latest_run_summary.json')
 PORTFOLIO_RESULTS_DB = os.path.join(ROOT, 'data', 'results', 'portfolio_results_db.csv')
 WEB_DATA_PATH = os.path.join(ROOT, 'html', 'data')
 FINDATA_PATH = os.path.join(ROOT, 'data', 'findata')  # Legacy - kept for backward compatibility
@@ -300,7 +300,7 @@ def load_ideal_portfolio(logger: logging.Logger) -> Dict[str, Any]:
         return {
             'stocks': stocks,
             'weights': dict(zip(stocks, weights)),
-            'sharpe_ratio': portfolio.get('sharpe_ratio', 0),
+            'sharpe_ratio': portfolio.get('sharpe_forward', portfolio.get('sharpe_ratio', 0)),
             'expected_return': portfolio.get('expected_return_annual_pct', 0),
             'volatility': portfolio.get('expected_volatility_annual_pct', 0),
             'run_id': data.get('last_updated_run_id', ''),
@@ -545,8 +545,9 @@ def calculate_holdings_metrics(
     window_days = int(params.get('EXPECTED_RETURN_WINDOW_DAYS', 252))
 
     for _, row in holdings.iterrows():
-        ticker = row.get('ticker', row.get('symbol', ''))
-        symbol = normalize_symbol(ticker, ticker_mapping)
+        # Prefer 'symbol' (Yahoo format like PETR3.SA) over 'ticker' (broker name)
+        symbol_raw = row.get('symbol') or row.get('ticker', '')
+        symbol = normalize_symbol(symbol_raw, ticker_mapping)
         net_qty = float(row.get('net_qty', 0))
         net_invested = float(row.get('net_invested', 0))
 
@@ -679,6 +680,7 @@ def calculate_transition_cost(
         total_traded_value += value_change
 
         action = 'BUY' if weight_diff > 0 else 'SELL'
+        estimated_cost = round(value_change * transaction_cost_pct / 100, 4)
         transactions.append({
             'symbol': stock,
             'action': action,
@@ -686,6 +688,7 @@ def calculate_transition_cost(
             'value_change': value_change,
             'current_weight': current_weight,
             'target_weight': target_weight,
+            'cost': estimated_cost,
         })
 
     # Total cost as percentage of portfolio
@@ -880,12 +883,48 @@ def generate_recommendation(
     params: Dict,
     logger: logging.Logger
 ) -> Dict[str, Any]:
-    """Generate the final recommendation"""
+    """Generate the final HOLD / REBALANCE recommendation.
+
+    Decision formula
+    ----------------
+    excess_return = optimal_net_return − holdings_return
+
+        holdings_return   : expected return of the current portfolio,
+                            computed as Σ(weight_i × target_price_i/current_price_i − 1).
+                            Exposed in dashboard_latest.json as model.returns.hold_12m.
+
+        optimal_net_return: expected return of the chosen candidate portfolio,
+                            already net of the one-time transition cost
+                            (transition_cost_pct).  Exposed as model.returns.net_12m.
+
+        excess_return     : how much MORE (%) the model delivers vs. keeping the
+                            current portfolio.  Positive → model wins → REBALANCE.
+                            Exposed as model.returns.excess_net_12m.
+                            NOTE: this is excess over the *current holdings*, NOT
+                            over any external market index.
+
+    The threshold (MIN_EXCESS_RETURN_THRESHOLD, default 0.5 pp) protects against
+    rebalancing for a marginal gain that could be wiped out by market noise.
+
+    # TODO (future improvement): the candidate selection step already uses a
+    # composite score (40% expected_return + 40% Sharpe + 20% momentum), so the
+    # chosen optimal portfolio may score far higher than holdings even when its
+    # raw return is lower.  Consider adding a score-gap clause to the decision:
+    #
+    #   if score_gap > SCORE_GAP_THRESHOLD and excess_return > SOFT_RETURN_FLOOR:
+    #       decision = 'REBALANCE'
+    #
+    # This would allow switching to a portfolio with a better risk-adjusted
+    # profile even when the pure expected-return excess is below the main
+    # threshold.  See generate_recommendation for context.
+    """
 
     min_excess_threshold = float(params.get('MIN_EXCESS_RETURN_THRESHOLD', 0.5))
 
     holdings_return = holdings.get('expected_return', 0)
     optimal_net_return = optimal.get('net_return', 0)
+    # excess_return > 0  → model beats current holdings → favour REBALANCE
+    # excess_return < 0  → current holdings beat model  → favour HOLD
     excess_return = optimal_net_return - holdings_return
 
     # Calculate transactions
@@ -970,7 +1009,7 @@ def save_recommendation(
     # Save latest JSON
     json_path = os.path.expanduser(
         params.get('OPTIMIZED_LATEST_JSON',
-                   os.path.join(ROOT, 'html', 'data', 'optimized_recommendation.json'))
+                   os.path.join(ROOT, 'data', 'results', 'optimized_recommendation.json'))
     )
     os.makedirs(os.path.dirname(json_path), exist_ok=True)
 
@@ -981,12 +1020,12 @@ def save_recommendation(
     except Exception as e:
         logger.error(f"Error saving recommendation JSON: {e}")
 
-    # Append to CSV history
-    csv_path = os.path.expanduser(
+    # Append to JSONL history (one JSON line per run — preserves native arrays)
+    jsonl_path = os.path.expanduser(
         params.get('OPTIMIZED_RESULTS_FILE',
-                   os.path.join(ROOT, 'data', 'results', 'optimized_portfolio_history.csv'))
+                   os.path.join(ROOT, 'data', 'results', 'optimized_portfolio_history.jsonl'))
     )
-    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+    os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
 
     try:
         history_row = {
@@ -1006,20 +1045,21 @@ def save_recommendation(
             'transition_cost_pct': recommendation['comparison']['optimal']['transition_cost_pct'],
             'transaction_cost_pct_used': recommendation['transaction_cost_pct_used'],
             'num_transactions': len(recommendation['transactions']),
-            'holdings_stocks': ','.join(recommendation['comparison']['holdings']['stocks']),
-            'ideal_stocks': ','.join(recommendation['comparison']['ideal']['stocks']),
-            'optimal_stocks': ','.join(recommendation['comparison']['optimal']['stocks']),
+            'holdings_stocks': recommendation['comparison']['holdings']['stocks'],
+            'ideal_stocks': recommendation['comparison']['ideal']['stocks'],
+            'optimal_stocks': recommendation['comparison']['optimal']['stocks'],
         }
 
-        df = pd.DataFrame([history_row])
-        df.to_csv(csv_path, mode='a', header=not os.path.exists(csv_path), index=False)
-        logger.info(f"Appended to CSV history: {csv_path}")
+        with open(jsonl_path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(history_row, ensure_ascii=False) + '\n')
+        logger.info(f"Appended to JSONL history: {jsonl_path}")
 
     except Exception as e:
-        logger.error(f"Error saving CSV history: {e}")
+        logger.error(f"Error saving JSONL history: {e}")
 
     # Copy portfolio_results_db.csv to html/data for web access
-    copy_results_to_web(logger)
+    # NOTE: D_Publish.py now handles this
+    pass
 
 
 def copy_results_to_web(logger: logging.Logger):

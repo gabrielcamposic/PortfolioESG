@@ -58,7 +58,7 @@ def load_config(logger: logging.Logger) -> Dict[str, Any]:
         'TX_FILE': str(ROOT / 'data' / 'transactions_parsed.csv'),
         'FEES_FILE': str(ROOT / 'data' / 'fees_parsed.csv'),
         'LEDGER_FILE': str(ROOT / 'data' / 'ledger.csv'),
-        'PROCESSED_MANIFEST': str(ROOT / 'html' / 'data' / 'processed_notes.json'),
+        'PROCESSED_MANIFEST': str(ROOT / 'data' / 'processed_notes.json'),
         'TICKERS_FILE': str(ROOT / 'parameters' / 'tickers.txt'),
         'PROCESS_NOTES_PERF_FILE': str(ROOT / 'data' / 'Results' / 'process_notes_performance.csv'),
     }
@@ -516,6 +516,7 @@ def main():
         logger.info("Rebuilding ledger...")
         summary = rebuild_ledger(config, logger)
         _log_rebuild_summary(summary, logger)
+
 
         perf_data['total_invested'] = str(summary.get('total_invested', 0))
         perf_data['implementation_cost_pct'] = str(summary.get('implementation_pct', 0))

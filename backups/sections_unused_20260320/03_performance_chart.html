@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 — Performance</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1d27;
+    --border: #2a2e3d;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ac;
+    --text-muted: #636978;
+    --accent-blue: #4dabf7;
+    --accent-green: #51cf66;
+    --accent-red: #ff6b6b;
+    --accent-yellow: #ffd43b;
+    --accent-orange: #ff922b;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 3px; height: 18px;
+    background: var(--accent-blue); border-radius: 2px;
+  }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; margin-bottom: 16px;
+  }
+
+  /* ── Chart ── */
+  .chart-wrapper { position: relative; height: 380px; margin-bottom: 8px; }
+
+  /* ── Performance windows table ── */
+  .perf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .perf-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-muted); padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .perf-table td {
+    padding: 8px 12px; font-family: var(--font-mono); font-size: 13px;
+    border-bottom: 1px solid rgba(42,46,61,0.4);
+  }
+  .perf-table td:first-child {
+    font-family: var(--font-sans); font-weight: 600; color: var(--text-secondary);
+  }
+  .perf-table tr:last-child td { border-bottom: none; }
+  .positive { color: var(--accent-green); }
+  .negative { color: var(--accent-red); }
+
+  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; }
+
+  @media (max-width: 640px) {
+    .chart-wrapper { height: 260px; }
+    .perf-table { font-size: 12px; }
+    .perf-table th, .perf-table td { padding: 6px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="section-title">Performance</div>
+
+<div class="card">
+  <div class="chart-wrapper">
+    <canvas id="perf-chart"></canvas>
+  </div>
+  <div id="chart-loading" class="loading">Carregando série temporal...</div>
+</div>
+
+<div class="card">
+  <div id="perf-windows"><span class="loading">Carregando janelas de performance...</span></div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return '—';
+  const pct = (v * 100).toFixed(2);
+  const sign = v >= 0 ? '+' : '';
+  return sign + pct + '%';
+}
+
+function colorClass(v) { return v >= 0 ? 'positive' : 'negative'; }
+
+async function fetchJSON(file) {
+  const r = await fetch(`${DATA_BASE}/${file}`);
+  if (!r.ok) throw new Error(`${file}: ${r.status}`);
+  return r.json();
+}
+
+function parseCSV(url) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true,
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+      complete: (results) => resolve(results.data),
+      error: (err) => reject(err),
+    });
+  });
+}
+
+// Downsample: keep every Nth point + always keep first and last
+function downsample(arr, maxPoints = 500) {
+  if (arr.length <= maxPoints) return arr;
+  const step = Math.ceil(arr.length / maxPoints);
+  const result = [];
+  for (let i = 0; i < arr.length; i += step) result.push(arr[i]);
+  if (result[result.length - 1] !== arr[arr.length - 1]) result.push(arr[arr.length - 1]);
+  return result;
+}
+
+async function renderChart() {
+  try {
+    const rows = await parseCSV(`${DATA_BASE}/portfolio_timeseries.csv`);
+    document.getElementById('chart-loading').style.display = 'none';
+
+    const sampled = downsample(rows, 500);
+    const labels = sampled.map(r => r.date);
+    const portfolio = sampled.map(r => r.portfolio_accum_return);
+    const benchmark = sampled.map(r => r.benchmark1_accum_return);
+    const benchName = rows[0]?.benchmark1_name || 'Benchmark';
+
+    const ctx = document.getElementById('perf-chart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Portfólio',
+            data: portfolio,
+            borderColor: '#4dabf7',
+            backgroundColor: 'rgba(77,171,247,0.08)',
+            fill: true,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHitRadius: 6,
+            tension: 0.1,
+          },
+          {
+            label: benchName,
+            data: benchmark,
+            borderColor: '#636978',
+            borderWidth: 1.5,
+            borderDash: [4, 3],
+            pointRadius: 0,
+            pointHitRadius: 6,
+            tension: 0.1,
+            fill: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: {
+            type: 'category',
+            ticks: {
+              color: '#636978',
+              font: { size: 10 },
+              maxTicksLimit: 12,
+              maxRotation: 0,
+            },
+            grid: { color: 'rgba(42,46,61,0.4)' },
+          },
+          y: {
+            ticks: {
+              color: '#636978',
+              font: { size: 10, family: "'SF Mono', monospace" },
+              callback: v => v.toLocaleString('pt-BR'),
+            },
+            grid: { color: 'rgba(42,46,61,0.4)' },
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#9aa0ac', font: { size: 12 }, usePointStyle: true, pointStyleWidth: 8 }
+          },
+          tooltip: {
+            backgroundColor: '#1a1d27',
+            borderColor: '#2a2e3d',
+            borderWidth: 1,
+            titleColor: '#e8eaed',
+            bodyColor: '#9aa0ac',
+            bodyFont: { family: "'SF Mono', monospace", size: 12 },
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+            }
+          }
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Chart error:', err);
+    document.getElementById('chart-loading').textContent = `Erro: ${err.message}`;
+    document.getElementById('chart-loading').style.color = 'var(--accent-red)';
+  }
+}
+
+async function renderWindows() {
+  try {
+    const dashboard = await fetchJSON('dashboard_latest.json');
+    const perf = dashboard.real?.performance || {};
+    const windows = ['YTD', '3M', '6M', '12M', '24M'];
+
+    let html = `<table class="perf-table">
+      <thead><tr>
+        <th>Janela</th><th>Portfólio</th><th>Benchmark</th><th>Excesso</th>
+      </tr></thead><tbody>`;
+
+    for (const w of windows) {
+      const p = perf[w];
+      if (!p) continue;
+      const excess = (p.portfolio || 0) - (p.benchmark || 0);
+      html += `<tr>
+        <td>${w}</td>
+        <td class="${colorClass(p.portfolio)}">${fmtPct(p.portfolio)}</td>
+        <td class="${colorClass(p.benchmark)}">${fmtPct(p.benchmark)}</td>
+        <td class="${colorClass(excess)}">${fmtPct(excess)}</td>
+      </tr>`;
+    }
+
+    html += `</tbody></table>`;
+    document.getElementById('perf-windows').innerHTML = html;
+  } catch (err) {
+    console.error('Windows error:', err);
+    document.getElementById('perf-windows').innerHTML = `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+  }
+}
+
+renderChart();
+renderWindows();
+</script>
+</body>
+</html>
+

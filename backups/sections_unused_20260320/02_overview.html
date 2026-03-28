@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 — Visão Geral do Portfólio</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-card: #1a1d27;
+    --bg-card-alt: #1e2231;
+    --border: #2a2e3d;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ac;
+    --text-muted: #636978;
+    --accent-blue: #4dabf7;
+    --accent-green: #51cf66;
+    --accent-red: #ff6b6b;
+    --accent-yellow: #ffd43b;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 18px;
+    background: var(--accent-blue);
+    border-radius: 2px;
+  }
+
+  /* ── Two-column grid ── */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .card-header {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-header.model { color: var(--accent-blue); border-color: rgba(77,171,247,0.3); }
+  .card-header.real { color: var(--accent-green); border-color: rgba(81,207,102,0.3); }
+
+  /* ── Metric rows ── */
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+  }
+  .metric-row + .metric-row { border-top: 1px solid rgba(42,46,61,0.5); }
+
+  .metric-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .metric-value {
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+  }
+  .metric-value.positive { color: var(--accent-green); }
+  .metric-value.negative { color: var(--accent-red); }
+
+  /* ── Pie chart area ── */
+  .chart-container {
+    margin-top: 16px;
+    position: relative;
+    height: 200px;
+  }
+
+  /* ── Period labels (Model) ── */
+  .period-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  /* ── Loading ── */
+  .loading { color: var(--text-muted); font-style: italic; font-size: 13px; padding: 20px; }
+
+  /* ── Mobile ── */
+  @media (max-width: 700px) {
+    .overview-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="section-title">Visão Geral do Portfólio</div>
+
+<div class="overview-grid" id="overview-grid">
+  <div class="card" id="model-card"><span class="loading">Carregando modelo...</span></div>
+  <div class="card" id="real-card"><span class="loading">Carregando real...</span></div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+function fmtPct(v, decimals = 2) {
+  if (v == null || isNaN(v)) return '—';
+  return (v * 100).toFixed(decimals) + '%';
+}
+
+function fmtPctDirect(v, decimals = 2) {
+  // Value already in % (e.g. 42.58)
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(decimals) + '%';
+}
+
+function fmtNum(v, decimals = 4) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(decimals);
+}
+
+function metricRow(label, value, cls = '') {
+  return `<div class="metric-row">
+    <span class="metric-label">${label}</span>
+    <span class="metric-value ${cls}">${value}</span>
+  </div>`;
+}
+
+function colorClass(v) {
+  if (v == null || isNaN(v)) return '';
+  return v >= 0 ? 'positive' : 'negative';
+}
+
+async function fetchJSON(file) {
+  const r = await fetch(`${DATA_BASE}/${file}`);
+  if (!r.ok) throw new Error(`${file}: ${r.status}`);
+  return r.json();
+}
+
+// Sector colors
+const SECTOR_COLORS = [
+  '#4dabf7', '#51cf66', '#ff922b', '#ffd43b', '#ff6b6b',
+  '#cc5de8', '#20c997', '#748ffc', '#e8590c', '#adb5bd',
+];
+
+async function render() {
+  try {
+    const dashboard = await fetchJSON('dashboard_latest.json');
+    const model = dashboard.model;
+    const real = dashboard.real;
+
+    // ── Model card ──
+    const mReturns = model.returns || {};
+    const mRisk = model.risk || {};
+    const mDecision = model.decision || {};
+
+    let modelHTML = `<div class="card-header model">Portfólio Modelo (Forward)</div>`;
+    modelHTML += metricRow('Retorno Esperado (12M)', fmtPctDirect(mReturns.historical_annual), 'positive');
+    modelHTML += metricRow('Retorno Bruto (12M)', fmtPctDirect(mReturns.gross_12m), 'positive');
+    modelHTML += metricRow('Retorno Líquido (12M)', fmtPctDirect(mReturns.net_12m), 'positive');
+    modelHTML += metricRow('Excesso s/ Benchmark', fmtPctDirect(mReturns.excess_net_12m), colorClass(mReturns.excess_net_12m));
+    modelHTML += metricRow('Volatilidade Anual', fmtPctDirect(mRisk.volatility_annual));
+    modelHTML += metricRow('Sharpe Forward', fmtNum(mRisk.sharpe, 2));
+    modelHTML += metricRow('HHI (concentração)', fmtNum(mRisk.hhi, 4));
+    modelHTML += metricRow('Decisão', `<span style="color: ${mDecision.verdict === 'REBALANCE' ? 'var(--accent-red)' : 'var(--accent-green)'}">${mDecision.verdict || '—'}</span>`);
+
+    // Pie chart
+    const sectors = model.composition?.sector_exposure || [];
+    if (sectors.length > 0) {
+      modelHTML += `<div class="chart-container"><canvas id="sector-pie"></canvas></div>`;
+    }
+
+    document.getElementById('model-card').innerHTML = modelHTML;
+
+    // Draw pie chart
+    if (sectors.length > 0) {
+      const ctx = document.getElementById('sector-pie').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: sectors.map(s => s.sector),
+          datasets: [{
+            data: sectors.map(s => (s.pct * 100).toFixed(1)),
+            backgroundColor: SECTOR_COLORS.slice(0, sectors.length),
+            borderColor: 'transparent',
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '55%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: '#9aa0ac',
+                font: { size: 11 },
+                padding: 8,
+                usePointStyle: true,
+                pointStyleWidth: 8,
+                generateLabels(chart) {
+                  const data = chart.data;
+                  return data.labels.map((label, i) => ({
+                    text: `${label} (${data.datasets[0].data[i]}%)`,
+                    fillStyle: data.datasets[0].backgroundColor[i],
+                    strokeStyle: 'transparent',
+                    pointStyle: 'circle',
+                    index: i,
+                  }));
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.label}: ${ctx.parsed}%`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ── Real card ──
+    const rPortfolio = real.portfolio || {};
+    const rRelative = real.relative || {};
+    const rStructure = real.structure || {};
+    const rPerf = real.performance || {};
+
+    let realHTML = `<div class="card-header real">Portfólio Real (Realizado)</div>`;
+    realHTML += metricRow('Retorno Total (TWR)', fmtPct(rPortfolio.total_return_twr / 100), colorClass(rPortfolio.total_return_twr));
+    realHTML += metricRow('Retorno Anualizado', fmtPct(rPortfolio.annual_return), colorClass(rPortfolio.annual_return));
+    realHTML += metricRow('Volatilidade Anual', fmtPct(rPortfolio.volatility));
+    realHTML += metricRow('Sharpe', fmtNum(rPortfolio.sharpe, 4));
+    realHTML += metricRow('Sortino', fmtNum(rPortfolio.sortino, 4));
+    realHTML += metricRow('Max Drawdown', fmtPct(rPortfolio.max_drawdown), 'negative');
+    realHTML += metricRow('Calmar', fmtNum(rPortfolio.calmar, 4));
+    realHTML += metricRow('Beta', fmtNum(rRelative.beta, 4));
+
+    // Historical period
+    const meta = real.meta || {};
+    if (meta.history_start) {
+      realHTML += `<div class="period-label">${meta.history_start} → ${meta.history_end} (${meta.observations} obs.)</div>`;
+    }
+
+    document.getElementById('real-card').innerHTML = realHTML;
+
+  } catch (err) {
+    console.error('Overview render error:', err);
+    document.getElementById('model-card').innerHTML = `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
+

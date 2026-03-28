@@ -65,6 +65,7 @@ def initialize_performance_data(script_version: str, script_name: str = "script"
         Dictionary with initialized performance tracking fields.
     """
     return {
+        "run_id": os.environ.get('PIPELINE_RUN_ID', ''),
         "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         f"{script_name}_version": script_version,
         "param_load_duration_s": 0.0,

@@ -1,7 +1,7 @@
 name: Run Portfolio Analysis
 
 on:
-  # Executa manualmente
+  # Executa manualmente (agendamento automático desativado — AWS secrets não configurados)
   workflow_dispatch:
     inputs:
       run_download:
@@ -20,9 +20,6 @@ on:
         default: 'true'
         type: boolean
 
-  # Executa diariamente às 20h (horário de Brasília = 23h UTC)
-  schedule:
-    - cron: '0 23 * * 1-5'  # Segunda a Sexta, 23:00 UTC
 
 env:
   PYTHON_VERSION: '3.11'

@@ -5,7 +5,7 @@ SCORING_LOG_FILE = ~/PortfolioESG/logs/scoring.log
 SCORED_STOCKS_DB_FILE = ~/PortfolioESG/data/results/scored_stocks.csv
 SECTOR_PE_DB_FILE = ~/PortfolioESG/data/results/sector_pe.csv
 CORRELATION_MATRIX_FILE = ~/PortfolioESG/data/results/correlation_matrix.csv
-SCORING_PERFORMANCE_FILE = ~/PortfolioESG/data/Results/scoring_performance.csv
+SCORING_PERFORMANCE_FILE = ~/PortfolioESG/data/results/scoring_performance.csv
 
 # --- General Settings ---
 # Enable extensive debug logging (true/false)

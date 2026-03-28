@@ -7,14 +7,12 @@ Generates historical portfolio value data based on:
 - Transaction history (ledger.csv)
 - Daily stock prices (StockDataDB.csv)
 
-Output: html/data/portfolio_history.json
+Output: data/portfolio_history.csv
 """
 
 # --- Script Version ---
-PORTFOLIO_HISTORY_VERSION = "2.0.0"  # Refactored with consistent structure
+PORTFOLIO_HISTORY_VERSION = "3.1.0"  # Shared ticker normalization + skip weekends
 
-import json
-import csv
 import sys
 import logging
 import pandas as pd
@@ -35,8 +33,8 @@ DATA_DIR = BASE_DIR / 'data'
 HTML_DATA_DIR = BASE_DIR / 'html' / 'data'
 FINDB_DIR = DATA_DIR / 'findb'
 STOCK_DATA_DB = FINDB_DIR / 'StockDataDB.csv'
-LEDGER_CSV = HTML_DATA_DIR / 'ledger.csv'
-OUTPUT_FILE = HTML_DATA_DIR / 'portfolio_history.json'
+LEDGER_CSV = DATA_DIR / 'ledger.csv'
+OUTPUT_FILE = DATA_DIR / 'portfolio_history.csv'
 
 # Simple logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -129,103 +127,25 @@ def get_stock_price(symbol, date):
     return None
 
 
-# Cache for broker name to symbol mappings (loaded once)
-_BROKER_NAME_CACHE = None
-
-def _load_broker_name_mappings():
-    """Load broker name to symbol mappings from tickers.txt"""
-    global _BROKER_NAME_CACHE
-    if _BROKER_NAME_CACHE is not None:
-        return _BROKER_NAME_CACHE
-
-    _BROKER_NAME_CACHE = {}
-    tickers_file = BASE_DIR / 'parameters' / 'tickers.txt'
-
-    if not tickers_file.exists():
-        print(f"[WARN] tickers.txt not found at {tickers_file}")
-        return _BROKER_NAME_CACHE
-
-    try:
-        with open(tickers_file, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                ticker = (row.get('Ticker') or '').strip()
-                broker_name = (row.get('BrokerName') or '').strip()
-                company_name = (row.get('Name') or '').strip()
-
-                if ticker:
-                    # Map by BrokerName (exact match, case-insensitive)
-                    if broker_name:
-                        _BROKER_NAME_CACHE[broker_name.upper()] = ticker
-
-                    # Also create partial mappings from company name
-                    # e.g., "Petróleo Brasileiro S.A. - Petrobras" -> extract "PETROBRAS"
-                    if company_name:
-                        # Try to extract key words
-                        name_upper = company_name.upper()
-                        _BROKER_NAME_CACHE[name_upper] = ticker
-
-                        # Extract common patterns like "- Petrobras" or "CEMIG"
-                        if ' - ' in company_name:
-                            short_name = company_name.split(' - ')[-1].strip().upper()
-                            if short_name and len(short_name) >= 3:
-                                _BROKER_NAME_CACHE[short_name] = ticker
-
-        print(f"[INFO] Loaded {len(_BROKER_NAME_CACHE)} broker name mappings from tickers.txt")
-    except Exception as e:
-        print(f"[WARN] Error loading tickers.txt: {e}")
-
-    return _BROKER_NAME_CACHE
+from shared_tools.ticker_normalization import resolve_broker_ticker
 
 
 def normalize_symbol(ticker_name):
     """
     Convert ticker name from ledger (broker format) to Yahoo Finance symbol.
 
-    Uses tickers.txt as the single source of truth via the BrokerName column.
-    If a ticker is not found, it will be skipped and a warning logged.
+    Delegates to shared_tools.ticker_normalization.resolve_broker_ticker()
+    which handles exact matches, corporate-action modifier stripping (EX/EDS/ED),
+    company name matching, and prefix matching.
     """
-    if not ticker_name:
-        return None
-
-    ticker_name_clean = ticker_name.strip()
-
-    # Skip known non-stock entries (dividends, rights, etc.)
-    skip_patterns = [' DO ', ' DIR ', ' SUB ', ' BON ']
-    for pattern in skip_patterns:
-        if pattern in ticker_name_clean.upper():
-            return None
-
-    # Load mappings from tickers.txt
-    mappings = _load_broker_name_mappings()
-
-    # Try exact match (case-insensitive)
-    if ticker_name_clean.upper() in mappings:
-        return mappings[ticker_name_clean.upper()]
-
-    # Try matching by extracting the company name part
-    # e.g., "PETROBRAS ON N2" -> try "PETROBRAS"
-    words = ticker_name_clean.upper().split()
-    if words:
-        # Try first word (usually company name)
-        first_word = words[0]
-        if first_word in mappings:
-            return mappings[first_word]
-
-        # Try first two words combined (for names like "MOURA DUBEUX")
-        if len(words) >= 2:
-            first_two = f"{words[0]} {words[1]}"
-            if first_two in mappings:
-                return mappings[first_two]
-
-            # Also try without space (for cases like "MOURA DUBEUXON")
-            for key in mappings:
-                if key.startswith(first_word) and len(key) > len(first_word):
-                    return mappings[key]
-
-    # If not found, log warning (this means BrokerName needs to be added to tickers.txt)
-    print(f"[WARN] Unknown ticker '{ticker_name}' - please add BrokerName mapping to tickers.txt")
-    return None
+    result = resolve_broker_ticker(ticker_name)
+    if result is None and ticker_name and ticker_name.strip():
+        # Only warn for entries that aren't skip-pattern matches
+        skip_patterns = [' DO ', ' DIR ', ' SUB ', ' BON ']
+        upper = ticker_name.upper()
+        if not any(p in upper for p in skip_patterns):
+            print(f"[WARN] Unknown ticker '{ticker_name}' - please add BrokerName mapping to tickers.txt")
+    return result
 
 
 def build_portfolio_history(transactions_df):
@@ -292,6 +212,11 @@ def build_portfolio_history(transactions_df):
     running_cost_basis = {}
 
     while current_date <= end_date:
+        # T3: Skip weekends (Saturday=5, Sunday=6)
+        if current_date.weekday() >= 5:
+            current_date += timedelta(days=1)
+            continue
+
         # Update holdings from transactions on this date
         if current_date in transactions_by_date:
             for tx in transactions_by_date[current_date]:
@@ -336,23 +261,20 @@ def build_portfolio_history(transactions_df):
                     'value': round(market_value, 2)
                 })
 
-        # Only add entry if we have holdings and price data
+        # Only add entries if we have holdings and price data
         if has_price_data and total_cost > 0:
-            day_transactions = transactions_by_date.get(current_date, None)
-
-            entry = {
-                'date': current_date.isoformat(),
-                'market_value': round(total_market_value, 2),
-                'cost_basis': round(total_cost, 2),
-                'profit_loss': round(total_market_value - total_cost, 2),
-                'profit_loss_pct': round(((total_market_value / total_cost) - 1) * 100, 2) if total_cost > 0 else 0,
-                'positions': position_details
-            }
-
-            if day_transactions:
-                entry['transactions'] = day_transactions
-
-            history.append(entry)
+            for pos in position_details:
+                history.append({
+                    'date': current_date.isoformat(),
+                    'symbol': pos['symbol'],
+                    'qty': pos['qty'],
+                    'price': pos['price'],
+                    'value': pos['value'],
+                    'market_value': round(total_market_value, 2),
+                    'cost_basis': round(total_cost, 2),
+                    'pnl': round(total_market_value - total_cost, 2),
+                    'pnl_pct': round(((total_market_value / total_cost) - 1) * 100, 2) if total_cost > 0 else 0,
+                })
 
         current_date += timedelta(days=1)
 
@@ -369,23 +291,21 @@ def main():
 
     if transactions_df.empty:
         print("[WARN] No transactions found. Creating empty history.")
-        history = []
+        rows = []
     else:
         print(f"[INFO] Loaded {len(transactions_df)} transactions")
 
         # Build history
-        history = build_portfolio_history(transactions_df)
-        print(f"[INFO] Generated {len(history)} daily records")
+        rows = build_portfolio_history(transactions_df)
+        n_dates = len(set(r['date'] for r in rows))
+        print(f"[INFO] Generated {len(rows)} position rows across {n_dates} dates")
 
-    # Save output
-    output = {
-        'generated_at': datetime.now().isoformat(),
-        'history': history
-    }
-
+    # Save output as CSV
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
+    df = pd.DataFrame(rows) if rows else pd.DataFrame(
+        columns=['date', 'symbol', 'qty', 'price', 'value', 'market_value', 'cost_basis', 'pnl', 'pnl_pct']
+    )
+    df.to_csv(OUTPUT_FILE, index=False)
 
     print(f"[INFO] Saved portfolio history to: {OUTPUT_FILE}")
 

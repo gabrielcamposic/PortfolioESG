@@ -17,7 +17,6 @@ from shared_tools.shared_utils import (
     load_parameters_from_file,
     get_previous_business_day,
     get_sao_paulo_holidays,
-    copy_file_to_web_accessible_location,
 )
 from shared_tools.shared_utils import write_json_atomic
 from shared_tools.path_utils import resolve_paths_in_params
@@ -37,10 +36,19 @@ _existing_dates_cache: Optional[Dict[str, set]] = None
 
 
 def get_consolidated_skip_file(params: dict[str, Any]) -> str:
-    """Return the path to the consolidated skipped_tickers.json file."""
+    """Return the path to the consolidated skipped_tickers.jsonl file."""
     findb_dir = params.get('FINDB_DIR') or os.path.dirname(params.get('FINDB_FILE', ''))
     if not findb_dir:
         # Fallback to data/findb
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        findb_dir = os.path.join(script_dir, '..', 'data', 'findb')
+    return os.path.join(findb_dir, 'skipped_tickers.jsonl')
+
+
+def _get_legacy_skip_json(params: dict[str, Any]) -> str:
+    """Return the path to the legacy skipped_tickers.json (for one-time migration)."""
+    findb_dir = params.get('FINDB_DIR') or os.path.dirname(params.get('FINDB_FILE', ''))
+    if not findb_dir:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         findb_dir = os.path.join(script_dir, '..', 'data', 'findb')
     return os.path.join(findb_dir, 'skipped_tickers.json')
@@ -59,9 +67,13 @@ def get_ticker_skip_file(ticker: str, params: dict[str, Any]) -> str:
 
 
 def load_all_skipped_tickers(params: dict[str, Any], logger: logging.Logger) -> dict[str, list]:
-    """Load all skipped tickers from the consolidated file.
+    """Load all skipped tickers from the consolidated JSONL file.
 
-    Falls back to scanning individual skip.json files if consolidated file doesn't exist.
+    Each line in the JSONL is {"ticker": "...", "skip_data": [...]}.
+    Last entry per ticker wins (append-only semantics).
+
+    Falls back to migrating from legacy skipped_tickers.json or scanning
+    individual skip.json files if the JSONL doesn't exist yet.
     Results are cached for performance.
     """
     global _consolidated_skips_cache
@@ -69,17 +81,41 @@ def load_all_skipped_tickers(params: dict[str, Any], logger: logging.Logger) -> 
     if _consolidated_skips_cache is not None:
         return _consolidated_skips_cache
 
-    consolidated_file = get_consolidated_skip_file(params)
+    jsonl_file = get_consolidated_skip_file(params)
 
-    # Try consolidated file first
-    if os.path.exists(consolidated_file):
+    # Try JSONL file first
+    if os.path.exists(jsonl_file):
+        _consolidated_skips_cache = {}
         try:
-            with open(consolidated_file, 'r') as skip_f:
-                _consolidated_skips_cache = json.load(skip_f)
-                logger.info(f"Loaded consolidated skips for {len(_consolidated_skips_cache)} tickers")
+            with open(jsonl_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    entry = json.loads(line)
+                    _consolidated_skips_cache[entry['ticker']] = entry['skip_data']
+            logger.info(f"Loaded consolidated skips for {len(_consolidated_skips_cache)} tickers from JSONL")
+            return _consolidated_skips_cache
+        except (json.JSONDecodeError, KeyError, OSError) as err:
+            logger.warning(f"Could not read JSONL skip file: {err}. Will attempt migration.")
+            _consolidated_skips_cache = None
+
+    # One-time migration: convert legacy skipped_tickers.json → .jsonl
+    legacy_json = _get_legacy_skip_json(params)
+    if os.path.exists(legacy_json):
+        try:
+            with open(legacy_json, 'r', encoding='utf-8') as f:
+                legacy_data = json.load(f)
+            if isinstance(legacy_data, dict) and legacy_data:
+                os.makedirs(os.path.dirname(jsonl_file), exist_ok=True)
+                with open(jsonl_file, 'w', encoding='utf-8') as out_f:
+                    for ticker, skip_data in sorted(legacy_data.items()):
+                        out_f.write(json.dumps({"ticker": ticker, "skip_data": skip_data}, ensure_ascii=False) + '\n')
+                logger.info(f"Migrated {len(legacy_data)} tickers from skipped_tickers.json → .jsonl")
+                _consolidated_skips_cache = legacy_data
                 return _consolidated_skips_cache
-        except (json.JSONDecodeError, OSError) as skip_err:
-            logger.warning(f"Could not read consolidated skip file: {skip_err}. Falling back to individual files.")
+        except (json.JSONDecodeError, OSError) as err:
+            logger.warning(f"Could not migrate legacy skip file: {err}. Falling back to individual files.")
 
     # Fallback: scan individual skip.json files (legacy support)
     _consolidated_skips_cache = {}
@@ -126,10 +162,10 @@ def load_ticker_skip_data(ticker: str, params: dict[str, Any], logger: logging.L
 
 
 def save_ticker_skip_data(ticker: str, skip_data: list, params: dict[str, Any], logger: logging.Logger) -> None:
-    """Save skip data for a ticker to both consolidated and individual files.
+    """Save skip data for a ticker by appending to the JSONL file.
 
-    Updates the in-memory cache and saves to the consolidated file.
-    Also saves to individual file for backward compatibility during migration.
+    Updates the in-memory cache and appends one line to the JSONL file.
+    Last entry per ticker wins on next load.
     """
     global _consolidated_skips_cache
 
@@ -138,15 +174,15 @@ def save_ticker_skip_data(ticker: str, skip_data: list, params: dict[str, Any], 
         _consolidated_skips_cache = {}
     _consolidated_skips_cache[ticker] = skip_data
 
-    # Save to consolidated file
-    consolidated_file = get_consolidated_skip_file(params)
+    # Append to JSONL file
+    jsonl_file = get_consolidated_skip_file(params)
     try:
-        os.makedirs(os.path.dirname(consolidated_file), exist_ok=True)
-        with open(consolidated_file, 'w') as out_f:
-            json.dump(_consolidated_skips_cache, out_f, indent=2, sort_keys=True)
-        logger.info(f"Updated consolidated skip file with {ticker}")
+        os.makedirs(os.path.dirname(jsonl_file), exist_ok=True)
+        with open(jsonl_file, 'a', encoding='utf-8') as out_f:
+            out_f.write(json.dumps({"ticker": ticker, "skip_data": skip_data}, ensure_ascii=False) + '\n')
+        logger.info(f"Appended skip data for {ticker} to JSONL")
     except OSError as save_err:
-        logger.warning(f"Could not save consolidated skip file: {save_err}")
+        logger.warning(f"Could not save to JSONL skip file: {save_err}")
 
 
 
@@ -283,6 +319,7 @@ def initialize_performance_data(script_version: str) -> dict[str, Any]:
         "overall_script_duration_s"
     ]
     perf_data: dict[str, Any] = {
+        "run_id": os.environ.get('PIPELINE_RUN_ID', ''),
         "run_start_timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         "download_py_version": script_version,
         "total_tickers_processed": 0,
@@ -498,15 +535,6 @@ def download_and_process_data(
                 # Normalize and ensure we pass a plain `str` to the writer
                 download_progress_file_str = str(os.fspath(download_progress_file))
                 write_json_atomic(download_progress_file_str, web_payload)
-                # also write into web-accessible data folder if configured
-                web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
-                if web_folder:
-                    try:
-                        os.makedirs(web_folder, exist_ok=True)
-                        web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
-                        write_json_atomic(web_path, web_payload)
-                    except Exception:
-                        pass
         except Exception as e:
             logger.debug(f"Could not write download progress JSON for {ticker}: {e}")
 
@@ -610,14 +638,6 @@ def download_and_process_data(
         if download_progress_file:
             download_progress_file_str = str(os.fspath(download_progress_file))
             write_json_atomic(download_progress_file_str, final_web_payload)
-            web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH')
-            if web_folder:
-                try:
-                    os.makedirs(web_folder, exist_ok=True)
-                    web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
-                    write_json_atomic(web_path, final_web_payload)
-                except Exception:
-                    pass
     except Exception as e:
         logger.debug(f"Could not write final download progress JSON: {e}")
 
@@ -907,15 +927,6 @@ def main():
             # Use atomic writer to create initial progress JSON for the frontend
             download_progress_file_str = str(os.fspath(download_progress_file))
             write_json_atomic(download_progress_file_str, initial_progress_data)
-            # Also write a copy into the web-accessible data folder if configured
-            web_folder = params.get('WEB_ACCESSIBLE_DATA_PATH') if 'params' in locals() else None
-            if web_folder:
-                try:
-                    os.makedirs(web_folder, exist_ok=True)
-                    web_path = os.path.join(web_folder, os.path.basename(download_progress_file))
-                    write_json_atomic(web_path, initial_progress_data)
-                except OSError:
-                    pass
     except OSError as prog_err:
         print(f"CRITICAL: Could not initialize progress file {download_progress_file}. Error: {prog_err}")
 
@@ -1010,7 +1021,7 @@ def main():
     finally:
         perf_data["overall_script_duration_s"] = time.time() - overall_start_time
         log_performance_data(perf_data, params, logger)
-        copy_file_to_web_accessible_location("DOWNLOAD_PERFORMANCE_FILE", params, logger)
+        # D_Publish.py handles copying to html/data/
         logger.info("Execution complete.")
 
 if __name__ == "__main__":

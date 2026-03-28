@@ -18,17 +18,18 @@ export PYTHONPATH="$PROJECT_ROOT"
 # Force Python to run in unbuffered mode to avoid output pauses in terminal
 export PYTHONUNBUFFERED=1
 
+# Generate a shared run ID for the entire pipeline (if not already set by run_all.sh)
+# All engines (A2, A3, A4) will use this instead of generating their own
+export PIPELINE_RUN_ID="${PIPELINE_RUN_ID:-$(date '+%Y%m%d-%H%M%S')}"
+
 # Define paths to the scripts and the main progress file
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 DOWNLOAD_SCRIPT="$PROJECT_ROOT/engines/A1_Download.py"
 SCORING_SCRIPT="$PROJECT_ROOT/engines/A2_Scoring.py"
 PORTFOLIO_SCRIPT="$PROJECT_ROOT/engines/A3_Portfolio.py"
 ANALYSIS_SCRIPT="$PROJECT_ROOT/engines/A4_Analysis.py"
-PIPELINE_JSON_FILE="$PROJECT_ROOT/html/data/pipeline_progress.json"
+PIPELINE_JSON_FILE="$PROJECT_ROOT/data/pipeline_progress.json"
 
-# Path to the script that generates frontend JSON assets (ledger/pipeline/scored targets)
-# This was missing previously and caused an 'unbound variable' error when referenced later.
-GENERATE_ASSETS_SCRIPT="$PROJECT_ROOT/engines/B3_Generate_json.py"
 
 # --- Cleanup Trap ---
 # This function is registered to run automatically when the script exits,
@@ -121,17 +122,9 @@ update_pipeline_status "Awaiting Next Stage" "Portfolio Optimization completed s
 run_stage "Analysis" "$ANALYSIS_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Analysis completed successfully."
 
-# 5. Generate frontend assets JSON (ledger/pipeline) so UI can fetch precomputed JSON
-run_stage "Generate Assets JSON" "$GENERATE_ASSETS_SCRIPT"
-update_pipeline_status "Awaiting Next Stage" "Generated assets JSON for frontend."
-
-# 6. Update holdings metadata (forwardPE, currentPrice, targetPrice) in latest_run_summary.json
-log_message "Updating holdings metadata..."
-if [ -f "$VENV_PYTHON" ]; then
-    "$VENV_PYTHON" "$PROJECT_ROOT/scripts/update_holdings_meta.py" || log_message "WARNING: update_holdings_meta.py failed (non-critical)"
-else
-    python3 "$PROJECT_ROOT/scripts/update_holdings_meta.py" || log_message "WARNING: update_holdings_meta.py failed (non-critical)"
-fi
+# 5. Publish frontend assets via D_Publish.py
+run_stage "Publish Frontend Assets" "$PROJECT_ROOT/engines/D_Publish.py"
+update_pipeline_status "Awaiting Next Stage" "Published frontend assets."
 
 # 7. Finalize the pipeline status
 log_message "Pipeline execution completed successfully."

@@ -1,13 +1,7 @@
 name: Deploy to GCP
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'html/**'
-      - 'parameters/**'
-      - '.github/workflows/deploy-gcp.yml'
-  workflow_dispatch:  # Permite trigger manual
+  workflow_dispatch:  # Apenas trigger manual (push automático desativado — GCP secrets não configurados)
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}

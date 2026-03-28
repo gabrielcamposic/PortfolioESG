@@ -15,7 +15,7 @@ Output:
 """
 
 # --- Script Version ---
-CONSOLIDATE_LEDGER_VERSION = "2.0.0"  # Refactored with shared_utils, logging, and parameter loading
+CONSOLIDATE_LEDGER_VERSION = "2.1.0"  # Shared ticker normalization — aggregate by resolved symbol
 
 import csv
 import json
@@ -38,6 +38,8 @@ from shared_tools.shared_utils import (
     initialize_performance_data,
     log_performance_data,
 )
+
+from shared_tools.ticker_normalization import resolve_broker_ticker
 
 # ----------------------------------------------------------- #
 #                      Configuration                          #
@@ -76,7 +78,7 @@ def load_config(logger: logging.Logger) -> Dict[str, Any]:
         'TICKERS_FILE': Path(params.get('TICKERS_FILE', defaults['TICKERS_FILE'])),
         'FINDB_FILE': Path(params.get('FINDB_FILE', defaults['FINDB_FILE'])),
         'SCORED_STOCKS_FILE': Path(params.get('SCORED_STOCKS_FILE', defaults['SCORED_STOCKS_FILE'])),
-        'OUT_JSON': Path(params.get('WEB_ACCESSIBLE_DATA_PATH', defaults['WEB_ACCESSIBLE_DATA_PATH'])) / 'ledger_positions.json',
+        'OUT_JSON': ROOT / 'data' / 'ledger_positions.json',
         'PERFORMANCE_FILE': Path(params.get('CONSOLIDATE_PERF_FILE', defaults['CONSOLIDATE_PERF_FILE'])),
     }
 
@@ -134,7 +136,12 @@ def normalize_ticker(s: Optional[str]) -> str:
 
 
 def consolidate_from_csv(path: Path, logger: logging.Logger) -> List[Dict[str, Any]]:
-    """Read ledger CSV and aggregate into positions."""
+    """Read ledger CSV and aggregate into positions.
+
+    Resolves broker-format ticker names to Yahoo symbols BEFORE aggregation
+    so that variants like "VULCABRAS ON NM" / "VULCABRAS ON EDS NM" /
+    "VULCABRAS ON ED NM" all merge into a single VULC3.SA position.
+    """
     agg: Dict[str, Dict[str, Any]] = {}
 
     try:
@@ -142,8 +149,8 @@ def consolidate_from_csv(path: Path, logger: logging.Logger) -> List[Dict[str, A
             reader = csv.DictReader(fh)
             for row in reader:
                 # Determine ticker
-                ticker = (row.get('ticker') or row.get('Ticker') or row.get('symbol') or '').strip()
-                if not ticker:
+                raw_ticker = (row.get('ticker') or row.get('Ticker') or row.get('symbol') or '').strip()
+                if not raw_ticker:
                     continue
 
                 side = (row.get('side') or row.get('Side') or row.get('transaction_type') or '').upper()
@@ -157,10 +164,20 @@ def consolidate_from_csv(path: Path, logger: logging.Logger) -> List[Dict[str, A
 
                 factor = -1 if side in ('SELL', 'S', 'VENDA', 'V') else 1
 
-                if ticker not in agg:
-                    agg[ticker] = {'ticker': normalize_ticker(ticker), 'net_qty': 0.0, 'net_invested': 0.0}
-                agg[ticker]['net_qty'] += factor * qty
-                agg[ticker]['net_invested'] += factor * total_cost
+                # Resolve broker ticker to Yahoo symbol for aggregation
+                resolved = resolve_broker_ticker(raw_ticker)
+                # Use resolved symbol as aggregation key; fall back to raw ticker
+                agg_key = resolved or raw_ticker
+
+                if agg_key not in agg:
+                    agg[agg_key] = {
+                        'ticker': raw_ticker,
+                        'net_qty': 0.0,
+                        'net_invested': 0.0,
+                        'resolved_symbol': resolved,
+                    }
+                agg[agg_key]['net_qty'] += factor * qty
+                agg[agg_key]['net_invested'] += factor * total_cost
 
     except FileNotFoundError:
         logger.error(f"Ledger file not found: {path}")
@@ -431,8 +448,10 @@ def main() -> int:
         for p in positions:
             ledger_ticker = p.get('ticker', '')
 
-            # Find symbol
-            symbol = match_symbol_for_position(ledger_ticker, name_to_symbol, tickers_entries, logger)
+            # Use pre-resolved symbol from consolidation; fallback to manual matching
+            symbol = p.get('resolved_symbol')
+            if not symbol:
+                symbol = match_symbol_for_position(ledger_ticker, name_to_symbol, tickers_entries, logger)
             p['symbol'] = symbol
 
             # Find target price
@@ -447,10 +466,24 @@ def main() -> int:
             key = p.get('symbol') or p.get('ticker')
             p['current_price'] = prices_map.get(key)
 
+        # Calculate portfolio totals
+        total_current_market = 0.0
+        total_invested_cash = 0.0
+        for p in positions:
+            qty = p.get('net_qty', 0) or 0
+            invested = p.get('net_invested', 0) or 0
+            price = p.get('current_price')
+            total_invested_cash += invested
+            if price and qty:
+                total_current_market += qty * price
+
         # Write output
         output = {
             'generated_at': datetime.now(timezone.utc).isoformat(),
             'source': str(config['LEDGER_FILE'].relative_to(ROOT)),
+            'total_current_market': round(total_current_market, 2),
+            'total_invested_cash': round(total_invested_cash, 2),
+            'total_unrealized_pnl': round(total_current_market - total_invested_cash, 2),
             'positions': positions
         }
 

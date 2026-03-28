@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>07 — Scoring ESG</title>
+<link rel="stylesheet" href="../css/base.css">
+<script src="../js/header.js" data-page="scoring"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
+<style>
+  .section-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+  }
+  .section-title::before {
+    content: ''; display: inline-block; width: 3px; height: 18px;
+    background: var(--accent-blue); border-radius: 2px;
+  }
+  .section-title .toggle {
+    font-size: 12px; color: var(--text-muted); margin-left: auto; transition: transform 0.2s;
+  }
+  .section-title .toggle.collapsed { transform: rotate(-90deg); }
+
+  .card { padding: 20px; overflow-x: auto; }
+
+  .run-info {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 10px; font-family: var(--font-mono);
+  }
+
+  /* ── Custom tooltip ── */
+  .tooltip-popup {
+    position: fixed; z-index: 9999; pointer-events: none;
+    background: #1c1f2e; color: #f1f3f5;
+    font-size: 11px; font-family: var(--font-sans);
+    padding: 5px 9px; border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    white-space: nowrap; opacity: 0;
+    transition: opacity 0.12s;
+    max-width: 260px; white-space: normal; line-height: 1.4;
+  }
+  .tooltip-popup.visible { opacity: 1; }
+
+  /* ── Weights / formula banner ── */
+  .scoring-meta { margin-bottom: 14px; }
+
+  .weights-banner {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; align-items: center;
+  }
+  .weights-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-muted); margin-right: 4px;
+  }
+  .weight-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px;
+    font-family: var(--font-mono); border: 1px solid;
+  }
+  .weight-chip .chip-name { font-weight: 600; }
+  .weight-chip .chip-val  { font-weight: 400; }
+  .chip-sharpe   { background: rgba(25,113,194,0.08); border-color: rgba(25,113,194,0.3); color: var(--accent-blue); }
+  .chip-upside   { background: rgba(47,158,68,0.08);  border-color: rgba(47,158,68,0.3);  color: var(--accent-green); }
+  .chip-momentum { background: rgba(230,119,0,0.08);  border-color: rgba(230,119,0,0.3);  color: #e67700; }
+
+  .regime-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px;
+    font-family: var(--font-mono); background: rgba(0,0,0,0.04);
+    border: 1px solid var(--border); color: var(--text-secondary);
+  }
+  .regime-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+  /* Formula line */
+  .formula-line {
+    font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);
+    padding: 4px 6px; background: rgba(0,0,0,0.03); border-radius: 6px;
+    border: 1px solid var(--border); display: inline-block;
+  }
+  .formula-line .f-sharpe   { color: var(--accent-blue); font-weight: 600; }
+  .formula-line .f-upside   { color: var(--accent-green); font-weight: 600; }
+  .formula-line .f-momentum { color: #e67700; font-weight: 600; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+
+  /* Column group sub-header row */
+  tr.grp-row th {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; padding: 3px 8px 2px;
+    border-bottom: none; color: #fff; cursor: default; text-align: center;
+  }
+  tr.grp-row th.grp-score-inputs { background: rgba(25,113,194,0.55); }
+  tr.grp-row th.grp-fundamentals { background: rgba(100,100,120,0.35); }
+  tr.grp-row th.grp-prices       { background: rgba(47,158,68,0.40); }
+  tr.grp-row th.grp-empty        { background: transparent; border-bottom: none; }
+
+  th {
+    text-align: left; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.4px; color: var(--text-muted); padding: 6px 8px;
+    border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+    position: sticky; top: 0; background: var(--bg-card); vertical-align: bottom;
+  }
+  th:hover { color: var(--accent-blue); }
+  th.right, td.right { text-align: right; }
+  th.center, td.center { text-align: center; }
+
+  /* column group separators */
+  th.grp-sep, td.grp-sep { border-left: 1px solid rgba(0,0,0,0.08); }
+
+  /* Weight chip inside column header */
+  .th-weight-chip {
+    display: inline-block; margin-top: 3px;
+    padding: 1px 6px; border-radius: 10px; font-size: 9px;
+    font-weight: 700; text-transform: none; border: 1px solid;
+    letter-spacing: 0;
+  }
+  .th-wc-sharpe   { background: rgba(25,113,194,0.12); border-color: rgba(25,113,194,0.4); color: #1971c2; }
+  .th-wc-upside   { background: rgba(47,158,68,0.12);  border-color: rgba(47,158,68,0.4);  color: #2f9e44; }
+  .th-wc-momentum { background: rgba(230,119,0,0.12);  border-color: rgba(230,119,0,0.4);  color: #e67700; }
+
+  td {
+    padding: 6px 8px; font-family: var(--font-mono); font-size: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  td.stock  { font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); cursor: default; }
+  td.sector { font-family: var(--font-sans); color: var(--text-secondary); font-size: 12px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(25,113,194,0.04); }
+
+  /* ── Score bar ── */
+  .score-cell { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .score-bar-track {
+    width: 52px; height: 5px; background: rgba(0,0,0,0.1);
+    border-radius: 3px; overflow: hidden; flex-shrink: 0;
+  }
+  .score-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* ── Component cells (raw + norm + contribution) ── */
+  .comp-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+  .comp-raw  { font-size: 12px; }
+  .comp-norm {
+    font-size: 10px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .comp-contrib {
+    font-size: 10px; font-weight: 600; opacity: 0.75;
+    display: flex; align-items: center; gap: 2px;
+  }
+  .comp-contrib::before { content: '→'; font-weight: 400; opacity: 0.6; margin-right: 1px; }
+  .norm-bar-track {
+    display: inline-block; vertical-align: middle;
+    width: 36px; height: 3px; background: rgba(0,0,0,0.1);
+    border-radius: 2px; overflow: hidden;
+  }
+  .norm-bar-fill { display: block; height: 100%; border-radius: 2px; }
+
+
+  .contrib-sharpe   { color: var(--accent-blue); }
+  .contrib-upside   { color: var(--accent-green); }
+  .contrib-momentum { color: #e67700; }
+
+  .positive { color: var(--accent-green); }
+  .negative { color: var(--accent-red); }
+
+  .src-badge {
+    font-size: 9px; padding: 1px 4px; border-radius: 3px;
+    font-family: var(--font-sans); font-weight: 600; text-transform: none;
+  }
+  .src-yahoo    { background: rgba(25,113,194,0.12); color: var(--accent-blue); }
+  .src-sectorpe { background: rgba(230,119,0,0.12);  color: #e67700; }
+
+  @media (max-width: 700px) {
+    .card { padding: 12px; }
+    table { font-size: 11px; }
+    th, td { padding: 5px 5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="section-title" onclick="toggleSection()">
+  Scoring ESG
+  <span class="toggle" id="toggle-icon">▼</span>
+</div>
+
+<div class="card" id="scoring-section">
+  <div id="scoring-container"><span class="loading">Carregando scoring...</span></div>
+</div>
+
+<script>
+const DATA_BASE = '../data';
+
+let sectionVisible = true;
+function toggleSection() {
+  sectionVisible = !sectionVisible;
+  document.getElementById('scoring-section').style.display = sectionVisible ? 'block' : 'none';
+  document.getElementById('toggle-icon').classList.toggle('collapsed', !sectionVisible);
+}
+
+function parseCSV(url) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+      complete: r => resolve(r.data),
+      error: e => reject(e),
+    });
+  });
+}
+
+const fmtNum = (v, d = 2) => (v == null || isNaN(v)) ? '—' : v.toFixed(d);
+const fmtPct = (v, d = 1) => (v == null || isNaN(v)) ? '—' : (v * 100).toFixed(d) + '%';
+const fmtBRL = v => (v == null || isNaN(v)) ? '—'
+  : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const colorClass = v => (v == null || isNaN(v)) ? '' : (v >= 0 ? 'positive' : 'negative');
+
+function scoreColor(score, max) {
+  const r = Math.min(score / max, 1);
+  if (r < 0.5) return `rgb(255,${Math.round(r*2*200)},80)`;
+  return `rgb(${Math.round((1-(r-0.5)*2)*200)},200,80)`;
+}
+
+const REGIME_COLORS = {
+  strong_bull:'#2f9e44', bull:'#74c069', neutral:'#adb5bd', bear:'#e67700', strong_bear:'#e03131'
+};
+const REGIME_LABELS = {
+  strong_bull:'Alta Forte', bull:'Alta', neutral:'Neutro', bear:'Baixa', strong_bear:'Baixa Forte'
+};
+const regimeColor = r => REGIME_COLORS[(r||'').toLowerCase()] || '#adb5bd';
+const regimeLabel = r => REGIME_LABELS[(r||'').toLowerCase()] || (r || '—');
+
+// ── Component cell: raw value + normalized bar + weighted contribution ──
+function compCell(rawHtml, norm, normCls, weight, contribCls, fillColor) {
+  const normPct = Math.min(Math.max((norm || 0) * 100, 0), 100);
+  const contrib = (norm != null && weight != null) ? norm * weight : null;
+  return `<div class="comp-cell">
+    <span class="comp-raw">${rawHtml}</span>
+    <span class="comp-norm ${normCls}">
+      <span class="norm-bar-track"><span class="norm-bar-fill" style="width:${normPct}%;background:${fillColor || '#adb5bd'}"></span></span>
+      norm&nbsp;${fmtNum(norm, 3)}
+    </span>
+    ${contrib != null
+      ? `<span class="comp-contrib ${contribCls}" title="contribuição = norm × peso">${fmtNum(contrib, 3)}</span>`
+      : ''}
+  </div>`;
+}
+
+let sortCol = 'CompositeScore';
+let sortAsc = false;
+let allRows = [];
+
+function renderTable(weights) {
+  const sorted = [...allRows].sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb || '').toLowerCase(); }
+    if (va == null) return 1; if (vb == null) return -1;
+    return sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+
+  const maxScore = Math.max(...allRows.map(r => r.CompositeScore || 0), 1);
+  const w_s = weights.sharpe, w_u = weights.upside, w_m = weights.momentum;
+
+  // ── Column definitions ──
+  const cols = [
+    { key:'Stock',                label:'Ativo',      cls:'' },
+    { key:'Sector',               label:'Setor',      cls:'' },
+    // Score
+    { key:'CompositeScore',       label:'Score',      cls:'right grp-sep' },
+    // Score inputs
+    { key:'SharpeRatio',         label:'Sharpe',     cls:'right grp-sep', weight: w_s, weightCls:'th-wc-sharpe',   fillColor:'#1971c2' },
+    { key:'PotentialUpside_pct', label:'Upside',     cls:'right',         weight: w_u, weightCls:'th-wc-upside',   fillColor:'#2f9e44' },
+    { key:'Momentum',            label:'Momentum',   cls:'right',         weight: w_m, weightCls:'th-wc-momentum', fillColor:'#e67700' },
+    // Fundamentals
+    { key:'AnnualizedMeanReturn', label:'Ret. Anual', cls:'right grp-sep' },
+    { key:'AnnualizedStdDev',     label:'Vol. Anual', cls:'right' },
+    { key:'forwardPE',            label:'P/E Fwd',    cls:'right grp-sep' },
+    { key:'SectorMedianPE',       label:'P/E Setor',  cls:'right' },
+    { key:'forwardEPS',           label:'EPS Fwd',    cls:'right' },
+    // Prices
+    { key:'CurrentPrice',         label:'Preço',      cls:'right grp-sep' },
+    { key:'TargetPrice',          label:'Alvo',       cls:'right' },
+  ];
+
+  // Column group sub-header
+  let html = `<table><thead>`;
+  html += `<tr class="grp-row">
+    <th colspan="2" class="grp-empty"></th>
+    <th colspan="1" class="grp-empty"></th>
+    <th colspan="3" class="grp-score-inputs">Variáveis do Score (raw · norm · contribuição)</th>
+    <th colspan="5" class="grp-fundamentals">Fundamentos</th>
+    <th colspan="2" class="grp-prices">Preços</th>
+  </tr>`;
+
+  // Column header row
+  html += `<tr>`;
+  for (const c of cols) {
+    const arrow = sortCol === c.key ? (sortAsc ? ' ↑' : ' ↓') : '';
+    const wHtml = (c.weight != null && c.weightCls)
+      ? `<br><span class="th-weight-chip ${c.weightCls}">${fmtNum(c.weight, 3)}</span>` : '';
+    const onclick = c.nosort ? '' : `onclick="sortBy('${c.key}')"`;
+    html += `<th class="${c.cls}" ${onclick}>${c.label}${arrow}${wHtml}</th>`;
+  }
+  html += `</tr></thead><tbody>`;
+
+  for (const r of sorted) {
+    const score    = r.CompositeScore || 0;
+    const barPct   = (score / maxScore) * 100;
+
+    const sharpe     = r.SharpeRatio;
+    const sharpeNorm = r.SharpeRatio_norm;
+    const upside     = r.PotentialUpside_pct;          // stored as fraction (e.g. 0.15 = 15%)
+    const upsideNorm = r.PotentialUpside_pct_norm;
+    const momentum   = r.Momentum;                     // stored as fraction
+    const momNorm    = r.Momentum_norm;
+    const annRet     = r.AnnualizedMeanReturn;
+    const annVol     = r.AnnualizedStdDev;
+
+    const srcBadge = r.TargetPriceSource === 'YahooFinance'
+      ? `<span class="src-badge src-yahoo" data-tooltip="Yahoo Finance: preço-alvo do consenso de analistas">YF</span>`
+      : r.TargetPriceSource === 'SectorPE_Fallback'
+        ? `<span class="src-badge src-sectorpe" data-tooltip="P/E Setorial: alvo estimado pelo P/E mediano do setor">PE</span>` : '';
+
+    const safeName = (r.Name || '').replace(/"/g, '&quot;');
+    html += `<tr>
+      <td class="stock" data-tooltip="${safeName}">${r.Stock || '—'}</td>
+      <td class="sector">${r.Sector || '—'}</td>
+      <td class="right grp-sep">
+        <div class="score-cell">
+          <span>${fmtNum(score, 3)}</span>
+          <div class="score-bar-track">
+            <div class="score-bar-fill" style="width:${barPct}%;background:${scoreColor(score,maxScore)}"></div>
+          </div>
+        </div>
+      </td>
+      <td class="right grp-sep">${compCell(fmtNum(sharpe, 4), sharpeNorm, 'norm-sharpe', w_s, 'contrib-sharpe', '#1971c2')}</td>
+      <td class="right">${compCell(
+          `<span class="${colorClass(upside)}">${upside != null ? fmtPct(upside) : '—'}</span>`,
+          upsideNorm, 'norm-upside', w_u, 'contrib-upside', '#2f9e44')}</td>
+      <td class="right">${compCell(
+          `<span class="${colorClass(momentum)}">${momentum != null ? fmtPct(momentum) : '—'}</span>`,
+          momNorm, 'norm-momentum', w_m, 'contrib-momentum', '#e67700')}</td>
+      <td class="right grp-sep ${colorClass(annRet)}">${fmtPct(annRet)}</td>
+      <td class="right">${fmtPct(annVol)}</td>
+      <td class="right grp-sep">${fmtNum(r.forwardPE, 1)}</td>
+      <td class="right">${fmtNum(r.SectorMedianPE, 1)}</td>
+      <td class="right">${fmtNum(r.forwardEPS, 2)}</td>
+      <td class="right grp-sep">${fmtBRL(r.CurrentPrice)}</td>
+      <td class="right">${fmtBRL(r.TargetPrice)}&nbsp;${srcBadge}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+
+  const container = document.getElementById('scoring-container');
+  const header = container.querySelector('.scoring-header');
+  container.innerHTML = (header ? header.outerHTML : '') + html;
+}
+
+window.sortBy = function(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = false; }
+  const header = document.querySelector('.scoring-header');
+  const weights = header
+    ? { sharpe: +header.dataset.ws, upside: +header.dataset.wu, momentum: +header.dataset.wm }
+    : { sharpe: 0, upside: 0, momentum: 0 };
+  renderTable(weights);
+};
+
+async function render() {
+  try {
+    const rows = await parseCSV(`${DATA_BASE}/scored_stocks.csv`);
+
+    const runIds = [...new Set(rows.map(r => r.run_id).filter(Boolean))].sort();
+    const latestRunId = runIds[runIds.length - 1];
+
+    allRows = rows.filter(r => r.run_id === latestRunId);
+    if (!allRows.length) throw new Error('Sem dados para o run mais recente.');
+
+    const sample   = allRows[0];
+    const weights  = {
+      sharpe:   sample.sharpe_weight_used   ?? 0,
+      upside:   sample.upside_weight_used   ?? 0,
+      momentum: sample.momentum_weight_used ?? 0,
+    };
+    const regime  = sample.market_regime    || 'neutral';
+    const profile = sample.risk_profile_used || '';
+    const runTs   = sample.run_timestamp    || latestRunId;
+
+    const headerHtml = `
+      <div class="scoring-header"
+           data-ws="${weights.sharpe}" data-wu="${weights.upside}" data-wm="${weights.momentum}">
+        <div class="run-info">Run: ${latestRunId} · ${runTs} · ${allRows.length} ativos</div>
+      </div>`;
+
+    const container = document.getElementById('scoring-container');
+    container.innerHTML = headerHtml;
+    renderTable(weights);
+
+  } catch (err) {
+    console.error('Scoring error:', err);
+    document.getElementById('scoring-container').innerHTML =
+      `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+  }
+}
+
+// ── Custom tooltip ──
+const _tip = document.createElement('div');
+_tip.className = 'tooltip-popup';
+document.body.appendChild(_tip);
+
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-tooltip]');
+  if (!el) return;
+  const text = el.dataset.tooltip;
+  if (!text) return;
+  _tip.textContent = text;
+  _tip.classList.add('visible');
+});
+document.addEventListener('mousemove', e => {
+  if (!_tip.classList.contains('visible')) return;
+  const x = e.clientX + 14, y = e.clientY - 8;
+  // Keep within viewport
+  const maxX = window.innerWidth  - _tip.offsetWidth  - 8;
+  const maxY = window.innerHeight - _tip.offsetHeight - 8;
+  _tip.style.left = Math.min(x, maxX) + 'px';
+  _tip.style.top  = Math.min(y, maxY) + 'px';
+});
+document.addEventListener('mouseout', e => {
+  if (!e.target.closest('[data-tooltip]')) return;
+  if (e.relatedTarget && e.relatedTarget.closest('[data-tooltip]')) return;
+  _tip.classList.remove('visible');
+});
+
+render();
+</script>
+</body>
+</html>
+

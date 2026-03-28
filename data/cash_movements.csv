@@ -1,0 +1,11 @@
+date,type,amount,description,source_file
+2025-10-17,DEPOSIT,1000.0,TED/DOC from bank,202501-12 Extrato Ágora.pdf
+2025-11-03,DEPOSIT,1000.0,TED/DOC from bank,202501-12 Extrato Ágora.pdf
+2025-11-03,DIVIDEND,1.25,Dividendo VULC3,202501-12 Extrato Ágora.pdf
+2025-11-12,WITHDRAWAL,-440.46,SPB/TED to bank,202501-12 Extrato Ágora.pdf
+2025-11-13,WITHDRAWAL,-1586.69,SPB/TED to bank,202501-12 Extrato Ágora.pdf
+2025-12-15,DIVIDEND,50.6,Dividendo VULC3,202501-12 Extrato Ágora.pdf
+2026-01-02,DEPOSIT,1000.0,TED/DOC from bank,202601 Extrato Ágora.pdf
+2026-02-02,DEPOSIT,2000.0,TED/DOC from bank,20260201-20260315 Extrato Ágora.pdf
+2026-02-19,FUND_TRANSFER,-100.0,BRADESCO ESG,20260201-20260315 Extrato Ágora.pdf
+2026-02-24,FUND_TRANSFER,-300.0,BRADESCO ESG,20260201-20260315 Extrato Ágora.pdf
