@@ -4,57 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>1 — Portfólio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../css/base.css">
 <script src="../js/header.js" data-page="portfolio"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-
-  /* ── Card grid ── */
-  .cards-row {
+  /* ── Dashboard Layout Grids ── */
+  .cards-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .cards-vertical .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 16px;
+    margin-bottom: 16px;
   }
-  .section-label {
-    grid-column: 1 / -1;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    padding: 8px 0 0 4px;
+  
+  /* Desktop Layouts */
+  @media (min-width: 1024px) {
+    .dashboard-grid.layout-hero {
+      grid-template-columns: 240px 1fr;
+      align-items: stretch;
+    }
+    .dashboard-grid.layout-split {
+      grid-template-columns: 1fr 1fr; /* 50% / 50% */
+      align-items: start;
+    }
   }
 
+  /* ── Card / Block Common Base ── */
+  .chart-card, .perf-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .chart-title, .table-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    letter-spacing: -0.2px;
+  }
 
   /* ── Charts ── */
-  .chart-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
-    margin-top: 16px;
-  }
-  .chart-card .chart-title {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-  }
-  .chart-wrapper { position: relative; height: 380px; }
+  .chart-wrapper { position: relative; height: 420px; width: 100%; }
+  .bar-chart-wrapper { position: relative; height: 420px; width: 100%; }
 
   /* ── Performance table ── */
-  .perf-table-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
-    margin-top: 16px;
-  }
-  .perf-table-card .table-title {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-  }
   .perf-table {
     width: 100%;
     border-collapse: collapse;
@@ -63,51 +73,60 @@
   }
   .perf-table th {
     text-align: right;
-    font-weight: 400;
+    font-weight: 600;
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 6px 12px;
-    border-bottom: 1px solid var(--border);
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
   }
   .perf-table th:first-child { text-align: left; }
   .perf-table td {
     text-align: right;
-    padding: 8px 12px;
-    border-bottom: 1px solid rgba(42,46,61,0.3);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
   }
   .perf-table td:first-child {
     text-align: left;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-weight: 500;
+    font-size: 13px;
   }
   .perf-table td.pos { color: var(--accent-green); }
   .perf-table td.neg { color: var(--accent-red); }
-  .perf-table td.gold { color: var(--accent-gold); font-weight: 600; }
+  .perf-table td.gold { color: var(--accent-gold); font-weight: 700; }
   .perf-table tr:last-child td { border-bottom: none; }
-
-  /* ── Bar chart ── */
-  .bar-chart-wrapper { position: relative; height: 220px; }
 
   /* ── Monthly returns table (TWR) ── */
   .perf-table tr.total-row td {
     border-top: 2px solid var(--border);
     font-weight: 700;
-    padding-top: 10px;
+    padding-top: 12px;
+    background: var(--bg-card-alt);
   }
   .perf-table td.gap {
     color: var(--text-muted);
     font-style: italic;
   }
 
-  @media (max-width: 800px) {
-    .cards-row { grid-template-columns: repeat(3, 1fr); }
+  /* ── Responsive ── */
+  @media (max-width: 1023px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .cards-vertical {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .bar-chart-wrapper { height: 280px; }
   }
-  @media (max-width: 400px) {
+  @media (max-width: 800px) {
+    .cards-vertical { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
     .cards-row { grid-template-columns: 1fr; }
-    .chart-wrapper { height: 260px; }
-    .bar-chart-wrapper { height: 180px; }
+    .chart-wrapper { height: 300px; }
+    .chart-card, .perf-table-card { padding: 16px; }
   }
 </style>
 </head>
@@ -115,35 +134,36 @@
 
 <div class="period-header" id="period-header"></div>
 
-<!-- Row 1: Snapshot -->
-<div class="cards-row" id="cards-snapshot">
-  <div class="card"><span class="loading">Carregando...</span></div>
-</div>
+<div class="dashboard-grid layout-hero" style="margin-bottom: 16px;">
+  <!-- Left Column: Cards Vertical -->
+  <div class="cards-vertical" id="cards-snapshot">
+    <div class="card"><span class="loading">Carregando...</span></div>
+  </div>
 
-<!-- Row 2: Benchmarks -->
-<div class="cards-row" id="cards-bench"></div>
-
-<!-- Line chart -->
-<div class="chart-card">
-  <div class="chart-title">Evolução base 100 — Portfólio vs Ibovespa vs CDI</div>
-  <div class="chart-wrapper">
-    <canvas id="perf-chart"></canvas>
+  <!-- Right Column: Line chart -->
+  <div class="chart-card" style="margin-bottom: 0;">
+    <div class="chart-title">Evolução base 100 — Portfólio vs Ibovespa vs CDI</div>
+    <div class="chart-wrapper">
+      <canvas id="perf-chart"></canvas>
+    </div>
   </div>
 </div>
 
-<!-- Performance windows table + bar chart -->
-<div class="perf-table-card">
-  <div class="table-title">Retorno por janela — Portfólio vs Ibovespa vs CDI</div>
-  <div id="perf-table-container"></div>
-  <div class="bar-chart-wrapper" style="margin-top:16px">
-    <canvas id="bar-chart"></canvas>
+<!-- Split Grid (50/50): Bar Chart + Monthly Table -->
+<div class="dashboard-grid layout-split">
+  <!-- Bar chart -->
+  <div class="chart-card">
+    <div class="chart-title">Retorno por Janela</div>
+    <div class="bar-chart-wrapper">
+      <canvas id="bar-chart"></canvas>
+    </div>
   </div>
-</div>
 
-<!-- Monthly TWR returns table -->
-<div class="perf-table-card">
-  <div class="table-title">Rentabilidade Mensal — TWR (método da cota)</div>
-  <div id="monthly-returns-container"></div>
+  <!-- Monthly TWR returns table -->
+  <div class="chart-card" style="max-height: 512px; overflow-y: auto;">
+    <div class="chart-title" style="margin-bottom: 12px; position: sticky; top: 0; background: var(--bg-card); z-index: 5;">Rentabilidade Mensal — TWR</div>
+    <div id="monthly-returns-container"></div>
+  </div>
 </div>
 
 <script>
@@ -165,9 +185,13 @@ function cls(v) {
   if (v == null || isNaN(v)) return '';
   return v >= 0 ? 'positive' : 'negative';
 }
-function card(label, value, colorCls, sub) {
+function card(label, value, colorCls, sub, tooltipText) {
+  const tooltipHtml = tooltipText ? `<div class="tooltip-icon" data-tooltip="${tooltipText}">?</div>` : '';
   return `<div class="card">
-    <div class="label">${label}</div>
+    <div class="label-container">
+      <div class="label">${label}</div>
+      ${tooltipHtml}
+    </div>
     <div class="value ${colorCls}">${value}</div>
     ${sub ? `<div class="sub">${sub}</div>` : ''}
   </div>`;
@@ -207,30 +231,16 @@ async function render() {
         `Período de análise · <span class="dates">${MO[+sm-1]}/${sy.slice(2)} – ${MO[+em-1]}/${ey.slice(2)} · ${meta.trading_days||'?'} pregões</span>`;
     }
 
-    // ── Row 1: Snapshot cards ──
-    // Sub-text for TWR card: show annualized only if safe, otherwise "desde out/25"
-    const twrSub = safe
-      ? `anualiz. ${fmtPct(twr.annual_return)}`
-      : `desde ${MO[+meta.history_start.split('-')[1]-1]}/${meta.history_start.split('-')[0].slice(2)}`;
-
-    document.getElementById('cards-snapshot').innerHTML =
-      card('Patrimônio', fmtBRL(snap.total_market), '', `investido ${fmtBRL(snap.total_invested)}`) +
-      card('Retorno (R$)', (snap.unrealized_pnl>=0?'+':'') + fmtBRL(snap.unrealized_pnl), cls(snap.unrealized_pnl)) +
-      card('Retorno (%)', fmtPct(snap.simple_roi_pct/100), cls(snap.simple_roi_pct), 'ROI · lucro / investido') +
-      card('Retorno TWR', fmtPct(twr.total_return), cls(twr.total_return), twrSub);
-
-    // ── Row 2: Benchmark comparison cards ──
+    // ── Row 1: Snapshot cards (Mini) ──
     const pctCdi = twr.pct_cdi;
     const pctCdiCls = pctCdi != null && pctCdi >= 100 ? 'gold' : '';
     const pctCdiStr = pctCdi != null ? pctCdi.toFixed(0) + '%' : '—';
 
-    const rfPct = twr.risk_free_annual != null ? (twr.risk_free_annual * 100).toFixed(1) : '?';
-
-    document.getElementById('cards-bench').innerHTML =
-      card('% do CDI', pctCdiStr, pctCdiCls, `CDI ${fmtPct(cdi.total_return)} no período`) +
-      card('Volatilidade', fmtPct(twr.volatility), '', `sharpe ${fmtNum(twr.sharpe)}`) +
-      card('Ibovespa', fmtPct(bench.total_return), cls(bench.total_return), 'mesmo período') +
-      card('Alpha vs Ibov', fmtPct(alpha.total), cls(alpha.total), 'TWR − bench');
+    document.getElementById('cards-snapshot').innerHTML =
+      card('Retorno (%)', fmtPct(snap.simple_roi_pct/100), cls(snap.simple_roi_pct), 'lucro / investido', 'Retorno Simples (ROI): Lucro total dividido pelo investido (Ignora tempo)') +
+      card('% do CDI', pctCdiStr, pctCdiCls, `CDI ${fmtPct(cdi.total_return)} no período`, 'Quanto o seu TWR representa sobre o rendimento do CDI no período (objetivo: >100%)') +
+      card('Volatilidade', fmtPct(twr.volatility), '', `sharpe ${fmtNum(twr.sharpe)}`, 'Risco: quanto a carteira oscila. Sharpe indica se esse risco compensou sobre o CDI livre de risco.') +
+      card('Alpha vs Ibov', fmtPct(alpha.total), cls(alpha.total), 'TWR − bench', 'Alpha: Quanto sua carteira rendeu de prêmio (a mais ou a menos) contra o Ibovespa');
 
     // ── Line chart: Portfolio vs Ibovespa vs CDI, base 100 ──
     if (dailyRows.length > 0) {
@@ -263,6 +273,7 @@ async function render() {
         },
         options: {
           responsive:true, maintainAspectRatio:false,
+          layout: { padding: { right: 60 } },
           interaction:{mode:'index',intersect:false},
           scales: {
             x:{ ticks:{color:'#8b93a5',font:{size:10},maxTicksLimit:10,maxRotation:0}, grid:{color:'rgba(0,0,0,0.06)'} },
@@ -277,7 +288,30 @@ async function render() {
               callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}` }
             }
           }
-        }
+        },
+        plugins: [{
+          id: 'endValuePlugin',
+          afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            chart.data.datasets.forEach((dataset, i) => {
+              const meta = chart.getDatasetMeta(i);
+              if (!meta.hidden && meta.data.length > 0) {
+                const lastPoint = meta.data[meta.data.length - 1];
+                const finalVal = dataset.data[dataset.data.length - 1];
+                const pctRet = finalVal - 100;
+                const sign = pctRet > 0 ? '+' : '';
+                const text = ` ${sign}${pctRet.toFixed(2)}%`;
+                
+                ctx.save();
+                ctx.font = '600 11px Inter, sans-serif';
+                ctx.fillStyle = dataset.borderColor;
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, lastPoint.x + 4, lastPoint.y);
+                ctx.restore();
+              }
+            });
+          }
+        }]
       });
     }
 
@@ -287,25 +321,7 @@ async function render() {
     const available = winOrder.filter(w => perf[w]);
 
     if (available.length) {
-      let html = '<table class="perf-table"><thead><tr>';
-      html += '<th>Janela</th><th>Portfólio</th><th>Ibovespa</th><th>CDI</th><th>% do CDI</th>';
-      html += '</tr></thead><tbody>';
-      for (const w of available) {
-        const p = perf[w];
-        const pCls = p.portfolio>=0?'pos':'neg';
-        const bCls = p.benchmark>=0?'pos':'neg';
-        html += `<tr>
-          <td>${winLabels[w]||w}</td>
-          <td class="${pCls}">${fmtPct(p.portfolio)}</td>
-          <td class="${bCls}">${fmtPct(p.benchmark)}</td>
-          <td>${fmtPct(p.cdi)}</td>
-          <td class="gold">${p.pct_cdi!=null?p.pct_cdi.toFixed(0)+'%':'—'}</td>
-        </tr>`;
-      }
-      html += '</tbody></table>';
-      document.getElementById('perf-table-container').innerHTML = html;
-
-      // ── Grouped bar chart ──
+      // ── Grouped bar chart (Table has been removed by design) ──
       const barLabels = available.map(w=>winLabels[w]||w);
       const portData = available.map(w=> +(perf[w].portfolio*100).toFixed(2));
       const benchData = available.map(w=> +(perf[w].benchmark*100).toFixed(2));
@@ -323,6 +339,7 @@ async function render() {
         },
         options: {
           responsive:true, maintainAspectRatio:false,
+          layout: { padding: { right: 35, left: 35 } },
           indexAxis:'y',
           scales: {
             x:{ ticks:{color:'#8b93a5',font:{size:10,family:"'SF Mono',monospace"},callback:v=>v+'%'},
@@ -338,7 +355,31 @@ async function render() {
               callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(2)}%` }
             }
           }
-        }
+        },
+        plugins: [{
+          id: 'barValuesPlugin',
+          afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            chart.data.datasets.forEach((dataset, i) => {
+              const meta = chart.getDatasetMeta(i);
+              if (!meta.hidden) {
+                meta.data.forEach((bar, index) => {
+                  const val = dataset.data[index];
+                  const text = ` ${val > 0 ? '+' : ''}${val.toFixed(2)}%`;
+                  
+                  ctx.save();
+                  ctx.font = '600 11px Inter, sans-serif';
+                  ctx.fillStyle = dataset.backgroundColor;
+                  ctx.textBaseline = 'middle';
+                  ctx.textAlign = val >= 0 ? 'left' : 'right';
+                  const xOffset = val >= 0 ? bar.x + 6 : bar.x - 6;
+                  ctx.fillText(text, xOffset, bar.y);
+                  ctx.restore();
+                });
+              }
+            });
+          }
+        }]
       });
     }
 
@@ -359,7 +400,8 @@ async function render() {
       html += '<th style="text-align:left">Mês</th><th>Retorno</th><th>CDI</th><th>Acumulado</th><th>Pregões</th>';
       html += '</tr></thead><tbody>';
 
-      for (const m of meses) {
+      const mesesInvertidos = [...meses].reverse();
+      for (const m of mesesInvertidos) {
         const ret = m.retorno_mes;
         const cdi = m.retorno_cdi;
         const acum = m.retorno_acumulado;
