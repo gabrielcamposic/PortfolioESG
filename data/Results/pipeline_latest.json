@@ -1,94 +1,94 @@
 {
   "stocks": [
     "PNVL3.SA",
-    "RADL3.SA",
     "VALE3.SA",
-    "AURA33.SA",
+    "NEOE3.SA",
     "UGPA3.SA",
+    "ENEV3.SA",
     "DASA3.SA",
-    "ENEV3.SA"
+    "AURA33.SA"
   ],
   "weights": [
-    19.650000000000002,
-    3.01,
-    12.379999999999999,
-    20.560000000000002,
-    18.33,
-    2.8000000000000003,
-    23.27
+    18.84,
+    13.44,
+    18.93,
+    11.95,
+    17.5,
+    2.42,
+    16.91
   ],
   "rows": [
     {
+      "ticker": "PNVL3.SA",
+      "weight": 18.84,
+      "current": 14.270000457763672,
+      "projectedQty": 40,
+      "projectedInvested": 570.8000183105469,
+      "target": 18.8,
+      "projectedBRL": 752.0
+    },
+    {
+      "ticker": "NEOE3.SA",
+      "weight": 18.93,
+      "current": 33.29999923706055,
+      "projectedQty": 17,
+      "projectedInvested": 566.0999870300293,
+      "target": 34.40545,
+      "projectedBRL": 584.89265
+    },
+    {
       "ticker": "ENEV3.SA",
-      "weight": 23.27,
+      "weight": 17.5,
       "current": 23.90999984741211,
-      "projectedQty": 30,
-      "projectedInvested": 717.2999954223633,
+      "projectedQty": 22,
+      "projectedInvested": 526.0199966430664,
       "target": 25.52727,
-      "projectedBRL": 765.8181000000001
+      "projectedBRL": 561.5999400000001
     },
     {
       "ticker": "AURA33.SA",
-      "weight": 20.560000000000002,
+      "weight": 16.91,
       "current": 121.02999877929688,
-      "projectedQty": 5,
-      "projectedInvested": 605.1499938964844,
-      "target": 142.04182,
-      "projectedBRL": 710.2091
-    },
-    {
-      "ticker": "PNVL3.SA",
-      "weight": 19.650000000000002,
-      "current": 14.270000457763672,
-      "projectedQty": 42,
-      "projectedInvested": 599.3400192260742,
-      "target": 18.8,
-      "projectedBRL": 789.6
-    },
-    {
-      "ticker": "UGPA3.SA",
-      "weight": 18.33,
-      "current": 28.31999969482422,
-      "projectedQty": 19,
-      "projectedInvested": 538.0799942016602,
-      "target": 28.725,
-      "projectedBRL": 545.775
+      "projectedQty": 4,
+      "projectedInvested": 484.1199951171875,
+      "target": 142.23419,
+      "projectedBRL": 568.93676
     },
     {
       "ticker": "VALE3.SA",
-      "weight": 12.379999999999999,
+      "weight": 13.44,
       "current": 79.0,
-      "projectedQty": 4,
-      "projectedInvested": 316.0,
-      "target": 89.428116,
-      "projectedBRL": 357.712464
+      "projectedQty": 5,
+      "projectedInvested": 395.0,
+      "target": 89.524284,
+      "projectedBRL": 447.62141999999994
+    },
+    {
+      "ticker": "UGPA3.SA",
+      "weight": 11.95,
+      "current": 28.31999969482422,
+      "projectedQty": 13,
+      "projectedInvested": 368.15999603271484,
+      "target": 28.725,
+      "projectedBRL": 373.425
     },
     {
       "ticker": "DASA3.SA",
-      "weight": 2.8000000000000003,
+      "weight": 2.42,
       "current": 2.7799999713897705,
-      "projectedQty": 31,
-      "projectedInvested": 86.17999911308289,
+      "projectedQty": 26,
+      "projectedInvested": 72.27999925613403,
       "target": 4.18889,
-      "projectedBRL": 129.85559
-    },
-    {
-      "ticker": "RADL3.SA",
-      "weight": 3.01,
-      "current": 23.299999237060547,
-      "projectedQty": 3,
-      "projectedInvested": 69.89999771118164,
-      "target": 28.22,
-      "projectedBRL": 84.66
+      "projectedBRL": 108.91113999999999
     }
   ],
   "totals": {
-    "totalPct": 100.0,
-    "totalCurrentSum": 3088.47,
-    "totalProjectedQty": 134,
-    "totalProjectedInvested": 2931.9499995708466,
-    "totalProjectedBRL": 3383.630254
+    "totalPct": 99.99,
+    "totalCurrentSum": 3088.1611529999996,
+    "totalProjectedQty": 127,
+    "totalProjectedInvested": 2982.479992389679,
+    "totalProjectedBRL": 3397.38691
   },
   "used_path": "/Users/gabrielcampos/PortfolioESG/data/results/latest_run_summary.json",
-  "generated_at": "2026-03-29T14:25:50.170722+00:00"
+  "generated_at": "2026-03-30T23:38:09.693961+00:00"
 }
