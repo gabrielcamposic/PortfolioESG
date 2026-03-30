@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "run_id": "20260309-204044",
+    "timestamp": "2026-03-09 21:05:00",
+    "generated_at": "2026-03-10T00:06:17.650839+00:00"
+  },
+  "returns": {
+    "hold_12m": 152.2,
+    "gross_12m": 1197.38,
+    "net_12m": 1197.3379000000002,
+    "historical_annual": 44.39,
+    "excess_net_12m": 1045.1379000000002
+  },
+  "risk": {
+    "volatility_annual": 34.09,
+    "risk_free_annual": 11.75,
+    "sharpe": 34.77940745086536,
+    "sharpe_source": "forward",
+    "hhi": 0.584,
+    "top5": 1.0
+  },
+  "decision": {
+    "verdict": "REBALANCE",
+    "threshold_pct": 0.5,
+    "intensity": 100.0
+  },
+  "valuation": {
+    "portfolio_pe": 1.93,
+    "benchmark_pe": 6.38,
+    "dividend_yield": null,
+    "momentum_signal": 1.0968
+  },
+  "composition": {
+    "sector_exposure": [
+      {
+        "sector": "Basic Materials",
+        "pct": 0.7472
+      },
+      {
+        "sector": "Real Estate",
+        "pct": 0.1469
+      },
+      {
+        "sector": "Industrials",
+        "pct": 0.0511
+      },
+      {
+        "sector": "Energy",
+        "pct": 0.0294
+      },
+      {
+        "sector": "Utilities",
+        "pct": 0.0254
+      }
+    ]
+  }
+}

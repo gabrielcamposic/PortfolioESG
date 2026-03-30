@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "generated_at": "2026-03-10T00:06:17.655544+00:00",
+    "history_start": "2025-10-17",
+    "history_end": "2026-03-09",
+    "observations": 92
+  },
+  "portfolio": {
+    "total_return_twr": 6.868041955002172,
+    "annual_return": 0.221037200657576,
+    "volatility": 0.232228547604222,
+    "sharpe": 0.445841830066605,
+    "sortino": 0.5352153560209354,
+    "max_drawdown": 0.4872941300063451,
+    "calmar": 0.4536011969910204
+  },
+  "relative": {
+    "beta": 0.2382936097220659,
+    "tracking_error": 0.2856507324285515,
+    "information_ratio": 0.2696188395854525,
+    "correlation": 0.2357839788128886
+  },
+  "structure": {
+    "hhi": 0.58400818,
+    "top3": 0.9452,
+    "top5": 1.0,
+    "n_assets": 5
+  },
+  "performance": {
+    "YTD": {
+      "portfolio": 0.3776642530173821,
+      "benchmark": 0.1132040341349898
+    },
+    "3M": {
+      "portfolio": 0.5332871525293439,
+      "benchmark": 0.1397733988269616
+    },
+    "6M": {
+      "portfolio": 0.8799447096393564,
+      "benchmark": 0.257466348850252
+    },
+    "12M": {
+      "portfolio": 2.4488816676544976,
+      "benchmark": 0.4576950271034641
+    },
+    "24M": {
+      "portfolio": 5.606814707160774,
+      "benchmark": 0.4002170213430309
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-02-01T11:57:59.594137",
+  "parameters": {
+    "executions_month": 22,
+    "page_views_month": 100
+  },
+  "measured_resources": {
+    "peak_memory_mb": 338.75,
+    "runtime_minutes": 16.24,
+    "storage_gb": 0.0617
+  },
+  "providers": {
+    "AWS": {
+      "provider": "AWS",
+      "region": "sa-east-1",
+      "compute": {
+        "t3.small": {
+          "spot": 0.0375,
+          "on_demand": 0.1572,
+          "reserved": 0.1
+        },
+        "t3.medium": {
+          "spot": 0.0744,
+          "on_demand": 0.3144,
+          "reserved": 0.2001
+        }
+      },
+      "storage": {
+        "object_storage": 0.0016,
+        "api_operations": 0.0022
+      },
+      "network": {
+        "cdn_egress": 0.0054,
+        "data_transfer": 0.0
+      },
+      "scheduling": 0.0,
+      "totals": {
+        "storage": 0.0038,
+        "network": 0.0054,
+        "scheduling": 0.0
+      },
+      "recommended": {
+        "config": "t3.small (spot)",
+        "compute_monthly": 0.0375,
+        "total_monthly": 0.0467
+      }
+    },
+    "GCP": {
+      "provider": "GCP",
+      "region": "southamerica-east1",
+      "compute": {
+        "e2-small": {
+          "preemptible": 0.0298,
+          "on_demand": 0.1489,
+          "committed": 0.0941
+        },
+        "e2-medium": {
+          "preemptible": 0.0595,
+          "on_demand": 0.2977,
+          "committed": 0.1876
+        }
+      },
+      "storage": {
+        "object_storage": 0.0014,
+        "api_operations": 0.0019
+      },
+      "network": {
+        "cdn_egress": 0.0046,
+        "data_transfer": 0.0
+      },
+      "scheduling": 0.0,
+      "totals": {
+        "storage": 0.0033,
+        "network": 0.0046,
+        "scheduling": 0.0
+      },
+      "recommended": {
+        "config": "e2-small (preemptible)",
+        "compute_monthly": 0.0298,
+        "total_monthly": 0.0377
+      }
+    },
+    "AZURE": {
+      "provider": "Azure",
+      "region": "brazilsouth",
+      "compute": {
+        "B1s": {
+          "spot": 0.031,
+          "on_demand": 0.1548,
+          "reserved": 0.0989
+        },
+        "B2s": {
+          "spot": 0.0619,
+          "on_demand": 0.3097,
+          "reserved": 0.1977
+        }
+      },
+      "storage": {
+        "object_storage": 0.0014,
+        "api_operations": 0.0024
+      },
+      "network": {
+        "cdn_egress": 0.005,
+        "data_transfer": 0.0
+      },
+      "scheduling": 0.0027,
+      "totals": {
+        "storage": 0.0038,
+        "network": 0.005,
+        "scheduling": 0.0027
+      },
+      "recommended": {
+        "config": "B1s (spot)",
+        "compute_monthly": 0.031,
+        "total_monthly": 0.0425
+      }
+    }
+  }
+}

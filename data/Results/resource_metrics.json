@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-02-01T11:41:31.530856",
+  "profiler_version": "1.1.0",
+  "pipelines_profiled": "A_Portfolio.sh, B_Ledger.sh",
+  "total_wall_clock_s": 974.4300000000001,
+  "total_cpu_seconds": 0.0,
+  "peak_memory_mb": 338.75,
+  "avg_cpu_percent": 0.0,
+  "a_pipeline_wall_clock_s": 971.35,
+  "a_pipeline_peak_memory_mb": 338.75,
+  "b_pipeline_wall_clock_s": 3.08,
+  "b_pipeline_peak_memory_mb": 301.86,
+  "stages": {
+    "A_Download": {
+      "wall_clock_s": 129.33,
+      "status": "completed"
+    },
+    "A_Scoring": {
+      "wall_clock_s": 0.78,
+      "status": "completed"
+    },
+    "A_Portfolio": {
+      "wall_clock_s": 839.28,
+      "status": "completed"
+    },
+    "A_Analysis": {
+      "wall_clock_s": 0.9,
+      "status": "completed"
+    },
+    "A_Other": {
+      "wall_clock_s": 0.87,
+      "status": "completed"
+    },
+    "A_GenerateAssets": {
+      "wall_clock_s": 0.16,
+      "status": "completed"
+    },
+    "B_ProcessNotes": {
+      "wall_clock_s": 2.96,
+      "status": "completed"
+    },
+    "B_PortfolioHistory": {
+      "wall_clock_s": 0.11,
+      "status": "completed"
+    }
+  },
+  "storage_findata_gb": 0.0543,
+  "storage_html_gb": 0.0049,
+  "storage_results_gb": 0.0022,
+  "storage_parameters_gb": 0.0,
+  "storage_engines_gb": 0.0002,
+  "storage_total_gb": 0.0617,
+  "file_count_findata": 406308,
+  "file_count_total": 406377,
+  "network_ingress_mb": 9.33,
+  "network_egress_mb": 0.1,
+  "io_read_operations": 2120,
+  "io_write_operations": 212
+}
