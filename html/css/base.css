@@ -4,25 +4,29 @@
 
 /* ── Design tokens ── */
 :root {
-  --bg-primary:    #f4f6f9;
+  --bg-primary:    #f8fafc;
   --bg-card:       #ffffff;
-  --bg-card-hover: #eef0f4;
+  --bg-card-hover: #f1f5f9;
   --bg-card-alt:   #f8f9fc;
-  --border:        #dde1ea;
+  --border:        #e2e8f0;
 
-  --text-primary:   #1c1f2e;
-  --text-secondary: #4b5468;
-  --text-muted:     #8b93a5;
+  --text-primary:   #0f172a;
+  --text-secondary: #334155;
+  --text-muted:     #64748b;
 
-  --accent-blue:   #1971c2;
-  --accent-green:  #2f9e44;
-  --accent-red:    #c92a2a;
-  --accent-yellow: #e67700;
-  --accent-orange: #d9480f;
-  --accent-gold:   #e67700;
+  --accent-blue:    #2563eb;
+  --accent-green:   #16a34a;
+  --accent-red:     #dc2626;
+  --accent-yellow:  #ca8a04;
+  --accent-orange:  #ea580c;
+  --accent-gold:    #d97706;
 
   --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* ── Reset ── */
@@ -33,52 +37,144 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  padding: 16px;
+  padding: 24px;
 }
 
 /* ── Utility ── */
-.loading   { color: var(--text-muted); font-style: italic; font-size: 13px; }
-.error-msg { color: var(--accent-red); font-size: 13px; }
+.loading   { color: var(--text-muted); font-style: italic; font-size: 14px; }
+.error-msg { color: var(--accent-red); font-size: 14px; }
 
 /* ── Period header ── */
 .period-header {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 .period-header .dates {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
+  font-weight: 400;
 }
 
 /* ── Card ── */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px 20px;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
 }
-.card .label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Label Container to align Tooltip */
+.card .label-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 8px;
 }
+
+.card .label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  color: var(--text-muted);
+}
+
 .card .value {
   font-size: 22px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 .card .value.positive { color: var(--accent-green); }
 .card .value.negative { color: var(--accent-red); }
 .card .value.gold     { color: var(--accent-gold); }
+
 .card .sub {
   font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 4px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-top: 8px;
   font-family: var(--font-mono);
+  background: var(--bg-card-alt);
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  border: 1px solid var(--border);
+}
+
+/* ── Tooltips ── */
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-card-hover);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+  position: relative;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.tooltip-icon:hover {
+  background: var(--text-secondary);
+  color: #fff;
+}
+.tooltip-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: var(--text-primary);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.tooltip-icon::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  border: 4px solid transparent;
+  border-top-color: var(--text-primary);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+.tooltip-icon:hover::after,
+.tooltip-icon:hover::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
 }
 
