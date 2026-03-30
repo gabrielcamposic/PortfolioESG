@@ -34,21 +34,17 @@ venv/
 ENV/
 
 # Data files - Dados gerados pelos scripts
-data/findata/
 data/findb/
-data/results/
 data/*.csv
 data/*.json
 logs/
 *.log
 
 # HTML data - symlinks para data/ (gerados por D_Publish.py)
-html/data/*
 !html/data/.gitkeep
 
 # Documentos pessoais
 Notas_Negociação/
-Personal/
 
 # Arquivos de teste/temp
 test_tools/

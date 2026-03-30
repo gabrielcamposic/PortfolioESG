@@ -1,0 +1,10 @@
+run_start_timestamp,2.0.0_version,param_load_duration_s,data_load_duration_s,overall_script_duration_s,pdfs_found,pdfs_processed,status,execution_time,error
+2026-03-07 07:01:19,B1_Process_Notes,0.0,0.0,0.0,0,0,error,0.0033190250396728516,'PosixPath' object has no attribute 'get'
+2026-03-07 07:40:38,B1_Process_Notes,0.0,0.0,0.0,0,0,success,0.005827188491821289
+2026-03-07 07:40:38,B1_Process_Notes,0.0,0.0,0.0,0,0,success,0.009149312973022461
+2026-03-07 08:05:41,B1_Process_Notes,0.0,0.0,0.0,0,0,success,0.0024099349975585938
+2026-03-07 08:05:41,B1_Process_Notes,0.0,0.0,0.0,0,0,success,0.0059871673583984375
+20260328-185359,2026-03-29 04:13:11,B1_Process_Notes,0.0,0.0,0.0,0,0,success,0.004182100296020508
+20260328-185359,2026-03-29 04:13:11,B1_Process_Notes,0.0,0.0,0.0,0,0,success,0.008208036422729492
+20260329-101714,2026-03-29 11:24:49,B1_Process_Notes,0.0,0.0,0.0,0,0,success,0.0021228790283203125
+20260329-101714,2026-03-29 11:24:49,B1_Process_Notes,0.0,0.0,0.0,0,0,success,0.0031888484954833984

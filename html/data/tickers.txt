@@ -1,0 +1,1 @@
+/Users/gabrielcampos/PortfolioESG/parameters/tickers.txt
