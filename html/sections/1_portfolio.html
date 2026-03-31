@@ -134,6 +134,12 @@
 
 <div class="period-header" id="period-header"></div>
 
+<!-- Current Portfolio Composition -->
+<div class="chart-card" style="margin-bottom: 16px;">
+  <div class="chart-title">Composição da Carteira Atual</div>
+  <div id="composition-table-container"><span class="loading">Carregando composição...</span></div>
+</div>
+
 <div class="dashboard-grid layout-hero" style="margin-bottom: 16px;">
   <!-- Left Column: Cards Vertical -->
   <div class="cards-vertical" id="cards-snapshot">
@@ -152,15 +158,15 @@
 <!-- Split Grid (50/50): Bar Chart + Monthly Table -->
 <div class="dashboard-grid layout-split">
   <!-- Bar chart -->
-  <div class="chart-card">
-    <div class="chart-title">Retorno por Janela</div>
-    <div class="bar-chart-wrapper">
+  <div class="chart-card" style="height: 480px; display: flex; flex-direction: column;">
+    <div class="chart-title" style="flex-shrink: 0;">Retorno por Janela</div>
+    <div class="bar-chart-wrapper" style="flex: 1;">
       <canvas id="bar-chart"></canvas>
     </div>
   </div>
 
   <!-- Monthly TWR returns table -->
-  <div class="chart-card" style="max-height: 512px; overflow-y: auto;">
+  <div class="chart-card" style="height: 480px; overflow-y: auto;">
     <div class="chart-title" style="margin-bottom: 12px; position: sticky; top: 0; background: var(--bg-card); z-index: 5;">Rentabilidade Mensal — TWR</div>
     <div id="monthly-returns-container"></div>
   </div>
@@ -207,9 +213,10 @@ function parseCSV(url) {
 
 async function render() {
   try {
-    const [dashboard, dailyRows] = await Promise.all([
+    const [dashboard, dailyRows, positions] = await Promise.all([
       fetch(`${DATA_BASE}/dashboard_latest.json`).then(r => r.json()),
       parseCSV(`${DATA_BASE}/portfolio_real_daily.csv`),
+      fetch(`${DATA_BASE}/ledger_positions.json`).then(r => r.json()).catch(() => null),
     ]);
 
     const real = dashboard.real || {};
@@ -221,6 +228,9 @@ async function render() {
     const meta = real.meta || {};
     const perf = real.performance || {};
     const safe = meta.annualize_safe;
+
+    const model = dashboard.model || {};
+    const mRet = model.returns || {};
 
     // ── Period header ──
     const MO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -237,7 +247,7 @@ async function render() {
     const pctCdiStr = pctCdi != null ? pctCdi.toFixed(0) + '%' : '—';
 
     document.getElementById('cards-snapshot').innerHTML =
-      card('Retorno (%)', fmtPct(snap.simple_roi_pct/100), cls(snap.simple_roi_pct), 'lucro / investido', 'Retorno Simples (ROI): Lucro total dividido pelo investido (Ignora tempo)') +
+      card('Exp. 12M (Atual)', fmtPct(mRet.hold_12m / 100), cls(mRet.hold_12m), 'retorno esperado', 'Projeção (Forward Looking): Retorno matemático esperado da carteira atual (sem rebalanceamento) em 12 meses') +
       card('% do CDI', pctCdiStr, pctCdiCls, `CDI ${fmtPct(cdi.total_return)} no período`, 'Quanto o seu TWR representa sobre o rendimento do CDI no período (objetivo: >100%)') +
       card('Volatilidade', fmtPct(twr.volatility), '', `sharpe ${fmtNum(twr.sharpe)}`, 'Risco: quanto a carteira oscila. Sharpe indica se esse risco compensou sobre o CDI livre de risco.') +
       card('Alpha vs Ibov', fmtPct(alpha.total), cls(alpha.total), 'TWR − bench', 'Alpha: Quanto sua carteira rendeu de prêmio (a mais ou a menos) contra o Ibovespa');
@@ -432,6 +442,71 @@ async function render() {
 
       html += '</tbody></table>';
       document.getElementById('monthly-returns-container').innerHTML = html;
+    }
+
+    // ── Current Portfolio Composition ──
+    const totalMkt = positions?.total_current_market || 0;
+    if (positions && positions.positions && positions.positions.length > 0 && totalMkt > 0) {
+      const holdings = positions.positions
+        .map(p => {
+          const symbol = (p.resolved_symbol || p.symbol || '').replace('.SA', '');
+          const mktVal = p.net_qty * p.current_price;
+          const weight = mktVal / totalMkt;
+          const avgCost = p.net_qty > 0 ? p.net_invested / p.net_qty : 0;
+          const pl = mktVal - p.net_invested;
+          const plPct = p.net_invested > 0 ? pl / p.net_invested : 0;
+          return { symbol, qty: p.net_qty, avgCost, currentPrice: p.current_price, targetPrice: p.target_price, mktVal, weight, pl, plPct };
+        })
+        .filter(h => h.weight > 0)
+        .sort((a, b) => b.weight - a.weight);
+
+      let html = `<table class="perf-table" style="text-align: right;">
+        <thead><tr>
+          <th style="text-align: left;">Ativo</th>
+          <th>Peso</th>
+          <th>Qtd</th>
+          <th>Custo Médio</th>
+          <th>Cotação</th>
+          <th>Valor Mercado</th>
+          <th>P&L</th>
+          <th>P&L %</th>
+        </tr></thead><tbody>`;
+
+      let totalInvested = 0, totalMktVal = 0;
+      for (const h of holdings) {
+        const plCls = h.pl >= 0 ? 'pos' : 'neg';
+        totalInvested += h.avgCost * h.qty;
+        totalMktVal += h.mktVal;
+        html += `<tr>
+          <td style="font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); text-align: left;">${h.symbol}</td>
+          <td>${(h.weight * 100).toFixed(1)}%</td>
+          <td>${h.qty}</td>
+          <td>${fmtBRL(h.avgCost)}</td>
+          <td>${fmtBRL(h.currentPrice)}</td>
+          <td>${fmtBRL(h.mktVal)}</td>
+          <td class="${plCls}">${fmtBRL(h.pl)}</td>
+          <td class="${plCls}">${fmtPct(h.plPct)}</td>
+        </tr>`;
+      }
+
+      const totalPL = totalMktVal - totalInvested;
+      const totalPLpct = totalInvested > 0 ? totalPL / totalInvested : 0;
+      const totalPLcls = totalPL >= 0 ? 'pos' : 'neg';
+      html += `<tr style="border-top: 2px solid var(--border); font-weight: 700; font-family: var(--font-sans);">
+        <td style="text-align: left;">Total</td>
+        <td>100%</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>${fmtBRL(totalMktVal)}</td>
+        <td class="${totalPLcls}">${fmtBRL(totalPL)}</td>
+        <td class="${totalPLcls}">${fmtPct(totalPLpct)}</td>
+      </tr>`;
+
+      html += `</tbody></table>`;
+      document.getElementById('composition-table-container').innerHTML = html;
+    } else {
+      document.getElementById('composition-table-container').innerHTML = '<span class="loading">Nenhuma posição atual encontrada.</span>';
     }
 
   } catch (err) {

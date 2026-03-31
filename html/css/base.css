@@ -148,7 +148,11 @@ body {
   font-size: 12px;
   font-weight: 500;
   font-family: var(--font-sans);
-  white-space: nowrap;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  text-align: center;
+  line-height: 1.4;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
