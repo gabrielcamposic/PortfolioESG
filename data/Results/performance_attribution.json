@@ -1,9 +1,9 @@
 {
-  "run_id": "20260402-134924",
-  "run_timestamp": "2026-04-02 14:09:44",
-  "allocation_effect": 21.429641207051233,
-  "selection_effect": -1.4739128762396887,
-  "interaction_effect": 0.0422946301967556,
-  "total_active_return": 22.237737188492705,
-  "residual": 2.239714227484402
+  "run_id": "20260404-072616",
+  "run_timestamp": "2026-04-04 07:46:30",
+  "allocation_effect": 34.31291537749438,
+  "selection_effect": -0.9105527241257164,
+  "interaction_effect": -0.2438137877995812,
+  "total_active_return": 23.265668066675495,
+  "residual": -9.892880798893586
 }

@@ -1,0 +1,318 @@
+[
+  {
+    "run_id": "20260404-072616",
+    "timestamp": "2026-04-04 07:46:29",
+    "n_assets": 6,
+    "stocks": [
+      "VBBR3.SA",
+      "VALE3.SA",
+      "AXIA6.SA",
+      "PNVL3.SA",
+      "ENEV3.SA",
+      "DASA3.SA"
+    ],
+    "weights": [
+      0.1354,
+      0.2926,
+      0.1885,
+      0.1267,
+      0.2263,
+      0.0306
+    ],
+    "sharpe_forward": 2.7991,
+    "ret_hist_12m": 70.88,
+    "vol_12m": 20.05,
+    "ret_proj_12m": 10.63,
+    "score": 0.5993,
+    "momentum": 0.4926,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0535,
+    "holdings_return_pct": 42.75,
+    "excess_return_pct": -32.182
+  },
+  {
+    "run_id": "20260403-090929",
+    "timestamp": "2026-04-03 09:29:40",
+    "n_assets": 7,
+    "stocks": [
+      "ENEV3.SA",
+      "AXIA6.SA",
+      "VBBR3.SA",
+      "DASA3.SA",
+      "PNVL3.SA",
+      "VALE3.SA",
+      "JBSS32.SA"
+    ],
+    "weights": [
+      0.1962,
+      0.1677,
+      0.1266,
+      0.0273,
+      0.1307,
+      0.3335,
+      0.018
+    ],
+    "sharpe_forward": 2.8011,
+    "ret_hist_12m": 69.11,
+    "vol_12m": 19.41,
+    "ret_proj_12m": 10.33,
+    "score": 0.5969,
+    "momentum": null,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0535,
+    "holdings_return_pct": 42.72,
+    "excess_return_pct": -32.4454
+  },
+  {
+    "run_id": "20260402-134924",
+    "timestamp": "2026-04-02 14:09:43",
+    "n_assets": 8,
+    "stocks": [
+      "ORVR3.SA",
+      "ENEV3.SA",
+      "JBSS32.SA",
+      "AXIA6.SA",
+      "DASA3.SA",
+      "VBBR3.SA",
+      "PNVL3.SA",
+      "VALE3.SA"
+    ],
+    "weights": [
+      0.0001,
+      0.2457,
+      0.0323,
+      0.1872,
+      0.0253,
+      0.0756,
+      0.1625,
+      0.2713
+    ],
+    "sharpe_forward": 2.7884,
+    "ret_hist_12m": 70.13,
+    "vol_12m": 19.86,
+    "ret_proj_12m": 11.76,
+    "score": 0.6032,
+    "momentum": null,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0536,
+    "holdings_return_pct": 42.32,
+    "excess_return_pct": -30.6169
+  },
+  {
+    "run_id": "20260331-210616",
+    "timestamp": "2026-03-31 21:30:54",
+    "n_assets": 6,
+    "stocks": [
+      "ENEV3.SA",
+      "PNVL3.SA",
+      "UGPA3.SA",
+      "AURA33.SA",
+      "NEOE3.SA",
+      "VALE3.SA"
+    ],
+    "weights": [
+      0.1781,
+      0.1799,
+      0.1368,
+      0.1677,
+      0.2192,
+      0.1183
+    ],
+    "sharpe_forward": 3.1677,
+    "ret_hist_12m": 75.11,
+    "vol_12m": 19.06,
+    "ret_proj_12m": 12.44,
+    "score": 0.6369,
+    "momentum": null,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0464,
+    "holdings_return_pct": 43.9,
+    "excess_return_pct": -29.9348
+  },
+  {
+    "run_id": "20260330-200710",
+    "timestamp": "2026-03-30 20:37:00",
+    "n_assets": 7,
+    "stocks": [
+      "PNVL3.SA",
+      "VALE3.SA",
+      "NEOE3.SA",
+      "UGPA3.SA",
+      "ENEV3.SA",
+      "DASA3.SA",
+      "AURA33.SA"
+    ],
+    "weights": [
+      0.1884,
+      0.1344,
+      0.1893,
+      0.1195,
+      0.175,
+      0.0242,
+      0.1691
+    ],
+    "sharpe_forward": 3.1638,
+    "ret_hist_12m": 76.5,
+    "vol_12m": 19.52,
+    "ret_proj_12m": 13.94,
+    "score": 0.6411,
+    "momentum": null,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0464,
+    "holdings_return_pct": 44.15,
+    "excess_return_pct": -28.7465
+  },
+  {
+    "run_id": "20260329-101714",
+    "timestamp": "2026-03-29 11:24:24",
+    "n_assets": 7,
+    "stocks": [
+      "PNVL3.SA",
+      "RADL3.SA",
+      "VALE3.SA",
+      "AURA33.SA",
+      "UGPA3.SA",
+      "DASA3.SA",
+      "ENEV3.SA"
+    ],
+    "weights": [
+      0.1965,
+      0.0301,
+      0.1238,
+      0.2056,
+      0.1833,
+      0.028,
+      0.2327
+    ],
+    "sharpe_forward": 3.0826,
+    "ret_hist_12m": 85.21,
+    "vol_12m": 22.86,
+    "ret_proj_12m": 15.33,
+    "score": 0.6508,
+    "momentum": null,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0479,
+    "holdings_return_pct": 43.89,
+    "excess_return_pct": -28.0352
+  },
+  {
+    "run_id": "20260328-185359",
+    "timestamp": "2026-03-29 03:46:05",
+    "n_assets": 7,
+    "stocks": [
+      "UGPA3.SA",
+      "DASA3.SA",
+      "AURA33.SA",
+      "VALE3.SA",
+      "ENEV3.SA",
+      "AXIA6.SA",
+      "PNVL3.SA"
+    ],
+    "weights": [
+      0.1613,
+      0.0256,
+      0.2219,
+      0.1331,
+      0.2412,
+      0.0323,
+      0.1847
+    ],
+    "sharpe_forward": 3.0845,
+    "ret_hist_12m": 86.05,
+    "vol_12m": 23.11,
+    "ret_proj_12m": null,
+    "score": null,
+    "momentum": null,
+    "decision": null,
+    "transition_cost_pct": null,
+    "holdings_return_pct": null,
+    "excess_return_pct": null
+  },
+  {
+    "run_id": "20260307-074514",
+    "timestamp": "2026-03-07 08:05:25",
+    "n_assets": 5,
+    "stocks": [
+      "SAPR11.SA",
+      "PETR3.SA",
+      "AURA33.SA",
+      "PLPL3.SA",
+      "MDNE3.SA"
+    ],
+    "weights": [
+      0.0037,
+      0.008,
+      0.6132,
+      0.1179,
+      0.2573
+    ],
+    "sharpe_forward": null,
+    "ret_hist_12m": 44.51,
+    "vol_12m": 32.8,
+    "ret_proj_12m": null,
+    "score": null,
+    "momentum": null,
+    "decision": null,
+    "transition_cost_pct": null,
+    "holdings_return_pct": null,
+    "excess_return_pct": null
+  },
+  {
+    "run_id": "20260307-072824",
+    "timestamp": "2026-03-07 07:45:25",
+    "n_assets": 5,
+    "stocks": [
+      "PLPL3.SA",
+      "KEPL3.SA",
+      "SAPR11.SA",
+      "AURA33.SA",
+      "MDNE3.SA"
+    ],
+    "weights": [
+      0.0874,
+      0.002,
+      0.0303,
+      0.6413,
+      0.239
+    ],
+    "sharpe_forward": null,
+    "ret_hist_12m": 44.59,
+    "vol_12m": 32.83,
+    "ret_proj_12m": null,
+    "score": null,
+    "momentum": null,
+    "decision": null,
+    "transition_cost_pct": null,
+    "holdings_return_pct": null,
+    "excess_return_pct": null
+  },
+  {
+    "run_id": "20260307-064253",
+    "timestamp": "2026-03-07 07:01:02",
+    "n_assets": 5,
+    "stocks": [
+      "AURA33.SA",
+      "MDNE3.SA",
+      "PLPL3.SA",
+      "PETR3.SA",
+      "PRNR3.SA"
+    ],
+    "weights": [
+      0.6733,
+      0.2132,
+      0.0697,
+      0.0195,
+      0.0244
+    ],
+    "sharpe_forward": null,
+    "ret_hist_12m": 44.95,
+    "vol_12m": 33.23,
+    "ret_proj_12m": null,
+    "score": null,
+    "momentum": null,
+    "decision": null,
+    "transition_cost_pct": null,
+    "holdings_return_pct": null,
+    "excess_return_pct": null
+  }
+]
