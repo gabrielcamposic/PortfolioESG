@@ -23,7 +23,12 @@
       "projectedQty": 11,
       "projectedInvested": 919.0500335693359,
       "target": 88.46183,
-      "projectedBRL": 973.08013
+      "projectedBRL": 973.08013,
+      "composite_score": 0.4655103509352874,
+      "momentum_score": 0.458624386038847,
+      "upside_pct": 0.0587890696449096,
+      "annual_ret": 0.2470601039547538,
+      "annual_vol": 0.3861018374141043
     },
     {
       "ticker": "ENEV3.SA",
@@ -32,7 +37,12 @@
       "projectedQty": 29,
       "projectedInvested": 721.5199756622314,
       "target": 26.95455,
-      "projectedBRL": 781.68195
+      "projectedBRL": 781.68195,
+      "composite_score": 0.4806495114968817,
+      "momentum_score": 0.4844868031619651,
+      "upside_pct": 0.0833822712705218,
+      "annual_ret": 0.2673742054527168,
+      "annual_vol": 0.3774193677386884
     },
     {
       "ticker": "AXIA6.SA",
@@ -41,7 +51,12 @@
       "projectedQty": 9,
       "projectedInvested": 586.0800247192383,
       "target": 70.512,
-      "projectedBRL": 634.608
+      "projectedBRL": 634.608,
+      "composite_score": 0.4854538990106714,
+      "momentum_score": 0.4801297977816459,
+      "upside_pct": 0.0828009371314251,
+      "annual_ret": 0.2964460609080202,
+      "annual_vol": 0.434483533677899
     },
     {
       "ticker": "VBBR3.SA",
@@ -50,7 +65,12 @@
       "projectedQty": 13,
       "projectedInvested": 409.36999702453613,
       "target": 33.00253,
-      "projectedBRL": 429.03289
+      "projectedBRL": 429.03289,
+      "composite_score": 0.3938728166359124,
+      "momentum_score": 0.3683169436107514,
+      "upside_pct": 0.0480320812916958,
+      "annual_ret": 0.1267688777618708,
+      "annual_vol": 0.3914606858585111
     },
     {
       "ticker": "PNVL3.SA",
@@ -59,7 +79,12 @@
       "projectedQty": 28,
       "projectedInvested": 407.4000053405762,
       "target": 18.8,
-      "projectedBRL": 526.4
+      "projectedBRL": 526.4,
+      "composite_score": 0.4005059734529699,
+      "momentum_score": 0.4953752184237732,
+      "upside_pct": 0.292096202993279,
+      "annual_ret": 0.1074931001637993,
+      "annual_vol": 0.3590098398328397
     },
     {
       "ticker": "DASA3.SA",
@@ -68,7 +93,12 @@
       "projectedQty": 30,
       "projectedInvested": 97.2000002861023,
       "target": 4.41111,
-      "projectedBRL": 132.3333
+      "projectedBRL": 132.3333,
+      "composite_score": 0.4951810669867558,
+      "momentum_score": 1.4923077910609537,
+      "upside_pct": 0.3614536996963473,
+      "annual_ret": 0.0647531082178785,
+      "annual_vol": 0.6024721434801472
     }
   ],
   "totals": {
@@ -79,5 +109,5 @@
     "totalProjectedBRL": 3477.13627
   },
   "used_path": "/Users/gabrielcampos/PortfolioESG/data/results/latest_run_summary.json",
-  "generated_at": "2026-04-04T11:09:43.178373+00:00"
+  "generated_at": "2026-04-05T11:35:10.601921+00:00"
 }

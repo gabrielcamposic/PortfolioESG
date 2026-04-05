@@ -145,32 +145,67 @@
     color: var(--text-primary);
   }
   .chart-container { position: relative; height: 220px; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 4px;
-    font-size: 12px;
-    white-space: nowrap;
+  /* ── Table Styling (Premium) ── */
+  .table-wrapper { overflow-x: auto; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1000px; }
+  
+  :root {
+    --fwd-color: #1c7ed6;
+    --bwd-color: #495057;
+    --score-bg: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
   }
-  th {
-    text-align: left;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    padding: 8px 8px;
-    border-bottom: 1px solid var(--border);
+
+  thead tr.group-headers th {
+    padding: 8px 14px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 1.5px; border-bottom: none; color: var(--text-muted);
   }
+  thead tr.main-headers th {
+    padding: 12px 14px; font-size: 11px; font-weight: 700;
+    border-bottom: 2px solid var(--border); color: var(--text-secondary);
+    background: var(--bg-card); position: sticky; top: 0;
+  }
+
+  /* Section-based Column Styling */
+  .col-fwd { background: rgba(28, 126, 214, 0.02); }
+  .col-bwd { background: rgba(73, 80, 87, 0.02); }
+
+  /* Group Dividers & Headers */
+  .group-fwd { 
+    background: rgba(28, 126, 214, 0.08) !important; 
+    border-bottom: 2px solid var(--fwd-color) !important; 
+    color: var(--fwd-color) !important;
+    border-radius: 8px 8px 0 0;
+  }
+  .group-bwd { 
+    background: rgba(73, 80, 87, 0.08) !important; 
+    border-bottom: 2px solid var(--bwd-color) !important; 
+    color: var(--bwd-color) !important;
+    border-radius: 8px 8px 0 0;
+  }
+
+  th.right, td.right { text-align: right; }
   td {
-    padding: 8px 8px;
-    border-bottom: 1px solid rgba(42,46,61,0.4);
-    font-family: var(--font-mono);
+    padding: 12px 14px; font-family: var(--font-mono); font-size: 12px;
+    border-bottom: 1px solid var(--border-light); transition: background 0.2s;
   }
-  td.symbol { font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); }
-  td.right, th.right { text-align: right; }
+  
+  /* Vertical Dividers */
+  .sep-fwd { border-left: 2px solid rgba(28, 126, 214, 0.15) !important; }
+  .sep-bwd { border-left: 2px solid rgba(73, 80, 87, 0.15) !important; }
+
   tr:last-child td { border-bottom: none; }
-  tr.totals td { border-top: 2px solid var(--border); font-weight: 700; font-family: var(--font-sans); }
-  tr:hover td { background: rgba(25,113,194,0.04); }
+  tr:hover td { background: rgba(0,0,0,0.02); }
+  tr.totals td { border-top: 2px solid var(--border); font-weight: 700; background: var(--bg-card-alt); }
+
+  /* Cells */
+  td.symbol { font-family: var(--font-sans); font-weight: 700; color: var(--accent-blue); font-size: 13px; }
+  .cell-score {
+    display: inline-block; padding: 4px 10px; border-radius: 12px;
+    background: var(--score-bg); color: #004a99; font-weight: 700; font-size: 11px;
+    box-shadow: 0 1px 3px rgba(0,74,153,0.1);
+  }
+  .cell-upside { font-weight: 700; color: var(--fwd-color); }
+  .cell-mom { font-weight: 600; }
   .action-badge {
     display: inline-block;
     padding: 2px 8px;
@@ -502,41 +537,82 @@ function renderSectors(dashboard) {
 function renderAllocation(pipeline) {
   const rows = pipeline.rows || [];
   const totals = pipeline.totals || {};
+  const el = document.getElementById('allocation-table');
   if (!rows.length) {
-    document.getElementById('allocation-table').innerHTML = '<span class="loading">Sem dados de alocação.</span>';
+    el.innerHTML = '<span class="loading">Sem dados de alocação.</span>';
     return;
   }
-  let html = `<table>
-    <thead><tr>
-      <th>Ativo</th>
-      <th class="right">Peso</th>
-      <th class="right">Preço Atual</th>
-      <th class="right">Qtd Proj.</th>
-      <th class="right">Invest. Proj.</th>
-      <th class="right">Alvo (BRL)</th>
-    </tr></thead><tbody>`;
 
-  for (const r of rows) {
-    html += `<tr>
-      <td class="symbol">${r.ticker}</td>
-      <td class="right">${fmtPct(r.weight)}</td>
-      <td class="right">${fmtBRL(r.current)}</td>
-      <td class="right">${fmtNum(r.projectedQty)}</td>
-      <td class="right">${fmtBRL(r.projectedInvested)}</td>
-      <td class="right">${fmtBRL(r.target)}</td>
-    </tr>`;
-  }
+  let html = `
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr class="group-headers">
+            <th colspan="7">Base</th>
+            <th colspan="2" class="group-fwd">Qualidade (Score)</th>
+            <th colspan="2" class="group-fwd">Ganhos (Target)</th>
+            <th colspan="2" class="group-bwd">Histórico (12m)</th>
+          </tr>
+          <tr class="main-headers">
+            <th>Ativo</th>
+            <th class="right">Qtd Proj.</th>
+            <th class="right">Preço Atual</th>
+            <th class="right">Invest. Atual</th>
+            <th class="right">Peso</th>
+            <th class="right">Preço Proj. (12M)</th>
+            <th class="right">Invest. Proj. (12M)</th>
+            
+            <th class="right sep-fwd">Score</th>
+            <th class="right">Momentum</th>
+            
+            <th class="right sep-fwd">Alvo (BRL)</th>
+            <th class="right">Upside</th>
+            
+            <th class="right sep-bwd">Retorno</th>
+            <th class="right">Volatilidade</th>
+          </tr>
+        </thead>
+        <tbody>`;
 
-  html += `<tr class="totals">
-    <td>Total</td>
-    <td class="right">${fmtPct(totals.totalPct)}</td>
-    <td></td>
-    <td class="right">${fmtNum(totals.totalProjectedQty)}</td>
-    <td class="right">${fmtBRL(totals.totalProjectedInvested)}</td>
-    <td class="right">${fmtBRL(totals.totalProjectedBRL)}</td>
-  </tr>`;
-  html += '</tbody></table>';
-  document.getElementById('allocation-table').innerHTML = html;
+  rows.forEach(r => {
+    const upside = (r.upside_pct || 0) * 100;
+    const annRet = (r.annual_ret || 0) * 100;
+    const annVol = (r.annual_vol || 0) * 100;
+
+    html += `
+      <tr>
+        <td class="symbol">${r.ticker.replace('.SA', '')}</td>
+        <td class="right">${fmtNum(r.projectedQty)}</td>
+        <td class="right">${fmtBRL(r.current)}</td>
+        <td class="right">${fmtBRL(r.projectedInvested)}</td>
+        <td class="right">${fmtPct(r.weight)}</td>
+        <td class="right">${fmtBRL(r.target)}</td>
+        <td class="right">${fmtBRL(r.projectedBRL)}</td>
+        
+        <td class="right sep-fwd col-fwd"><span class="cell-score">${fmtNum(r.composite_score, 3)}</span></td>
+        <td class="right col-fwd cell-mom">${fmtNum(r.momentum_score, 2)}</td>
+        
+        <td class="right sep-fwd col-fwd">${fmtBRL(r.target)}</td>
+        <td class="right col-fwd cell-upside ${colorClass(upside)}">${upside >= 0 ? '+' : ''}${fmtNum(upside, 1)}%</td>
+        
+        <td class="right sep-bwd col-bwd">${fmtNum(annRet, 1)}%</td>
+        <td class="right col-bwd">${fmtNum(annVol, 1)}%</td>
+      </tr>`;
+  });
+
+  html += `
+        <tr class="totals">
+          <td colspan="3">Total</td>
+          <td class="right">${fmtBRL(totals.totalProjectedInvested)}</td>
+          <td class="right">${fmtPct(totals.totalPct)}</td>
+          <td></td>
+          <td class="right">${fmtBRL(totals.totalProjectedBRL)}</td>
+          <td colspan="6"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+  el.innerHTML = html;
 }
 
 function renderTransactions(recommendation) {

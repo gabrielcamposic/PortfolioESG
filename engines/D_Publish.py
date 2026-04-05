@@ -18,7 +18,7 @@ Usage:
 """
 
 # --- Script Version ---
-D_PUBLISH_VERSION = "3.2.0"  # Add TWR monthly quota method (E_TWR_Monthly)
+D_PUBLISH_VERSION = "3.3.0"  # Add enriched history JSON (Step 8)
 
 import csv
 import json
@@ -26,7 +26,7 @@ import math
 import os
 import sys
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -456,6 +456,26 @@ def _load_broker_name_mapping() -> Dict[str, str]:
     return mapping
 
 
+def _load_scored_stocks_meta() -> Dict[str, Dict[str, Any]]:
+    """Load metadata from scored_stocks.csv for enrichment."""
+    meta = {}
+    if SCORED_STOCKS_CSV.exists():
+        try:
+            df = pd.read_csv(SCORED_STOCKS_CSV)
+            for _, row in df.iterrows():
+                ticker = normalize_ticker(str(row.get("Stock", "")))
+                meta[ticker] = {
+                    "composite_score": safe_float(row.get("CompositeScore")),
+                    "momentum_score": safe_float(row.get("Momentum")),
+                    "upside_pct": safe_float(row.get("PotentialUpside_pct")),
+                    "annual_ret": safe_float(row.get("AnnualizedMeanReturn")),
+                    "annual_vol": safe_float(row.get("AnnualizedStdDev")),
+                }
+        except Exception as e:
+            logger.warning(f"  Could not load scored_stocks meta: {e}")
+    return meta
+
+
 def publish_pipeline_latest(target_map: Dict[str, float]) -> None:
     """Generate pipeline_latest.json: model portfolio projected onto real values."""
     logger.info("Step 3: Generating pipeline_latest.json")
@@ -505,6 +525,8 @@ def publish_pipeline_latest(target_map: Dict[str, float]) -> None:
     # Fallback target prices from FinancialsDB (covers stocks filtered out of scoring,
     # e.g. those with negative upside like PETR3 when target < current price)
     findb_targets = _load_findb_target_prices()
+    # Enrichment: Scored stocks meta (scores, momentum, performance)
+    scored_meta = _load_scored_stocks_meta()
 
     # Build rows
     rows = []
@@ -554,6 +576,9 @@ def publish_pipeline_latest(target_map: Dict[str, float]) -> None:
         if projected_brl:
             totals["totalProjectedBRL"] += projected_brl
 
+        # Find enrichment data
+        meta = scored_meta.get(norm, {})
+
         rows.append({
             "ticker": stock,
             "weight": w,
@@ -562,6 +587,12 @@ def publish_pipeline_latest(target_map: Dict[str, float]) -> None:
             "projectedInvested": projected_invested,
             "target": tp,
             "projectedBRL": projected_brl,
+            # Enriched fields
+            "composite_score": meta.get("composite_score"),
+            "momentum_score": meta.get("momentum_score"),
+            "upside_pct": meta.get("upside_pct"),
+            "annual_ret": meta.get("annual_ret"),
+            "annual_vol": meta.get("annual_vol"),
         })
 
     rows.sort(key=lambda r: (r.get("projectedInvested") or 0), reverse=True)
@@ -1391,6 +1422,143 @@ def publish_correlation_heatmap(window_days: int = 252) -> None:
     logger.info(f"  Saved {out_path.name} ({len(order)}×{len(order)} matrix)")
 
 
+def publish_history_enriched() -> None:
+    """Step 8: Generate portfolio_history_enriched.json for the History page.
+
+    Merges data from:
+      - portfolio_results_db.csv       (A3 engine: backtest metrics)
+      - optimized_portfolio_history.jsonl  (C engine: forward-looking metrics)
+      - latest_run_summary.json        (momentum for the latest run)
+
+    Output: html/data/portfolio_history_enriched.json
+    """
+    logger.info("Step 8: Generating portfolio_history_enriched.json")
+
+    out_path = DST / "portfolio_history_enriched.json"
+
+    # --- Load A3 results (CSV) ---
+    csv_path = PORTFOLIO_RESULTS_CSV
+    if not csv_path.exists():
+        logger.warning("  portfolio_results_db.csv not found — skipping")
+        return
+
+    try:
+        a3_df = pd.read_csv(csv_path)
+    except Exception as e:
+        logger.error(f"  Failed to read portfolio_results_db.csv: {e}")
+        return
+
+    # --- Load C results (JSONL) ---
+    c_entries = []
+    if OPTIMIZED_HISTORY_JSONL.exists():
+        try:
+            with open(OPTIMIZED_HISTORY_JSONL, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        c_entries.append(json.loads(line))
+        except Exception as e:
+            logger.warning(f"  Failed to read JSONL: {e}")
+
+    # Parse C timestamps for proximity matching
+    for entry in c_entries:
+        try:
+            entry["_ts"] = datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            entry["_ts"] = None
+
+    # --- Load momentum from latest_run_summary.json ---
+    latest_summary = read_json_safe(LATEST_RUN_SUMMARY_JSON)
+    latest_run_id = latest_summary.get("last_updated_run_id", "")
+    latest_momentum = None
+    bp = latest_summary.get("best_portfolio_details", {})
+    mv = bp.get("momentum_valuation", {})
+    if mv:
+        latest_momentum = mv.get("portfolio_momentum")
+
+    # --- Build enriched entries ---
+    enriched = []
+
+    for _, row in a3_df.iterrows():
+        run_id = str(row.get("run_id", ""))
+        timestamp_str = str(row.get("timestamp", ""))
+
+        # Parse stocks
+        stocks_raw = str(row.get("stocks", ""))
+        stocks = [
+            s.strip()
+            for s in stocks_raw.replace("'", "").replace("[", "").replace("]", "").split(",")
+            if s.strip()
+        ]
+
+        # Parse weights
+        weights_raw = str(row.get("weights", ""))
+        weights = []
+        for w in weights_raw.replace("[", "").replace("]", "").split(","):
+            try:
+                weights.append(float(w.strip()))
+            except (ValueError, TypeError):
+                pass
+
+        entry: Dict[str, Any] = {
+            "run_id": run_id,
+            "timestamp": timestamp_str,
+            "n_assets": len(stocks),
+            "stocks": stocks,
+            "weights": weights,
+            # A3 backward-looking
+            "sharpe_forward": safe_float(row.get("sharpe_forward"), None),
+            "ret_hist_12m": safe_float(row.get("expected_return_annual_pct"), None),
+            "vol_12m": safe_float(row.get("expected_volatility_annual_pct"), None),
+            # C forward-looking (filled below via timestamp match)
+            "ret_proj_12m": None,
+            "score": None,
+            "momentum": None,
+            # Detail for expandable panel
+            "decision": None,
+            "transition_cost_pct": None,
+            "holdings_return_pct": None,
+            "excess_return_pct": None,
+        }
+
+        # --- Match with C engine entry by timestamp proximity (±30 min) ---
+        if timestamp_str and c_entries:
+            try:
+                a3_ts = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                best_match = None
+                best_delta = timedelta(minutes=30)
+
+                for c in c_entries:
+                    if c.get("_ts") is None:
+                        continue
+                    delta = abs(c["_ts"] - a3_ts)
+                    if delta < best_delta:
+                        best_delta = delta
+                        best_match = c
+
+                if best_match:
+                    entry["ret_proj_12m"] = best_match.get("ideal_return_pct")
+                    entry["score"] = best_match.get("ideal_score")
+                    entry["decision"] = best_match.get("decision")
+                    entry["transition_cost_pct"] = best_match.get("transition_cost_pct")
+                    entry["holdings_return_pct"] = best_match.get("holdings_return_pct")
+                    entry["excess_return_pct"] = best_match.get("excess_return_pct")
+            except Exception:
+                pass
+
+        # Momentum: only available for latest run (not persisted per-run)
+        if run_id == latest_run_id and latest_momentum is not None:
+            entry["momentum"] = latest_momentum
+
+        enriched.append(entry)
+
+    # Sort by run_id descending (newest first)
+    enriched.sort(key=lambda x: x.get("run_id", ""), reverse=True)
+
+    write_json(out_path, enriched)
+    logger.info(f"  Saved portfolio_history_enriched.json ({len(enriched)} runs)")
+
+
 def main() -> int:
     start_time = datetime.now()
     logger.info(f"D_Publish.py v{D_PUBLISH_VERSION} — Starting frontend asset publication")
@@ -1443,6 +1611,9 @@ def main() -> int:
 
         # Step 7: Correlation heatmap JSON (portfolio holdings vs model tickers)
         publish_correlation_heatmap()
+
+        # Step 8: Enriched history JSON (A3 + C merged for frontend)
+        publish_history_enriched()
 
         elapsed = (datetime.now() - start_time).total_seconds()
         logger.info(f"D_Publish.py completed in {elapsed:.1f}s")
