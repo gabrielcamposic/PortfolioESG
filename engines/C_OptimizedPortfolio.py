@@ -138,7 +138,13 @@ def _load_financials_db(logger: logging.Logger):
 
         logger.info(f"Loaded financials for {len(_FINANCIALS_CACHE)} tickers from FinancialsDB")
 
-        # Also try to load target prices from scored_stocks.csv (more complete data)
+        # Also try to load target prices from scored_stocks.csv as FALLBACK
+        # IMPORTANT: FinancialsDB (Yahoo Finance) is the source of truth for
+        # target_price and current_price. scored_stocks.csv is only used to
+        # fill gaps for tickers that don't have data in FinancialsDB.
+        # Previously, scored_stocks unconditionally overwrote FinancialsDB
+        # targets, causing stale target prices from old scoring runs to
+        # inflate the hold_12m metric.
         scored_stocks_path = os.path.join(FINDB_PATH, '..', 'Results', 'scored_stocks.csv')
         if os.path.exists(scored_stocks_path):
             try:
@@ -159,18 +165,28 @@ def _load_financials_db(logger: logging.Logger):
                     if stock not in _FINANCIALS_CACHE:
                         _FINANCIALS_CACHE[stock] = {}
 
-                    # Update with scored_stocks data if available and valid
-                    if pd.notna(current_price) and current_price > 0:
-                        _FINANCIALS_CACHE[stock]['current_price'] = float(current_price)
-                    if pd.notna(target_price) and target_price > 0:
-                        _FINANCIALS_CACHE[stock]['target_price'] = float(target_price)
-                        updated_count += 1
-                    if pd.notna(row.get('forwardPE')) and row.get('forwardPE') > 0:
-                        _FINANCIALS_CACHE[stock]['forward_pe'] = float(row.get('forwardPE'))
-                    if pd.notna(row.get('forwardEPS')):
-                        _FINANCIALS_CACHE[stock]['forward_eps'] = float(row.get('forwardEPS'))
+                    # Only use scored_stocks as FALLBACK — do NOT override
+                    # existing FinancialsDB data (which is more recent)
+                    existing = _FINANCIALS_CACHE[stock]
 
-                logger.info(f"Updated {updated_count} tickers with target prices from scored_stocks.csv")
+                    if pd.notna(current_price) and current_price > 0:
+                        if not existing.get('current_price'):
+                            _FINANCIALS_CACHE[stock]['current_price'] = float(current_price)
+
+                    if pd.notna(target_price) and target_price > 0:
+                        if not existing.get('target_price'):
+                            _FINANCIALS_CACHE[stock]['target_price'] = float(target_price)
+                            updated_count += 1
+
+                    if pd.notna(row.get('forwardPE')) and row.get('forwardPE') > 0:
+                        if not existing.get('forward_pe'):
+                            _FINANCIALS_CACHE[stock]['forward_pe'] = float(row.get('forwardPE'))
+
+                    if pd.notna(row.get('forwardEPS')):
+                        if not existing.get('forward_eps'):
+                            _FINANCIALS_CACHE[stock]['forward_eps'] = float(row.get('forwardEPS'))
+
+                logger.info(f"Filled {updated_count} tickers with target prices from scored_stocks.csv (fallback only)")
             except Exception as e:
                 logger.warning(f"Could not load scored_stocks.csv for target prices: {e}")
 
@@ -1132,6 +1148,42 @@ def main():
     holdings = calculate_holdings_metrics(holdings_df, ticker_mapping, params, logger)
     logger.info(f"Holdings: {len(holdings['stocks'])} stocks, total value: {holdings['total_value']:.2f}")
     logger.info(f"Holdings expected return: {holdings['expected_return']:.2f}%")
+
+    # ── Diagnostic: warn about holdings without target prices ──
+    holdings_with_target = set(holdings.get('target_prices', {}).keys())
+    holdings_with_hist = set(holdings.get('historical_returns', {}).keys())
+    all_holdings = set(holdings.get('stocks', []))
+    missing_target = all_holdings - holdings_with_target
+    using_hist_only = missing_target & holdings_with_hist
+    no_data = missing_target - holdings_with_hist
+
+    if missing_target:
+        logger.warning(
+            f"⚠ {len(missing_target)} holdings have NO target price from Yahoo Finance: "
+            f"{sorted(missing_target)}"
+        )
+        if using_hist_only:
+            logger.warning(
+                f"  → {sorted(using_hist_only)} are using historical return as fallback for hold_12m"
+            )
+        if no_data:
+            logger.warning(
+                f"  → {sorted(no_data)} have NO return data at all (contribute 0% to hold_12m)"
+            )
+
+    # Log per-asset details for hold_12m transparency
+    for symbol in sorted(all_holdings):
+        weight = holdings.get('weights', {}).get(symbol, 0) * 100
+        current = holdings.get('current_prices', {}).get(symbol, 0)
+        target = holdings.get('target_prices', {}).get(symbol, None)
+        hist = holdings.get('historical_returns', {}).get(symbol, None)
+        if target and current > 0:
+            upside = (target - current) / current * 100
+            logger.info(f"  {symbol}: w={weight:.1f}%, price={current:.2f}, target={target:.2f}, upside={upside:+.1f}%")
+        elif hist is not None:
+            logger.info(f"  {symbol}: w={weight:.1f}%, price={current:.2f}, NO TARGET → hist_return={hist*100:+.1f}%")
+        else:
+            logger.info(f"  {symbol}: w={weight:.1f}%, price={current:.2f}, NO TARGET, NO HIST → 0%")
 
     # Load ideal portfolio
     ideal = load_ideal_portfolio(logger)

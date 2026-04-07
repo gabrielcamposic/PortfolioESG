@@ -658,12 +658,42 @@ def main():
         scored_df.rename(columns=columns_to_rename, inplace=True)
 
         # Filter out stocks with zero or negative upside potential (after renaming)
+        # EXCEPTION: Current holdings are EXEMPT from this filter — they must
+        # remain in the scored universe so the A3 optimizer can consider them.
+        # Without this, assets the investor already owns (e.g. PETR3, SAPR11)
+        # may be invisible to the model when their Yahoo target price drops
+        # below the current price.
         if 'PotentialUpside_pct' in scored_df.columns:
+            # Load current holdings tickers to exempt them
+            holdings_tickers = set()
+            ledger_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                'data', 'ledger_positions.json'
+            )
+            try:
+                if os.path.exists(ledger_path):
+                    with open(ledger_path, 'r', encoding='utf-8') as f:
+                        ledger_data = json.load(f)
+                    positions = ledger_data.get('positions', []) if isinstance(ledger_data, dict) else ledger_data
+                    for pos in positions:
+                        symbol = pos.get('symbol') or pos.get('resolved_symbol', '')
+                        if symbol and pos.get('net_qty', 0) > 0:
+                            holdings_tickers.add(symbol)
+                    if holdings_tickers:
+                        logger.info(f"Loaded {len(holdings_tickers)} holdings tickers exempt from upside filter: {sorted(holdings_tickers)}")
+            except Exception as e:
+                logger.warning(f"Could not load holdings from {ledger_path}: {e}")
+
             initial_count = len(scored_df)
-            filtered_df = scored_df[scored_df['PotentialUpside_pct'] > 0].copy()
+            is_holding = scored_df['Stock'].isin(holdings_tickers)
+            has_positive_upside = scored_df['PotentialUpside_pct'] > 0
+            filtered_df = scored_df[has_positive_upside | is_holding].copy()
             filtered_count = len(filtered_df)
+            holdings_kept = is_holding.sum() - (is_holding & has_positive_upside).sum()
             logger.info(f"Filtered out {initial_count - filtered_count} stocks with zero or negative upside potential.")
-            logger.info(f"Passing {filtered_count} high-scoring, undervalued stocks to the portfolio stage.")
+            if holdings_kept > 0:
+                logger.info(f"Kept {holdings_kept} current holdings despite negative upside (exempt from filter).")
+            logger.info(f"Passing {filtered_count} stocks to the portfolio stage.")
         else:
             filtered_df = scored_df.copy()
             logger.warning("Column 'PotentialUpside_pct' not found after renaming. No upside filter applied.")
