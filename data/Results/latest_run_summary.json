@@ -1,121 +1,134 @@
 {
-    "last_updated_run_id": "20260404-072616",
-    "scoring_run_id": "20260404-072616",
-    "last_updated_timestamp": "2026-04-04 07:46:29",
+    "last_updated_run_id": "20260406-211427",
+    "scoring_run_id": "20260406-211427",
+    "last_updated_timestamp": "2026-04-06 21:41:18",
     "best_portfolio_details": {
         "stocks": [
+            "DASA3.SA",
             "VBBR3.SA",
-            "VALE3.SA",
             "AXIA6.SA",
-            "PNVL3.SA",
             "ENEV3.SA",
-            "DASA3.SA"
+            "VALE3.SA",
+            "PNVL3.SA",
+            "JBSS32.SA"
         ],
         "weights": [
-            0.1354,
-            0.2926,
-            0.1885,
-            0.1267,
-            0.2263,
-            0.0306
+            0.0376,
+            0.1135,
+            0.1577,
+            0.2098,
+            0.3316,
+            0.1284,
+            0.0214
         ],
-        "sharpe_forward": 2.7991,
-        "expected_return_annual_pct": 70.88,
-        "expected_volatility_annual_pct": 20.05,
+        "sharpe_forward": 2.8012,
+        "expected_return_annual_pct": 69.64,
+        "expected_volatility_annual_pct": 19.6,
         "initial_investment": 5000.0,
         "sector_exposure": {
-            "Consumer Cyclical": 0.1354,
-            "Basic Materials": 0.2926,
-            "Utilities": 0.4148,
-            "Healthcare": 0.1573
+            "Healthcare": 0.166,
+            "Consumer Cyclical": 0.1135,
+            "Utilities": 0.3675,
+            "Basic Materials": 0.3316,
+            "Consumer Defensive": 0.0214
         },
         "sector_exposure_list": [
             {
                 "sector": "Utilities",
-                "pct": 0.4148
+                "pct": 0.3675
             },
             {
                 "sector": "Basic Materials",
-                "pct": 0.2926
+                "pct": 0.3316
             },
             {
                 "sector": "Healthcare",
-                "pct": 0.1573
+                "pct": 0.166
             },
             {
                 "sector": "Consumer Cyclical",
-                "pct": 0.1354
+                "pct": 0.1135
+            },
+            {
+                "sector": "Consumer Defensive",
+                "pct": 0.0214
             }
         ],
         "concentration_risk": {
-            "hhi": 0.2076,
-            "top_5_holdings_pct": 0.9694,
+            "hhi": 0.2101,
+            "top_5_holdings_pct": 0.941,
             "top_5_holdings": [
                 {
                     "stock": "VALE3.SA",
-                    "weight": 0.2926
+                    "weight": 0.3316
                 },
                 {
                     "stock": "ENEV3.SA",
-                    "weight": 0.2263
+                    "weight": 0.2098
                 },
                 {
                     "stock": "AXIA6.SA",
-                    "weight": 0.1885
-                },
-                {
-                    "stock": "VBBR3.SA",
-                    "weight": 0.1354
+                    "weight": 0.1577
                 },
                 {
                     "stock": "PNVL3.SA",
-                    "weight": 0.1267
+                    "weight": 0.1284
+                },
+                {
+                    "stock": "VBBR3.SA",
+                    "weight": 0.1135
                 }
             ]
         },
-        "portfolio_weighted_pe": 11.26,
+        "portfolio_weighted_pe": 10.99,
         "momentum_valuation": {
-            "portfolio_momentum": 0.4926,
-            "portfolio_forward_pe": 11.26,
-            "benchmark_forward_pe": 8.96,
+            "portfolio_momentum": 0.4938,
+            "portfolio_forward_pe": 10.99,
+            "benchmark_forward_pe": 9.74,
             "portfolio_dividend_yield": null
         },
         "holdings_meta": {
+            "DASA3.SA": {
+                "forwardPE": 8.984306,
+                "Momentum": 1.4923077910609537,
+                "currentPrice": 3.240000009536743,
+                "targetPrice": 4.41111
+            },
             "VBBR3.SA": {
-                "forwardPE": 10.460161,
+                "forwardPE": 10.393726,
                 "Momentum": 0.3683169436107514,
                 "currentPrice": 31.489999771118164,
                 "targetPrice": 33.00253
             },
-            "VALE3.SA": {
-                "forwardPE": 7.2926464,
-                "Momentum": 0.458624386038847,
-                "currentPrice": 83.55000305175781,
-                "targetPrice": 88.46183
-            },
             "AXIA6.SA": {
-                "forwardPE": 10.623165,
+                "forwardPE": 10.561174,
                 "Momentum": 0.4801297977816459,
                 "currentPrice": 65.12000274658203,
                 "targetPrice": 70.512
             },
-            "PNVL3.SA": {
-                "forwardPE": 10.319149,
-                "Momentum": 0.4953752184237732,
-                "currentPrice": 14.550000190734863,
-                "targetPrice": 18.8
-            },
             "ENEV3.SA": {
-                "forwardPE": 18.154488,
+                "forwardPE": 18.621485,
                 "Momentum": 0.4844868031619651,
                 "currentPrice": 24.8799991607666,
                 "targetPrice": 26.95455
             },
-            "DASA3.SA": {
-                "forwardPE": 9.451024,
-                "Momentum": 1.4923077910609537,
-                "currentPrice": 3.240000009536743,
-                "targetPrice": 4.41111
+            "VALE3.SA": {
+                "forwardPE": 7.252495,
+                "Momentum": 0.458624386038847,
+                "currentPrice": 83.55000305175781,
+                "targetPrice": 88.139404
+            },
+            "PNVL3.SA": {
+                "forwardPE": 10.205674,
+                "Momentum": 0.4953752184237732,
+                "currentPrice": 14.550000190734863,
+                "targetPrice": 18.8
+            },
+            "JBSS32.SA": {
+                "forwardPE": 8.797121,
+                "Momentum": 0.1326696187249181,
+                "currentPrice": 91.01000213623048,
+                "targetPrice": 109.02857
             }
         }
     }
