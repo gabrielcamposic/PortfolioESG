@@ -1,5 +1,6 @@
 {
   "targets": {
+    "AURA33SA": 139.20528,
     "BPAC11SA": 65.04615,
     "AXIA6SA": 70.512,
     "ORVR3SA": 84.90444,
@@ -10,6 +11,7 @@
     "MOTV3SA": 18.88333,
     "WEGE3SA": 54.25714,
     "JBSS32SA": 109.02857,
+    "PETR3SA": 48.32857,
     "B3SA3SA": 18.89286,
     "TEND3SA": 41.625,
     "CPLE3SA": 16.38643,
@@ -41,6 +43,7 @@
     "ANIM3SA": 6.66364,
     "PLPL3SA": 22.33333,
     "TTEN3SA": 21.4,
+    "SAPR11SA": 41.853,
     "TFCO4SA": 19.83333,
     "LAVV3SA": 22.2,
     "PSSA3SA": 54.63636,
@@ -123,6 +126,7 @@
     "GFSA3SA": 2.2181467885548933
   },
   "symbols": {
+    "AURA33SA": "AURA33.SA",
     "BPAC11SA": "BPAC11.SA",
     "AXIA6SA": "AXIA6.SA",
     "ORVR3SA": "ORVR3.SA",
@@ -133,6 +137,7 @@
     "MOTV3SA": "MOTV3.SA",
     "WEGE3SA": "WEGE3.SA",
     "JBSS32SA": "JBSS32.SA",
+    "PETR3SA": "PETR3.SA",
     "B3SA3SA": "B3SA3.SA",
     "TEND3SA": "TEND3.SA",
     "CPLE3SA": "CPLE3.SA",
@@ -164,6 +169,7 @@
     "ANIM3SA": "ANIM3.SA",
     "PLPL3SA": "PLPL3.SA",
     "TTEN3SA": "TTEN3.SA",
+    "SAPR11SA": "SAPR11.SA",
     "TFCO4SA": "TFCO4.SA",
     "LAVV3SA": "LAVV3.SA",
     "PSSA3SA": "PSSA3.SA",
@@ -245,5 +251,5 @@
     "VVEO3SA": "VVEO3.SA",
     "GFSA3SA": "GFSA3.SA"
   },
-  "generated_at": "2026-04-07T00:42:30.412988+00:00"
+  "generated_at": "2026-04-07T02:03:15.987512+00:00"
 }
