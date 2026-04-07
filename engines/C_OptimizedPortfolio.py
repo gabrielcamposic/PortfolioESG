@@ -170,20 +170,24 @@ def _load_financials_db(logger: logging.Logger):
                     existing = _FINANCIALS_CACHE[stock]
 
                     if pd.notna(current_price) and current_price > 0:
-                        if not existing.get('current_price'):
+                        val = existing.get('current_price')
+                        if val is None or pd.isna(val):
                             _FINANCIALS_CACHE[stock]['current_price'] = float(current_price)
 
                     if pd.notna(target_price) and target_price > 0:
-                        if not existing.get('target_price'):
+                        val = existing.get('target_price')
+                        if val is None or pd.isna(val):
                             _FINANCIALS_CACHE[stock]['target_price'] = float(target_price)
                             updated_count += 1
 
                     if pd.notna(row.get('forwardPE')) and row.get('forwardPE') > 0:
-                        if not existing.get('forward_pe'):
+                        val = existing.get('forward_pe')
+                        if val is None or pd.isna(val):
                             _FINANCIALS_CACHE[stock]['forward_pe'] = float(row.get('forwardPE'))
 
                     if pd.notna(row.get('forwardEPS')):
-                        if not existing.get('forward_eps'):
+                        val = existing.get('forward_eps')
+                        if val is None or pd.isna(val):
                             _FINANCIALS_CACHE[stock]['forward_eps'] = float(row.get('forwardEPS'))
 
                 logger.info(f"Filled {updated_count} tickers with target prices from scored_stocks.csv (fallback only)")
