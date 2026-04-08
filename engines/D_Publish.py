@@ -1198,23 +1198,46 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
     total_pnl = safe_float(ledger_data.get("total_unrealized_pnl"), 0.0)
     simple_roi = (total_pnl / total_ledger_invested * 100) if total_ledger_invested > 0 else 0.0
 
+    # Build sector map for REAL portfolio concentration
+    sector_map = {}
+    try:
+        import csv
+        with open(TICKERS_FILE, encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                ticker = row.get("Ticker", "").strip()
+                sector_map[ticker.replace('.SA', '')] = row.get("Sector", "Outros")
+    except Exception as e:
+        logger.warning(f"Failed to load tickers for sector map: {e}")
+
     # Structure from ledger_positions.json — REAL portfolio concentration
     structure = {}
     positions = ledger_data.get("positions", [])
     if positions and total_ledger_market > 0:
         weights = []
+        sector_weights = {}
         for pos in positions:
             qty = safe_float(pos.get("net_qty"), 0.0)
             price = safe_float(pos.get("current_price"), 0.0)
             mv = qty * price
             if mv > 0:
-                weights.append(mv / total_ledger_market)
+                w = mv / total_ledger_market
+                weights.append(w)
+                sym = pos.get("resolved_symbol", pos.get("symbol", "")).replace(".SA", "")
+                sec = sector_map.get(sym, "Outros")
+                sector_weights[sec] = sector_weights.get(sec, 0.0) + w
+
         weights_sorted = sorted(weights, reverse=True)
+        
+        sector_list = [{"sector": s, "pct": round(w, 4)} for s, w in sector_weights.items()]
+        sector_list.sort(key=lambda x: x["pct"], reverse=True)
+        
         structure = {
             "hhi": round(sum(w ** 2 for w in weights), 4),
             "top3": round(sum(weights_sorted[:3]), 4) if len(weights_sorted) >= 3 else round(sum(weights_sorted), 4),
             "top5": round(sum(weights_sorted[:5]), 4) if len(weights_sorted) >= 5 else round(sum(weights_sorted), 4),
             "n_assets": len(weights),
+            "sector_exposure": sector_list
         }
 
     real: Dict[str, Any] = {

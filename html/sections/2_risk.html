@@ -12,7 +12,7 @@
   /* ── Card grid ── */
   .cards-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 12px;
     margin-bottom: 16px;
   }
@@ -79,8 +79,15 @@
   }
   .bar-chart-wrapper { position: relative; height: 280px; }
 
-  @media (max-width: 600px) {
-    .cards-row { grid-template-columns: 1fr; }
+  /* ── Duo Charts Layout ── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 800px) {
+    .charts-row { grid-template-columns: 1fr; }
     .bar-chart-wrapper { height: 220px; }
   }
 </style>
@@ -89,22 +96,49 @@
 
 <div class="period-header" id="period-header"></div>
 
-<!-- 3 KPI cards -->
-<div class="cards-row" id="cards-risk">
-  <div class="card"><span class="loading">Carregando...</span></div>
+<!-- Raio-X de Risco Histórico -->
+<div class="table-card" style="background: transparent; border: none; padding: 0;">
+  <div class="table-title" style="padding-left: 5px;">Raio-X de Estresse Histórico (Carteira Real)</div>
+  <div class="cards-row" id="cards-stress">
+    <div class="card"><span class="loading">Carregando...</span></div>
+  </div>
 </div>
 
-<!-- Risk windows table -->
+<!-- Comparativo Atual vs Modelo -->
 <div class="table-card">
-  <div class="table-title">Métricas de risco por janela temporal</div>
-  <div id="risk-table-container"></div>
+  <div class="table-title">Comparativo de Risco (Carteira Atual vs. Modelo Proposto)</div>
+  <div id="compare-table-container"><span class="loading">Carregando...</span></div>
 </div>
 
-<!-- Concentration bar chart -->
-<div class="chart-card">
-  <div class="chart-title">Concentração do portfólio — peso por ativo</div>
-  <div class="bar-chart-wrapper">
-    <canvas id="concentration-chart"></canvas>
+<!-- Dual Concentration bar charts (Setores) -->
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="chart-title">Alocação por Setor (Carteira Atual)</div>
+    <div class="bar-chart-wrapper">
+      <canvas id="sector-concentration-chart"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Alocação por Setor (Modelo Proposto)</div>
+    <div class="bar-chart-wrapper">
+      <canvas id="model-sector-concentration-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Dual Concentration bar charts (Ativos) -->
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="chart-title">Alocação por Ativo (Carteira Atual)</div>
+    <div class="bar-chart-wrapper">
+      <canvas id="concentration-chart"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Alocação por Ativo (Modelo Proposto)</div>
+    <div class="bar-chart-wrapper">
+      <canvas id="model-concentration-chart"></canvas>
+    </div>
   </div>
 </div>
 
@@ -140,9 +174,10 @@ function card(label, value, sub) {
 
 async function render() {
   try {
-    const [dashboard, positions] = await Promise.all([
+    const [dashboard, positions, recommendation] = await Promise.all([
       fetch(`${DATA_BASE}/dashboard_latest.json`).then(r => r.json()),
       fetch(`${DATA_BASE}/ledger_positions.json`).then(r => r.json()),
+      fetch(`${DATA_BASE}/optimized_recommendation.json`).then(r => r.json()).catch(() => ({}))
     ]);
 
     const real = dashboard.real || {};
@@ -159,60 +194,55 @@ async function render() {
         `Período de análise · <span class="dates">${MO[+sm-1]}/${sy.slice(2)} – ${MO[+em-1]}/${ey.slice(2)} · ${meta.trading_days||'?'} pregões</span>`;
     }
 
-    // ── 3 KPI cards (global = "All" window) ──
-    const teSub = 'anualiz. vs ^BVSP';
-    const irSub = 'alpha / tracking error';
-    const hhiSub = `${all.n_assets || '?'} ativos · ${hhiLabel(all.hhi)}`;
+    // ── Tabela de Confronto (Atual vs Modelo) ──
+    const t_vol_real = dashboard.real.twr?.volatility ? fmtPct(dashboard.real.twr.volatility) : '—';
+    const t_vol_mod  = dashboard.model.risk?.volatility_annual ? fmtPct(dashboard.model.risk.volatility_annual / 100) : '—';
+    const t_shp_real = dashboard.real.twr?.sharpe ? fmtNum(dashboard.real.twr.sharpe) : '—';
+    const t_shp_mod  = dashboard.model.risk?.sharpe ? fmtNum(dashboard.model.risk.sharpe) : '—';
+    const t_hhi_real = dashboard.real.structure?.hhi ? fmtHHI(dashboard.real.structure.hhi) : '—';
+    const t_hhi_mod  = dashboard.model.risk?.hhi ? fmtHHI(dashboard.model.risk.hhi) : '—';
 
-    document.getElementById('cards-risk').innerHTML =
-      card('Tracking Error', fmtPct(all.tracking_error), teSub) +
-      card('Information Ratio', fmtNum(all.information_ratio), irSub) +
-      card('HHI', fmtHHI(all.hhi), hhiSub);
+    let compareHtml = `<table class="risk-table">
+      <thead>
+        <tr><th>Indicador</th><th>Carteira Atual</th><th>Modelo Proposto</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Volatilidade Anualizada</td><td>${t_vol_real}</td><td>${t_vol_mod}</td></tr>
+        <tr><td>Índice Sharpe</td><td>${t_shp_real}</td><td>${t_shp_mod}</td></tr>
+        <tr style="border-bottom:none"><td>Concentração (HHI)</td><td>${t_hhi_real}</td><td>${t_hhi_mod}</td></tr>
+      </tbody>
+    </table>`;
+    document.getElementById('compare-table-container').innerHTML = compareHtml;
 
-    // ── Risk windows table ──
-    const winOrder = ['All','YTD','3M','6M','12M','24M'];
-    const winLabels = { All:'Período total', YTD:'YTD', '3M':'3 meses', '6M':'6 meses', '12M':'12 meses', '24M':'24 meses' };
-    const available = winOrder.filter(w => rw[w]);
+    // ── Cards de Estresse Histórico (Real) ──
+    const max_dd = dashboard.real.twr?.max_drawdown ? fmtPct(-dashboard.real.twr.max_drawdown) : '—';
+    const beta = dashboard.real.relative?.beta ? fmtNum(dashboard.real.relative.beta) : '—';
+    const sortino = dashboard.real.twr?.sortino ? fmtNum(dashboard.real.twr.sortino) : '—';
+    
+    // Novas métricas (Tracking Error e Info Ratio da janela All)
+    const te = all.tracking_error != null ? fmtPct(all.tracking_error) : '—';
+    const ir = all.information_ratio != null ? fmtNum(all.information_ratio) : '—';
 
-    if (available.length) {
-      let html = '<table class="risk-table"><thead><tr>';
-      html += '<th>Janela</th><th>Tracking Error</th><th>Info Ratio</th><th>HHI</th><th>Nº Ativos</th><th>Pregões</th>';
-      html += '</tr></thead><tbody>';
-      for (const w of available) {
-        const r = rw[w];
-        const rowCls = w === 'All' ? ' class="row-all"' : '';
-        html += `<tr${rowCls}>
-          <td>${winLabels[w]||w}</td>
-          <td>${fmtPct(r.tracking_error)}</td>
-          <td>${fmtNum(r.information_ratio)}</td>
-          <td>${fmtHHI(r.hhi)}</td>
-          <td>${r.n_assets != null ? r.n_assets : '—'}</td>
-          <td>${r.trading_days != null ? r.trading_days : '—'}</td>
-        </tr>`;
-      }
-      html += '</tbody></table>';
-      document.getElementById('risk-table-container').innerHTML = html;
-    }
+    document.getElementById('cards-stress').innerHTML =
+      card('Max Drawdown', max_dd, 'pior queda do topo') +
+      card('Beta (vs. IBOV)', beta, 'risco direcional') +
+      card('Sortino Ratio', sortino, 'ret. ajustado a queda') +
+      card('Tracking Error', te, 'desvio do IBOV') +
+      card('Info Ratio', ir, 'alfa / tracking error');
 
-    // ── Concentration bar chart ──
+    // ── Concentration bar charts ──
     const totalMarket = positions.total_current_market || 0;
-    if (positions.positions && totalMarket > 0) {
-      const items = positions.positions
-        .map(p => ({
-          symbol: (p.resolved_symbol || p.symbol || '').replace('.SA', ''),
-          weight: (p.net_qty * p.current_price) / totalMarket,
-        }))
-        .filter(p => p.weight > 0)
-        .sort((a, b) => b.weight - a.weight);
-
-      new Chart(document.getElementById('concentration-chart').getContext('2d'), {
+    
+    function createChart(ctxId, items, color) {
+      if (!document.getElementById(ctxId) || !items || items.length === 0) return;
+      new Chart(document.getElementById(ctxId).getContext('2d'), {
         type: 'bar',
         data: {
           labels: items.map(i => i.symbol),
           datasets: [{
             label: 'Peso (%)',
             data: items.map(i => +(i.weight * 100).toFixed(2)),
-            backgroundColor: '#1971c2',
+            backgroundColor: color,
             borderRadius: 4,
           }]
         },
@@ -225,7 +255,7 @@ async function render() {
               grid: { color: 'rgba(0,0,0,0.06)' },
             },
             y: {
-              ticks: { color: '#4b5468', font: { size: 12 } },
+              ticks: { color: '#4b5468', font: { size: 11 } },
               grid: { display: false },
             }
           },
@@ -242,8 +272,45 @@ async function render() {
       });
     }
 
+    if (positions.positions && totalMarket > 0) {
+      const realItems = positions.positions
+        .map(p => ({
+          symbol: (p.resolved_symbol || p.symbol || '').replace('.SA', ''),
+          weight: (p.net_qty * p.current_price) / totalMarket,
+        }))
+        .filter(p => p.weight > 0)
+        .sort((a, b) => b.weight - a.weight);
+      
+      createChart('concentration-chart', realItems, '#1971c2');
+    }
+    
+    // Real Sector Chart
+    const realSectorsData = dashboard.real?.structure?.sector_exposure;
+    if (realSectorsData && realSectorsData.length > 0) {
+      const realSectors = realSectorsData.map(s => ({symbol: s.sector, weight: s.pct}));
+      createChart('sector-concentration-chart', realSectors, '#5c6ac4');
+    }
+
+    // Model Position Chart
+    const modelWeights = recommendation?.comparison?.optimal?.weights || recommendation?.comparison?.ideal?.weights;
+    if (modelWeights) {
+      const modelItems = Object.entries(modelWeights)
+        .map(([sym, w]) => ({ symbol: sym.replace('.SA', ''), weight: w }))
+        .filter(p => p.weight > 0)
+        .sort((a, b) => b.weight - a.weight);
+        
+      createChart('model-concentration-chart', modelItems, '#1098AD');
+    }
+    
+    // Model Sector Chart
+    const modelSectorsData = dashboard.model?.composition?.sector_exposure;
+    if (modelSectorsData && modelSectorsData.length > 0) {
+      const modelSectors = modelSectorsData.map(s => ({symbol: s.sector, weight: s.pct}));
+      createChart('model-sector-concentration-chart', modelSectors, '#0ca678');
+    }
+
   } catch (err) {
-    document.getElementById('cards-risk').innerHTML =
+    document.getElementById('cards-stress').innerHTML =
       `<div class="card"><span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span></div>`;
   }
 }
