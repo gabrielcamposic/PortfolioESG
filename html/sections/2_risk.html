@@ -157,6 +157,13 @@ function fmtHHI(v) {
   if (v == null || isNaN(v)) return '—';
   return v.toFixed(4);
 }
+function fmtLargeNum(v) {
+  if (v == null || isNaN(v)) return '—';
+  if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'k';
+  return v.toFixed(0);
+}
 function hhiLabel(v) {
   if (v == null || isNaN(v)) return '';
   if (v < 0.10) return 'diversificado';
@@ -202,6 +209,14 @@ async function render() {
     const t_hhi_real = dashboard.real.structure?.hhi ? fmtHHI(dashboard.real.structure.hhi) : '—';
     const t_hhi_mod  = dashboard.model.risk?.hhi ? fmtHHI(dashboard.model.risk.hhi) : '—';
 
+    // Novas métricas comparativas
+    const t_pe_real  = dashboard.real.valuation?.portfolio_pe ? fmtNum(dashboard.real.valuation.portfolio_pe) : '—';
+    const t_pe_mod   = dashboard.model.valuation?.portfolio_pe ? fmtNum(dashboard.model.valuation.portfolio_pe) : '—';
+    const t_liq_real = dashboard.real.risk?.liquidity_avg ? fmtLargeNum(dashboard.real.risk.liquidity_avg) : '—';
+    const t_liq_mod  = dashboard.model.risk?.liquidity_avg ? fmtLargeNum(dashboard.model.risk.liquidity_avg) : '—';
+    const t_cor_real = dashboard.real.risk?.avg_internal_corr ? fmtNum(dashboard.real.risk.avg_internal_corr, 4) : '—';
+    const t_cor_mod  = dashboard.model.risk?.avg_internal_corr ? fmtNum(dashboard.model.risk.avg_internal_corr, 4) : '—';
+
     let compareHtml = `<table class="risk-table">
       <thead>
         <tr><th>Indicador</th><th>Carteira Atual</th><th>Modelo Proposto</th></tr>
@@ -209,7 +224,10 @@ async function render() {
       <tbody>
         <tr><td>Volatilidade Anualizada</td><td>${t_vol_real}</td><td>${t_vol_mod}</td></tr>
         <tr><td>Índice Sharpe</td><td>${t_shp_real}</td><td>${t_shp_mod}</td></tr>
-        <tr style="border-bottom:none"><td>Concentração (HHI)</td><td>${t_hhi_real}</td><td>${t_hhi_mod}</td></tr>
+        <tr><td>Concentração (HHI)</td><td>${t_hhi_real}</td><td>${t_hhi_mod}</td></tr>
+        <tr><td>Liquidez Média (Vol. R$)</td><td>${t_liq_real}</td><td>${t_liq_mod}</td></tr>
+        <tr><td>Correlação Interna Média</td><td>${t_cor_real}</td><td>${t_cor_mod}</td></tr>
+        <tr style="border-bottom:none"><td>P/E Médio Ponderado</td><td>${t_pe_real}</td><td>${t_pe_mod}</td></tr>
       </tbody>
     </table>`;
     document.getElementById('compare-table-container').innerHTML = compareHtml;
@@ -222,13 +240,15 @@ async function render() {
     // Novas métricas (Tracking Error e Info Ratio da janela All)
     const te = all.tracking_error != null ? fmtPct(all.tracking_error) : '—';
     const ir = all.information_ratio != null ? fmtNum(all.information_ratio) : '—';
+    const calmar = dashboard.real.twr?.calmar ? fmtNum(dashboard.real.twr.calmar) : '—';
 
     document.getElementById('cards-stress').innerHTML =
-      card('Max Drawdown', max_dd, 'pior queda do topo') +
-      card('Beta (vs. IBOV)', beta, 'risco direcional') +
-      card('Sortino Ratio', sortino, 'ret. ajustado a queda') +
       card('Tracking Error', te, 'desvio do IBOV') +
-      card('Info Ratio', ir, 'alfa / tracking error');
+      card('Info Ratio', ir, 'alfa / tracking error') +
+      card('Beta (vs. IBOV)', beta, 'risco direcional') +
+      card('Max Drawdown', max_dd, 'pior queda do topo') +
+      card('Sortino Ratio', sortino, 'ret. ajustado a queda') +
+      card('Índice Calmar', calmar, 'retorno / drawdown');
 
     // ── Concentration bar charts ──
     const totalMarket = positions.total_current_market || 0;

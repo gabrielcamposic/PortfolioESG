@@ -28,7 +28,7 @@ import sys
 import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -213,6 +213,85 @@ def normalize_ticker(s: Optional[str]) -> str:
     if not s:
         return ""
     return "".join(c for c in str(s).upper() if c.isalnum())
+
+
+def _load_financials() -> pd.DataFrame:
+    """Load latest financials from FinancialsDB."""
+    if not FINANCIALS_DB.exists():
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(FINANCIALS_DB)
+        df['Stock_norm'] = df['Stock'].apply(normalize_ticker)
+        # Keep latest for each stock if duplicates exist
+        if 'LastUpdated' in df.columns:
+            df['LastUpdated'] = pd.to_datetime(df['LastUpdated'], errors='coerce')
+            df = df.sort_values('LastUpdated').drop_duplicates('Stock_norm', keep='last')
+        return df.set_index('Stock_norm')
+    except Exception as e:
+        logger.warning(f"Could not load financials: {e}")
+        return pd.DataFrame()
+
+
+def _calculate_weighted_metrics(weights: Dict[str, float], financials: pd.DataFrame) -> Dict[str, Any]:
+    """Calculate weighted P/E and Liquidity for a portfolio."""
+    if financials.empty or not weights:
+        return {"pe": None, "liquidity": None}
+
+    total_w = sum(weights.values())
+    if total_w == 0:
+        return {"pe": None, "liquidity": None}
+
+    weighted_pe = 0.0
+    pe_weight_sum = 0.0
+    weighted_liq = 0.0
+
+    for ticker, w in weights.items():
+        norm = normalize_ticker(ticker)
+        if norm in financials.index:
+            row = financials.loc[norm]
+            pe = safe_float(row.get('forwardPE'), None)
+            liq = safe_float(row.get('averageVolume'), 0.0)
+
+            if pe is not None and pe > 0:
+                weighted_pe += pe * w
+                pe_weight_sum += w
+
+            weighted_liq += liq * w
+
+    return {
+        "pe": weighted_pe / pe_weight_sum if pe_weight_sum > 0 else None,
+        "liquidity": weighted_liq / total_w
+    }
+
+
+def _calculate_avg_internal_corr(tickers: List[str]) -> Optional[float]:
+    """Calculate average internal correlation from correlation_matrix.csv."""
+    if not CORRELATION_MATRIX_CSV.exists() or len(tickers) < 2:
+        return None
+    try:
+        df = pd.read_csv(CORRELATION_MATRIX_CSV).set_index('Stock')
+        # Use only unique normalized tickers
+        norms = list(dict.fromkeys(normalize_ticker(t) for t in tickers if t))
+        # Map tickers to columns/index in the matrix (which use exact Stock names)
+        matrix_tickers = {normalize_ticker(idx): idx for idx in df.index}
+        valid_tickers = [matrix_tickers[n] for n in norms if n in matrix_tickers]
+
+        if len(valid_tickers) < 2:
+            return None
+
+        subset = df.loc[valid_tickers, valid_tickers]
+        # Get upper triangle excluding diagonal
+        vals = []
+        for i in range(len(valid_tickers)):
+            for j in range(i + 1, len(valid_tickers)):
+                val = safe_float(subset.iloc[i, j], None)
+                if val is not None:
+                    vals.append(val)
+
+        return float(np.mean(vals)) if vals else None
+    except Exception as e:
+        logger.warning(f"Could not calculate internal correlation: {e}")
+        return None
 
 
 def resolve_source(canonical: Path, fallback_name: Optional[str] = None) -> Path:
@@ -1059,6 +1138,10 @@ def _build_model_section() -> dict:
     optimal = comparison.get("optimal", {})
     momentum_val = bp.get("momentum_valuation", {})
 
+    # Extract model portfolio composition
+    model_weights_dict = optimal.get("weights", {}) or ideal.get("weights", {})
+    model_stocks = list(model_weights_dict.keys())
+
     # Returns
     expected_return_hold = safe_float(holdings.get("expected_return_pct"), 0.0)
     expected_return_gross = safe_float(ideal.get("expected_return_pct"), 0.0)
@@ -1112,6 +1195,11 @@ def _build_model_section() -> dict:
     net_return = clamp_pct(net_return)
     excess_return = clamp_pct(excess_return)
 
+    # Additional Risk Metrics (Liquidity and Correlation)
+    financials = _load_financials()
+    weighted_metrics = _calculate_weighted_metrics(model_weights_dict, financials)
+    avg_internal_corr = _calculate_avg_internal_corr(model_stocks)
+
     return {
         "meta": {
             "run_id": latest_summary.get("last_updated_run_id", ""),
@@ -1135,6 +1223,8 @@ def _build_model_section() -> dict:
             "sharpe_source": "optimization",
             "hhi": bp.get("concentration_risk", {}).get("hhi"),
             "top5": bp.get("concentration_risk", {}).get("top_5_holdings_pct"),
+            "liquidity_avg": weighted_metrics.get("liquidity"),
+            "avg_internal_corr": avg_internal_corr,
         },
         "decision": {
             "verdict": decision,
@@ -1197,6 +1287,23 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
     n_positions = len(ledger_data.get("positions", []))
     total_pnl = safe_float(ledger_data.get("total_unrealized_pnl"), 0.0)
     simple_roi = (total_pnl / total_ledger_invested * 100) if total_ledger_invested > 0 else 0.0
+
+    # Additional metrics (P/E, Liquidity, Correlation)
+    financials = _load_financials()
+    real_weights = {}
+    real_tickers = []
+    positions = ledger_data.get("positions", [])
+    for pos in positions:
+        qty = safe_float(pos.get("net_qty"), 0.0)
+        price = safe_float(pos.get("current_price"), 0.0)
+        mv = qty * price
+        if mv > 0:
+            sym = pos.get("resolved_symbol", pos.get("symbol", ""))
+            real_weights[sym] = mv / total_ledger_market
+            real_tickers.append(sym)
+
+    weighted_metrics = _calculate_weighted_metrics(real_weights, financials)
+    avg_internal_corr = _calculate_avg_internal_corr(real_tickers)
 
     # Build sector map for REAL portfolio concentration
     sector_map = {}
@@ -1262,6 +1369,13 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
         "alpha": real_metrics.get("alpha", {}),
         "relative": real_metrics.get("relative", {}),
         "structure": structure,
+        "valuation": {
+           "portfolio_pe": weighted_metrics.get("pe"),
+        },
+        "risk": {
+            "liquidity_avg": weighted_metrics.get("liquidity"),
+            "avg_internal_corr": avg_internal_corr,
+        },
         "risk_windows": risk_windows or {},
         "performance": real_metrics.get("performance", {}),
         "monthly_returns": monthly_returns or {},
