@@ -1,129 +1,121 @@
 {
-    "last_updated_run_id": "20260406-222822",
-    "scoring_run_id": "20260406-222822",
-    "last_updated_timestamp": "2026-04-06 22:46:43",
+    "last_updated_run_id": "20260407-211712",
+    "scoring_run_id": "20260407-211712",
+    "last_updated_timestamp": "2026-04-07 21:33:47",
     "best_portfolio_details": {
         "stocks": [
-            "AXIA6.SA",
-            "PNVL3.SA",
+            "VALE3.SA",
             "ENEV3.SA",
-            "DASA3.SA",
             "PETR3.SA",
-            "AURA33.SA",
-            "VALE3.SA"
+            "PNVL3.SA",
+            "AXIA6.SA",
+            "AURA33.SA"
         ],
         "weights": [
-            0.0942,
-            0.1341,
-            0.1274,
-            0.0436,
-            0.3205,
-            0.1729,
-            0.1073
+            0.1037,
+            0.1806,
+            0.3395,
+            0.1559,
+            0.0462,
+            0.1741
         ],
-        "sharpe_forward": 3.7162,
-        "expected_return_annual_pct": 87.88,
-        "expected_volatility_annual_pct": 19.68,
+        "sharpe_forward": 3.7429,
+        "expected_return_annual_pct": 86.43,
+        "expected_volatility_annual_pct": 19.15,
         "initial_investment": 5000.0,
         "sector_exposure": {
-            "Utilities": 0.2216,
-            "Healthcare": 0.1777,
-            "Energy": 0.3205,
-            "Basic Materials": 0.2802
+            "Basic Materials": 0.2778,
+            "Utilities": 0.2268,
+            "Energy": 0.3395,
+            "Healthcare": 0.1559
         },
         "sector_exposure_list": [
             {
                 "sector": "Energy",
-                "pct": 0.3205
+                "pct": 0.3395
             },
             {
                 "sector": "Basic Materials",
-                "pct": 0.2802
+                "pct": 0.2778
             },
             {
                 "sector": "Utilities",
-                "pct": 0.2216
+                "pct": 0.2268
             },
             {
                 "sector": "Healthcare",
-                "pct": 0.1777
+                "pct": 0.1559
             }
         ],
         "concentration_risk": {
-            "hhi": 0.1891,
-            "top_5_holdings_pct": 0.8622,
+            "hhi": 0.2154,
+            "top_5_holdings_pct": 0.9538,
             "top_5_holdings": [
                 {
                     "stock": "PETR3.SA",
-                    "weight": 0.3205
-                },
-                {
-                    "stock": "AURA33.SA",
-                    "weight": 0.1729
-                },
-                {
-                    "stock": "PNVL3.SA",
-                    "weight": 0.1341
+                    "weight": 0.3395
                 },
                 {
                     "stock": "ENEV3.SA",
-                    "weight": 0.1274
+                    "weight": 0.1806
+                },
+                {
+                    "stock": "AURA33.SA",
+                    "weight": 0.1741
+                },
+                {
+                    "stock": "PNVL3.SA",
+                    "weight": 0.1559
                 },
                 {
                     "stock": "VALE3.SA",
-                    "weight": 0.1073
+                    "weight": 0.1037
                 }
             ]
         },
-        "portfolio_weighted_pe": 8.01,
+        "portfolio_weighted_pe": 8.83,
         "momentum_valuation": {
-            "portfolio_momentum": 0.6956,
-            "portfolio_forward_pe": 8.01,
-            "benchmark_forward_pe": 9.69,
+            "portfolio_momentum": 0.6811,
+            "portfolio_forward_pe": 8.83,
+            "benchmark_forward_pe": 9.91,
             "portfolio_dividend_yield": null
         },
         "holdings_meta": {
-            "AXIA6.SA": {
-                "forwardPE": 10.561174,
-                "Momentum": 0.4801297977816459,
-                "currentPrice": 65.12000274658203,
-                "targetPrice": 70.512
-            },
-            "PNVL3.SA": {
-                "forwardPE": 10.205674,
-                "Momentum": 0.4953752184237732,
-                "currentPrice": 14.550000190734863,
-                "targetPrice": 18.8
+            "VALE3.SA": {
+                "forwardPE": 7.304866,
+                "Momentum": 0.4430356668220458,
+                "currentPrice": 83.08999633789062,
+                "targetPrice": 88.62818
             },
             "ENEV3.SA": {
-                "forwardPE": 18.621485,
-                "Momentum": 0.4844868031619651,
-                "currentPrice": 24.8799991607666,
+                "forwardPE": 21.091862,
+                "Momentum": 0.5419940564478414,
+                "currentPrice": 25.520000457763672,
                 "targetPrice": 26.95455
             },
-            "DASA3.SA": {
-                "forwardPE": 8.984306,
-                "Momentum": 1.4923077910609537,
-                "currentPrice": 3.240000009536743,
-                "targetPrice": 4.41111
-            },
             "PETR3.SA": {
-                "forwardPE": 6.3039904,
-                "Momentum": 0.5472027665002888,
-                "currentPrice": 53.099998474121094,
+                "forwardPE": 6.2863846,
+                "Momentum": 0.5899941096916352,
+                "currentPrice": 53.709999084472656,
                 "targetPrice": 48.32857
             },
-            "AURA33.SA": {
-                "forwardPE": 0.4749413,
-                "Momentum": 1.34508231103128,
-                "currentPrice": 152.36000061035156,
-                "targetPrice": 139.20528
+            "PNVL3.SA": {
+                "forwardPE": 9.978724,
+                "Momentum": 0.4728761176144906,
+                "currentPrice": 14.390000343322754,
+                "targetPrice": 18.8
             },
-            "VALE3.SA": {
-                "forwardPE": 7.252495,
-                "Momentum": 0.458624386038847,
-                "currentPrice": 83.55000305175781,
-                "targetPrice": 88.139404
+            "AXIA6.SA": {
+                "forwardPE": 10.611746,
+                "Momentum": 0.4738799978427468,
+                "currentPrice": 64.73999786376953,
+                "targetPrice": 70.512
+            },
+            "AURA33.SA": {
+                "forwardPE": 0.47139558,
+                "Momentum": 1.3859374523162842,
+                "currentPrice": 152.6999969482422,
+                "targetPrice": 139.97725
             }
         }
     }
