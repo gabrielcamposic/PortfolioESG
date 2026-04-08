@@ -78,3 +78,7 @@ html/js/firebase-config.js
 # macOS specific files
 .DS_Store
 backups/
+
+# GitHub Pages desatualizada
+text_content/
+index.html
