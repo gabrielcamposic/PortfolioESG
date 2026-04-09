@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>09 — Glossário de Métricas</title>
+<link rel="stylesheet" href="../css/base.css">
+<script src="../js/header.js" data-page="glossary"></script>
+<style>
+  .glossary-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    margin-bottom: 40px;
+  }
+  .category-section {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .category-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+  .category-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 20px;
+    background: var(--accent-blue);
+    border-radius: 2px;
+  }
+  .category-performance .category-title::before { background: var(--accent-green); }
+  .category-risk .category-title::before { background: var(--accent-red); }
+  .category-model .category-title::before { background: var(--accent-blue); }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-blue);
+  }
+  .metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+  }
+  .metric-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .metric-tag {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+  .tag-perf { background: rgba(47,158,68,0.1); color: var(--accent-green); }
+  .tag-risk { background: rgba(201,42,42,0.1); color: var(--accent-red); }
+  .tag-model { background: rgba(25,113,194,0.1); color: var(--accent-blue); }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .info-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .info-content {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .formula-box {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--bg-card-alt);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  @media (max-width: 768px) {
+    .metric-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="period-header">Explicações das Métricas — Guia de Referência</div>
+
+<div class="glossary-container">
+  
+  <!-- CATEGORIA: PERFORMANCE -->
+  <section class="category-section category-performance">
+    <div class="category-title">Indicadores de Desempenho (Performance)</div>
+    
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Exp. 12M (Retorno Esperado)</div>
+        <div class="metric-tag tag-perf">Performance</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Projeção matemática do retorno bruto da carteira para os próximos 12 meses.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Estimar quanto a carteira atual pode render no futuro, sem considerar novos aportes ou rebalanceamentos.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Valores positivos indicam ganho esperado. É uma métrica "Forward Looking" (olhando para a frente).</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Σ (Peso_Ativo * Potential_Upside_Ativo)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">TWR (Time-Weighted Return)</div>
+        <div class="metric-tag tag-perf">Performance</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Método de cálculo de rentabilidade que neutraliza o impacto de fluxos de caixa (aportes e retiradas).</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Avaliar a qualidade da estratégia de investimento de forma pura, permitindo comparação justa com índices (Ibovespa, CDI).</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Reflete o crescimento de R$ 1,00 investido no início do período, independente de quanto você aportou depois.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Π (V_final / (V_inicial + Fluxo)) - 1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">% do CDI</div>
+        <div class="metric-tag tag-perf">Performance</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Relação percentual entre o retorno da carteira e o rendimento do CDI no mesmo período.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Verificar se o investimento em ativos de risco (ações) está compensando mais que a renda fixa conservadora.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Resultados acima de 100% indicam que a carteira superou o CDI (objetivo principal do investidor).</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">(Retorno_Portfolio / Retorno_CDI) * 100</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Alpha vs Ibov</div>
+        <div class="metric-tag tag-perf">Performance</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Retorno excedente ou prêmio da carteira em relação ao Ibovespa.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Medir a habilidade da estratégia em superar a média do mercado de ações.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Alpha Positivo: você "bateu o mercado". Alpha Negativo: desempenho inferior ao índice de referência.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Retorno_TWR - Retorno_Ibovespa</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORIA: RISCO -->
+  <section class="category-section category-risk">
+    <div class="category-title">Indicadores de Risco</div>
+    
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Índice Sharpe</div>
+        <div class="metric-tag tag-risk">Risco</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Métrica que avalia o retorno excedente por unidade de risco (volatilidade) assumida.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Saber se o retorno está sendo "pago" com muito risco. É a medida definitiva de eficiência.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Quanto maior, melhor. Acima de 1.0 é excelente; abaixo de 0 indica que rendeu menos que o CDI.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">(Retorno_Anual - CDI_Anual) / Volatilidade_Anual</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Volatilidade (Anualizada)</div>
+        <div class="metric-tag tag-risk">Risco</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Medida de quanto o valor da carteira oscila ao redor da sua média de retornos.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Entender a intensidade das variações diárias e o "estômago" necessário para manter a carteira.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Valores baixos (10-15%) indicam calma; valores altos (>25%) indicam montanha-russa de preços.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Desvio_Padrão(Retornos_Diários) * √252</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Max Drawdown</div>
+        <div class="metric-tag tag-risk">Risco</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">A maior queda percentual registrada, do ponto mais alto (pico) ao mais baixo (fundo), no período.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Simular o "pior cenário histórico". Mostra o quanto você teria perdido se entrasse no pior momento possível.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Sempre expressa como percentual negativo (ex: -15%). Quanto menor (menos negativo), melhor.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Min( (Valor_Atual / Valor_Pico) - 1 )</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Beta (vs Ibovespa)</div>
+        <div class="metric-tag tag-risk">Risco</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Medida de sensibilidade da carteira em relação ao Ibovespa.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Saber o quanto a carteira "copia" o mercado.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Beta = 1: oscila igual ao Ibov. Beta > 1: mais sensível/agressiva. Beta < 1: mais defensiva.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Cov(Retorno_P, Retorno_I) / Var(Retorno_I)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Tracking Error</div>
+        <div class="metric-tag tag-risk">Risco</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">O desvio padrão da diferença entre o retorno da carteira e o retorno do benchmark.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Medir a aderência da carteira ao índice de referência.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Quanto menor, mais a carteira "sombra" o índice. Valores altos indicam gestão ativa e desvios deliberados.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">STD(Retorno_P - Retorno_B) * √252</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Information Ratio</div>
+        <div class="metric-tag tag-risk">Risco</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Razão entre o Alpha (retorno excedente) e o Tracking Error (risco ativo).</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Medir a eficiência do gestor em gerar retorno extra para cada unidade de risco "ativo" assumida.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Quanto maior, melhor. Indica se o retorno extra justifica os desvios feitos em relação ao índice.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Alpha_Anual / Tracking_Error_Anual</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Sortino Ratio</div>
+        <div class="metric-tag tag-risk">Risco</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Similar ao Sharpe, mas considera apenas a volatilidade "ruim" (retornos negativos).</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Avaliar o retorno ajustado ao risco de perda, sem "punir" a carteira por oscilações positivas.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Quanto maior, melhor a eficiência em gerar ganhos minimizando quedas bruscas.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">(Retorno - RFR) / Downside_Deviation</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Índice Calmar</div>
+        <div class="metric-tag tag-risk">Risco</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Relação entre o retorno anualizado e o Max Drawdown histórico.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Avaliar o potencial de ganho em relação ao potencial de "dor" (queda máxima).</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Valores altos indicam boa recuperação e resiliência da carteira após perdas.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Retorno_Anualizado / Abs(Max_Drawdown)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORIA: MODELO / SCORING -->
+  <section class="category-section category-model">
+    <div class="category-title">Indicadores do Modelo & Scoring</div>
+    
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Composite Score</div>
+        <div class="metric-tag tag-model">Modelo</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Nota final de qualidade (0 a 1) atribuída pelo modelo a cada ativo.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Rankear os ativos para decidir quais devem compor a carteira modelo.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Ativos com Score maior são mais fortes nos pilares de Rentabilidade, Risco e Tendência.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Média Ponderada(Sharpe_Norm + Upside_Norm + Momentum_Norm)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Momentum</div>
+        <div class="metric-tag tag-model">Modelo</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Indicador de inércia ou força de tendência do preço do ativo.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Identificar ativos que estão em clara tendência de alta, "surfando" o movimento do mercado.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">Valores altos indicam forte tendência de alta no curto/médio prazo (3 a 6 meses).</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Média(Retorno_3M, Retorno_6M, Retorno_12M)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Índice HHI (Concentração)</div>
+        <div class="metric-tag tag-model">Modelo</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Índice de Herfindahl-Hirschman, usado para medir o grau de diversificação.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Evitar que a carteira fique excessivamente dependente de poucos ativos ou setores.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content">< 0.10: Diversificado; 0.10 a 0.25: Exposição Moderada; > 0.25: Concentrado.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Σ (Peso_Ativo_i)²</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

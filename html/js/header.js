@@ -120,6 +120,7 @@
     { id: 'model',     label: 'Modelo',       href: '3_model.html'     },
     { id: 'scoring',   label: 'Scoring ESG',  href: '07_scoring.html'  },
     { id: 'history',   label: 'Histórico',    href: '08_history.html'  },
+    { id: 'glossary',  label: 'Explicações',  href: '09_glossary.html' },
   ];
 
   function buildHeader() {
