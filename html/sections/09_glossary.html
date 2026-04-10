@@ -10,110 +10,140 @@
   .glossary-container {
     display: flex;
     flex-direction: column;
-    gap: 32px;
-    margin-bottom: 40px;
+    gap: 48px;
+    margin-bottom: 60px;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.8s ease forwards;
   }
   .category-section {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 24px;
   }
   .category-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     margin-bottom: 8px;
     padding-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
   .category-title::before {
     content: '';
     display: inline-block;
-    width: 4px;
-    height: 20px;
+    width: 6px;
+    height: 24px;
     background: var(--accent-blue);
-    border-radius: 2px;
+    border-radius: 4px;
   }
-  .category-performance .category-title::before { background: var(--accent-green); }
-  .category-risk .category-title::before { background: var(--accent-red); }
-  .category-model .category-title::before { background: var(--accent-blue); }
+  .category-performance .category-title::before { background: var(--brand-blue); }
+  .category-risk .category-title::before { background: var(--brand-magenta); }
+  .category-model .category-title::before { background: var(--brand-blue); }
+
+
 
   .metric-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
   }
   .metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-premium);
     border-color: var(--accent-blue);
   }
+  .metric-card::after {
+    content: ""; position: absolute; top: 0; right: 0; width: 4px; height: 100%;
+    background: transparent; transition: background 0.3s;
+  }
+  .category-performance .metric-card:hover::after { background: var(--brand-blue); }
+  .category-risk .metric-card:hover::after { background: var(--brand-magenta); }
+  .category-model .metric-card:hover::after { background: var(--brand-blue); }
+
+
+
   .metric-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 16px;
+    align-items: center;
+    margin-bottom: 24px;
     border-bottom: 1px solid var(--border);
-    padding-bottom: 12px;
+    padding-bottom: 16px;
   }
   .metric-name {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 800;
     color: var(--text-primary);
+    letter-spacing: -0.02em;
   }
   .metric-tag {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 800;
     text-transform: uppercase;
-    padding: 4px 10px;
-    border-radius: 6px;
-    letter-spacing: 0.5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow-sm);
   }
-  .tag-perf { background: rgba(47,158,68,0.1); color: var(--accent-green); }
-  .tag-risk { background: rgba(201,42,42,0.1); color: var(--accent-red); }
-  .tag-model { background: rgba(25,113,194,0.1); color: var(--accent-blue); }
+  .tag-perf { background: rgba(var(--rgb-blue), 0.1); color: var(--brand-blue); }
+  .tag-risk { background: rgba(var(--rgb-pink), 0.1); color: var(--brand-magenta); }
+  .tag-model { background: rgba(var(--rgb-blue), 0.1); color: var(--brand-blue); }
+
+
 
   .metric-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 32px;
   }
   .info-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
   }
   .info-label {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.1em;
   }
   .info-content {
-    font-size: 14px;
+    font-size: 15px;
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.6;
+    font-weight: 500;
   }
   .formula-box {
-    margin-top: 12px;
-    padding: 12px;
+    margin-top: 16px;
+    padding: 16px;
     background: var(--bg-card-alt);
-    border-radius: 8px;
+    border-radius: 12px;
     font-family: var(--font-mono);
     font-size: 13px;
     color: var(--text-primary);
     border: 1px solid var(--border);
+    font-weight: 600;
+    display: inline-block;
   }
 
   @media (max-width: 768px) {
-    .metric-grid { grid-template-columns: 1fr; }
+    .metric-grid { grid-template-columns: 1fr; gap: 24px; }
+    .metric-card { padding: 24px; }
+    .metric-name { font-size: 18px; }
   }
 </style>
+
 </head>
 <body>
 

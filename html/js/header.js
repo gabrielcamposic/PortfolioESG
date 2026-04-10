@@ -13,103 +13,135 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 12px;
-      padding: 14px 20px;
-      background: var(--bg-card);
+      gap: 16px;
+      padding: 14px 24px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 16px;
+      border-radius: var(--radius-lg);
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-premium);
+      position: sticky;
+      top: 10px;
+      z-index: 100;
     }
-    /* Logo + date stacked vertically */
+
     .header-logo-block {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    .header-brand-logo {
+      height: 28px;
+      width: auto;
+      object-fit: contain;
     }
     .header-logo {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
       color: var(--text-primary);
-      white-space: nowrap;
       text-decoration: none;
+      line-height: 1;
     }
     .header-logo span { color: var(--accent-blue); }
     .header-date {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       font-family: var(--font-mono);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     .header-separator {
       width: 1px;
-      height: 24px;
+      height: 48px;
       background: var(--border);
       flex-shrink: 0;
     }
-    .nav-tabs { display: flex; align-items: center; gap: 4px; }
+    .nav-tabs { 
+      display: flex; 
+      align-items: center; 
+      gap: 4px; 
+      background: var(--bg-card-alt);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
     .nav-tab {
       display: inline-flex;
       align-items: center;
-      padding: 5px 14px;
-      border-radius: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 700;
       color: var(--text-secondary);
       text-decoration: none;
-      border: 1px solid transparent;
-      transition: color .15s, background .15s, border-color .15s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .nav-tab:hover {
-      color: var(--text-primary);
-      background: var(--bg-card-hover);
-      border-color: var(--border);
+      color: var(--accent-blue);
+      background: var(--bg-card);
     }
     .nav-tab.active {
       color: var(--accent-blue);
-      background: rgba(25,113,194,.1);
-      border-color: rgba(25,113,194,.3);
+      background: var(--bg-card);
+      box-shadow: var(--shadow-sm);
     }
-    /* Pipeline status — only rendered when running or errored */
-    .pipeline-status { display: flex; align-items: center; gap: 6px; font-size: 13px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .status-dot.running { background: var(--accent-yellow); animation: hdr-pulse 1.2s ease-in-out infinite; }
-    .status-dot.error   { background: var(--accent-red); }
-    @keyframes hdr-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .status-text { color: var(--text-secondary); }
-    /* Decision badge — lives inside the portfolio-value block */
+    /* Pipeline status */
+    .pipeline-status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-card); box-shadow: 0 0 0 1px var(--border); }
+    .status-dot.running { background: var(--accent-yellow); animation: hdr-pulse 1.5s ease-in-out infinite; }
+    .status-dot.error   { background: var(--accent-magenta); }
+    @keyframes hdr-pulse { 0%,100%{opacity:1; transform: scale(1);} 50%{opacity:.5; transform: scale(0.9);} }
+    
     .decision-badge {
       display: inline-flex; align-items: center;
-      padding: 3px 10px; border-radius: 6px;
-      font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+      box-shadow: var(--shadow-sm);
     }
     .decision-badge.rebalance {
-      background: rgba(201,42,42,.1); color: var(--accent-red);
-      border: 1px solid rgba(201,42,42,.3);
+      background: var(--brand-magenta); color: #fff;
     }
     .decision-badge.hold {
-      background: rgba(47,158,68,.1); color: var(--accent-green);
-      border: 1px solid rgba(47,158,68,.3);
+      background: var(--brand-blue); color: #fff;
     }
-    /* Portfolio value block — pushes to the right */
-    .portfolio-value { margin-left: auto; text-align: right; }
+    
+    .portfolio-value { 
+      margin-left: auto; 
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
     .portfolio-value .pv-label {
-      font-size: 11px; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: .5px;
+      font-size: 10px; color: var(--text-muted);
+      text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;
     }
     .portfolio-value .pv-amount {
-      font-size: 20px; font-weight: 700;
+      font-size: 22px; font-weight: 800;
       font-family: var(--font-mono); color: var(--text-primary);
-      line-height: 1.1;
+      line-height: 1; letter-spacing: -0.04em;
     }
-    .portfolio-value .pv-pnl { font-size: 12px; font-family: var(--font-mono); margin-bottom: 5px; }
-    .portfolio-value .pv-pnl.positive { color: var(--accent-green); }
-    .portfolio-value .pv-pnl.negative { color: var(--accent-red); }
-    @media (max-width: 640px) {
-      .header-bar { padding: 12px 14px; gap: 8px; }
+    .portfolio-value .pv-pnl { font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
+    
+    @media (max-width: 1024px) {
+      .header-bar { padding: 10px 16px; border-radius: var(--radius-md); top: 0; margin-bottom: 16px; width: 100%; left: 0; border-left: none; border-right: none; }
+      .nav-tabs { width: 100%; order: 3; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+      .nav-tabs::-webkit-scrollbar { display: none; }
       .header-separator { display: none; }
-      .portfolio-value { margin-left: 0; width: 100%; text-align: left; margin-top: 4px; }
-      .nav-tab { padding: 4px 10px; font-size: 12px; }
+      .portfolio-value { margin-left: auto; }
     }
+    @media (max-width: 640px) {
+      .header-logo { font-size: 18px; }
+      .portfolio-value .pv-amount { font-size: 18px; }
+      .nav-tab { padding: 5px 10px; font-size: 12px; }
+      .header-brand-logo { height: 22px; }
+    }
+
+
   `;
   document.head.appendChild(style);
 
@@ -132,9 +164,11 @@
     el.className = 'header-bar';
     el.innerHTML = `
       <div class="header-logo-block">
+        <img src="../img/logo.png" class="header-brand-logo" alt="Logo">
         <a class="header-logo" href="1_portfolio.html">Portfolio<span>ESG</span></a>
         <span id="header-date" class="header-date">—</span>
       </div>
+
       <div class="header-separator"></div>
       <nav class="nav-tabs">${navHTML}</nav>
       <div id="pipeline-separator" class="header-separator" style="display:none"></div>

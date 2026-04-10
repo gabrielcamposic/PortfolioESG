@@ -7,142 +7,132 @@
 <link rel="stylesheet" href="../css/base.css">
 <script src="../js/header.js" data-page="history"></script>
 <style>
-  :root {
-    --fwd-color: #1c7ed6;
-    --bwd-color: #495057;
-    --score-bg: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
-  }
-
   .section-title {
-    font-size: 16px; font-weight: 600; margin-bottom: 12px;
-    display: flex; align-items: center; gap: 8px; cursor: pointer;
-    user-select: none;
+    font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 24px;
+    letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
   }
   .section-title::before {
-    content: ''; display: inline-block; width: 3px; height: 18px;
-    background: var(--accent-blue); border-radius: 2px;
+    content: ""; display: inline-block; width: 4px; height: 16px; 
+    background: var(--accent-blue); border-radius: 4px;
   }
   .section-title .toggle {
-    font-size: 12px; color: var(--text-muted); margin-left: auto;
-    transition: transform 0.2s;
+    font-size: 12px; color: var(--text-muted); margin-left: auto; transition: transform 0.2s;
   }
   .section-title .toggle.collapsed { transform: rotate(-90deg); }
 
-  .card { padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); }
+  .premium-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.6s ease forwards;
+  }
 
   .summary-bar {
-    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    padding: 16px 28px; border-bottom: 1px solid var(--border);
     background: var(--bg-card-alt); font-size: 11px;
     color: var(--text-muted); font-family: var(--font-mono);
+    text-transform: uppercase; letter-spacing: 0.05em;
     display: flex; justify-content: space-between; align-items: center;
+    font-weight: 700;
   }
 
   /* ── Table Styling ── */
   .table-wrapper { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-size: 13px; }
   
   thead tr.group-headers th {
-    padding: 8px 14px; font-size: 10px; text-transform: uppercase;
-    letter-spacing: 1.5px; border-bottom: none; color: var(--text-muted);
+    padding: 12px 20px; font-size: 9px; text-transform: uppercase;
+    font-weight: 800; letter-spacing: 0.1em; color: var(--text-muted);
   }
   thead tr.main-headers th {
-    padding: 12px 14px; font-size: 11px; font-weight: 700;
-    border-bottom: 2px solid var(--border); color: var(--text-secondary);
+    padding: 12px 20px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
     background: var(--bg-card); position: sticky; top: 0;
   }
 
-  /* Section-based Column Styling */
-  .col-base { border-right: 1px solid var(--border-light); }
-  .col-fwd { background: rgba(28, 126, 214, 0.02); }
-  .col-bwd { background: rgba(73, 80, 87, 0.02); border-left: 1px solid var(--border-light); }
-
   /* Group Dividers & Headers */
-  .group-fwd { 
-    background: rgba(28, 126, 214, 0.08) !important; 
-    border-bottom: 2px solid var(--fwd-color) !important; 
-    color: var(--fwd-color) !important;
-    border-radius: 8px 8px 0 0;
-  }
-  .group-bwd { 
-    background: rgba(73, 80, 87, 0.08) !important; 
-    border-bottom: 2px solid var(--bwd-color) !important; 
-    color: var(--bwd-color) !important;
-    border-radius: 8px 8px 0 0;
-  }
+  .group-fwd { background: hsla(240, 100%, 50%, 0.1) !important; color: var(--brand-blue) !important; border-radius: 8px 8px 0 0; }
+  .group-bwd { background: hsla(210, 15%, 45%, 0.1) !important; color: var(--text-muted) !important; border-radius: 8px 8px 0 0; }
+
 
   th.right, td.right { text-align: right; }
   td {
-    padding: 14px 14px; font-family: var(--font-mono); font-size: 12px;
-    border-bottom: 1px solid var(--border-light); transition: background 0.2s;
+    padding: 14px 20px; font-family: var(--font-mono); font-size: 12px;
+    background: var(--bg-card-alt); color: var(--text-primary);
+    transition: background 0.2s;
   }
   
   /* Vertical Dividers */
-  .sep-fwd { border-left: 2px solid rgba(28, 126, 214, 0.15) !important; }
-  .sep-bwd { border-left: 2px solid rgba(73, 80, 87, 0.15) !important; }
+  .sep-fwd { border-left: 2px solid hsla(240, 100%, 50%, 0.1) !important; }
+  .sep-bwd { border-left: 2px solid hsla(210, 15%, 45%, 0.1) !important; }
 
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(0,0,0,0.02); }
-  tr.latest td { background: rgba(25,113,194,0.04); }
+
+  tr.latest td { background: hsla(240, 100%, 50%, 0.05); }
+  tr:hover td { background: hsla(240, 100%, 50%, 0.08); }
+
 
   /* Cells */
-  .cell-date { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; white-space: nowrap; font-weight: 500; }
-  .cell-assets { color: var(--text-muted); font-weight: 600; }
-  .cell-proj { color: var(--fwd-color); font-weight: 700; font-size: 13px; }
+  .cell-date { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; white-space: nowrap; font-weight: 700; }
+  .cell-assets { color: var(--text-muted); font-weight: 800; }
+  .cell-proj { color: var(--brand-blue); font-weight: 800; font-size: 13px; }
   .cell-score {
     display: inline-block; padding: 4px 10px; border-radius: 12px;
-    background: var(--score-bg); color: #004a99; font-weight: 700; font-size: 11px;
-    box-shadow: 0 1px 3px rgba(0,74,153,0.1);
+    background: hsla(240, 100%, 50%, 0.1); color: var(--brand-blue); font-weight: 800; font-size: 11px;
   }
-  .cell-mom { font-weight: 600; }
+
 
   /* ── Expandable Detail ── */
   .expand-btn {
-    background: none; border: none; color: var(--accent-blue);
-    font-size: 11px; cursor: pointer; padding: 6px 12px;
-    border-radius: 4px; font-family: var(--font-sans);
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--accent-blue);
+    font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; padding: 6px 12px;
+    border-radius: 20px; font-family: var(--font-sans);
     display: flex; align-items: center; gap: 4px;
-    transition: all 0.2s;
+    transition: all 0.2s; box-shadow: var(--shadow-sm);
   }
-  .expand-btn:hover { background: rgba(25,113,194,0.1); }
-  .expand-btn .icon { transition: transform 0.2s; display: inline-block; }
+  .expand-btn:hover { background: var(--bg-card-alt); transform: scale(1.05); }
+  .expand-btn .icon { transition: transform 0.2s; display: inline-block; font-size: 12px; }
   .expand-btn.active .icon { transform: rotate(90deg); }
 
-  .detail-row { display: none; background: #fafafa; }
+  .detail-row { display: none; }
   .detail-row.visible { display: table-row; }
-  .detail-content { padding: 20px; }
+  .detail-content { padding: 24px; background: var(--bg-card-alt); border-radius: 0 0 12px 12px; margin: 4px; }
+
   
-  .detail-grid {
-    display: grid; grid-template-columns: 1fr 250px; gap: 24px;
-  }
-  .chips-container { display: flex; flex-wrap: wrap; gap: 6px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: 32px; }
+  .chips-container { display: flex; flex-wrap: wrap; gap: 8px; }
   .stock-chip {
-    display: flex; align-items: center; gap: 6px; padding: 4px 10px;
-    background: #fff; border: 1px solid #e0e0e0; border-radius: 6px;
+    display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
     font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    box-shadow: var(--shadow-sm);
   }
-  .stock-ticker { font-weight: 600; color: var(--accent-blue); }
-  .stock-weight { color: var(--text-muted); font-size: 10px; }
+  .stock-ticker { font-weight: 800; color: var(--brand-blue); }
+  .stock-weight { color: var(--text-muted); font-weight: 600; }
 
   .run-info {
     font-size: 11px; color: var(--text-muted);
-    display: flex; flex-direction: column; gap: 8px;
-    padding-left: 20px; border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 12px;
+    padding-left: 24px; border-left: 1px solid var(--border);
   }
-  .info-item { display: flex; justify-content: space-between; }
-  .info-label { font-family: var(--font-sans); }
-  .info-value { font-weight: 600; }
+  .info-item { display: flex; justify-content: space-between; align-items: center; }
+  .info-label { font-family: var(--font-sans); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .info-value { font-weight: 800; color: var(--text-primary); }
 
-  .positive { color: #2b8a3e; }
-  .negative { color: #c92a2a; }
-  .momentum-up { color: #2b8a3e; }
-  .momentum-down { color: #c92a2a; }
+  .positive { color: var(--brand-blue); }
+  .negative { color: var(--brand-magenta); }
+
 
   @media (max-width: 900px) {
     .detail-grid { grid-template-columns: 1fr; }
-    .run-info { padding: 15px 0 0; border-left: none; border-top: 1px solid var(--border); }
+    .run-info { padding: 20px 0 0; border-left: none; border-top: 1px solid var(--border); }
   }
 </style>
+
 </head>
 <body>
 
@@ -151,7 +141,7 @@
   <span class="toggle" id="toggle-icon">▼</span>
 </div>
 
-<div class="card" id="history-section">
+<div class="premium-card" id="history-section">
   <div id="history-loading" style="padding: 40px; text-align: center; color: var(--text-muted);">
     <span class="loading">Sincronizando métricas do modelo...</span>
   </div>
@@ -287,7 +277,8 @@ async function init() {
                   </div>
                   <div class="info-item">
                     <span class="info-label">Decisão</span>
-                    <span class="info-value" style="color: ${r.decision==='REBALANCE'?'var(--accent-blue)':'var(--text-muted)'}">
+                    <span class="info-value" style="color: ${r.decision==='REBALANCE'?'var(--brand-magenta)':'var(--brand-blue)'}">
+
                       ${r.decision || '—'}
                     </span>
                   </div>

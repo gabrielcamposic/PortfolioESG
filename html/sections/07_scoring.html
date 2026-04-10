@@ -9,170 +9,126 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
 <style>
   .section-title {
-    font-size: 16px; font-weight: 600; margin-bottom: 12px;
-    display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+    font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 24px;
+    letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
   }
   .section-title::before {
-    content: ''; display: inline-block; width: 3px; height: 18px;
-    background: var(--accent-blue); border-radius: 2px;
+    content: ""; display: inline-block; width: 4px; height: 16px; 
+    background: var(--accent-blue); border-radius: 4px;
   }
   .section-title .toggle {
     font-size: 12px; color: var(--text-muted); margin-left: auto; transition: transform 0.2s;
   }
   .section-title .toggle.collapsed { transform: rotate(-90deg); }
 
-  .card { padding: 20px; overflow-x: auto; }
+  .premium-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-sm);
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.6s ease forwards;
+  }
 
   .run-info {
-    font-size: 12px; color: var(--text-muted); margin-bottom: 10px; font-family: var(--font-mono);
+    font-size: 11px; color: var(--text-muted); margin-bottom: 20px; font-family: var(--font-mono);
+    text-transform: uppercase; letter-spacing: 0.05em;
   }
 
   /* ── Custom tooltip ── */
   .tooltip-popup {
     position: fixed; z-index: 9999; pointer-events: none;
-    background: #1c1f2e; color: #f1f3f5;
+    background: rgba(15, 23, 42, 0.95); color: #fff;
     font-size: 11px; font-family: var(--font-sans);
-    padding: 5px 9px; border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
-    white-space: nowrap; opacity: 0;
-    transition: opacity 0.12s;
-    max-width: 260px; white-space: normal; line-height: 1.4;
+    padding: 10px 14px; border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    max-width: 260px; line-height: 1.5; opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.1);
   }
-  .tooltip-popup.visible { opacity: 1; }
-
-  /* ── Weights / formula banner ── */
-  .scoring-meta { margin-bottom: 14px; }
-
-  .weights-banner {
-    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; align-items: center;
-  }
-  .weights-label {
-    font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.5px; color: var(--text-muted); margin-right: 4px;
-  }
-  .weight-chip {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 20px; font-size: 11px;
-    font-family: var(--font-mono); border: 1px solid;
-  }
-  .weight-chip .chip-name { font-weight: 600; }
-  .weight-chip .chip-val  { font-weight: 400; }
-  .chip-sharpe   { background: rgba(25,113,194,0.08); border-color: rgba(25,113,194,0.3); color: var(--accent-blue); }
-  .chip-upside   { background: rgba(47,158,68,0.08);  border-color: rgba(47,158,68,0.3);  color: var(--accent-green); }
-  .chip-momentum { background: rgba(230,119,0,0.08);  border-color: rgba(230,119,0,0.3);  color: #e67700; }
-
-  .regime-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 10px; border-radius: 20px; font-size: 11px;
-    font-family: var(--font-mono); background: rgba(0,0,0,0.04);
-    border: 1px solid var(--border); color: var(--text-secondary);
-  }
-  .regime-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-
-  /* Formula line */
-  .formula-line {
-    font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);
-    padding: 4px 6px; background: rgba(0,0,0,0.03); border-radius: 6px;
-    border: 1px solid var(--border); display: inline-block;
-  }
-  .formula-line .f-sharpe   { color: var(--accent-blue); font-weight: 600; }
-  .formula-line .f-upside   { color: var(--accent-green); font-weight: 600; }
-  .formula-line .f-momentum { color: #e67700; font-weight: 600; }
+  .tooltip-popup.visible { opacity: 1; transform: translateY(0); }
 
   /* ── Table ── */
-  table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  .table-wrapper { overflow-x: auto; margin: 0 -28px; padding: 0 28px; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-size: 13px; }
 
-  /* Column group sub-header row */
   tr.grp-row th {
-    font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; padding: 3px 8px 2px;
-    border-bottom: none; color: #fff; cursor: default; text-align: center;
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; padding: 6px 10px;
+    border-bottom: none; color: #fff; text-align: center; font-weight: 800;
   }
-  tr.grp-row th.grp-score-inputs { background: rgba(25,113,194,0.55); }
-  tr.grp-row th.grp-fundamentals { background: rgba(100,100,120,0.35); }
-  tr.grp-row th.grp-prices       { background: rgba(47,158,68,0.40); }
-  tr.grp-row th.grp-empty        { background: transparent; border-bottom: none; }
+  tr.grp-row th.grp-score-inputs { background: hsla(240, 100%, 50%, 0.8); border-radius: 8px 8px 0 0; }
+  tr.grp-row th.grp-fundamentals { background: var(--text-muted); border-radius: 8px 8px 0 0; }
+  tr.grp-row th.grp-prices       { background: hsla(300, 100%, 50%, 0.8); border-radius: 8px 8px 0 0; }
+
+  tr.grp-row th.grp-empty        { background: transparent; }
 
   th {
     text-align: left; font-size: 10px; text-transform: uppercase;
-    letter-spacing: 0.4px; color: var(--text-muted); padding: 6px 8px;
+    letter-spacing: 0.05em; color: var(--text-muted); padding: 12px 10px;
     border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
     position: sticky; top: 0; background: var(--bg-card); vertical-align: bottom;
+    font-weight: 700;
   }
   th:hover { color: var(--accent-blue); }
   th.right, td.right { text-align: right; }
   th.center, td.center { text-align: center; }
 
-  /* column group separators */
-  th.grp-sep, td.grp-sep { border-left: 1px solid rgba(0,0,0,0.08); }
-
-  /* Weight chip inside column header */
-  .th-weight-chip {
-    display: inline-block; margin-top: 3px;
-    padding: 1px 6px; border-radius: 10px; font-size: 9px;
-    font-weight: 700; text-transform: none; border: 1px solid;
-    letter-spacing: 0;
-  }
-  .th-wc-sharpe   { background: rgba(25,113,194,0.12); border-color: rgba(25,113,194,0.4); color: #1971c2; }
-  .th-wc-upside   { background: rgba(47,158,68,0.12);  border-color: rgba(47,158,68,0.4);  color: #2f9e44; }
-  .th-wc-momentum { background: rgba(230,119,0,0.12);  border-color: rgba(230,119,0,0.4);  color: #e67700; }
-
   td {
-    padding: 6px 8px; font-family: var(--font-mono); font-size: 12px;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
+    padding: 12px 10px; font-family: var(--font-mono); font-size: 12px;
+    background: var(--bg-card-alt); color: var(--text-primary);
   }
-  td.stock  { font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); cursor: default; }
-  td.sector { font-family: var(--font-sans); color: var(--text-secondary); font-size: 12px; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(25,113,194,0.04); }
+  td:first-child { border-radius: 8px 0 0 8px; font-family: var(--font-sans); font-weight: 700; color: var(--brand-blue); font-size: 13px; }
+  td:last-child { border-radius: 0 8px 8px 0; }
+  tr:hover td { background: hsla(240, 100%, 50%, 0.05); }
 
   /* ── Score bar ── */
-  .score-cell { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .score-cell { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
   .score-bar-track {
-    width: 52px; height: 5px; background: rgba(0,0,0,0.1);
-    border-radius: 3px; overflow: hidden; flex-shrink: 0;
+    width: 60px; height: 6px; background: rgba(0,0,0,0.05);
+    border-radius: 10px; overflow: hidden; flex-shrink: 0;
   }
-  .score-bar-fill { height: 100%; border-radius: 3px; }
+  .score-bar-fill { height: 100%; border-radius: 10px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2); }
 
-  /* ── Component cells (raw + norm + contribution) ── */
-  .comp-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-  .comp-raw  { font-size: 12px; }
+  /* ── Component cells ── */
+  .comp-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .comp-raw  { font-size: 12px; font-weight: 700; color: var(--text-primary); }
   .comp-norm {
-    font-size: 10px; color: var(--text-muted);
-    display: flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--text-muted); font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
   }
   .comp-contrib {
-    font-size: 10px; font-weight: 600; opacity: 0.75;
+    font-size: 10px; font-weight: 800;
     display: flex; align-items: center; gap: 2px;
   }
-  .comp-contrib::before { content: '→'; font-weight: 400; opacity: 0.6; margin-right: 1px; }
+  .comp-contrib::before { content: '→'; font-weight: 400; opacity: 0.5; }
+  
   .norm-bar-track {
-    display: inline-block; vertical-align: middle;
-    width: 36px; height: 3px; background: rgba(0,0,0,0.1);
-    border-radius: 2px; overflow: hidden;
+    width: 40px; height: 4px; background: rgba(0,0,0,0.05);
+    border-radius: 10px; overflow: hidden;
   }
-  .norm-bar-fill { display: block; height: 100%; border-radius: 2px; }
+  .norm-bar-fill { display: block; height: 100%; border-radius: 10px; }
 
-
-  .contrib-sharpe   { color: var(--accent-blue); }
-  .contrib-upside   { color: var(--accent-green); }
-  .contrib-momentum { color: #e67700; }
-
-  .positive { color: var(--accent-green); }
-  .negative { color: var(--accent-red); }
+  .th-weight-chip {
+    display: inline-block; margin-top: 4px;
+    padding: 2px 8px; border-radius: 20px; font-size: 9px;
+    font-weight: 800; background: rgba(0,0,0,0.05); border: 1px solid var(--border);
+  }
 
   .src-badge {
-    font-size: 9px; padding: 1px 4px; border-radius: 3px;
-    font-family: var(--font-sans); font-weight: 600; text-transform: none;
+    font-size: 9px; padding: 2px 4px; border-radius: 4px;
+    font-family: var(--font-sans); font-weight: 800;
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted);
   }
-  .src-yahoo    { background: rgba(25,113,194,0.12); color: var(--accent-blue); }
-  .src-sectorpe { background: rgba(230,119,0,0.12);  color: #e67700; }
 
-  @media (max-width: 700px) {
-    .card { padding: 12px; }
-    table { font-size: 11px; }
-    th, td { padding: 5px 5px; }
+  @media (max-width: 800px) {
+    .premium-card { padding: 16px; }
+    .table-wrapper { margin: 0 -16px; padding: 0 16px; }
   }
 </style>
+
 </head>
 <body>
 
@@ -181,7 +137,7 @@
   <span class="toggle" id="toggle-icon">▼</span>
 </div>
 
-<div class="card" id="scoring-section">
+<div class="premium-card" id="scoring-section">
   <div id="scoring-container"><span class="loading">Carregando scoring...</span></div>
 </div>
 
@@ -213,9 +169,11 @@ const colorClass = v => (v == null || isNaN(v)) ? '' : (v >= 0 ? 'positive' : 'n
 
 function scoreColor(score, max) {
   const r = Math.min(score / max, 1);
-  if (r < 0.5) return `rgb(255,${Math.round(r*2*200)},80)`;
-  return `rgb(${Math.round((1-(r-0.5)*2)*200)},200,80)`;
+  // Transition from Pink (low) to Blue (high)
+  const h = 300 - (r * 60); // 300 (Pink) to 240 (Blue)
+  return `hsl(${h}, 100%, 50%)`;
 }
+
 
 const REGIME_COLORS = {
   strong_bull:'#2f9e44', bull:'#74c069', neutral:'#adb5bd', bear:'#e67700', strong_bear:'#e03131'
@@ -264,9 +222,10 @@ function renderTable(weights) {
     // Score
     { key:'CompositeScore',       label:'Score',      cls:'right grp-sep' },
     // Score inputs
-    { key:'SharpeRatio',         label:'Sharpe',     cls:'right grp-sep', weight: w_s, weightCls:'th-wc-sharpe',   fillColor:'#1971c2' },
-    { key:'PotentialUpside_pct', label:'Upside',     cls:'right',         weight: w_u, weightCls:'th-wc-upside',   fillColor:'#2f9e44' },
-    { key:'Momentum',            label:'Momentum',   cls:'right',         weight: w_m, weightCls:'th-wc-momentum', fillColor:'#e67700' },
+    { key:'SharpeRatio',         label:'Sharpe',     cls:'right grp-sep', weight: w_s, weightCls:'th-wc-sharpe',   fillColor:'var(--brand-blue)' },
+    { key:'PotentialUpside_pct', label:'Upside',     cls:'right',         weight: w_u, weightCls:'th-wc-upside',   fillColor:'var(--brand-blue)' },
+    { key:'Momentum',            label:'Momentum',   cls:'right',         weight: w_m, weightCls:'th-wc-momentum', fillColor:'var(--brand-magenta)' },
+
     // Fundamentals
     { key:'AnnualizedMeanReturn', label:'Ret. Anual', cls:'right grp-sep' },
     { key:'AnnualizedStdDev',     label:'Vol. Anual', cls:'right' },
@@ -279,7 +238,7 @@ function renderTable(weights) {
   ];
 
   // Column group sub-header
-  let html = `<table><thead>`;
+  let html = `<div class="table-wrapper"><table><thead>`;
   html += `<tr class="grp-row">
     <th colspan="2" class="grp-empty"></th>
     <th colspan="1" class="grp-empty"></th>
@@ -329,13 +288,14 @@ function renderTable(weights) {
           </div>
         </div>
       </td>
-      <td class="right grp-sep">${compCell(fmtNum(sharpe, 4), sharpeNorm, 'norm-sharpe', w_s, 'contrib-sharpe', '#1971c2')}</td>
+      <td class="right grp-sep">${compCell(fmtNum(sharpe, 4), sharpeNorm, 'norm-sharpe', w_s, 'contrib-sharpe', 'var(--brand-blue)')}</td>
       <td class="right">${compCell(
           `<span class="${colorClass(upside)}">${upside != null ? fmtPct(upside) : '—'}</span>`,
-          upsideNorm, 'norm-upside', w_u, 'contrib-upside', '#2f9e44')}</td>
+          upsideNorm, 'norm-upside', w_u, 'contrib-upside', 'var(--brand-blue)')}</td>
       <td class="right">${compCell(
           `<span class="${colorClass(momentum)}">${momentum != null ? fmtPct(momentum) : '—'}</span>`,
-          momNorm, 'norm-momentum', w_m, 'contrib-momentum', '#e67700')}</td>
+          momNorm, 'norm-momentum', w_m, 'contrib-momentum', 'var(--brand-magenta)')}</td>
+
       <td class="right grp-sep ${colorClass(annRet)}">${fmtPct(annRet)}</td>
       <td class="right">${fmtPct(annVol)}</td>
       <td class="right grp-sep">${fmtNum(r.forwardPE, 1)}</td>
@@ -345,7 +305,7 @@ function renderTable(weights) {
       <td class="right">${fmtBRL(r.TargetPrice)}&nbsp;${srcBadge}</td>
     </tr>`;
   }
-  html += `</tbody></table>`;
+  html += `</tbody></table></div>`;
 
   const container = document.getElementById('scoring-container');
   const header = container.querySelector('.scoring-header');
