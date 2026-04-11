@@ -1,9 +1,9 @@
 {
-  "run_id": "20260409-200414",
-  "run_timestamp": "2026-04-09 20:22:31",
-  "allocation_effect": 47.045354382111185,
-  "selection_effect": 1.2229295113958865,
-  "interaction_effect": 1.7021874924145055,
-  "total_active_return": 36.67281673303288,
-  "residual": -13.297654652888689
+  "run_id": "STAB_20260409_2059_9",
+  "run_timestamp": "2026-04-10 23:04:59",
+  "allocation_effect": 26.862482340532782,
+  "selection_effect": 0.311031394205931,
+  "interaction_effect": 1.4162409707821897,
+  "total_active_return": 36.57409549668011,
+  "residual": 7.984340791159205
 }

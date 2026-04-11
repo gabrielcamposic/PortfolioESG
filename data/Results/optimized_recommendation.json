@@ -1,13 +1,13 @@
 {
-  "date": "2026-04-09",
-  "timestamp": "2026-04-09 20:23:24",
+  "date": "2026-04-10",
+  "timestamp": "2026-04-10 23:05:50",
   "decision": "HOLD",
-  "reason": "Excess return (-5.42%) below threshold (0.5%)",
-  "excess_return_pct": -5.4194,
+  "reason": "Excess return (-7.91%) below threshold (0.5%)",
+  "excess_return_pct": -7.9097,
   "min_threshold_pct": 0.5,
-  "optimal_score": 0.6247,
-  "holdings_score": 0.3139,
-  "ideal_score": 0.6249,
+  "optimal_score": 0.6215,
+  "holdings_score": 0.3192,
+  "ideal_score": 0.6216,
   "comparison": {
     "window_days": 252,
     "holdings": {
@@ -23,212 +23,177 @@
         "TEND3.SA"
       ],
       "weights": {
-        "PETR3.SA": 0.35401511125770374,
-        "SAPR11.SA": 0.20848221648067727,
-        "MDNE3.SA": 0.1196195921059865,
-        "PLPL3.SA": 0.08025030692833453,
-        "AURA33.SA": 0.10139324085781126,
-        "VALE3.SA": 0.05172887691715684,
-        "CMIG3.SA": 0.04783806399990227,
-        "VULC3.SA": 0.01590530115624943,
-        "TEND3.SA": 0.02076729029617821
+        "PETR3.SA": 0.35886576668287806,
+        "SAPR11.SA": 0.20589470250088354,
+        "MDNE3.SA": 0.11777321979319907,
+        "PLPL3.SA": 0.07983555006449314,
+        "AURA33.SA": 0.10233715861685641,
+        "VALE3.SA": 0.05170929456294198,
+        "CMIG3.SA": 0.047413780082949955,
+        "VULC3.SA": 0.01576834429364161,
+        "TEND3.SA": 0.02040218340215622
       },
-      "expected_return_pct": 6.62,
-      "total_value": 3274.38,
+      "expected_return_pct": 5.99,
+      "total_value": 3310.43,
       "total_invested": 2707.97
     },
     "ideal": {
       "stocks": [
-        "PRIO3.SA",
-        "ENEV3.SA",
-        "PETR3.SA",
-        "PETR4.SA",
-        "VALE3.SA",
+        "OPCT3.SA",
         "PNVL3.SA",
-        "AXIA6.SA",
+        "VALE3.SA",
         "AURA33.SA",
-        "DASA3.SA"
+        "PETR3.SA",
+        "ENEV3.SA"
       ],
       "weights": {
-        "PRIO3.SA": 0.173,
-        "ENEV3.SA": 0.1416,
-        "PETR3.SA": 0.0031,
-        "PETR4.SA": 0.2156,
-        "VALE3.SA": 0.065,
-        "PNVL3.SA": 0.1065,
-        "AXIA6.SA": 0.1016,
-        "AURA33.SA": 0.1701,
-        "DASA3.SA": 0.0236
+        "OPCT3.SA": 0.1412,
+        "PNVL3.SA": 0.1385,
+        "VALE3.SA": 0.1011,
+        "AURA33.SA": 0.1739,
+        "PETR3.SA": 0.2657,
+        "ENEV3.SA": 0.1797
       },
-      "expected_return_pct": 1.25,
-      "historical_return_pct": 84.61,
-      "sharpe_ratio": 3.8832,
-      "run_id": "20260409-200414"
+      "expected_return_pct": -1.97,
+      "historical_return_pct": 87.91,
+      "sharpe_ratio": 3.8799,
+      "run_id": "20260410-223139"
     },
     "optimal": {
       "stocks": [
-        "AURA33.SA",
-        "DASA3.SA",
+        "MDNE3.SA",
+        "VALE3.SA",
         "PNVL3.SA",
-        "AXIA6.SA",
-        "PETR3.SA",
-        "PRIO3.SA",
-        "PETR4.SA",
         "ENEV3.SA",
-        "VALE3.SA"
+        "AURA33.SA",
+        "OPCT3.SA",
+        "SAPR11.SA",
+        "PETR3.SA"
       ],
       "weights": {
-        "AURA33.SA": 0.1700829917008299,
-        "DASA3.SA": 0.0235976402359764,
-        "PNVL3.SA": 0.1064893510648935,
-        "AXIA6.SA": 0.10158984101589841,
-        "PETR3.SA": 0.0030996900309969004,
-        "PRIO3.SA": 0.172982701729827,
-        "PETR4.SA": 0.21557844215578445,
-        "ENEV3.SA": 0.14158584141585842,
-        "VALE3.SA": 0.064993500649935
+        "MDNE3.SA": 0.0011776156139862073,
+        "VALE3.SA": 0.1005961339283705,
+        "PNVL3.SA": 0.1371014269587311,
+        "ENEV3.SA": 0.1778853893464547,
+        "AURA33.SA": 0.17316722803059353,
+        "OPCT3.SA": 0.13977416235792656,
+        "SAPR11.SA": 0.0020587432094311036,
+        "PETR3.SA": 0.2666052637457179
       },
-      "expected_return_pct": 1.25,
-      "net_return_pct": 1.2,
-      "blend_ratio": 1.0,
-      "transition_cost_pct": 0.0479
+      "expected_return_pct": -1.89,
+      "net_return_pct": -1.92,
+      "blend_ratio": 0.99,
+      "transition_cost_pct": 0.0327
     }
   },
   "transactions": [
     {
-      "symbol": "TEND3.SA",
+      "symbol": "MDNE3.SA",
       "action": "SELL",
-      "weight_change": -0.02076729029617821,
-      "value_change": 68.0,
-      "current_weight": 0.02076729029617821,
-      "target_weight": 0,
-      "cost": 0.0193
-    },
-    {
-      "symbol": "AURA33.SA",
-      "action": "BUY",
-      "weight_change": 0.06868975084301865,
-      "value_change": 224.91634636536338,
-      "current_weight": 0.10139324085781126,
-      "target_weight": 0.1700829917008299,
-      "cost": 0.0639
+      "weight_change": -0.11659560417921287,
+      "value_change": 385.98158594299167,
+      "current_weight": 0.11777321979319907,
+      "target_weight": 0.0011776156139862073,
+      "cost": 0.1096
     },
     {
       "symbol": "PLPL3.SA",
       "action": "SELL",
-      "weight_change": -0.08025030692833453,
-      "value_change": 262.77,
-      "current_weight": 0.08025030692833453,
+      "weight_change": -0.07983555006449314,
+      "value_change": 264.29,
+      "current_weight": 0.07983555006449314,
       "target_weight": 0,
-      "cost": 0.0746
-    },
-    {
-      "symbol": "VULC3.SA",
-      "action": "SELL",
-      "weight_change": -0.01590530115624943,
-      "value_change": 52.080000000000005,
-      "current_weight": 0.01590530115624943,
-      "target_weight": 0,
-      "cost": 0.0148
-    },
-    {
-      "symbol": "DASA3.SA",
-      "action": "BUY",
-      "weight_change": 0.0235976402359764,
-      "value_change": 77.2676412358764,
-      "current_weight": 0,
-      "target_weight": 0.0235976402359764,
-      "cost": 0.0219
-    },
-    {
-      "symbol": "PNVL3.SA",
-      "action": "BUY",
-      "weight_change": 0.1064893510648935,
-      "value_change": 348.68660133986594,
-      "current_weight": 0,
-      "target_weight": 0.1064893510648935,
-      "cost": 0.099
-    },
-    {
-      "symbol": "AXIA6.SA",
-      "action": "BUY",
-      "weight_change": 0.10158984101589841,
-      "value_change": 332.6437436256374,
-      "current_weight": 0,
-      "target_weight": 0.10158984101589841,
-      "cost": 0.0944
-    },
-    {
-      "symbol": "PETR3.SA",
-      "action": "SELL",
-      "weight_change": -0.3509154212267068,
-      "value_change": 1149.0304369563041,
-      "current_weight": 0.35401511125770374,
-      "target_weight": 0.0030996900309969004,
-      "cost": 0.3262
-    },
-    {
-      "symbol": "CMIG3.SA",
-      "action": "SELL",
-      "weight_change": -0.04783806399990227,
-      "value_change": 156.64,
-      "current_weight": 0.04783806399990227,
-      "target_weight": 0,
-      "cost": 0.0445
-    },
-    {
-      "symbol": "PRIO3.SA",
-      "action": "BUY",
-      "weight_change": 0.172982701729827,
-      "value_change": 566.4110988901109,
-      "current_weight": 0,
-      "target_weight": 0.172982701729827,
-      "cost": 0.1608
-    },
-    {
-      "symbol": "MDNE3.SA",
-      "action": "SELL",
-      "weight_change": -0.1196195921059865,
-      "value_change": 391.68,
-      "current_weight": 0.1196195921059865,
-      "target_weight": 0,
-      "cost": 0.1112
-    },
-    {
-      "symbol": "PETR4.SA",
-      "action": "BUY",
-      "weight_change": 0.21557844215578445,
-      "value_change": 705.8857394260574,
-      "current_weight": 0,
-      "target_weight": 0.21557844215578445,
-      "cost": 0.2004
-    },
-    {
-      "symbol": "ENEV3.SA",
-      "action": "BUY",
-      "weight_change": 0.14158584141585842,
-      "value_change": 463.60584741525844,
-      "current_weight": 0,
-      "target_weight": 0.14158584141585842,
-      "cost": 0.1316
+      "cost": 0.075
     },
     {
       "symbol": "VALE3.SA",
       "action": "BUY",
-      "weight_change": 0.013264623732778168,
-      "value_change": 43.43341865813417,
-      "current_weight": 0.05172887691715684,
-      "target_weight": 0.064993500649935,
-      "cost": 0.0123
+      "weight_change": 0.048886839365428515,
+      "value_change": 161.83645964049552,
+      "current_weight": 0.05170929456294198,
+      "target_weight": 0.1005961339283705,
+      "cost": 0.0459
+    },
+    {
+      "symbol": "PNVL3.SA",
+      "action": "BUY",
+      "weight_change": 0.1371014269587311,
+      "value_change": 453.86467684699215,
+      "current_weight": 0,
+      "target_weight": 0.1371014269587311,
+      "cost": 0.1289
+    },
+    {
+      "symbol": "CMIG3.SA",
+      "action": "SELL",
+      "weight_change": -0.047413780082949955,
+      "value_change": 156.96,
+      "current_weight": 0.047413780082949955,
+      "target_weight": 0,
+      "cost": 0.0446
+    },
+    {
+      "symbol": "ENEV3.SA",
+      "action": "BUY",
+      "weight_change": 0.1778853893464547,
+      "value_change": 588.877129454184,
+      "current_weight": 0,
+      "target_weight": 0.1778853893464547,
+      "cost": 0.1672
+    },
+    {
+      "symbol": "AURA33.SA",
+      "action": "BUY",
+      "weight_change": 0.07083006941373712,
+      "value_change": 234.47798668931776,
+      "current_weight": 0.10233715861685641,
+      "target_weight": 0.17316722803059353,
+      "cost": 0.0666
+    },
+    {
+      "symbol": "TEND3.SA",
+      "action": "SELL",
+      "weight_change": -0.02040218340215622,
+      "value_change": 67.54,
+      "current_weight": 0.02040218340215622,
+      "target_weight": 0,
+      "cost": 0.0192
+    },
+    {
+      "symbol": "OPCT3.SA",
+      "action": "BUY",
+      "weight_change": 0.13977416235792656,
+      "value_change": 462.7125802945508,
+      "current_weight": 0,
+      "target_weight": 0.13977416235792656,
+      "cost": 0.1314
     },
     {
       "symbol": "SAPR11.SA",
       "action": "SELL",
-      "weight_change": -0.20848221648067727,
-      "value_change": 682.65,
-      "current_weight": 0.20848221648067727,
+      "weight_change": -0.20383595929145243,
+      "value_change": 674.7846747172028,
+      "current_weight": 0.20589470250088354,
+      "target_weight": 0.0020587432094311036,
+      "cost": 0.1916
+    },
+    {
+      "symbol": "PETR3.SA",
+      "action": "SELL",
+      "weight_change": -0.09226050293716015,
+      "value_change": 305.42193673826307,
+      "current_weight": 0.35886576668287806,
+      "target_weight": 0.2666052637457179,
+      "cost": 0.0867
+    },
+    {
+      "symbol": "VULC3.SA",
+      "action": "SELL",
+      "weight_change": -0.01576834429364161,
+      "value_change": 52.199999999999996,
+      "current_weight": 0.01576834429364161,
       "target_weight": 0,
-      "cost": 0.1938
+      "cost": 0.0148
     }
   ],
   "transaction_cost_pct_used": 0.0284,
