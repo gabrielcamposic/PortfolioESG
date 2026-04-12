@@ -22,35 +22,26 @@
     gap: 24px;
   }
   .category-title {
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: var(--font-weight-emphasis);
+    color: var(--color-label);
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 8px;
-    padding-left: 4px;
+    padding-left: 0;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
+    border-left: 6px solid var(--brand-red);
+    padding: 2px 0 2px 16px;
   }
-  .category-title::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 24px;
-    background: var(--accent-blue);
-    border-radius: 4px;
-  }
-  .category-performance .category-title::before { background: var(--brand-blue); }
-  .category-risk .category-title::before { background: var(--brand-magenta); }
-  .category-model .category-title::before { background: var(--brand-blue); }
 
 
 
   .metric-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     padding: 32px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-sm);
@@ -60,14 +51,14 @@
   .metric-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-premium);
-    border-color: var(--accent-blue);
+    border-color: var(--brand-blue);
   }
   .metric-card::after {
     content: ""; position: absolute; top: 0; right: 0; width: 4px; height: 100%;
     background: transparent; transition: background 0.3s;
   }
   .category-performance .metric-card:hover::after { background: var(--brand-blue); }
-  .category-risk .metric-card:hover::after { background: var(--brand-magenta); }
+  .category-risk .metric-card:hover::after { background: var(--brand-red); }
   .category-model .metric-card:hover::after { background: var(--brand-blue); }
 
 
@@ -77,27 +68,27 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-strong);
     padding-bottom: 16px;
   }
   .metric-name {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
+    font-size: 13px;
+    font-weight: var(--font-weight-emphasis);
+    color: var(--brand-blue);
+    letter-spacing: -0.01em;
   }
   .metric-tag {
-    font-size: 10px;
-    font-weight: 800;
+    font-size: 9px;
+    font-weight: var(--font-weight-emphasis);
     text-transform: uppercase;
-    padding: 6px 14px;
+    padding: 4px 12px;
     border-radius: 20px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     box-shadow: var(--shadow-sm);
   }
-  .tag-perf { background: rgba(var(--rgb-blue), 0.1); color: var(--brand-blue); }
-  .tag-risk { background: rgba(var(--rgb-pink), 0.1); color: var(--brand-magenta); }
-  .tag-model { background: rgba(var(--rgb-blue), 0.1); color: var(--brand-blue); }
+  .tag-perf { background: rgba(27, 53, 96, 0.1); color: var(--brand-blue); }
+  .tag-risk { background: rgba(212, 43, 30, 0.1); color: var(--brand-red); }
+  .tag-model { background: rgba(27, 53, 96, 0.1); color: var(--brand-blue); }
 
 
 
@@ -112,28 +103,28 @@
     gap: 8px;
   }
   .info-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: var(--font-weight-emphasis);
+    color: var(--color-label);
     text-transform: uppercase;
     letter-spacing: 0.1em;
   }
   .info-content {
-    font-size: 15px;
+    font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.6;
-    font-weight: 500;
+    font-weight: var(--font-weight-regular);
   }
   .formula-box {
     margin-top: 16px;
-    padding: 16px;
+    padding: 12px;
     background: var(--bg-card-alt);
-    border-radius: 12px;
-    font-family: var(--font-mono);
-    font-size: 13px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: 12px;
     color: var(--text-primary);
-    border: 1px solid var(--border);
-    font-weight: 600;
+    border: 1px solid var(--border-strong);
+    font-weight: var(--font-weight-emphasis);
     display: inline-block;
   }
 

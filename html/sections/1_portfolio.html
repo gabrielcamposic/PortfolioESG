@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>1 — Portfólio</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../css/base.css">
 <script src="../js/header.js" data-page="portfolio"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
@@ -61,25 +58,24 @@
   .chart-card, .perf-table-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     padding: 28px;
     box-shadow: var(--shadow-sm);
   }
 
   .chart-title, .table-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: var(--font-weight-emphasis);
+    color: var(--color-label);
     margin-bottom: 20px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     display: flex;
     align-items: center;
-    gap: 8px;
-  }
-  .chart-title::before {
-    content: ""; display: inline-block; width: 4px; height: 16px; 
-    background: var(--accent-blue); border-radius: 4px;
+    gap: 12px;
+    padding-left: 0;
+    border-left: 4px solid var(--brand-red);
+    padding: 2px 0 2px 12px;
   }
 
   /* ── Charts ── */
@@ -89,50 +85,47 @@
   /* ── Performance table ── */
   .perf-table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 4px;
+    border-collapse: collapse;
     font-family: var(--font-sans);
     font-size: 13px;
   }
   .perf-table th {
     text-align: right;
-    font-weight: 700;
-    color: var(--text-muted);
-    font-size: 10px;
+    font-weight: var(--font-weight-emphasis);
+    color: var(--color-label);
+    font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border-strong);
   }
   .perf-table th:first-child { text-align: left; }
   .perf-table td {
     text-align: right;
     padding: 12px 16px;
-    background: var(--bg-card-alt);
+    border-bottom: 1px solid var(--border);
     color: var(--text-primary);
     font-family: var(--font-mono);
     font-weight: 500;
   }
   .perf-table td:first-child {
     text-align: left;
-    color: var(--text-primary);
-    font-weight: 700;
+    color: var(--brand-blue);
+    font-weight: var(--font-weight-emphasis);
     font-size: 13px;
-    border-radius: 8px 0 0 8px;
     font-family: var(--font-sans);
   }
-  .perf-table td:last-child { border-radius: 0 8px 8px 0; }
   
   .perf-table td.pos { color: var(--brand-blue); }
   .perf-table td.neg { color: var(--brand-magenta); }
 
-  .perf-table td.gold { color: var(--accent-gold); font-weight: 800; border: 1px solid var(--accent-gold); border-radius: 8px; }
+  .perf-table td.gold { color: var(--accent-gold); font-weight: var(--font-weight-emphasis); border: 1px solid var(--accent-gold); border-radius: 8px; }
 
   /* ── Monthly returns table (TWR) ── */
   .perf-table tr.total-row td {
     background: var(--text-primary);
     color: #fff;
-    font-weight: 700;
+    font-weight: var(--font-weight-emphasis);
     padding: 14px 16px;
   }
 
@@ -215,14 +208,17 @@ function cls(v) {
   if (v == null || isNaN(v)) return '';
   return v >= 0 ? 'positive' : 'negative';
 }
-function card(label, value, colorCls, sub, tooltipText) {
+function card(label, value, colorCls, sub, tooltipText, valueStyle = "") {
   const tooltipHtml = tooltipText ? `<div class="tooltip-icon" data-tooltip="${tooltipText}">?</div>` : '';
+  const isPill = colorCls.includes('badge-');
+  const finalValueCls = isPill ? colorCls : `value ${colorCls}`;
+  
   return `<div class="card">
     <div class="label-container">
       <div class="label">${label}</div>
       ${tooltipHtml}
     </div>
-    <div class="value ${colorCls}">${value}</div>
+    <div class="${finalValueCls}" style="${valueStyle}">${value}</div>
     ${sub ? `<div class="sub">${sub}</div>` : ''}
   </div>`;
 }
@@ -271,10 +267,10 @@ async function render() {
     const pctCdiStr = pctCdi != null ? pctCdi.toFixed(0) + '%' : '—';
 
     document.getElementById('cards-snapshot').innerHTML =
-      card('Exp. 12M (Atual)', fmtPct(mRet.hold_12m / 100), cls(mRet.hold_12m), 'retorno esperado', 'Projeção (Forward Looking): Retorno matemático esperado da carteira atual (sem rebalanceamento) em 12 meses') +
-      card('% do CDI', pctCdiStr, pctCdiCls, `CDI ${fmtPct(cdi.total_return)} no período`, 'Quanto o seu TWR representa sobre o rendimento do CDI no período (objetivo: >100%)') +
-      card('Volatilidade', fmtPct(twr.volatility), '', `sharpe ${fmtNum(twr.sharpe)}`, 'Risco: quanto a carteira oscila. Sharpe indica se esse risco compensou sobre o CDI livre de risco.') +
-      card('Alpha vs Ibov', fmtPct(alpha.total), cls(alpha.total), 'TWR − bench', 'Alpha: Quanto sua carteira rendeu de prêmio (a mais ou a menos) contra o Ibovespa');
+      card('Exp. 12M (Atual)', fmtPct(mRet.hold_12m / 100), 'amber', 'retorno esperado', 'Projeção (Forward Looking): Retorno matemático esperado da carteira atual (sem rebalanceamento) em 12 meses') +
+      card('% do CDI', pctCdiStr, 'brand', `CDI ${fmtPct(cdi.total_return)} no período`, 'Quanto o seu TWR representa sobre o rendimento do CDI no período (objetivo: >100%)') +
+      card('Volatilidade', fmtPct(twr.volatility), '', `sharpe <span class="brand">${fmtNum(twr.sharpe)}</span>`, 'Risco: quanto a carteira oscila. Sharpe indica se esse risco compensou sobre o CDI livre de risco.') +
+      card('Alpha vs Ibov', fmtPct(alpha.total), 'amber', 'TWR − bench', 'Alpha: Quanto sua carteira rendeu de prêmio (a mais ou a menos) contra o Ibovespa');
 
     // ── Line chart: Portfolio vs Ibovespa vs CDI, base 100 ──
     if (dailyRows.length > 0) {
@@ -297,11 +293,11 @@ async function render() {
         data: {
           labels,
           datasets: [
-            { label:'Portfólio', data:pS, borderColor:'var(--brand-blue)', backgroundColor:'rgba(var(--rgb-blue), 0.12)',
+            { label:'Portfólio', data:pS, borderColor:'var(--brand-blue)', backgroundColor:'rgba(27, 53, 96, 0.12)',
               fill:true, borderWidth:3, pointRadius:0, pointHitRadius:8, tension:0.15 },
             { label:'Ibovespa', data:bS, borderColor:'var(--text-muted)', borderWidth:1.5,
               borderDash:[6,4], pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
-            { label:'CDI', data:cS, borderColor:'var(--brand-magenta)', borderWidth:1.5,
+            { label:'CDI', data:cS, borderColor:'#9A6508', borderWidth:1.5,
               borderDash:[2,2], pointRadius:0, pointHitRadius:8, tension:0, fill:false },
 
 
@@ -320,7 +316,7 @@ async function render() {
             tooltip:{
               backgroundColor:'rgba(15, 23, 42, 0.95)', padding: 12, cornerRadius: 10,
               titleColor:'#ffffff', bodyColor:'#e2e8f0',
-              titleFont:{weight:700, size: 14},
+              titleFont:{weight:600, size: 14},
               bodyFont:{family:"var(--font-mono)",size:12},
               displayColors: true, boxPadding: 6,
               callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}` }
@@ -341,7 +337,7 @@ async function render() {
                 const text = ` ${sign}${pctRet.toFixed(2)}%`;
                 
                 ctx.save();
-                ctx.font = '700 12px var(--font-sans)';
+                ctx.font = '600 12px -apple-system, "Helvetica Neue", Arial, sans-serif';
                 ctx.fillStyle = dataset.borderColor;
                 ctx.textBaseline = 'middle';
                 ctx.fillText(text, lastPoint.x + 8, lastPoint.y);
@@ -392,7 +388,7 @@ async function render() {
             tooltip:{
               backgroundColor:'rgba(15, 23, 42, 0.95)', padding: 12, cornerRadius: 10,
               titleColor:'#ffffff', bodyColor:'#e2e8f0',
-              titleFont:{weight:700, size: 14},
+              titleFont:{weight:600, size: 14},
               bodyFont:{family:"var(--font-mono)",size:12},
               displayColors: true, boxPadding: 6,
               callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(2)}%` }
@@ -411,7 +407,7 @@ async function render() {
                   const text = ` ${val > 0 ? '+' : ''}${val.toFixed(2)}%`;
                   
                   ctx.save();
-                  ctx.font = '700 11px var(--font-sans)';
+                  ctx.font = '600 11px -apple-system, "Helvetica Neue", Arial, sans-serif';
                   ctx.fillStyle = dataset.backgroundColor;
                   ctx.textBaseline = 'middle';
                   ctx.textAlign = val >= 0 ? 'left' : 'right';
@@ -450,8 +446,12 @@ async function render() {
         const cdi = m.retorno_cdi;
         const acum = m.retorno_acumulado;
         const isGap = m.pregoes === 0;
-        const retCls = isGap ? 'gap' : (ret >= 0 ? 'pos' : 'neg');
-        const acumCls = acum >= 0 ? 'pos' : 'neg';
+        
+        // Semantic pills for relevant values (e.g. absolute return > 1.5% or accumulation)
+        const retCls = isGap ? 'gap' : cls(ret);
+        const retFinalCls = (!isGap && Math.abs(ret) > 0.015) ? (ret >= 0 ? 'badge-positive' : 'badge-negative') : retCls;
+        
+        const acumCls = acum >= 0 ? 'badge-positive' : 'badge-negative';
 
         html += `<tr>
           <td>${mesLabel(m.mes)}</td>
@@ -526,7 +526,7 @@ async function render() {
       const totalPL = totalMktVal - totalInvested;
       const totalPLpct = totalInvested > 0 ? totalPL / totalInvested : 0;
       const totalPLcls = totalPL >= 0 ? 'pos' : 'neg';
-      html += `<tr style="border-top: 2px solid var(--border); font-weight: 700; font-family: var(--font-sans);">
+      html += `<tr style="border-top: 2px solid var(--border-strong); font-weight: 600; font-family: var(--font-sans);">
         <td style="text-align: left;">Total</td>
         <td>100%</td>
         <td></td>

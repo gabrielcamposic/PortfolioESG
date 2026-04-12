@@ -4,36 +4,42 @@
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  /* -- Brand Colors (from asset) -- */
-  --brand-blue:    hsl(240, 100%, 50%);
-  --brand-magenta: hsl(300, 100%, 50%);
-  --brand-red:     var(--brand-magenta); /* Remapped for consistency */
+  /* -- Brand Colors (Stage 2) -- */
+  --brand-blue:    #1B3560;            /* Navy Primary */
+  --brand-red:     #D42B1E;            /* Accent Red */
   
-  /* -- RGB variants for charts -- */
-  --rgb-blue:  0, 0, 255;
-  --rgb-pink:  255, 0, 255;
+  /* -- RGB variants for charts (Updated for Navy/Red) -- */
+  --rgb-blue:  27, 53, 96;
+  --rgb-red:   212, 43, 30;
 
-  /* -- Institutional Palette (FT Inspired - No Pure White) -- */
-  --bg-primary:    hsl(28, 100%, 95%); /* FT Wheat #FFF1E5 */
-  --bg-card:       hsl(28, 50%, 98%);  /* Softest Wheat #FDF8F3 (Replaces White) */
-  --bg-card-hover: hsl(28, 60%, 92%);
-  --bg-card-alt:   hsl(28, 40%, 91%);
-  --border:        hsl(28, 30%, 85%);
+  /* -- Institutional Palette (Warm Beige - FT Inspired) -- */
+  --bg-primary:    #FDF6EE;            /* General background */
+  --bg-card:       rgba(255, 248, 238, 0.85); /* Main cards/blocks */
+  --bg-card-alt:   rgba(245, 237, 224, 0.60); /* Secondary/internal blocks */
+  --bg-card-hover: rgba(255, 248, 238, 0.95);
+  --border:        rgba(120, 90, 50, 0.12);   /* Subtle border */
+  --border-strong: rgba(120, 90, 50, 0.20);   /* Emphasis border/dividers */
   --border-focus:  var(--brand-blue);
   
-  --text-primary:   hsl(210, 50%, 10%); /* Deep Navy */
+  --text-primary:   #1a1208;            /* Neutral Base Text */
   --text-secondary: hsl(210, 30%, 25%);
   --text-muted:     hsl(210, 15%, 45%);
 
-  /* -- Semantic Aliases (Blue/Pink Logic) -- */
+  /* -- Semantic Statuses -- */
+  --color-positive: #1A5C3A;
+  --bg-positive:    rgba(26, 92, 58, 0.09);
+  --color-negative: #8C2A1C;
+  --bg-negative:    rgba(156, 48, 32, 0.08);
+  --color-amber:    #9A6508;
+  
+  /* -- Semantic Aliases -- */
   --accent-blue:    var(--brand-blue);
-  --accent-green:   var(--brand-blue);    /* Replaced with brand blue per user request */
-  --accent-red:     var(--brand-magenta); /* Replaced with brand pink per user request */
-  --accent-magenta: var(--brand-magenta);
-  --accent-yellow:  hsl(40, 100%, 50%);
+  --accent-red:     var(--brand-red);
+  --accent-amber:   var(--color-amber);
+  --accent-yellow:  var(--color-amber);
 
   /* -- Glassmorphism -- */
-  --glass-bg:   hsla(28, 100%, 97%, 0.7);
+  --glass-bg:   rgba(255, 252, 246, 0.70);
   --glass-blur: blur(12px);
 
   /* -- Shadows -- */
@@ -43,12 +49,20 @@
   --shadow-premium: 0 12px 36px -8px hsla(28, 30%, 20%, 0.1);
 
   /* -- Typography -- */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: -apple-system, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
-  
+
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-emphasis: 600;
+
+  --color-label: #8a7a65;
+  --color-data:  #1a1208;
+  --color-ticker: #1B3560;
+
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 24px;
+  --radius-md: 14px;
+  --radius-lg: 14px;
 }
 
 /* ── Reset & Base ── */
@@ -58,6 +72,8 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: var(--font-weight-regular);
   padding: 24px;
   line-height: 1.5;
 }
@@ -67,7 +83,7 @@ body {
 }
 
 /* ── Typography & Components ── */
-h1, h2, h3 { letter-spacing: -0.02em; font-weight: 700; }
+h1, h2, h3 { letter-spacing: -0.01em; font-weight: var(--font-weight-emphasis); }
 
 .loading { 
   display: flex; align-items: center; gap: 8px;
@@ -121,31 +137,48 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 700; }
 }
 
 .card .label {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px;
+  font-size: 9px; font-weight: var(--font-weight-emphasis); text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--color-label); margin-bottom: 8px;
 }
 
 .card .value {
-  font-size: 24px; font-weight: 800; font-family: var(--font-mono);
-  color: var(--text-primary); letter-spacing: -0.03em;
+  font-size: 24px; font-weight: var(--font-weight-light); font-family: var(--font-sans);
+  color: var(--text-primary); letter-spacing: -0.5px;
 }
 
 .card .sub {
-  font-size: 11px; margin-top: 10px; display: inline-flex;
-  padding: 4px 10px; border-radius: 6px; background: var(--bg-card-alt);
-  border: 1px solid var(--border); font-weight: 600; color: var(--text-secondary);
+  font-size: 10px; margin-top: 10px; display: inline-flex;
+  padding: 2px 8px; border-radius: 6px; background: var(--bg-card-alt);
+  border: 1px solid var(--border); font-weight: var(--font-weight-emphasis); color: var(--text-secondary);
 }
 
-/* ── Status Colors (Blue/Pink Semantics) ── */
-.positive { color: var(--brand-blue) !important; }
-.negative { color: var(--brand-magenta) !important; }
+/* ── Status Colors ── */
+.positive { color: var(--color-positive) !important; }
+.negative { color: var(--color-negative) !important; }
 .brand    { color: var(--brand-blue) !important; }
-.magenta  { color: var(--brand-magenta) !important; }
+.amber    { color: var(--color-amber) !important; }
+
+/* ── Pill/Badge Utilities ── */
+.badge-positive {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px 12px; border-radius: 20px;
+  background: var(--bg-positive); color: var(--color-positive);
+  font-weight: var(--font-weight-emphasis); font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.badge-negative {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px 12px; border-radius: 20px;
+  background: var(--bg-negative); color: var(--color-negative);
+  font-weight: var(--font-weight-emphasis); font-size: 10px;
+  letter-spacing: 0.02em;
+}
 
 /* ── Period Header ── */
 .period-header {
-  font-size: 14px; font-weight: 600; color: var(--text-secondary);
+  font-size: 14px; font-weight: var(--font-weight-emphasis); color: var(--text-secondary);
   margin-bottom: 24px; display: flex; align-items: center; gap: 8px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border-strong);
 }
 .period-header .dates {
   background: var(--bg-card-alt); padding: 4px 12px; border-radius: 20px;
@@ -158,7 +191,7 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 700; }
   width: 18px; height: 18px; border-radius: 50%;
   background: var(--bg-card-alt); color: var(--text-muted);
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; cursor: help; transition: all 0.2s;
+  font-size: 11px; font-weight: var(--font-weight-emphasis); cursor: help; transition: all 0.2s;
 }
 .tooltip-icon:hover { background: var(--accent-blue); color: #fff; }
 
@@ -168,6 +201,17 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 700; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-in {
-  animation: fadeInUp 0.5s ease forwards;
+/* ── Typography Utilities ── */
+.text-label {
+  font-size: 9px; font-weight: var(--font-weight-emphasis); color: var(--color-label); 
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.text-data {
+  font-size: 13px; font-weight: var(--font-weight-regular); color: var(--color-data);
+}
+.text-highlight {
+  font-size: 26px; font-weight: var(--font-weight-light); letter-spacing: -0.5px;
+}
+.text-ticker {
+  font-size: 13px; font-weight: var(--font-weight-emphasis); color: var(--color-ticker);
 }

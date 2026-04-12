@@ -8,12 +8,19 @@
 <script src="../js/header.js" data-page="history"></script>
 <style>
   .section-title {
-    font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 24px;
-    letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
-  }
-  .section-title::before {
-    content: ""; display: inline-block; width: 4px; height: 16px; 
-    background: var(--accent-blue); border-radius: 4px;
+    font-size: 9px;
+    font-weight: var(--font-weight-emphasis);
+    color: var(--color-label);
+    margin-bottom: 24px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    border-left: 4px solid var(--brand-red);
+    padding: 2px 0 2px 12px;
   }
   .section-title .toggle {
     font-size: 12px; color: var(--text-muted); margin-left: auto; transition: transform 0.2s;
@@ -23,7 +30,7 @@
   .premium-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
     opacity: 0;
@@ -32,64 +39,65 @@
   }
 
   .summary-bar {
-    padding: 16px 28px; border-bottom: 1px solid var(--border);
-    background: var(--bg-card-alt); font-size: 11px;
-    color: var(--text-muted); font-family: var(--font-mono);
-    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 12px 28px; border-bottom: 1px solid var(--border-strong);
+    background: var(--bg-card-alt); font-size: 9px;
+    color: var(--color-label); font-family: var(--font-sans);
+    text-transform: uppercase; letter-spacing: 0.1em;
     display: flex; justify-content: space-between; align-items: center;
-    font-weight: 700;
+    font-weight: var(--font-weight-emphasis);
   }
 
   /* ── Table Styling ── */
   .table-wrapper { overflow-x: auto; }
-  table { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
   
   thead tr.group-headers th {
-    padding: 12px 20px; font-size: 9px; text-transform: uppercase;
-    font-weight: 800; letter-spacing: 0.1em; color: var(--text-muted);
+    padding: 12px 20px; font-size: 8px; text-transform: uppercase;
+    font-weight: var(--font-weight-emphasis); letter-spacing: 0.12em; color: var(--color-label);
   }
   thead tr.main-headers th {
-    padding: 12px 20px; font-size: 10px; font-weight: 700;
-    text-transform: uppercase; color: var(--text-secondary);
-    border-bottom: 1px solid var(--border);
+    padding: 12px 20px; font-size: 9px; font-weight: var(--font-weight-emphasis);
+    text-transform: uppercase; color: var(--color-label);
+    border-bottom: 1px solid var(--border-strong);
     background: var(--bg-card); position: sticky; top: 0;
+    letter-spacing: 0.1em;
   }
 
   /* Group Dividers & Headers */
-  .group-fwd { background: hsla(240, 100%, 50%, 0.1) !important; color: var(--brand-blue) !important; border-radius: 8px 8px 0 0; }
+  .group-fwd { background: rgba(27, 53, 96, 0.08) !important; color: var(--brand-blue) !important; border-radius: 8px 8px 0 0; }
   .group-bwd { background: hsla(210, 15%, 45%, 0.1) !important; color: var(--text-muted) !important; border-radius: 8px 8px 0 0; }
 
 
   th.right, td.right { text-align: right; }
   td {
-    padding: 14px 20px; font-family: var(--font-mono); font-size: 12px;
-    background: var(--bg-card-alt); color: var(--text-primary);
+    padding: 14px 20px; font-family: var(--font-sans); font-size: 12px;
+    border-bottom: 1px solid var(--border); color: var(--text-primary);
     transition: background 0.2s;
   }
   
   /* Vertical Dividers */
-  .sep-fwd { border-left: 2px solid hsla(240, 100%, 50%, 0.1) !important; }
+  .sep-fwd { border-left: 2px solid rgba(27, 53, 96, 0.1) !important; }
   .sep-bwd { border-left: 2px solid hsla(210, 15%, 45%, 0.1) !important; }
 
 
-  tr.latest td { background: hsla(240, 100%, 50%, 0.05); }
-  tr:hover td { background: hsla(240, 100%, 50%, 0.08); }
+  tr.latest td { background: rgba(27, 53, 96, 0.05); }
+  tr:hover td { background: rgba(27, 53, 96, 0.08); }
 
 
   /* Cells */
-  .cell-date { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; white-space: nowrap; font-weight: 700; }
-  .cell-assets { color: var(--text-muted); font-weight: 800; }
-  .cell-proj { color: var(--brand-blue); font-weight: 800; font-size: 13px; }
+  .cell-date { color: var(--text-primary); font-family: var(--font-sans); font-size: 12px; white-space: nowrap; font-weight: var(--font-weight-emphasis); }
+  .cell-assets { color: var(--color-label); font-weight: var(--font-weight-emphasis); font-size: 11px; }
+  .cell-proj { color: var(--brand-blue); font-weight: var(--font-weight-emphasis); font-size: 13px; }
   .cell-score {
     display: inline-block; padding: 4px 10px; border-radius: 12px;
-    background: hsla(240, 100%, 50%, 0.1); color: var(--brand-blue); font-weight: 800; font-size: 11px;
+    background: rgba(27, 53, 96, 0.08); color: var(--brand-blue); font-weight: var(--font-weight-emphasis); font-size: 11px;
   }
 
 
   /* ── Expandable Detail ── */
   .expand-btn {
-    background: var(--bg-card); border: 1px solid var(--border); color: var(--accent-blue);
-    font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; padding: 6px 12px;
+    background: var(--bg-card); border: 1px solid var(--border-strong); color: var(--accent-blue);
+    font-size: 10px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; cursor: pointer; padding: 6px 12px;
     border-radius: 20px; font-family: var(--font-sans);
     display: flex; align-items: center; gap: 4px;
     transition: all 0.2s; box-shadow: var(--shadow-sm);
@@ -107,24 +115,24 @@
   .chips-container { display: flex; flex-wrap: wrap; gap: 8px; }
   .stock-chip {
     display: flex; align-items: center; gap: 8px; padding: 6px 12px;
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 8px;
     font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono);
     box-shadow: var(--shadow-sm);
   }
-  .stock-ticker { font-weight: 800; color: var(--brand-blue); }
+  .stock-ticker { font-weight: var(--font-weight-emphasis); color: var(--brand-blue); }
   .stock-weight { color: var(--text-muted); font-weight: 600; }
 
   .run-info {
     font-size: 11px; color: var(--text-muted);
     display: flex; flex-direction: column; gap: 12px;
-    padding-left: 24px; border-left: 1px solid var(--border);
+    padding-left: 24px; border-left: 1px solid var(--border-strong);
   }
   .info-item { display: flex; justify-content: space-between; align-items: center; }
-  .info-label { font-family: var(--font-sans); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-  .info-value { font-weight: 800; color: var(--text-primary); }
+  .info-label { font-family: var(--font-sans); font-weight: var(--font-weight-emphasis); text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-label); font-size: 9px; }
+  .info-value { font-weight: var(--font-weight-emphasis); color: var(--text-primary); font-size: 13px; }
 
-  .positive { color: var(--brand-blue); }
-  .negative { color: var(--brand-magenta); }
+  .positive { color: var(--color-positive); }
+  .negative { color: var(--color-negative); }
 
 
   @media (max-width: 900px) {
@@ -277,7 +285,7 @@ async function init() {
                   </div>
                   <div class="info-item">
                     <span class="info-label">Decisão</span>
-                    <span class="info-value" style="color: ${r.decision==='REBALANCE'?'var(--brand-magenta)':'var(--brand-blue)'}">
+                    <span class="info-value" style="color: ${r.decision==='REBALANCE'?'var(--color-negative)':'var(--color-positive)'}">
 
                       ${r.decision || '—'}
                     </span>

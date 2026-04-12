@@ -40,25 +40,25 @@
     }
     .header-logo {
       font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.04em;
+      font-weight: var(--font-weight-emphasis);
+      letter-spacing: -0.02em;
       color: var(--text-primary);
       text-decoration: none;
       line-height: 1;
     }
     .header-logo span { color: var(--accent-blue); }
     .header-date {
-      font-size: 10px;
+      font-size: 9px;
       color: var(--text-muted);
-      font-family: var(--font-mono);
-      font-weight: 600;
+      font-family: var(--font-sans);
+      font-weight: var(--font-weight-emphasis);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.1em;
     }
     .header-separator {
       width: 1px;
       height: 48px;
-      background: var(--border);
+      background: var(--border-strong);
       flex-shrink: 0;
     }
     .nav-tabs { 
@@ -68,46 +68,46 @@
       background: var(--bg-card-alt);
       padding: 4px;
       border-radius: var(--radius-md);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);
     }
     .nav-tab {
       display: inline-flex;
       align-items: center;
-      padding: 6px 14px;
-      border-radius: 8px;
+      padding: 6px 4px;
+      margin: 0 10px;
+      border-radius: 0;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: var(--font-weight-emphasis);
       color: var(--text-secondary);
       text-decoration: none;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s ease;
+      border-bottom: 3px solid transparent;
     }
     .nav-tab:hover {
-      color: var(--accent-blue);
-      background: var(--bg-card);
+      color: var(--brand-blue);
     }
     .nav-tab.active {
-      color: var(--accent-blue);
-      background: var(--bg-card);
-      box-shadow: var(--shadow-sm);
+      color: var(--brand-blue);
+      border-bottom-color: var(--brand-red);
     }
     /* Pipeline status */
     .pipeline-status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
     .status-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-card); box-shadow: 0 0 0 1px var(--border); }
     .status-dot.running { background: var(--accent-yellow); animation: hdr-pulse 1.5s ease-in-out infinite; }
-    .status-dot.error   { background: var(--accent-magenta); }
+    .status-dot.error   { background: var(--color-negative); }
     @keyframes hdr-pulse { 0%,100%{opacity:1; transform: scale(1);} 50%{opacity:.5; transform: scale(0.9);} }
     
     .decision-badge {
       display: inline-flex; align-items: center;
       padding: 4px 10px; border-radius: 20px;
-      font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+      font-size: 9px; font-weight: var(--font-weight-emphasis); letter-spacing: 0.05em; text-transform: uppercase;
       box-shadow: var(--shadow-sm);
     }
     .decision-badge.rebalance {
-      background: var(--brand-magenta); color: #fff;
+      background: var(--bg-negative); color: var(--color-negative); border: 1px solid var(--color-negative);
     }
     .decision-badge.hold {
-      background: var(--brand-blue); color: #fff;
+      background: var(--bg-positive); color: var(--color-positive); border: 1px solid var(--color-positive);
     }
     
     .portfolio-value { 
@@ -117,15 +117,15 @@
       align-items: flex-end;
     }
     .portfolio-value .pv-label {
-      font-size: 10px; color: var(--text-muted);
-      text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;
+      font-size: 9px; color: var(--color-label);
+      text-transform: uppercase; font-weight: var(--font-weight-emphasis); letter-spacing: 0.8px;
     }
     .portfolio-value .pv-amount {
-      font-size: 22px; font-weight: 800;
-      font-family: var(--font-mono); color: var(--text-primary);
-      line-height: 1; letter-spacing: -0.04em;
+      font-size: 26px; font-weight: var(--font-weight-light);
+      font-family: var(--font-sans); color: var(--text-primary);
+      line-height: 1; letter-spacing: -0.5px;
     }
-    .portfolio-value .pv-pnl { font-size: 11px; font-weight: 700; font-family: var(--font-mono); }
+    .portfolio-value .pv-pnl { font-size: 11px; font-weight: var(--font-weight-emphasis); font-family: var(--font-sans); }
     
     @media (max-width: 1024px) {
       .header-bar { padding: 10px 16px; border-radius: var(--radius-md); top: 0; margin-bottom: 16px; width: 100%; left: 0; border-left: none; border-right: none; }
