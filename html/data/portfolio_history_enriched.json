@@ -360,6 +360,41 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260413-222502",
+    "timestamp": "2026-04-13 22:49:05",
+    "n_assets": 8,
+    "stocks": [
+      "VALE3.SA",
+      "PETR3.SA",
+      "ENEV3.SA",
+      "PNVL3.SA",
+      "DASA3.SA",
+      "AXIA6.SA",
+      "AURA33.SA",
+      "PETR4.SA"
+    ],
+    "weights": [
+      0.0702,
+      0.0489,
+      0.1623,
+      0.0946,
+      0.0294,
+      0.1404,
+      0.1702,
+      0.2839
+    ],
+    "sharpe_forward": 4.0021,
+    "ret_hist_12m": 91.09,
+    "vol_12m": 19.07,
+    "ret_proj_12m": 0.19,
+    "score": 0.6275,
+    "momentum": 0.7873,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0447,
+    "holdings_return_pct": 7.68,
+    "excess_return_pct": -7.4562
+  },
+  {
     "run_id": "20260413-204255",
     "timestamp": "2026-04-13 21:07:49",
     "n_assets": 9,
@@ -390,7 +425,7 @@
     "vol_12m": 18.83,
     "ret_proj_12m": -0.08,
     "score": 0.6258,
-    "momentum": 0.7798,
+    "momentum": null,
     "decision": "HOLD",
     "transition_cost_pct": 0.0331,
     "holdings_return_pct": 7.68,

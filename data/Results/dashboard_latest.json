@@ -1,55 +1,55 @@
 {
-  "generated_at": "2026-04-14T00:09:00.743992+00:00",
+  "generated_at": "2026-04-14T01:50:39.558026+00:00",
   "model": {
     "meta": {
-      "run_id": "20260413-204255",
-      "timestamp": "2026-04-13 21:07:49"
+      "run_id": "20260413-222502",
+      "timestamp": "2026-04-13 22:49:05"
     },
     "returns": {
       "hold_12m": 7.68,
-      "gross_12m": -0.08,
-      "net_12m": -0.1131,
-      "historical_annual": 90.22,
-      "excess_net_12m": -7.7931
+      "gross_12m": 0.19,
+      "net_12m": 0.1453,
+      "historical_annual": 91.09,
+      "excess_net_12m": -7.5347
     },
     "risk": {
-      "volatility_annual": 18.83,
+      "volatility_annual": 19.07,
       "risk_free_annual": 14.75,
-      "sharpe": 4.0082,
+      "sharpe": 4.0021,
       "sharpe_source": "optimization",
-      "hhi": 0.1696,
-      "top5": 0.8248,
-      "liquidity_avg": 18832013.590378292,
-      "avg_internal_corr": 0.22185920890368488
+      "hhi": 0.1728,
+      "top5": 0.8515,
+      "liquidity_avg": 21640083.16698844,
+      "avg_internal_corr": 0.21507588460097798
     },
     "decision": {
       "verdict": "HOLD",
       "threshold_pct": 0.5,
-      "intensity": 75.0
+      "intensity": 99.0
     },
     "valuation": {
-      "portfolio_pe": 8.86,
+      "portfolio_pe": 8.82,
       "benchmark_pe": 9.97,
       "dividend_yield": null,
-      "momentum_signal": 0.7798
+      "momentum_signal": 0.7873
     },
     "composition": {
       "sector_exposure": [
         {
           "sector": "Energy",
-          "pct": 0.3445
+          "pct": 0.3328
         },
         {
           "sector": "Utilities",
-          "pct": 0.2832
+          "pct": 0.3028
         },
         {
           "sector": "Basic Materials",
-          "pct": 0.2542
+          "pct": 0.2404
         },
         {
           "sector": "Healthcare",
-          "pct": 0.1181
+          "pct": 0.124
         }
       ]
     }
