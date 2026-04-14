@@ -191,11 +191,12 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
         top_stocks = top_stocks_df['Stock'].tolist()
         # Use set_index/to_dict to build a mapping; avoids use of .values which can confuse type inference
         stock_to_sector_map = top_stocks_df.set_index('Stock')['Sector'].to_dict()
+        stock_to_score_map = top_stocks_df.set_index('Stock')['CompositeScore'].to_dict()
 
         logger.info(f"Loaded {len(top_stocks)} top stocks from scoring run '{scoring_run_id}'.")
         if params.get('debug_mode'):
             logger.debug(f"Top stocks: {', '.join(top_stocks)}")
-        return top_stocks, stock_to_sector_map, scoring_run_id
+        return top_stocks, stock_to_sector_map, scoring_run_id, stock_to_score_map
     except Exception as e:
         logger.critical(f"Failed to read or parse scored stocks file '{filepath}': {e}", exc_info=True)
         raise
@@ -236,7 +237,8 @@ def _calculate_portfolio_metrics_from_precomputed(
     weights: np.ndarray,
     mean_returns_annualized: pd.Series,
     covariance_matrix_annualized: pd.DataFrame,
-    rf_rate: float
+    rf_rate: float,
+    projected_scores: pd.Series = None
 ) -> Tuple[float, float, float]:
     """
     Calculates core portfolio metrics using pre-computed returns and covariance.
@@ -246,8 +248,13 @@ def _calculate_portfolio_metrics_from_precomputed(
     weights_arr = np.array(weights)
     exp_ret = np.dot(weights_arr, mean_returns_annualized)
     vol = np.sqrt(np.dot(weights_arr.T, np.dot(covariance_matrix_annualized, weights_arr)))
-    # Handle division by zero for volatility
-    sharpe = (exp_ret - rf_rate) / vol if vol != 0 else -np.inf
+    
+    if projected_scores is not None:
+        proj_score = np.dot(weights_arr, projected_scores)
+        sharpe = proj_score / vol if vol != 0 else -np.inf
+    else:
+        sharpe = (exp_ret - rf_rate) / vol if vol != 0 else -np.inf
+        
     return exp_ret, vol, sharpe
 
 def simulation_engine_calc(
@@ -549,7 +556,7 @@ def _run_refinement_phase(
     for combo_data in top_refine:
         df_subset = source_stock_prices_df[['Date'] + combo_data['stocks']]
         result = simulate_portfolio_combo(
-            df_subset, sim["SIM_RUNS"], current_rf_rate, logger_instance
+            df_subset, sim["SIM_RUNS"], current_rf_rate, logger_instance, stock_to_score_map=stock_to_score_map
         )
         if result and result['sharpe'] > refined_best_result['sharpe']:
             refined_best_result.update({
@@ -569,7 +576,8 @@ def find_best_stock_combination(
     timer_instance,
     stock_sector_map,
     max_stocks_per_sector,
-    sim_params
+    sim_params,
+    stock_to_score_map=None
 ):
     sim = extract_simulation_parameters(sim_params)
     logger_instance.info("Starting portfolio combination search...")
@@ -598,7 +606,8 @@ def find_best_stock_combination(
             k_result, bf_results_for_k = _run_brute_force_iteration(
                 k, available_stocks, stock_sector_map, max_stocks_per_sector,
                 source_stock_prices_df, sim, timer_instance,
-                current_rf_rate, logger_instance, best_result['sharpe']
+                current_rf_rate, logger_instance, best_result['sharpe'],
+                stock_to_score_map=stock_to_score_map
             )
             if sim["ADAPTIVE_SIM_ENABLED"]:
                 all_bf_results.extend(bf_results_for_k)
@@ -606,7 +615,8 @@ def find_best_stock_combination(
             # Refactored call: Assign the returned dictionary directly to k_result.
             k_result = run_genetic_algorithm(
                 source_stock_prices_df, available_stocks, k, current_rf_rate,
-                logger_instance, timer_instance, sim["SIM_RUNS"], sim_params
+                logger_instance, timer_instance, sim["SIM_RUNS"], sim_params,
+                stock_to_score_map=stock_to_score_map
             )
             # Extract the fitness history from the result dictionary.
             if k_result:
@@ -622,7 +632,8 @@ def find_best_stock_combination(
     if sim["ADAPTIVE_SIM_ENABLED"] and sim["TOP_N_PERCENT_REFINEMENT"] > 0 and all_bf_results:
         best_result = _run_refinement_phase(
             all_bf_results, source_stock_prices_df, sim,
-            current_rf_rate, logger_instance, best_result
+            current_rf_rate, logger_instance, best_result,
+            stock_to_score_map=stock_to_score_map
         )
 
     # Add the GA history to the final result dictionary
@@ -637,7 +648,8 @@ def run_genetic_algorithm(
         logger_instance,
         timer_instance,
         num_simulation_runs,
-        sim_params
+        sim_params,
+        stock_to_score_map=None
 ):
     """
     Performs portfolio optimization using a Genetic Algorithm.
@@ -840,7 +852,7 @@ def main():
     try:
         # 4. --- Main Execution Block ---
         data_load_start = time.time()
-        top_scored_stocks, stock_sector_map, scoring_run_id = load_scored_stocks(params, logger)
+        top_scored_stocks, stock_sector_map, scoring_run_id, stock_to_score_map = load_scored_stocks(params, logger)
         stock_data_file = params.get("FINDB_FILE")
         if not stock_data_file or not os.path.exists(stock_data_file):
             raise FileNotFoundError(f"Master stock data file not found at '{stock_data_file}'.")
@@ -872,7 +884,8 @@ def main():
             sim_timer,
             stock_sector_map,
             params.get("max_stocks_per_sector"),
-            params
+            params,
+            stock_to_score_map=stock_to_score_map
         )
 
         # Correctly unpack the dictionary into the script's main variables
