@@ -92,3 +92,12 @@ ga_init_pop_max_attempts_multiplier = 5
 # Threshold for auto-curating the stock pool. A stock is considered a "culprit" and removed
 # if it has fewer data points than (median_data_points * this_threshold).
 auto_curate_threshold = 0.75
+
+# --- Regime-Adaptive Blending Parameters ---
+regime_vol_threshold = 0.70
+regime_bull_threshold = 0.05
+regime_bear_threshold = -0.05
+blend_highvol_bull_past = 0.70
+blend_highvol_bear_past = 0.80
+blend_lowvol_bull_past = 0.30
+blend_lowvol_bear_past = 0.40

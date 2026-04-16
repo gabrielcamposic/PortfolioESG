@@ -18,8 +18,9 @@ import math
 # --- Import Shared Utilities ---
 from shared_tools.shared_utils import (
     setup_logger,
-    load_parameters_from_file,
+    load_parameters_from_file
 )
+from engines.A2_Scoring import detect_market_regime, load_risk_profile
 
 # ----------------------------------------------------------- #
 #                           Classes                           #
@@ -191,12 +192,21 @@ def load_scored_stocks(params: Dict, logger: logging.Logger) -> Tuple[List[str],
         top_stocks = top_stocks_df['Stock'].tolist()
         # Use set_index/to_dict to build a mapping; avoids use of .values which can confuse type inference
         stock_to_sector_map = top_stocks_df.set_index('Stock')['Sector'].to_dict()
-        stock_to_score_map = top_stocks_df.set_index('Stock')['CompositeScore'].to_dict()
+        # Hybrid approach (Option C): CompositeScore is used for ranking/filtering (Top N),
+        # but the MVO optimizer uses PotentialUpside_pct directly as the projected return signal.
+        # This aligns the optimization objective with Motor C's expected return calculation.
+        upside_col = 'PotentialUpside_pct' if 'PotentialUpside_pct' in top_stocks_df.columns else 'UpsidePotential'
+        if upside_col in top_stocks_df.columns:
+            stock_to_upside_map = top_stocks_df.set_index('Stock')[upside_col].to_dict()
+            logger.info(f"Using '{upside_col}' as optimization signal (Hybrid Option C).")
+        else:
+            stock_to_upside_map = top_stocks_df.set_index('Stock')['CompositeScore'].to_dict()
+            logger.warning(f"Upside column not found, falling back to CompositeScore as optimization signal.")
 
         logger.info(f"Loaded {len(top_stocks)} top stocks from scoring run '{scoring_run_id}'.")
         if params.get('debug_mode'):
             logger.debug(f"Top stocks: {', '.join(top_stocks)}")
-        return top_stocks, stock_to_sector_map, scoring_run_id, stock_to_score_map
+        return top_stocks, stock_to_sector_map, scoring_run_id, stock_to_upside_map
     except Exception as e:
         logger.critical(f"Failed to read or parse scored stocks file '{filepath}': {e}", exc_info=True)
         raise
@@ -223,6 +233,37 @@ def calculate_individual_sharpe_ratios(stock_daily_returns, risk_free_rate):
 #                  Portfolio Analysis Functions               #
 # ----------------------------------------------------------- #
 
+def calculate_blended_returns(
+    mean_returns_annualized: pd.Series,
+    upside_map: dict,
+    vol_percentile: float,
+    trend: float,
+    params: dict
+) -> pd.Series:
+    """Calculates synthetic return blending historical (past) and upside (future)."""
+    high_vol = vol_percentile > float(params.get('regime_vol_threshold', 0.70))
+    bull = trend > float(params.get('regime_bull_threshold', 0.05))
+    bear = trend < float(params.get('regime_bear_threshold', -0.05))
+    
+    if high_vol and bull:
+        w_past = float(params.get('blend_highvol_bull_past', 0.70))
+    elif high_vol:
+        w_past = float(params.get('blend_highvol_bear_past', 0.80))
+    elif bull:
+        w_past = float(params.get('blend_lowvol_bull_past', 0.30))
+    else:
+        w_past = float(params.get('blend_lowvol_bear_past', 0.40))
+        
+    w_future = 1.0 - w_past
+    
+    blended = pd.Series(index=mean_returns_annualized.index, dtype=float)
+    for stock in blended.index:
+        hist = mean_returns_annualized[stock]
+        fwd = float(upside_map.get(stock, hist))  # Fallback to historical if missing
+        blended[stock] = w_past * hist + w_future * fwd
+        
+    return blended
+
 def generate_portfolio_weights(n, seed=None):
     """Generates random portfolio weights that sum to 1."""
     if seed is not None:
@@ -238,7 +279,7 @@ def _calculate_portfolio_metrics_from_precomputed(
     mean_returns_annualized: pd.Series,
     covariance_matrix_annualized: pd.DataFrame,
     rf_rate: float,
-    projected_scores: pd.Series = None
+    blended_returns: pd.Series = None
 ) -> Tuple[float, float, float]:
     """
     Calculates core portfolio metrics using pre-computed returns and covariance.
@@ -249,9 +290,9 @@ def _calculate_portfolio_metrics_from_precomputed(
     exp_ret = np.dot(weights_arr, mean_returns_annualized)
     vol = np.sqrt(np.dot(weights_arr.T, np.dot(covariance_matrix_annualized, weights_arr)))
     
-    if projected_scores is not None:
-        proj_score = np.dot(weights_arr, projected_scores)
-        sharpe = proj_score / vol if vol != 0 else -np.inf
+    if blended_returns is not None:
+        proj_score = np.dot(weights_arr, blended_returns)
+        sharpe = (proj_score - rf_rate) / vol if vol != 0 else -np.inf
     else:
         sharpe = (exp_ret - rf_rate) / vol if vol != 0 else -np.inf
         
@@ -261,7 +302,8 @@ def simulation_engine_calc(
     stock_combo_prices_df,  # DataFrame with 'Date' and prices for the selected stock combo
     weights,
     current_rf_rate,  # Annual decimal risk-free rate
-    logger_instance
+    logger_instance,
+    blended_returns_map=None
 ):
     """
     Calculates forward-looking (ex-ante) portfolio metrics for optimization.
@@ -275,12 +317,19 @@ def simulation_engine_calc(
         # Pre-calculate the slow parts
         mean_asset_returns_annualized = asset_returns_df.mean() * 252
         covariance_matrix_annualized = asset_returns_df.cov() * 252
+        
+        combo_blended_returns = None
+        if blended_returns_map is not None:
+            stocks = stock_combo_prices_df.columns[1:]
+            projected_scores_data = [blended_returns_map.get(s, mean_asset_returns_annualized[s]) for s in stocks]
+            combo_blended_returns = pd.Series(projected_scores_data, index=stocks)
 
         # Use the centralized, vectorized calculation function
         expected_portfolio_return_decimal, expected_volatility_decimal, sharpe_ratio = \
             _calculate_portfolio_metrics_from_precomputed(
                 weights, mean_asset_returns_annualized,
-                covariance_matrix_annualized, current_rf_rate
+                covariance_matrix_annualized, current_rf_rate,
+                blended_returns=combo_blended_returns
             )
 
         return expected_portfolio_return_decimal, expected_volatility_decimal, sharpe_ratio
@@ -331,7 +380,7 @@ def filter_available_stocks(source_df, stock_list):
 # ----------------------------------------------
 # 3. Simulate Portfolio Combination
 # ----------------------------------------------
-def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger):
+def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger, blended_returns_map=None):
     """
     Optimized simulation for a single stock combination.
     Used by the Genetic Algorithm and Refinement phases.
@@ -343,16 +392,22 @@ def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger):
     covariance_matrix_annualized = asset_returns_df.cov() * 252
     k = len(df_subset.columns) - 1
     
+    combo_blended_returns = None
+    if blended_returns_map is not None:
+        stocks = df_subset.columns[1:]
+        projected_scores_data = [blended_returns_map.get(s, mean_returns_annualized[s]) for s in stocks]
+        combo_blended_returns = pd.Series(projected_scores_data, index=stocks)
+    
     best_sharpe = -float("inf")
     best_weights = None
     
     for _ in range(num_sims):
         weights = generate_portfolio_weights(k)
     
-        # Use fast, vectorized NumPy operations inside the tight loop.
-        exp_ret = np.dot(weights, mean_returns_annualized)
-        vol = np.sqrt(np.dot(weights.T, np.dot(covariance_matrix_annualized, weights)))
-        sharpe = (exp_ret - rf_rate) / vol if vol != 0 else -np.inf
+        exp_ret, vol, sharpe = _calculate_portfolio_metrics_from_precomputed(
+            weights, mean_returns_annualized, covariance_matrix_annualized, rf_rate,
+            blended_returns=combo_blended_returns
+        )
     
         # Ensure sharpe is a scalar number before comparing
         if isinstance(sharpe, Real) and pd.notna(sharpe) and sharpe > best_sharpe:
@@ -362,7 +417,7 @@ def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger):
     # After the loop, if we found a valid portfolio, run the full calculation once.
     if best_weights is not None:
         exp_ret, vol, sharpe  = simulation_engine_calc(
-            df_subset, best_weights, rf_rate, logger
+            df_subset, best_weights, rf_rate, logger, blended_returns_map=blended_returns_map
         )
         return {
             'sharpe': sharpe, 'weights': best_weights, 'exp_ret': exp_ret,
@@ -487,9 +542,15 @@ def _run_brute_force_iteration(
         for _ in range(max_sims):
             weights = generate_portfolio_weights(k)
 
+            combo_blended_returns = None
+            if blended_returns_map is not None:
+                stocks = df_subset.columns[1:]
+                projected_scores_data = [blended_returns_map.get(s, mean_returns_annualized[s]) for s in stocks]
+                combo_blended_returns = pd.Series(projected_scores_data, index=stocks)
+                
             # Use the centralized, vectorized calculation function
             exp_ret, vol, sharpe = _calculate_portfolio_metrics_from_precomputed(
-                weights, mean_returns_annualized, covariance_matrix_annualized, current_rf_rate
+                weights, mean_returns_annualized, covariance_matrix_annualized, current_rf_rate, blended_returns=combo_blended_returns
             )
 
             sims_run += 1
@@ -556,7 +617,7 @@ def _run_refinement_phase(
     for combo_data in top_refine:
         df_subset = source_stock_prices_df[['Date'] + combo_data['stocks']]
         result = simulate_portfolio_combo(
-            df_subset, sim["SIM_RUNS"], current_rf_rate, logger_instance, stock_to_score_map=stock_to_score_map
+            df_subset, sim["SIM_RUNS"], current_rf_rate, logger_instance, blended_returns_map=blended_returns_map
         )
         if result and result['sharpe'] > refined_best_result['sharpe']:
             refined_best_result.update({
@@ -577,7 +638,7 @@ def find_best_stock_combination(
     stock_sector_map,
     max_stocks_per_sector,
     sim_params,
-    stock_to_score_map=None
+    blended_returns_map=None
 ):
     sim = extract_simulation_parameters(sim_params)
     logger_instance.info("Starting portfolio combination search...")
@@ -607,7 +668,7 @@ def find_best_stock_combination(
                 k, available_stocks, stock_sector_map, max_stocks_per_sector,
                 source_stock_prices_df, sim, timer_instance,
                 current_rf_rate, logger_instance, best_result['sharpe'],
-                stock_to_score_map=stock_to_score_map
+                blended_returns_map=blended_returns_map
             )
             if sim["ADAPTIVE_SIM_ENABLED"]:
                 all_bf_results.extend(bf_results_for_k)
@@ -616,7 +677,7 @@ def find_best_stock_combination(
             k_result = run_genetic_algorithm(
                 source_stock_prices_df, available_stocks, k, current_rf_rate,
                 logger_instance, timer_instance, sim["SIM_RUNS"], sim_params,
-                stock_to_score_map=stock_to_score_map
+                blended_returns_map=blended_returns_map
             )
             # Extract the fitness history from the result dictionary.
             if k_result:
@@ -633,7 +694,7 @@ def find_best_stock_combination(
         best_result = _run_refinement_phase(
             all_bf_results, source_stock_prices_df, sim,
             current_rf_rate, logger_instance, best_result,
-            stock_to_score_map=stock_to_score_map
+            blended_returns_map=blended_returns_map
         )
 
     # Add the GA history to the final result dictionary
@@ -649,7 +710,7 @@ def run_genetic_algorithm(
         timer_instance,
         num_simulation_runs,
         sim_params,
-        stock_to_score_map=None
+        blended_returns_map=None
 ):
     """
     Performs portfolio optimization using a Genetic Algorithm.
@@ -715,9 +776,7 @@ def run_genetic_algorithm(
         evaluated_population = []
         for combo in population:
             df_subset = source_stock_prices_df[["Date"] + combo]
-            result = simulate_portfolio_combo(
-                df_subset, num_simulation_runs, current_rf_rate, logger_instance
-            )
+            result = simulate_portfolio_combo(df_subset, num_simulation_runs, current_rf_rate, logger_instance, blended_returns_map=blended_returns_map)
             if result:
                 evaluated_population.append({
                     'combo': combo,
@@ -852,13 +911,37 @@ def main():
     try:
         # 4. --- Main Execution Block ---
         data_load_start = time.time()
-        top_scored_stocks, stock_sector_map, scoring_run_id, stock_to_score_map = load_scored_stocks(params, logger)
+        top_scored_stocks, stock_sector_map, scoring_run_id, stock_to_upside_map = load_scored_stocks(params, logger)
         stock_data_file = params.get("FINDB_FILE")
         if not stock_data_file or not os.path.exists(stock_data_file):
             raise FileNotFoundError(f"Master stock data file not found at '{stock_data_file}'.")
         stock_data_db_df = pd.read_csv(stock_data_file)
         stock_data_db_df['Date'] = pd.to_datetime(stock_data_db_df['Date'], format='mixed', errors='coerce').dt.date
         perf_data["data_load_duration_s"] = time.time() - data_load_start
+
+        # Detect regime and calculate blended returns map
+        risk_profile_params = load_risk_profile(params, logger)
+
+        # Precompute master returns for regime detection
+        focused_regime_df = stock_data_db_df.copy()
+        if 'Stock' in focused_regime_df.columns:
+            regime_prices_df = focused_regime_df.pivot(index="Date", columns="Stock", values="Close").replace(0, np.nan).dropna(how='all')
+        else:
+            regime_prices_df = focused_regime_df
+            
+        market_regime = detect_market_regime(regime_prices_df, 60, risk_profile_params, logger)
+        vol_pct = float(market_regime.get('volatility_percentile', 0.5))
+        trend = float(market_regime.get('trend', 0.0))
+        
+        master_asset_returns = stock_data_db_df.drop(columns=['Date', 'Symbol'], errors='ignore')
+        if 'Stock' in stock_data_db_df.columns:
+             master_asset_returns = stock_data_db_df.pivot(index="Date", columns="Stock", values="Close").pct_change().fillna(0)
+        master_mean_returns_annualized = master_asset_returns.mean() * 252
+        
+        blended_returns_series = calculate_blended_returns(
+            master_mean_returns_annualized, stock_to_upside_map, vol_pct, trend, params
+        )
+        blended_returns_map = blended_returns_series.to_dict()
 
         data_wrangling_start = time.time()
         scored_stocks_in_db = [stock for stock in top_scored_stocks if stock in stock_data_db_df['Stock'].unique()]
@@ -885,7 +968,7 @@ def main():
             stock_sector_map,
             params.get("max_stocks_per_sector"),
             params,
-            stock_to_score_map=stock_to_score_map
+            blended_returns_map=blended_returns_map
         )
 
         # Correctly unpack the dictionary into the script's main variables
