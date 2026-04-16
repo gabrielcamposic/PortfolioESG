@@ -1,118 +1,118 @@
 {
-    "last_updated_run_id": "20260415-222053",
-    "scoring_run_id": "20260413-222502",
-    "last_updated_timestamp": "2026-04-15 22:42:20",
+    "last_updated_run_id": "20260415-224919",
+    "scoring_run_id": "20260415-224919",
+    "last_updated_timestamp": "2026-04-15 23:11:39",
     "best_portfolio_details": {
         "stocks": [
-            "AMBP3.SA",
+            "PRNR3.SA",
+            "JBSS32.SA",
             "KLBN4.SA",
-            "CMIG3.SA",
-            "TEND3.SA",
-            "PETR4.SA"
+            "NEOE3.SA",
+            "VULC3.SA"
         ],
         "weights": [
-            0.0282,
-            0.8709,
-            0.0064,
-            0.0584,
-            0.036
+            0.015,
+            0.0424,
+            0.8672,
+            0.0482,
+            0.0272
         ],
-        "sharpe_forward": 16.2094,
-        "expected_return_annual_pct": 2.42,
-        "expected_volatility_annual_pct": 21.23,
+        "sharpe_forward": 15.8667,
+        "expected_return_annual_pct": 12.24,
+        "expected_volatility_annual_pct": 19.9,
         "initial_investment": 5000.0,
         "sector_exposure": {
-            "Industrials": 0.0282,
-            "Basic Materials": 0.8709,
-            "Utilities": 0.0064,
-            "Real Estate": 0.0584,
-            "Energy": 0.036
+            "Industrials": 0.015,
+            "Consumer Defensive": 0.0424,
+            "Basic Materials": 0.8672,
+            "Utilities": 0.0482,
+            "Consumer Cyclical": 0.0272
         },
         "sector_exposure_list": [
             {
                 "sector": "Basic Materials",
-                "pct": 0.8709
-            },
-            {
-                "sector": "Real Estate",
-                "pct": 0.0584
-            },
-            {
-                "sector": "Energy",
-                "pct": 0.036
-            },
-            {
-                "sector": "Industrials",
-                "pct": 0.0282
+                "pct": 0.8672
             },
             {
                 "sector": "Utilities",
-                "pct": 0.0064
+                "pct": 0.0482
+            },
+            {
+                "sector": "Consumer Defensive",
+                "pct": 0.0424
+            },
+            {
+                "sector": "Consumer Cyclical",
+                "pct": 0.0272
+            },
+            {
+                "sector": "Industrials",
+                "pct": 0.015
             }
         ],
         "concentration_risk": {
-            "hhi": 0.764,
+            "hhi": 0.7571,
             "top_5_holdings_pct": 1.0,
             "top_5_holdings": [
                 {
                     "stock": "KLBN4.SA",
-                    "weight": 0.8709
+                    "weight": 0.8672
                 },
                 {
-                    "stock": "TEND3.SA",
-                    "weight": 0.0584
+                    "stock": "NEOE3.SA",
+                    "weight": 0.0482
                 },
                 {
-                    "stock": "PETR4.SA",
-                    "weight": 0.036
+                    "stock": "JBSS32.SA",
+                    "weight": 0.0424
                 },
                 {
-                    "stock": "AMBP3.SA",
-                    "weight": 0.0282
+                    "stock": "VULC3.SA",
+                    "weight": 0.0272
                 },
                 {
-                    "stock": "CMIG3.SA",
-                    "weight": 0.0064
+                    "stock": "PRNR3.SA",
+                    "weight": 0.015
                 }
             ]
         },
-        "portfolio_weighted_pe": 2.11,
+        "portfolio_weighted_pe": 2.72,
         "momentum_valuation": {
-            "portfolio_momentum": 0.0938,
-            "portfolio_forward_pe": 2.11,
-            "benchmark_forward_pe": 9.97,
+            "portfolio_momentum": 0.1319,
+            "portfolio_forward_pe": 2.72,
+            "benchmark_forward_pe": 10.1,
             "portfolio_dividend_yield": null
         },
         "holdings_meta": {
-            "AMBP3.SA": {
-                "forwardPE": 0.176,
-                "Momentum": -0.7472527499519069,
-                "currentPrice": 0.2300000041723251,
-                "targetPrice": 2.530000045895576
+            "PRNR3.SA": {
+                "forwardPE": 6.16,
+                "Momentum": 0.3928337869343763,
+                "currentPrice": 21.3799991607666,
+                "targetPrice": 26.7
+            },
+            "JBSS32.SA": {
+                "forwardPE": 9.02769,
+                "Momentum": 0.3190184671246754,
+                "currentPrice": 90.3000030517578,
+                "targetPrice": 109.91429
             },
             "KLBN4.SA": {
                 "forwardPE": 1.8246446,
-                "Momentum": 0.0807284304938906,
-                "currentPrice": 3.819999933242798,
+                "Momentum": 0.1193449587349058,
+                "currentPrice": 3.890000104904175,
                 "targetPrice": 24.75248
             },
-            "CMIG3.SA": {
-                "forwardPE": 6.901755,
-                "Momentum": 0.3739496642939455,
-                "currentPrice": 19.6200008392334,
-                "targetPrice": 35.75364511564527
+            "NEOE3.SA": {
+                "forwardPE": 9.490736,
+                "Momentum": 0.2357274294089557,
+                "currentPrice": 33.54999923706055,
+                "targetPrice": 34.40545
             },
-            "TEND3.SA": {
-                "forwardPE": 5.264388,
-                "Momentum": 0.3529648115560877,
-                "currentPrice": 33.77000045776367,
-                "targetPrice": 41.625
-            },
-            "PETR4.SA": {
-                "forwardPE": 4.4319797,
-                "Momentum": 0.5960286417709235,
-                "currentPrice": 49.029998779296875,
-                "targetPrice": 49.87692
+            "VULC3.SA": {
+                "forwardPE": 7.507604,
+                "Momentum": -0.0867082064614751,
+                "currentPrice": 17.59000015258789,
+                "targetPrice": 23.33333
             }
         }
     }
