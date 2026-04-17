@@ -1,97 +1,97 @@
 {
   "stocks": [
-    "PRNR3.SA",
-    "JBSS32.SA",
+    "ABCB4.SA",
+    "CMIG3.SA",
     "KLBN4.SA",
-    "NEOE3.SA",
-    "VULC3.SA"
+    "VALE3.SA",
+    "PRNR3.SA"
   ],
   "weights": [
-    1.5,
-    4.24,
-    86.72,
-    4.82,
-    2.7199999999999998
+    0.8999999999999999,
+    3.4000000000000004,
+    88.67,
+    1.77,
+    5.26
   ],
   "rows": [
     {
       "ticker": "KLBN4.SA",
-      "weight": 86.72,
-      "current": 3.890000104904175,
-      "projectedQty": 729,
-      "projectedInvested": 2835.8100764751434,
+      "weight": 88.67,
+      "current": 3.799999952316284,
+      "projectedQty": 752,
+      "projectedInvested": 2857.5999641418457,
       "target": 24.75248,
-      "projectedBRL": 18044.55792,
-      "composite_score": 0.4977464388248738,
-      "momentum_score": 0.1193449587349058,
-      "upside_pct": 5.363105226859562,
-      "annual_ret": 0.114174542204092,
-      "annual_vol": 0.3480598355532266
-    },
-    {
-      "ticker": "NEOE3.SA",
-      "weight": 4.82,
-      "current": 33.54999923706055,
-      "projectedQty": 4,
-      "projectedInvested": 134.1999969482422,
-      "target": 34.40545,
-      "projectedBRL": 137.6218,
-      "composite_score": 0.3994574258197436,
-      "momentum_score": 0.2357274294089557,
-      "upside_pct": 0.0254977878507518,
-      "annual_ret": 0.1437165142085433,
-      "annual_vol": 0.2886614233089064
-    },
-    {
-      "ticker": "JBSS32.SA",
-      "weight": 4.24,
-      "current": 90.30000305175781,
-      "projectedQty": 1,
-      "projectedInvested": 90.30000305175781,
-      "target": 109.91429,
-      "projectedBRL": 109.91429,
-      "composite_score": 0.4859535928475265,
-      "momentum_score": 0.3190184671246754,
-      "upside_pct": 0.2172124727061166,
-      "annual_ret": 0.2506579193000197,
-      "annual_vol": 0.3154383018022869
-    },
-    {
-      "ticker": "VULC3.SA",
-      "weight": 2.7199999999999998,
-      "current": 17.59000015258789,
-      "projectedQty": 5,
-      "projectedInvested": 87.95000076293945,
-      "target": 23.33333,
-      "projectedBRL": 116.66665,
-      "composite_score": 0.444433622727363,
-      "momentum_score": -0.0867082064614751,
-      "upside_pct": 0.3265110743371502,
-      "annual_ret": 0.3699727324313543,
-      "annual_vol": 0.627035959176615
+      "projectedBRL": 18613.86496,
+      "composite_score": 0.5001971910392312,
+      "momentum_score": 0.0997136102639122,
+      "upside_pct": 5.5138106080533404,
+      "annual_ret": 0.1120866923544679,
+      "annual_vol": 0.3479772010256157
     },
     {
       "ticker": "PRNR3.SA",
-      "weight": 1.5,
-      "current": 21.3799991607666,
-      "projectedQty": 2,
-      "projectedInvested": 42.7599983215332,
+      "weight": 5.26,
+      "current": 21.06999969482422,
+      "projectedQty": 8,
+      "projectedInvested": 168.55999755859375,
       "target": 26.7,
-      "projectedBRL": 53.4,
-      "composite_score": 0.4439294789030111,
-      "momentum_score": 0.3928337869343763,
-      "upside_pct": 0.2488307319017988,
-      "annual_ret": 0.1825207498490097,
-      "annual_vol": 0.4602586119637323
+      "projectedBRL": 213.6,
+      "composite_score": 0.4455487553112002,
+      "momentum_score": 0.3861842078432811,
+      "upside_pct": 0.2672045745951659,
+      "annual_ret": 0.1799306004472215,
+      "annual_vol": 0.4600669709610598
+    },
+    {
+      "ticker": "CMIG3.SA",
+      "weight": 3.4000000000000004,
+      "current": 18.479999542236328,
+      "projectedQty": 5,
+      "projectedInvested": 92.39999771118164,
+      "target": 36.73581034850148,
+      "projectedBRL": 183.6790517425074,
+      "composite_score": 0.4539871413657352,
+      "momentum_score": 0.3190577616222674,
+      "upside_pct": 0.98786857459283,
+      "annual_ret": 0.1838183072224481,
+      "annual_vol": 0.5294699454457231
+    },
+    {
+      "ticker": "ABCB4.SA",
+      "weight": 0.8999999999999999,
+      "current": 26.700000762939453,
+      "projectedQty": 1,
+      "projectedInvested": 26.700000762939453,
+      "target": 27.77778,
+      "projectedBRL": 27.77778,
+      "composite_score": 0.4213626000312973,
+      "momentum_score": 0.2361111246018741,
+      "upside_pct": 0.0403662624068739,
+      "annual_ret": 0.1808626230809789,
+      "annual_vol": 0.4353546549215631
+    },
+    {
+      "ticker": "VALE3.SA",
+      "weight": 1.77,
+      "current": 87.44000244140625,
+      "projectedQty": 0,
+      "projectedInvested": 0.0,
+      "target": 89.066025,
+      "projectedBRL": 0.0,
+      "composite_score": 0.4644961223348749,
+      "momentum_score": 0.4853066761998461,
+      "upside_pct": 0.0185958658873934,
+      "annual_ret": 0.2156316639628377,
+      "annual_vol": 0.5303705325586308
     }
   ],
   "totals": {
     "totalPct": 100.0,
-    "totalCurrentSum": 3274.33,
-    "totalProjectedQty": 741,
-    "totalProjectedInvested": 3191.020075559616,
-    "totalProjectedBRL": 18462.160659999998
+    "totalCurrentSum": 3226.5000000000005,
+    "totalProjectedQty": 766,
+    "totalProjectedInvested": 3145.2599601745605,
+    "totalProjectedBRL": 19038.921791742505
   },
   "used_path": "/Users/gabrielcampos/PortfolioESG/data/results/latest_run_summary.json",
-  "generated_at": "2026-04-16T02:12:53.685104+00:00"
+  "generated_at": "2026-04-17T17:25:40.899167+00:00"
 }
