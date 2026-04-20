@@ -12,8 +12,8 @@
   .cards-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 16px;
     opacity: 0;
     transform: translateY(10px);
     animation: fadeInUp 0.6s ease forwards;
@@ -24,15 +24,15 @@
     background: var(--bg-card);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
-    padding: 28px;
-    margin-bottom: 24px;
+    padding: 20px;
+    margin-bottom: 16px;
     box-shadow: var(--shadow-sm);
   }
   .table-card .table-title {
     font-size: 9px;
     font-weight: var(--font-weight-emphasis);
     color: var(--color-label);
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     display: flex;
@@ -56,13 +56,13 @@
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    padding: 12px 16px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border-strong);
   }
   .risk-table th:first-child { text-align: left; }
   .risk-table td {
     text-align: right;
-    padding: 12px 16px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text-primary);
     font-family: var(--font-mono);
@@ -86,14 +86,14 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 28px;
+    padding: 20px;
     box-shadow: var(--shadow-sm);
   }
   .chart-card .chart-title {
     font-size: 9px;
     font-weight: var(--font-weight-emphasis);
     color: var(--color-label);
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     display: flex;
@@ -169,7 +169,9 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { DC, assetColor, plColor } from '../js/data-colors.js';
+
 const DATA_BASE = '../data';
 
 function fmtPct(v) {
@@ -190,12 +192,6 @@ function fmtLargeNum(v) {
   if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
   if (v >= 1e3) return (v / 1e3).toFixed(1) + 'k';
   return v.toFixed(0);
-}
-function hhiLabel(v) {
-  if (v == null || isNaN(v)) return '';
-  if (v < 0.10) return 'diversificado';
-  if (v <= 0.25) return 'moderado';
-  return 'concentrado';
 }
 
 function card(label, value, sub) {
@@ -228,7 +224,7 @@ async function render() {
         `Período de análise · <span class="dates">${MO[+sm-1]}/${sy.slice(2)} – ${MO[+em-1]}/${ey.slice(2)} · ${meta.trading_days||'?'} pregões</span>`;
     }
 
-    // ── Tabela de Confronto (Atual vs Modelo) ──
+    // ── Comparison Table (Actual vs Model) ──
     const t_vol_real = dashboard.real.twr?.volatility ? fmtPct(dashboard.real.twr.volatility) : '—';
     const t_vol_mod  = dashboard.model.risk?.volatility_annual ? fmtPct(dashboard.model.risk.volatility_annual / 100) : '—';
     const t_shp_real = dashboard.real.twr?.sharpe ? fmtNum(dashboard.real.twr.sharpe) : '—';
@@ -236,7 +232,6 @@ async function render() {
     const t_hhi_real = dashboard.real.structure?.hhi ? fmtHHI(dashboard.real.structure.hhi) : '—';
     const t_hhi_mod  = dashboard.model.risk?.hhi ? fmtHHI(dashboard.model.risk.hhi) : '—';
 
-    // Novas métricas comparativas
     const t_pe_real  = dashboard.real.valuation?.portfolio_pe ? fmtNum(dashboard.real.valuation.portfolio_pe) : '—';
     const t_pe_mod   = dashboard.model.valuation?.portfolio_pe ? fmtNum(dashboard.model.valuation.portfolio_pe) : '—';
     const t_liq_real = dashboard.real.risk?.liquidity_avg ? fmtLargeNum(dashboard.real.risk.liquidity_avg) : '—';
@@ -259,12 +254,10 @@ async function render() {
     </table>`;
     document.getElementById('compare-table-container').innerHTML = compareHtml;
 
-    // ── Cards de Estresse Histórico (Real) ──
+    // ── Stress Cards ──
     const max_dd = dashboard.real.twr?.max_drawdown ? fmtPct(-dashboard.real.twr.max_drawdown) : '—';
     const beta = dashboard.real.relative?.beta ? fmtNum(dashboard.real.relative.beta) : '—';
     const sortino = dashboard.real.twr?.sortino ? fmtNum(dashboard.real.twr.sortino) : '—';
-    
-    // Novas métricas (Tracking Error e Info Ratio da janela All)
     const te = all.tracking_error != null ? fmtPct(all.tracking_error) : '—';
     const ir = all.information_ratio != null ? fmtNum(all.information_ratio) : '—';
     const calmar = dashboard.real.twr?.calmar ? fmtNum(dashboard.real.twr.calmar) : '—';
@@ -277,11 +270,16 @@ async function render() {
       card('Sortino Ratio', sortino, 'ret. ajustado a queda') +
       card('Índice Calmar', calmar, 'retorno / drawdown');
 
-    // ── Concentration bar charts ──
+    // ── Concentration Charts Logic ──
     const totalMarket = positions.total_current_market || 0;
     
-    function createChart(ctxId, items, color) {
+    function createChart(ctxId, items, isAsset = false, sortedHoldings = null) {
       if (!document.getElementById(ctxId) || !items || items.length === 0) return;
+      
+      const colors = isAsset 
+        ? items.map(it => assetColor(it.symbol, sortedHoldings))
+        : items.map((_, idx) => DC.assets[Math.min(idx, DC.assets.length - 1)]);
+
       new Chart(document.getElementById(ctxId).getContext('2d'), {
         type: 'bar',
         data: {
@@ -289,7 +287,7 @@ async function render() {
           datasets: [{
             label: 'Peso (%)',
             data: items.map(i => +(i.weight * 100).toFixed(2)),
-            backgroundColor: color,
+            backgroundColor: colors,
             borderRadius: 6,
           }]
         },
@@ -322,7 +320,7 @@ async function render() {
       });
     }
 
-
+    // ── Render Charts ──
     if (positions.positions && totalMarket > 0) {
       const realItems = positions.positions
         .map(p => ({
@@ -332,14 +330,15 @@ async function render() {
         .filter(p => p.weight > 0)
         .sort((a, b) => b.weight - a.weight);
       
-      createChart('concentration-chart', realItems, 'var(--brand-blue)');
+      const realHoldings = realItems.map(i => i.symbol);
+      createChart('concentration-chart', realItems, true, realHoldings);
     }
     
     // Real Sector Chart
     const realSectorsData = dashboard.real?.structure?.sector_exposure;
     if (realSectorsData && realSectorsData.length > 0) {
       const realSectors = realSectorsData.map(s => ({symbol: s.sector, weight: s.pct}));
-      createChart('sector-concentration-chart', realSectors, 'var(--brand-blue)');
+      createChart('sector-concentration-chart', realSectors);
     }
  
     // Model Position Chart
@@ -350,21 +349,21 @@ async function render() {
         .filter(p => p.weight > 0)
         .sort((a, b) => b.weight - a.weight);
         
-      createChart('model-concentration-chart', modelItems, 'var(--text-muted)');
+      const modelHoldings = modelItems.map(i => i.symbol);
+      createChart('model-concentration-chart', modelItems, true, modelHoldings);
     }
     
     // Model Sector Chart
     const modelSectorsData = dashboard.model?.composition?.sector_exposure;
     if (modelSectorsData && modelSectorsData.length > 0) {
       const modelSectors = modelSectorsData.map(s => ({symbol: s.sector, weight: s.pct}));
-      createChart('model-sector-concentration-chart', modelSectors, 'var(--text-muted)');
+      createChart('model-sector-concentration-chart', modelSectors);
     }
 
-
-
   } catch (err) {
+    console.error('Risk render error:', err);
     document.getElementById('cards-stress').innerHTML =
-      `<div class="card"><span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span></div>`;
+      `<div class="card"><span class="loading" style="color:var(--brand-red)">Erro: ${err.message}</span></div>`;
   }
 }
 

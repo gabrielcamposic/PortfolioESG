@@ -11,7 +11,7 @@
     font-size: 9px;
     font-weight: var(--font-weight-emphasis);
     color: var(--color-label);
-    margin-bottom: 24px;
+    margin-bottom: 14px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     display: flex;
@@ -39,7 +39,7 @@
   }
 
   .summary-bar {
-    padding: 12px 28px; border-bottom: 1px solid var(--border-strong);
+    padding: 8px 20px; border-bottom: 1px solid var(--border-strong);
     background: var(--bg-card-alt); font-size: 9px;
     color: var(--color-label); font-family: var(--font-sans);
     text-transform: uppercase; letter-spacing: 0.1em;
@@ -52,11 +52,11 @@
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   
   thead tr.group-headers th {
-    padding: 12px 20px; font-size: 8px; text-transform: uppercase;
+    padding: 8px 14px; font-size: 8px; text-transform: uppercase;
     font-weight: var(--font-weight-emphasis); letter-spacing: 0.12em; color: var(--color-label);
   }
   thead tr.main-headers th {
-    padding: 12px 20px; font-size: 9px; font-weight: var(--font-weight-emphasis);
+    padding: 8px 14px; font-size: 9px; font-weight: var(--font-weight-emphasis);
     text-transform: uppercase; color: var(--color-label);
     border-bottom: 1px solid var(--border-strong);
     background: var(--bg-card); position: sticky; top: 0;
@@ -70,7 +70,7 @@
 
   th.right, td.right { text-align: right; }
   td {
-    padding: 14px 20px; font-family: var(--font-sans); font-size: 12px;
+    padding: 8px 14px; font-family: var(--font-sans); font-size: 12px;
     border-bottom: 1px solid var(--border); color: var(--text-primary);
     transition: background 0.2s;
   }
@@ -97,7 +97,7 @@
   /* ── Expandable Detail ── */
   .expand-btn {
     background: var(--bg-card); border: 1px solid var(--border-strong); color: var(--accent-blue);
-    font-size: 10px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; cursor: pointer; padding: 6px 12px;
+    font-size: 10px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; cursor: pointer; padding: 4px 10px;
     border-radius: 20px; font-family: var(--font-sans);
     display: flex; align-items: center; gap: 4px;
     transition: all 0.2s; box-shadow: var(--shadow-sm);
@@ -178,20 +178,18 @@
         </thead>
         <tbody id="history-body"></tbody>
       </table>
-    </div>
-  </div>
-</div>
+<script type="module">
+import { DC, plColor, assetColor, scoreColor } from '../js/data-colors.js';
 
-<script>
 const DATA_URL = '../data/portfolio_history_enriched.json';
 
-function toggleSection() {
+window.toggleSection = function() {
   const section = document.getElementById('history-section');
   const icon = document.getElementById('toggle-icon');
   const isHidden = section.style.display === 'none';
   section.style.display = isHidden ? 'block' : 'none';
   icon.classList.toggle('collapsed', !isHidden);
-}
+};
 
 function fmtDate(rid) {
   if (!rid) return '—';
@@ -209,6 +207,7 @@ function fmtVal(v, d=2, suffix='', sign=false) {
 
 window.toggleDetail = function(btn, id) {
   const row = document.getElementById(`detail-${id}`);
+  if (!row) return;
   const isVisible = row.classList.toggle('visible');
   btn.classList.toggle('active', isVisible);
   btn.innerHTML = `<span class="icon">${isVisible ? '▾' : '▸'}</span> ${isVisible ? 'fechar' : 'ver'}`;
@@ -225,41 +224,43 @@ async function init() {
     const body = document.getElementById('history-body');
     const summaryBar = document.getElementById('summary-bar');
 
-    loading.style.display = 'none';
-    container.style.display = 'block';
+    if (loading) loading.style.display = 'none';
+    if (container) container.style.display = 'block';
 
     if (!data.length) {
-      body.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px;">Nenhum registro encontrado.</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px;">Nenhum registro encontrado.</td></tr>';
       return;
     }
 
-    summaryBar.innerHTML = `
-      <span>${data.length} simulações registradas</span>
-      <span>Última atualização: ${fmtDate(data[0].run_id)}</span>
-    `;
+    if (summaryBar) {
+      summaryBar.innerHTML = `
+        <span>${data.length} simulações registradas</span>
+        <span>Última atualização: ${fmtDate(data[0].run_id)}</span>
+      `;
+    }
 
     let html = '';
     data.forEach((r, i) => {
       const isLatest = i === 0;
+      const retProjC = plColor(r.ret_proj_12m / 100);
+      const retHistC = plColor(r.ret_hist_12m / 100);
+      const scoreC   = scoreColor(r.score);
+      const momC     = plColor(r.momentum - 0.3);
       
-      // Momentum grouping logic: absolute value
-      const momClass = r.momentum != null ? (r.momentum > 0.4 ? 'momentum-up' : r.momentum < 0.2 ? 'momentum-down' : '') : '';
+      const tickers = (r.stocks || []).map(s => s.replace('.SA', ''));
 
       html += `
         <tr class="${isLatest ? 'latest' : ''}">
           <td class="cell-date">${fmtDate(r.run_id)}</td>
           <td class="right cell-assets">${r.n_assets || 0}</td>
-          
-          <td class="right cell-proj sep-fwd col-fwd ${r.ret_proj_12m >= 0 ? 'positive' : 'negative'}">
+          <td class="right cell-proj sep-fwd col-fwd" style="color: ${retProjC}; font-weight: 600;">
             ${fmtVal(r.ret_proj_12m, 2, '%', true)}
           </td>
           <td class="right col-fwd">${fmtVal(r.sharpe_forward, 3)}</td>
-          <td class="right col-fwd"><span class="cell-score">${fmtVal(r.score, 3)}</span></td>
-          <td class="right cell-mom col-fwd ${momClass}">${fmtVal(r.momentum, 2)}</td>
-          
-          <td class="right sep-bwd col-bwd">${fmtVal(r.ret_hist_12m, 1, '%')}</td>
+          <td class="right col-fwd"><span class="cell-score" style="background: ${scoreC}15; color: ${scoreC};">${fmtVal(r.score, 3)}</span></td>
+          <td class="right cell-mom col-fwd" style="color: ${momC}; font-weight: 600;">${fmtVal(r.momentum, 2)}</td>
+          <td class="right sep-bwd col-bwd" style="color: ${retHistC}">${fmtVal(r.ret_hist_12m, 1, '%')}</td>
           <td class="right col-bwd">${fmtVal(r.vol_12m, 1, '%')}</td>
-          
           <td class="right">
             <button class="expand-btn" onclick="toggleDetail(this, '${r.run_id}')">
               <span class="icon">▸</span> ver
@@ -271,12 +272,16 @@ async function init() {
             <div class="detail-content">
               <div class="detail-grid">
                 <div class="chips-container">
-                  ${(r.stocks || []).map((s, idx) => `
-                    <div class="stock-chip">
-                      <span class="stock-ticker">${s}</span>
-                      <span class="stock-weight">${r.weights && r.weights[idx] ? (r.weights[idx]*100).toFixed(1)+'%' : ''}</span>
-                    </div>
-                  `).join('')}
+                  ${(r.stocks || []).map((s, idx) => {
+                    const sym = s.replace('.SA', '');
+                    const c = assetColor(sym, tickers);
+                    return `
+                      <div class="stock-chip" style="border-left: 3px solid ${c}">
+                        <span class="stock-ticker" style="color: ${c}">${sym}</span>
+                        <span class="stock-weight">${r.weights && r.weights[idx] ? (r.weights[idx]*100).toFixed(1)+'%' : ''}</span>
+                      </div>
+                    `;
+                  }).join('')}
                 </div>
                 <div class="run-info">
                   <div class="info-item">
@@ -285,8 +290,7 @@ async function init() {
                   </div>
                   <div class="info-item">
                     <span class="info-label">Decisão</span>
-                    <span class="info-value" style="color: ${r.decision==='REBALANCE'?'var(--color-negative)':'var(--color-positive)'}">
-
+                    <span class="info-value" style="color: ${r.decision === 'REBALANCE' ? DC.neg.mid : DC.pos.mid}">
                       ${r.decision || '—'}
                     </span>
                   </div>
@@ -296,11 +300,11 @@ async function init() {
                   </div>
                   <div class="info-item">
                     <span class="info-label">Holdings Return</span>
-                    <span class="info-value">${fmtVal(r.holdings_return_pct, 2, '%')}</span>
+                    <span class="info-value" style="color: ${plColor(r.holdings_return_pct / 100)}">${fmtVal(r.holdings_return_pct, 2, '%')}</span>
                   </div>
                   <div class="info-item">
                     <span class="info-label">Excesso vs Ideal</span>
-                    <span class="info-value ${r.excess_return_pct < 0 ? 'negative' : 'positive'}">
+                    <span class="info-value" style="color: ${plColor(r.excess_return_pct / 100)}">
                       ${fmtVal(r.excess_return_pct, 2, '%', true)}
                     </span>
                   </div>
@@ -312,12 +316,14 @@ async function init() {
       `;
     });
 
-    body.innerHTML = html;
+    if (body) body.innerHTML = html;
 
   } catch (err) {
     console.error('History Init Error:', err);
-    document.getElementById('history-loading').innerHTML = 
-      `<div style="color: var(--accent-red)">Erro ao inicializar histórico: ${err.message}</div>`;
+    const loading = document.getElementById('history-loading');
+    if (loading) {
+      loading.innerHTML = `<div style="color: var(--brand-red)">Erro ao inicializar histórico: ${err.message}</div>`;
+    }
   }
 }
 

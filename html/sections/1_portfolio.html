@@ -13,7 +13,7 @@
   .cards-vertical {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
   .cards-vertical .card {
     flex: 1;
@@ -23,7 +23,7 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 20px;
+    padding: 14px;
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
   }
@@ -35,8 +35,8 @@
   
   .dashboard-grid {
     display: grid;
-    gap: 20px;
-    margin-bottom: 24px;
+    gap: 16px;
+    margin-bottom: 16px;
     opacity: 0;
     transform: translateY(10px);
     animation: fadeInUp 0.6s ease forwards;
@@ -59,7 +59,7 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 28px;
+    padding: 20px;
     box-shadow: var(--shadow-sm);
   }
 
@@ -67,7 +67,7 @@
     font-size: 9px;
     font-weight: var(--font-weight-emphasis);
     color: var(--color-label);
-    margin-bottom: 20px;
+    margin-bottom: 14px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     display: flex;
@@ -79,8 +79,8 @@
   }
 
   /* ── Charts ── */
-  .chart-wrapper { position: relative; height: 420px; width: 100%; }
-  .bar-chart-wrapper { position: relative; height: 420px; width: 100%; }
+  .chart-wrapper { position: relative; height: 380px; width: 100%; }
+  .bar-chart-wrapper { position: relative; height: 380px; width: 100%; }
 
   /* ── Performance table ── */
   .perf-table {
@@ -96,13 +96,13 @@
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    padding: 12px 16px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border-strong);
   }
   .perf-table th:first-child { text-align: left; }
   .perf-table td {
     text-align: right;
-    padding: 12px 16px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text-primary);
     font-family: var(--font-mono);
@@ -119,14 +119,16 @@
   .perf-table td.pos { color: var(--brand-blue); }
   .perf-table td.neg { color: var(--brand-magenta); }
 
+  .perf-table tr.totals td { background: var(--bg-card-alt); color: var(--text-primary); font-weight: var(--font-weight-emphasis); border-top: 2px solid var(--border-strong); }
   .perf-table td.gold { color: var(--accent-gold); font-weight: var(--font-weight-emphasis); border: 1px solid var(--accent-gold); border-radius: 8px; }
 
   /* ── Monthly returns table (TWR) ── */
   .perf-table tr.total-row td {
-    background: var(--text-primary);
-    color: #fff;
+    background: var(--bg-card-alt);
+    color: var(--text-primary);
     font-weight: var(--font-weight-emphasis);
-    padding: 14px 16px;
+    padding: 10px 12px;
+    border-top: 2px solid var(--border-strong);
   }
 
   /* ── Responsive ── */
@@ -189,7 +191,9 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { DC, plColor, assetColor } from '../js/data-colors.js';
+
 const DATA_BASE = '../data';
 
 function fmtBRL(v) {
@@ -204,24 +208,20 @@ function fmtNum(v, d = 2) {
   if (v == null || isNaN(v)) return '—';
   return v.toFixed(d);
 }
-function cls(v) {
-  if (v == null || isNaN(v)) return '';
-  return v >= 0 ? 'positive' : 'negative';
-}
-function card(label, value, colorCls, sub, tooltipText, valueStyle = "") {
+function card(label, value, colorHex, sub, tooltipText, valueStyle = "") {
   const tooltipHtml = tooltipText ? `<div class="tooltip-icon" data-tooltip="${tooltipText}">?</div>` : '';
-  const isPill = colorCls.includes('badge-');
-  const finalValueCls = isPill ? colorCls : `value ${colorCls}`;
+  const style = colorHex ? `color: ${colorHex}; ${valueStyle}` : valueStyle;
   
   return `<div class="card">
     <div class="label-container">
       <div class="label">${label}</div>
       ${tooltipHtml}
     </div>
-    <div class="${finalValueCls}" style="${valueStyle}">${value}</div>
+    <div class="value" style="${style}">${value}</div>
     ${sub ? `<div class="sub">${sub}</div>` : ''}
   </div>`;
 }
+
 function parseCSV(url) {
   return new Promise((resolve, reject) => {
     Papa.parse(url, {
@@ -252,6 +252,8 @@ async function render() {
     const model = dashboard.model || {};
     const mRet = model.returns || {};
 
+    const pctCdiStr = cdi.pct_of_cdi != null ? (cdi.pct_of_cdi * 100).toFixed(1) + '%' : '—';
+
     // ── Period header ──
     const MO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     if (meta.history_start && meta.history_end) {
@@ -262,15 +264,12 @@ async function render() {
     }
 
     // ── Row 1: Snapshot cards (Mini) ──
-    const pctCdi = twr.pct_cdi;
-    const pctCdiCls = pctCdi != null && pctCdi >= 100 ? 'gold' : '';
-    const pctCdiStr = pctCdi != null ? pctCdi.toFixed(0) + '%' : '—';
-
     document.getElementById('cards-snapshot').innerHTML =
-      card('Exp. 12M (Atual)', fmtPct(mRet.hold_12m / 100), 'amber', 'retorno esperado', 'Projeção (Forward Looking): Retorno matemático esperado da carteira atual (sem rebalanceamento) em 12 meses') +
-      card('% do CDI', pctCdiStr, 'brand', `CDI ${fmtPct(cdi.total_return)} no período`, 'Quanto o seu TWR representa sobre o rendimento do CDI no período (objetivo: >100%)') +
-      card('Volatilidade', fmtPct(twr.volatility), '', `sharpe <span class="brand">${fmtNum(twr.sharpe)}</span>`, 'Risco: quanto a carteira oscila. Sharpe indica se esse risco compensou sobre o CDI livre de risco.') +
-      card('Alpha vs Ibov', fmtPct(alpha.total), 'amber', 'TWR − bench', 'Alpha: Quanto sua carteira rendeu de prêmio (a mais ou a menos) contra o Ibovespa');
+      card('Exp. 12M (Atual)', fmtPct(mRet.hold_12m / 100), plColor(mRet.hold_12m / 100), 'retorno esperado', 'Projeção (Forward Looking): Retorno matemático esperado da carteira atual (sem rebalanceamento) em 12 meses') +
+      card('% do CDI', pctCdiStr, DC.portfolio.line, `CDI ${fmtPct(cdi.total_return)} no período`, 'Quanto o seu TWR representa sobre o rendimento do CDI no período (objetivo: >100%)') +
+      card('Volatilidade', fmtPct(twr.volatility), '', `sharpe <span style="color: ${DC.portfolio.line}">${fmtNum(twr.sharpe)}</span>`, 'Risco: quanto a carteira oscila. Sharpe indica se esse risco compensou sobre o CDI livre de risco.') +
+      card('Alpha vs Ibov', fmtPct(alpha.total), plColor(alpha.total), 'TWR − bench', 'Alpha: Quanto sua carteira rendeu de prêmio (a mais ou a menos) contra o Ibovespa');
+
 
     // ── Line chart: Portfolio vs Ibovespa vs CDI, base 100 ──
     if (dailyRows.length > 0) {
@@ -293,15 +292,14 @@ async function render() {
         data: {
           labels,
           datasets: [
-            { label:'Portfólio', data:pS, borderColor:'var(--brand-blue)', backgroundColor:'rgba(27, 53, 96, 0.12)',
+            { label:'Portfólio', data:pS, borderColor: DC.portfolio.line, backgroundColor: DC.portfolio.area,
               fill:true, borderWidth:3, pointRadius:0, pointHitRadius:8, tension:0.15 },
-            { label:'Ibovespa', data:bS, borderColor:'var(--text-muted)', borderWidth:1.5,
-              borderDash:[6,4], pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
-            { label:'CDI', data:cS, borderColor:'#9A6508', borderWidth:1.5,
-              borderDash:[2,2], pointRadius:0, pointHitRadius:8, tension:0, fill:false },
-
-
+            { label:'Ibovespa', data:bS, borderColor: DC.ibov.line, borderWidth:1.5,
+              borderDash: DC.ibov.dash, pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
+            { label:'CDI', data:cS, borderColor: DC.cdi.line, borderWidth:1.5,
+              borderDash: DC.cdi.dash, pointRadius:0, pointHitRadius:8, tension:0, fill:false },
           ]
+
         },
         options: {
           responsive:true, maintainAspectRatio:false,
@@ -367,11 +365,11 @@ async function render() {
         data: {
           labels: barLabels,
           datasets: [
-            { label:'Portfólio', data:portData, backgroundColor: portData.map(v => v >= 0 ? 'var(--brand-blue)' : 'var(--brand-magenta)'), borderRadius:6 },
-            { label:'Ibovespa', data:benchData, backgroundColor:'var(--text-muted)', borderRadius:6 },
-            { label:'CDI', data:cdiData, backgroundColor:'var(--brand-magenta)', borderRadius:6, opacity: 0.7 },
-
+            { label:'Portfólio', data:portData, backgroundColor: portData.map(v => plColor(v/100)), borderRadius:6 },
+            { label:'Ibovespa', data:benchData, backgroundColor: DC.ibov.line, borderRadius:6, opacity: 0.8 },
+            { label:'CDI', data:cdiData, backgroundColor: DC.cdi.line, borderRadius:6, opacity: 0.6 },
           ]
+
 
         },
         options: {
@@ -443,36 +441,32 @@ async function render() {
       const mesesInvertidos = [...meses].reverse();
       for (const m of mesesInvertidos) {
         const ret = m.retorno_mes;
-        const cdi = m.retorno_cdi;
+        const cdiVal = m.retorno_cdi;
         const acum = m.retorno_acumulado;
         const isGap = m.pregoes === 0;
         
-        // Semantic pills for relevant values (e.g. absolute return > 1.5% or accumulation)
-        const retCls = isGap ? 'gap' : cls(ret);
-        const retFinalCls = (!isGap && Math.abs(ret) > 0.015) ? (ret >= 0 ? 'badge-positive' : 'badge-negative') : retCls;
-        
-        const acumCls = acum >= 0 ? 'badge-positive' : 'badge-negative';
+        const retColor = isGap ? DC.neutral.line : plColor(ret);
+        const acumColor = isGap ? DC.neutral.line : plColor(acum);
 
         html += `<tr>
           <td>${mesLabel(m.mes)}</td>
-          <td class="${retCls}">${isGap ? '—' : fmtPct(ret)}</td>
-          <td>${cdi != null && !isGap ? fmtPct(cdi) : '—'}</td>
-          <td class="${acumCls}">${fmtPct(acum)}</td>
+          <td style="color: ${retColor}">${isGap ? '—' : fmtPct(ret)}</td>
+          <td>${cdiVal != null && !isGap ? fmtPct(cdiVal) : '—'}</td>
+          <td style="color: ${acumColor}">${fmtPct(acum)}</td>
           <td style="color:var(--text-muted)">${m.pregoes}</td>
         </tr>`;
       }
 
-      // Total row
       const twrTotal = mr.twr_total;
       const cdiTotal = mr.cdi_total;
-      const totalCls = twrTotal >= 0 ? 'pos' : 'neg';
       html += `<tr class="total-row">
         <td><strong>Total</strong></td>
-        <td class="${totalCls}"><strong>${fmtPct(twrTotal)}</strong></td>
+        <td style="color: #fff"><strong>${fmtPct(twrTotal)}</strong></td>
         <td>${cdiTotal != null ? fmtPct(cdiTotal) : '—'}</td>
-        <td class="${totalCls}"><strong>${fmtPct(twrTotal)}</strong></td>
-        <td style="color:var(--text-muted)">${meses.reduce((s,m)=>s+m.pregoes,0)}</td>
+        <td style="color: #fff"><strong>${fmtPct(twrTotal)}</strong></td>
+        <td style="color:rgba(255,255,255,0.6)">${meses.reduce((s,m)=>s+m.pregoes,0)}</td>
       </tr>`;
+
 
       html += '</tbody></table>';
       document.getElementById('monthly-returns-container').innerHTML = html;
@@ -494,6 +488,8 @@ async function render() {
         .filter(h => h.weight > 0)
         .sort((a, b) => b.weight - a.weight);
 
+      const holdingsTickers = holdings.map(h => h.symbol);
+
       let html = `<table class="perf-table" style="text-align: right;">
         <thead><tr>
           <th style="text-align: left;">Ativo</th>
@@ -506,26 +502,26 @@ async function render() {
           <th>P&L %</th>
         </tr></thead><tbody>`;
 
-      let totalInvested = 0, totalMktVal = 0;
       for (const h of holdings) {
-        const plCls = h.pl >= 0 ? 'pos' : 'neg';
-        totalInvested += h.avgCost * h.qty;
-        totalMktVal += h.mktVal;
+        const plC = plColor(h.plPct);
+        const tickerC = assetColor(h.symbol, holdingsTickers);
         html += `<tr>
-          <td style="font-family: var(--font-sans); font-weight: 600; color: var(--accent-blue); text-align: left;">${h.symbol}</td>
+          <td style="font-family: var(--font-sans); font-weight: 600; color: ${tickerC}; text-align: left;">${h.symbol}</td>
           <td>${(h.weight * 100).toFixed(1)}%</td>
           <td>${h.qty}</td>
           <td>${fmtBRL(h.avgCost)}</td>
           <td>${fmtBRL(h.currentPrice)}</td>
           <td>${fmtBRL(h.mktVal)}</td>
-          <td class="${plCls}">${fmtBRL(h.pl)}</td>
-          <td class="${plCls}">${fmtPct(h.plPct)}</td>
+          <td style="color: ${plC}">${fmtBRL(h.pl)}</td>
+          <td style="color: ${plC}">${fmtPct(h.plPct)}</td>
         </tr>`;
       }
 
+      const totalInvested = holdings.reduce((s, h) => s + (h.avgCost * h.qty), 0);
+      const totalMktVal = holdings.reduce((s, h) => s + h.mktVal, 0);
       const totalPL = totalMktVal - totalInvested;
       const totalPLpct = totalInvested > 0 ? totalPL / totalInvested : 0;
-      const totalPLcls = totalPL >= 0 ? 'pos' : 'neg';
+      const totalPLc = plColor(totalPLpct);
       html += `<tr style="border-top: 2px solid var(--border-strong); font-weight: 600; font-family: var(--font-sans);">
         <td style="text-align: left;">Total</td>
         <td>100%</td>
@@ -533,9 +529,10 @@ async function render() {
         <td></td>
         <td></td>
         <td>${fmtBRL(totalMktVal)}</td>
-        <td class="${totalPLcls}">${fmtBRL(totalPL)}</td>
-        <td class="${totalPLcls}">${fmtPct(totalPLpct)}</td>
+        <td style="color: ${totalPLc}">${fmtBRL(totalPL)}</td>
+        <td style="color: ${totalPLc}">${fmtPct(totalPLpct)}</td>
       </tr>`;
+
 
       html += `</tbody></table>`;
       document.getElementById('composition-table-container').innerHTML = html;

@@ -12,7 +12,7 @@
     font-size: 9px;
     font-weight: var(--font-weight-emphasis);
     color: var(--color-label);
-    margin-bottom: 24px;
+    margin-bottom: 14px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     display: flex;
@@ -32,7 +32,7 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 28px;
+    padding: 18px;
     box-shadow: var(--shadow-sm);
     opacity: 0;
     transform: translateY(10px);
@@ -40,7 +40,7 @@
   }
 
   .run-info {
-    font-size: 9px; color: var(--color-label); margin-bottom: 20px; font-family: var(--font-sans);
+    font-size: 9px; color: var(--color-label); margin-bottom: 12px; font-family: var(--font-sans);
     text-transform: uppercase; letter-spacing: 0.1em; font-weight: var(--font-weight-emphasis);
   }
 
@@ -73,7 +73,7 @@
   tr.grp-row th.grp-empty        { background: transparent; }
 
   th {
-    letter-spacing: 0.1em; color: var(--color-label); padding: 12px 10px;
+    letter-spacing: 0.1em; color: var(--color-label); padding: 8px 8px;
     border-bottom: 1px solid var(--border-strong); cursor: pointer; user-select: none;
     position: sticky; top: 0; background: var(--bg-card); vertical-align: bottom;
     font-weight: var(--font-weight-emphasis); font-size: 9px; text-transform: uppercase;
@@ -83,7 +83,7 @@
   th.center, td.center { text-align: center; }
 
   td {
-    padding: 12px 10px; font-family: var(--font-sans); font-size: 12px;
+    padding: 8px 8px; font-family: var(--font-sans); font-size: 12px;
     border-bottom: 1px solid var(--border); color: var(--text-primary);
   }
   td:first-child { font-family: var(--font-sans); font-weight: var(--font-weight-emphasis); color: var(--brand-blue); font-size: 13px; }
@@ -146,15 +146,17 @@
   <div id="scoring-container"><span class="loading">Carregando scoring...</span></div>
 </div>
 
-<script>
+<script type="module">
+import { DC, scoreColor, plColor } from '../js/data-colors.js';
+
 const DATA_BASE = '../data';
 
 let sectionVisible = true;
-function toggleSection() {
+window.toggleSection = function() {
   sectionVisible = !sectionVisible;
   document.getElementById('scoring-section').style.display = sectionVisible ? 'block' : 'none';
   document.getElementById('toggle-icon').classList.toggle('collapsed', !sectionVisible);
-}
+};
 
 function parseCSV(url) {
   return new Promise((resolve, reject) => {
@@ -170,15 +172,6 @@ const fmtNum = (v, d = 2) => (v == null || isNaN(v)) ? '—' : v.toFixed(d);
 const fmtPct = (v, d = 1) => (v == null || isNaN(v)) ? '—' : (v * 100).toFixed(d) + '%';
 const fmtBRL = v => (v == null || isNaN(v)) ? '—'
   : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const colorClass = v => (v == null || isNaN(v)) ? '' : (v >= 0 ? 'positive' : 'negative');
-
-function scoreColor(score, max) {
-  const r = Math.min(score / max, 1);
-  // Transition from Amber (low) to Navy (high)
-  if (r < 0.5) return 'var(--color-amber)';
-  return 'var(--brand-blue)';
-}
-
 
 const REGIME_COLORS = {
   strong_bull:'#2f9e44', bull:'#74c069', neutral:'#adb5bd', bear:'#e67700', strong_bear:'#e03131'
@@ -224,25 +217,19 @@ function renderTable(weights) {
   const cols = [
     { key:'Stock',                label:'Ativo',      cls:'' },
     { key:'Sector',               label:'Setor',      cls:'' },
-    // Score
     { key:'CompositeScore',       label:'Score',      cls:'right grp-sep' },
-    // Score inputs
-    { key:'SharpeRatio',         label:'Sharpe',     cls:'right grp-sep', weight: w_s, weightCls:'th-wc-sharpe',   fillColor:'var(--brand-blue)' },
-    { key:'PotentialUpside_pct', label:'Upside',     cls:'right',         weight: w_u, weightCls:'th-wc-upside',   fillColor:'var(--brand-blue)' },
-    { key:'Momentum',            label:'Momentum',   cls:'right',         weight: w_m, weightCls:'th-wc-momentum', fillColor:'var(--color-amber)' },
-
-    // Fundamentals
+    { key:'SharpeRatio',         label:'Sharpe',     cls:'right grp-sep', weight: w_s, weightCls:'th-wc-sharpe',   fillColor: DC.portfolio.line },
+    { key:'PotentialUpside_pct', label:'Upside',     cls:'right',         weight: w_u, weightCls:'th-wc-upside',   fillColor: DC.portfolio.line },
+    { key:'Momentum',            label:'Momentum',   cls:'right',         weight: w_m, weightCls:'th-wc-momentum', fillColor: DC.ibov.line },
     { key:'AnnualizedMeanReturn', label:'Ret. Anual', cls:'right grp-sep' },
     { key:'AnnualizedStdDev',     label:'Vol. Anual', cls:'right' },
     { key:'forwardPE',            label:'P/E Fwd',    cls:'right grp-sep' },
     { key:'SectorMedianPE',       label:'P/E Setor',  cls:'right' },
     { key:'forwardEPS',           label:'EPS Fwd',    cls:'right' },
-    // Prices
     { key:'CurrentPrice',         label:'Preço',      cls:'right grp-sep' },
     { key:'TargetPrice',          label:'Alvo',       cls:'right' },
   ];
 
-  // Column group sub-header
   let html = `<div class="table-wrapper"><table><thead>`;
   html += `<tr class="grp-row">
     <th colspan="2" class="grp-empty"></th>
@@ -252,7 +239,6 @@ function renderTable(weights) {
     <th colspan="2" class="grp-prices">Preços</th>
   </tr>`;
 
-  // Column header row
   html += `<tr>`;
   for (const c of cols) {
     const arrow = sortCol === c.key ? (sortAsc ? ' ↑' : ' ↓') : '';
@@ -269,9 +255,9 @@ function renderTable(weights) {
 
     const sharpe     = r.SharpeRatio;
     const sharpeNorm = r.SharpeRatio_norm;
-    const upside     = r.PotentialUpside_pct;          // stored as fraction (e.g. 0.15 = 15%)
+    const upside     = r.PotentialUpside_pct;
     const upsideNorm = r.PotentialUpside_pct_norm;
-    const momentum   = r.Momentum;                     // stored as fraction
+    const momentum   = r.Momentum;
     const momNorm    = r.Momentum_norm;
     const annRet     = r.AnnualizedMeanReturn;
     const annVol     = r.AnnualizedStdDev;
@@ -282,26 +268,30 @@ function renderTable(weights) {
         ? `<span class="src-badge src-sectorpe" data-tooltip="P/E Setorial: alvo estimado pelo P/E mediano do setor">PE</span>` : '';
 
     const safeName = (r.Name || '').replace(/"/g, '&quot;');
+    const upsideColor = plColor(upside);
+    const momentumColor = plColor(momentum);
+    const annRetColor = plColor(annRet);
+
     html += `<tr>
       <td class="stock" data-tooltip="${safeName}">${r.Stock || '—'}</td>
       <td class="sector">${r.Sector || '—'}</td>
       <td class="right grp-sep">
         <div class="score-cell">
-          <span>${fmtNum(score, 3)}</span>
+          <span style="color: ${scoreColor(score)}">${fmtNum(score, 3)}</span>
           <div class="score-bar-track">
-            <div class="score-bar-fill" style="width:${barPct}%;background:${scoreColor(score,maxScore)}"></div>
+            <div class="score-bar-fill" style="width:${barPct}%;background:${scoreColor(score)}"></div>
           </div>
         </div>
       </td>
-      <td class="right grp-sep">${compCell(fmtNum(sharpe, 4), sharpeNorm, 'norm-sharpe', w_s, 'contrib-sharpe', 'var(--brand-blue)')}</td>
+      <td class="right grp-sep">${compCell(fmtNum(sharpe, 4), sharpeNorm, 'norm-sharpe', w_s, 'contrib-sharpe', DC.portfolio.line)}</td>
       <td class="right">${compCell(
-          `<span class="${colorClass(upside)}">${upside != null ? fmtPct(upside) : '—'}</span>`,
-          upsideNorm, 'norm-upside', w_u, 'contrib-upside', 'var(--brand-blue)')}</td>
+          `<span style="color: ${upsideColor}; font-weight: 600;">${upside != null ? fmtPct(upside) : '—'}</span>`,
+          upsideNorm, 'norm-upside', w_u, 'contrib-upside', DC.portfolio.line)}</td>
       <td class="right">${compCell(
-          `<span class="${colorClass(momentum)}">${momentum != null ? fmtPct(momentum) : '—'}</span>`,
-          momNorm, 'norm-momentum', w_m, 'contrib-momentum', 'var(--brand-magenta)')}</td>
+          `<span style="color: ${momentumColor}; font-weight: 600;">${momentum != null ? fmtPct(momentum) : '—'}</span>`,
+          momNorm, 'norm-momentum', w_m, 'contrib-momentum', DC.ibov.line)}</td>
 
-      <td class="right grp-sep ${colorClass(annRet)}">${fmtPct(annRet)}</td>
+      <td class="right grp-sep" style="color: ${annRetColor}">${fmtPct(annRet)}</td>
       <td class="right">${fmtPct(annVol)}</td>
       <td class="right grp-sep">${fmtNum(r.forwardPE, 1)}</td>
       <td class="right">${fmtNum(r.SectorMedianPE, 1)}</td>
@@ -330,10 +320,8 @@ window.sortBy = function(col) {
 async function render() {
   try {
     const rows = await parseCSV(`${DATA_BASE}/scored_stocks.csv`);
-
     const runIds = [...new Set(rows.map(r => r.run_id).filter(Boolean))].sort();
     const latestRunId = runIds[runIds.length - 1];
-
     allRows = rows.filter(r => r.run_id === latestRunId);
     if (!allRows.length) throw new Error('Sem dados para o run mais recente.');
 
@@ -343,14 +331,13 @@ async function render() {
       upside:   sample.upside_weight_used   ?? 0,
       momentum: sample.momentum_weight_used ?? 0,
     };
-    const regime  = sample.market_regime    || 'neutral';
-    const profile = sample.risk_profile_used || '';
-    const runTs   = sample.run_timestamp    || latestRunId;
+    const latestRunIdSafe = latestRunId || '';
+    const runTs = sample.run_timestamp || latestRunIdSafe;
 
     const headerHtml = `
       <div class="scoring-header"
            data-ws="${weights.sharpe}" data-wu="${weights.upside}" data-wm="${weights.momentum}">
-        <div class="run-info">Run: ${latestRunId} · ${runTs} · ${allRows.length} ativos</div>
+        <div class="run-info">Run: ${latestRunIdSafe} · ${runTs} · ${allRows.length} ativos</div>
       </div>`;
 
     const container = document.getElementById('scoring-container');
@@ -360,11 +347,11 @@ async function render() {
   } catch (err) {
     console.error('Scoring error:', err);
     document.getElementById('scoring-container').innerHTML =
-      `<span class="loading" style="color:var(--accent-red)">Erro: ${err.message}</span>`;
+      `<span class="loading" style="color:var(--brand-red)">Erro: ${err.message}</span>`;
   }
 }
 
-// ── Custom tooltip ──
+// Tooltip logic
 const _tip = document.createElement('div');
 _tip.className = 'tooltip-popup';
 document.body.appendChild(_tip);
@@ -372,15 +359,12 @@ document.body.appendChild(_tip);
 document.addEventListener('mouseover', e => {
   const el = e.target.closest('[data-tooltip]');
   if (!el) return;
-  const text = el.dataset.tooltip;
-  if (!text) return;
-  _tip.textContent = text;
+  _tip.textContent = el.dataset.tooltip;
   _tip.classList.add('visible');
 });
 document.addEventListener('mousemove', e => {
   if (!_tip.classList.contains('visible')) return;
   const x = e.clientX + 14, y = e.clientY - 8;
-  // Keep within viewport
   const maxX = window.innerWidth  - _tip.offsetWidth  - 8;
   const maxY = window.innerHeight - _tip.offsetHeight - 8;
   _tip.style.left = Math.min(x, maxX) + 'px';

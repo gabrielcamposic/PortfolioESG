@@ -10,8 +10,8 @@
   .glossary-container {
     display: flex;
     flex-direction: column;
-    gap: 48px;
-    margin-bottom: 60px;
+    gap: 32px;
+    margin-bottom: 40px;
     opacity: 0;
     transform: translateY(10px);
     animation: fadeInUp 0.8s ease forwards;
@@ -42,7 +42,7 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 32px;
+    padding: 20px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-sm);
     position: relative;
@@ -58,18 +58,16 @@
     background: transparent; transition: background 0.3s;
   }
   .category-performance .metric-card:hover::after { background: var(--brand-blue); }
-  .category-risk .metric-card:hover::after { background: var(--brand-red); }
+  .category-risk .metric-card:hover::after { background: var(--brand-magenta); }
   .category-model .metric-card:hover::after { background: var(--brand-blue); }
-
-
 
   .metric-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 14px;
     border-bottom: 1px solid var(--border-strong);
-    padding-bottom: 16px;
+    padding-bottom: 10px;
   }
   .metric-name {
     font-size: 13px;
@@ -87,7 +85,7 @@
     box-shadow: var(--shadow-sm);
   }
   .tag-perf { background: rgba(27, 53, 96, 0.1); color: var(--brand-blue); }
-  .tag-risk { background: rgba(212, 43, 30, 0.1); color: var(--brand-red); }
+  .tag-risk { background: rgba(212, 43, 100, 0.1); color: var(--brand-magenta); }
   .tag-model { background: rgba(27, 53, 96, 0.1); color: var(--brand-blue); }
 
 
@@ -95,7 +93,7 @@
   .metric-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 32px;
+    gap: 20px;
   }
   .info-group {
     display: flex;

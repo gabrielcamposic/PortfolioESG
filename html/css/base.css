@@ -74,12 +74,12 @@ body {
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: var(--font-weight-regular);
-  padding: 24px;
-  line-height: 1.5;
+  padding: 16px;
+  line-height: 1.4;
 }
 
 @media (max-width: 640px) {
-  body { padding: 16px; }
+  body { padding: 12px; }
 }
 
 /* ── Typography & Components ── */
@@ -101,7 +101,7 @@ h1, h2, h3 { letter-spacing: -0.01em; font-weight: var(--font-weight-emphasis); 
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: 18px;
   box-shadow: var(--shadow-sm);
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   position: relative;
@@ -127,7 +127,7 @@ h1, h2, h3 { letter-spacing: -0.01em; font-weight: var(--font-weight-emphasis); 
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 18px;
+  padding: 14px;
   box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
 }
@@ -138,7 +138,7 @@ h1, h2, h3 { letter-spacing: -0.01em; font-weight: var(--font-weight-emphasis); 
 
 .card .label {
   font-size: 9px; font-weight: var(--font-weight-emphasis); text-transform: uppercase;
-  letter-spacing: 0.1em; color: var(--color-label); margin-bottom: 8px;
+  letter-spacing: 0.1em; color: var(--color-label); margin-bottom: 4px;
 }
 
 .card .value {
@@ -147,7 +147,7 @@ h1, h2, h3 { letter-spacing: -0.01em; font-weight: var(--font-weight-emphasis); 
 }
 
 .card .sub {
-  font-size: 10px; margin-top: 10px; display: inline-flex;
+  font-size: 10px; margin-top: 6px; display: inline-flex;
   padding: 2px 8px; border-radius: 6px; background: var(--bg-card-alt);
   border: 1px solid var(--border); font-weight: var(--font-weight-emphasis); color: var(--text-secondary);
 }
@@ -177,7 +177,7 @@ h1, h2, h3 { letter-spacing: -0.01em; font-weight: var(--font-weight-emphasis); 
 /* ── Period Header ── */
 .period-header {
   font-size: 14px; font-weight: var(--font-weight-emphasis); color: var(--text-secondary);
-  margin-bottom: 24px; display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
   padding-bottom: 12px; border-bottom: 1px solid var(--border-strong);
 }
 .period-header .dates {
