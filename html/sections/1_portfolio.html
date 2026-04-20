@@ -13,7 +13,7 @@
   .cards-vertical {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
   .cards-vertical .card {
     flex: 1;
@@ -23,7 +23,7 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 14px;
+    padding: 10px 12px;
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
   }
@@ -32,6 +32,10 @@
     border-color: var(--accent-blue);
     box-shadow: var(--shadow-md);
   }
+  .cards-vertical .card .label-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+  .cards-vertical .card .label { font-size: 8px; margin-bottom: 0; }
+  .cards-vertical .card .value { font-size: 18px; line-height: 1; }
+  .cards-vertical .card .sub { font-size: 9px; margin-top: 2px; line-height: 1.2; }
   
   .dashboard-grid {
     display: grid;
@@ -45,11 +49,15 @@
   /* Desktop Layouts */
   @media (min-width: 1024px) {
     .dashboard-grid.layout-hero {
-      grid-template-columns: 260px 1fr;
+      grid-template-columns: 160px 1fr;
       align-items: stretch;
     }
     .dashboard-grid.layout-split {
       grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+    .dashboard-grid.layout-top {
+      grid-template-columns: 2fr 1fr;
       align-items: start;
     }
   }
@@ -79,8 +87,46 @@
   }
 
   /* ── Charts ── */
-  .chart-wrapper { position: relative; height: 380px; width: 100%; }
-  .bar-chart-wrapper { position: relative; height: 380px; width: 100%; }
+  .chart-wrapper { position: relative; height: 420px; width: 100%; }
+  
+  .chart-perf-overlay {
+    position: absolute;
+    top: 15px;
+    left: 15px; /* Will be adjusted by JS */
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    z-index: 10;
+    box-shadow: var(--shadow-sm);
+    pointer-events: none;
+  }
+  .chart-perf-overlay table { border-collapse: collapse; }
+  .chart-perf-overlay th { text-align: left; color: var(--color-label); padding-right: 12px; font-weight: 600; padding-bottom: 4px; }
+  .chart-perf-overlay td { text-align: right; padding: 2px 8px; font-weight: 600; }
+  .chart-perf-overlay .win-label { color: var(--text-secondary); text-align: left; padding-left: 0; font-weight: 400; }
+  .chart-perf-overlay .val-p { color: var(--brand-blue); }
+  .chart-perf-overlay .val-b { color: #64748b; }
+  .chart-perf-overlay .val-c { color: #1e293b; }
+  
+  .legend-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .legend-indicator.dash {
+    width: 10px;
+    height: 2px;
+    border-radius: 1px;
+    border-bottom: 2px dashed currentColor;
+    background: none !important;
+  }
 
   /* ── Performance table ── */
   .perf-table {
@@ -153,10 +199,19 @@
 
 <div class="period-header" id="period-header"></div>
 
-<!-- Current Portfolio Composition -->
-<div class="chart-card" style="margin-bottom: 16px;">
-  <div class="chart-title">Composição da Carteira Atual</div>
-  <div id="composition-table-container"><span class="loading">Carregando composição...</span></div>
+<!-- Top Tables Side-by-Side -->
+<div class="dashboard-grid layout-top" style="margin-bottom: 16px;">
+  <!-- Composition Table -->
+  <div class="chart-card">
+    <div class="chart-title">Composição da Carteira Atual</div>
+    <div id="composition-table-container"><span class="loading">Carregando composição...</span></div>
+  </div>
+
+  <!-- Monthly TWR returns table -->
+  <div class="chart-card" style="overflow-y: auto;">
+    <div class="chart-title" style="margin-bottom: 12px;">Rentabilidade Mensal — TWR</div>
+    <div id="monthly-returns-container"><span class="loading">Carregando rentabilidade...</span></div>
+  </div>
 </div>
 
 <div class="dashboard-grid layout-hero" style="margin-bottom: 16px;">
@@ -165,31 +220,16 @@
     <div class="card"><span class="loading">Carregando...</span></div>
   </div>
 
-  <!-- Right Column: Line chart -->
-  <div class="chart-card" style="margin-bottom: 0;">
+  <!-- Right Column: Line chart with integrated metrics -->
+  <div class="chart-card" style="margin-bottom: 0; position: relative;">
     <div class="chart-title">Evolução base 100 — Portfólio vs Ibovespa vs CDI</div>
     <div class="chart-wrapper">
+      <div id="perf-chart-overlay" class="chart-perf-overlay"></div>
       <canvas id="perf-chart"></canvas>
     </div>
   </div>
 </div>
 
-<!-- Split Grid (50/50): Bar Chart + Monthly Table -->
-<div class="dashboard-grid layout-split">
-  <!-- Bar chart -->
-  <div class="chart-card" style="height: 480px; display: flex; flex-direction: column;">
-    <div class="chart-title" style="flex-shrink: 0;">Retorno por Janela</div>
-    <div class="bar-chart-wrapper" style="flex: 1;">
-      <canvas id="bar-chart"></canvas>
-    </div>
-  </div>
-
-  <!-- Monthly TWR returns table -->
-  <div class="chart-card" style="height: 480px; overflow-y: auto;">
-    <div class="chart-title" style="margin-bottom: 12px; position: sticky; top: 0; background: var(--bg-card); z-index: 5;">Rentabilidade Mensal — TWR</div>
-    <div id="monthly-returns-container"></div>
-  </div>
-</div>
 
 <script type="module">
 import { DC, plColor, assetColor } from '../js/data-colors.js';
@@ -200,11 +240,11 @@ function fmtBRL(v) {
   if (v == null || isNaN(v)) return '—';
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
-function fmtPct(v) {
+function fmtPct(v, d = 1) {
   if (v == null || isNaN(v)) return '—';
-  return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%';
+  return (v >= 0 ? '+' : '') + (v * 100).toFixed(d) + '%';
 }
-function fmtNum(v, d = 2) {
+function fmtNum(v, d = 1) {
   if (v == null || isNaN(v)) return '—';
   return v.toFixed(d);
 }
@@ -270,6 +310,30 @@ async function render() {
       card('Volatilidade', fmtPct(twr.volatility), '', `sharpe <span style="color: ${DC.portfolio.line}">${fmtNum(twr.sharpe)}</span>`, 'Risco: quanto a carteira oscila. Sharpe indica se esse risco compensou sobre o CDI livre de risco.') +
       card('Alpha vs Ibov', fmtPct(alpha.total), plColor(alpha.total), 'TWR − bench', 'Alpha: Quanto sua carteira rendeu de prêmio (a mais ou a menos) contra o Ibovespa');
 
+    // ── Integrated Performance Overlay ──
+    const wins = ['YTD','6M','12M','24M'];
+    let overlayHtml = `<table>
+      <thead>
+        <tr>
+          <th>Janela</th>
+          <th class="val-p"><span class="legend-indicator" style="background: ${DC.portfolio.line}"></span>Port</th>
+          <th class="val-b"><span class="legend-indicator dash" style="color: ${DC.ibov.line}"></span>Ibov</th>
+          <th class="val-c"><span class="legend-indicator dash" style="color: ${DC.cdi.line}"></span>CDI</th>
+        </tr>
+      </thead>
+      <tbody>`;
+    wins.forEach(w => {
+      if (perf[w]) {
+        overlayHtml += `<tr>
+          <td class="win-label">${w}</td>
+          <td class="val-p">${fmtPct(perf[w].portfolio, 1)}</td>
+          <td class="val-b">${fmtPct(perf[w].benchmark, 1)}</td>
+          <td class="val-c">${fmtPct(perf[w].cdi, 1)}</td>
+        </tr>`;
+      }
+    });
+    overlayHtml += '</tbody></table>';
+    document.getElementById('perf-chart-overlay').innerHTML = overlayHtml;
 
     // ── Line chart: Portfolio vs Ibovespa vs CDI, base 100 ──
     if (dailyRows.length > 0) {
@@ -287,6 +351,15 @@ async function render() {
         pS.push(pB); bS.push(bB); cS.push(cB);
       }
 
+      // Find marker indices
+      const last = dailyRows[dailyRows.length-1].date;
+      const ytdStart = last.slice(0,4) + '-01-01';
+      const ytdIdx = dailyRows.findIndex(r => r.date >= ytdStart);
+      
+      const twelveM = new Date(last); twelveM.setFullYear(twelveM.getFullYear()-1);
+      const twelveMStr = twelveM.toISOString().slice(0,10);
+      const twelveMIdx = dailyRows.findIndex(r => r.date >= twelveMStr);
+
       new Chart(document.getElementById('perf-chart').getContext('2d'), {
         type: 'line',
         data: {
@@ -299,125 +372,103 @@ async function render() {
             { label:'CDI', data:cS, borderColor: DC.cdi.line, borderWidth:1.5,
               borderDash: DC.cdi.dash, pointRadius:0, pointHitRadius:8, tension:0, fill:false },
           ]
-
         },
         options: {
           responsive:true, maintainAspectRatio:false,
-          layout: { padding: { right: 70, left: 10, top: 20 } },
-          interaction:{mode:'index',intersect:false},
+          interaction: { mode: 'index', intersect: false },
+          layout: { padding: { right: 50, top: 30 } },
           scales: {
-            x:{ ticks:{color:'hsl(222, 16%, 55%)',font:{size:10, weight: 600},maxTicksLimit:8,maxRotation:0}, grid:{display: false} },
-            y:{ ticks:{color:'hsl(222, 16%, 55%)',font:{size:10,family:"var(--font-mono)", weight: 500},callback:v=>v.toFixed(0)}, grid:{color:'rgba(0,0,0,0.04)'}, border: {display: false} }
+            x: { 
+              grid: { display:false }, 
+              ticks: { 
+                color:'var(--text-muted)', 
+                font:{size:9, weight: 600}, 
+                maxRotation:0,
+                autoSkip: true,
+                maxTicksLimit: 8,
+                callback: function(v) {
+                  const d = labels[v];
+                  if (!d) return '';
+                  const parts = d.split('-');
+                  return parts[1] + '/' + parts[0].slice(2);
+                }
+              } 
+            },
+            y: { 
+              position: 'left',
+              grid: { color:'rgba(0,0,0,0.04)' },
+              ticks: { color:'var(--text-muted)', font:{size:10, family:'var(--font-mono)'} }
+            }
           },
           plugins: {
-            legend:{ position: 'top', align: 'end', labels:{color:'var(--text-secondary)',font:{size:12, weight: 600},usePointStyle:true,pointStyleWidth:10, padding: 20} },
-            tooltip:{
+            legend: { display: false },
+            tooltip: {
               backgroundColor:'rgba(15, 23, 42, 0.95)', padding: 12, cornerRadius: 10,
               titleColor:'#ffffff', bodyColor:'#e2e8f0',
-              titleFont:{weight:600, size: 14},
-              bodyFont:{family:"var(--font-mono)",size:12},
+              titleFont:{weight:600}, bodyFont:{family:"var(--font-mono)",size:11},
               displayColors: true, boxPadding: 6,
-              callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}` }
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.parsed.y;
+                  const ret = ((val/100)-1)*100;
+                  return `${ctx.dataset.label}: ${val.toFixed(2)} (${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%)`;
+                }
+              }
             }
           }
         },
         plugins: [{
-          id: 'endValuePlugin',
-          afterDatasetsDraw(chart) {
-            const ctx = chart.ctx;
-            chart.data.datasets.forEach((dataset, i) => {
-              const meta = chart.getDatasetMeta(i);
-              if (!meta.hidden && meta.data.length > 0) {
-                const lastPoint = meta.data[meta.data.length - 1];
-                const finalVal = dataset.data[dataset.data.length - 1];
-                const pctRet = finalVal - 100;
-                const sign = pctRet > 0 ? '+' : '';
-                const text = ` ${sign}${pctRet.toFixed(2)}%`;
+          id: 'customMarkers',
+          afterDraw(chart) {
+            const {ctx, scales: {x, y}} = chart;
+            
+            // Sync overlay position with Y axis width
+            const overlay = document.getElementById('perf-chart-overlay');
+            if (overlay) {
+              overlay.style.left = (y.right + 10) + 'px';
+            }
+
+            ctx.save();
+            
+            const markers = [
+              { idx: ytdIdx, label: 'YTD' },
+              { idx: twelveMIdx, label: '12M' }
+            ];
+
+            markers.forEach(m => {
+              if (m.idx > 0 && m.idx < labels.length) {
+                const xPos = x.getPixelForValue(m.idx);
+                ctx.beginPath();
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(xPos, y.top);
+                ctx.lineTo(xPos, y.bottom);
+                ctx.strokeStyle = 'rgba(138, 122, 101, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
                 
-                ctx.save();
-                ctx.font = '600 12px -apple-system, "Helvetica Neue", Arial, sans-serif';
-                ctx.fillStyle = dataset.borderColor;
-                ctx.textBaseline = 'middle';
-                ctx.fillText(text, lastPoint.x + 8, lastPoint.y);
-                ctx.restore();
+                ctx.fillStyle = 'var(--color-label)';
+                ctx.font = '600 9px var(--font-sans)';
+                ctx.textAlign = 'center';
+                ctx.fillText(m.label, xPos, y.bottom - 10);
               }
             });
-          }
-        }]
 
-      });
-    }
-
-    // ── Performance windows table ──
-    const winOrder = ['YTD','3M','6M','12M','24M'];
-    const winLabels = {YTD:'YTD',  '3M':'3 meses','6M':'6 meses','12M':'12 meses','24M':'24 meses'};
-    const available = winOrder.filter(w => perf[w]);
-
-    if (available.length) {
-      // ── Grouped bar chart (Table has been removed by design) ──
-      const barLabels = available.map(w=>winLabels[w]||w);
-      const portData = available.map(w=> +(perf[w].portfolio*100).toFixed(2));
-      const benchData = available.map(w=> +(perf[w].benchmark*100).toFixed(2));
-      const cdiData = available.map(w=> +(perf[w].cdi*100).toFixed(2));
-
-      new Chart(document.getElementById('bar-chart').getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: barLabels,
-          datasets: [
-            { label:'Portfólio', data:portData, backgroundColor: portData.map(v => plColor(v/100)), borderRadius:6 },
-            { label:'Ibovespa', data:benchData, backgroundColor: DC.ibov.line, borderRadius:6, opacity: 0.8 },
-            { label:'CDI', data:cdiData, backgroundColor: DC.cdi.line, borderRadius:6, opacity: 0.6 },
-          ]
-
-
-        },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          layout: { padding: { right: 45, left: 15, top: 10 } },
-          indexAxis:'y',
-          scales: {
-            x:{ ticks:{color:'hsl(222, 16%, 55%)',font:{size:10,family:"var(--font-mono)", weight: 600},callback:v=>v+'%'},
-                grid:{color:'rgba(0,0,0,0.04)'}, border: {display: false} },
-            y:{ ticks:{color:'var(--text-secondary)',font:{size:11, weight: 600}}, grid:{display:false} }
-          },
-          plugins: {
-            legend:{ position: 'top', align: 'end', labels:{color:'var(--text-secondary)',font:{size:11, weight: 600},usePointStyle:true,pointStyleWidth:8} },
-            tooltip:{
-              backgroundColor:'rgba(15, 23, 42, 0.95)', padding: 12, cornerRadius: 10,
-              titleColor:'#ffffff', bodyColor:'#e2e8f0',
-              titleFont:{weight:600, size: 14},
-              bodyFont:{family:"var(--font-mono)",size:12},
-              displayColors: true, boxPadding: 6,
-              callbacks:{ label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(2)}%` }
-            }
-          }
-        },
-        plugins: [{
-          id: 'barValuesPlugin',
-          afterDatasetsDraw(chart) {
-            const ctx = chart.ctx;
+            // End of line labels
             chart.data.datasets.forEach((dataset, i) => {
               const meta = chart.getDatasetMeta(i);
-              if (!meta.hidden) {
-                meta.data.forEach((bar, index) => {
-                  const val = dataset.data[index];
-                  const text = ` ${val > 0 ? '+' : ''}${val.toFixed(2)}%`;
-                  
-                  ctx.save();
-                  ctx.font = '600 11px -apple-system, "Helvetica Neue", Arial, sans-serif';
-                  ctx.fillStyle = dataset.backgroundColor;
-                  ctx.textBaseline = 'middle';
-                  ctx.textAlign = val >= 0 ? 'left' : 'right';
-                  const xOffset = val >= 0 ? bar.x + 8 : bar.x - 8;
-                  ctx.fillText(text, xOffset, bar.y);
-                  ctx.restore();
-                });
+              const lastPoint = meta.data[meta.data.length - 1];
+              if (lastPoint) {
+                ctx.fillStyle = dataset.borderColor;
+                ctx.font = 'bold 10px var(--font-mono)';
+                ctx.textAlign = 'left';
+                const val = dataset.data[dataset.data.length-1];
+                ctx.fillText(` ${val.toFixed(1)}`, lastPoint.x, lastPoint.y);
               }
             });
+            
+            ctx.restore();
           }
         }]
-
       });
     }
 
@@ -435,7 +486,7 @@ async function render() {
       }
 
       let html = '<table class="perf-table"><thead><tr>';
-      html += '<th style="text-align:left">Mês</th><th>Retorno</th><th>CDI</th><th>Acumulado</th><th>Pregões</th>';
+      html += '<th style="text-align:left; width: 60px;">Mês</th><th>Retorno</th><th>CDI</th><th>Acum.</th>';
       html += '</tr></thead><tbody>';
 
       const mesesInvertidos = [...meses].reverse();
@@ -453,18 +504,17 @@ async function render() {
           <td style="color: ${retColor}">${isGap ? '—' : fmtPct(ret)}</td>
           <td>${cdiVal != null && !isGap ? fmtPct(cdiVal) : '—'}</td>
           <td style="color: ${acumColor}">${fmtPct(acum)}</td>
-          <td style="color:var(--text-muted)">${m.pregoes}</td>
         </tr>`;
       }
 
       const twrTotal = mr.twr_total;
       const cdiTotal = mr.cdi_total;
+      const twrColor = plColor(twrTotal);
       html += `<tr class="total-row">
         <td><strong>Total</strong></td>
-        <td style="color: #fff"><strong>${fmtPct(twrTotal)}</strong></td>
+        <td style="color: ${twrColor}"><strong>${fmtPct(twrTotal)}</strong></td>
         <td>${cdiTotal != null ? fmtPct(cdiTotal) : '—'}</td>
-        <td style="color: #fff"><strong>${fmtPct(twrTotal)}</strong></td>
-        <td style="color:rgba(255,255,255,0.6)">${meses.reduce((s,m)=>s+m.pregoes,0)}</td>
+        <td style="color: ${twrColor}"><strong>${fmtPct(twrTotal)}</strong></td>
       </tr>`;
 
 
@@ -495,11 +545,10 @@ async function render() {
           <th style="text-align: left;">Ativo</th>
           <th>Peso</th>
           <th>Qtd</th>
-          <th>Custo Médio</th>
-          <th>Cotação</th>
-          <th>Valor Mercado</th>
+          <th>Preço</th>
+          <th>Mercado</th>
           <th>P&L</th>
-          <th>P&L %</th>
+          <th>%</th>
         </tr></thead><tbody>`;
 
       for (const h of holdings) {
@@ -509,7 +558,6 @@ async function render() {
           <td style="font-family: var(--font-sans); font-weight: 600; color: ${tickerC}; text-align: left;">${h.symbol}</td>
           <td>${(h.weight * 100).toFixed(1)}%</td>
           <td>${h.qty}</td>
-          <td>${fmtBRL(h.avgCost)}</td>
           <td>${fmtBRL(h.currentPrice)}</td>
           <td>${fmtBRL(h.mktVal)}</td>
           <td style="color: ${plC}">${fmtBRL(h.pl)}</td>
@@ -525,7 +573,6 @@ async function render() {
       html += `<tr style="border-top: 2px solid var(--border-strong); font-weight: 600; font-family: var(--font-sans);">
         <td style="text-align: left;">Total</td>
         <td>100%</td>
-        <td></td>
         <td></td>
         <td></td>
         <td>${fmtBRL(totalMktVal)}</td>
