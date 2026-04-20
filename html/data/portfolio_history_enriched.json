@@ -360,6 +360,37 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260420-145138",
+    "timestamp": "2026-04-20 15:10:31",
+    "n_assets": 6,
+    "stocks": [
+      "AMBP3.SA",
+      "KLBN4.SA",
+      "VULC3.SA",
+      "CMIG3.SA",
+      "AURA33.SA",
+      "CXSE3.SA"
+    ],
+    "weights": [
+      0.0269,
+      0.887,
+      0.0184,
+      0.0581,
+      0.0037,
+      0.006
+    ],
+    "sharpe_forward": 16.7552,
+    "ret_hist_12m": -0.59,
+    "vol_12m": 21.14,
+    "ret_proj_12m": 526.96,
+    "score": 0.8713,
+    "momentum": 0.0898,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.0094,
+    "holdings_return_pct": 18.44,
+    "excess_return_pct": 91.5233
+  },
+  {
     "run_id": "20260420-060251",
     "timestamp": "2026-04-20 06:33:20",
     "n_assets": 5,
@@ -382,7 +413,7 @@
     "vol_12m": 19.52,
     "ret_proj_12m": 477.42,
     "score": 0.8761,
-    "momentum": 0.1534,
+    "momentum": null,
     "decision": "REBALANCE",
     "transition_cost_pct": 0.0102,
     "holdings_return_pct": 13.51,
