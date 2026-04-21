@@ -960,6 +960,7 @@ def _compute_real_metrics(daily_df: pd.DataFrame) -> dict:
             "total_return": round(cdi_total, 4),
             "annual_rate": round(cdi_annual, 4),
             "source": cdi_source,
+            "pct_of_cdi": pct_cdi / 100 if pct_cdi is not None else None,
         },
         "alpha": {
             "total": round(alpha_total, 4),

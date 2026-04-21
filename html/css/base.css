@@ -6,11 +6,11 @@
 :root {
   /* -- Brand Colors (Stage 2) -- */
   --brand-blue:    #1B3560;            /* Navy Primary */
-  --brand-red:     #D42B1E;            /* Accent Red */
+  --brand-red:     #0000F5;            /* Highlight Accent (Blue requested) */
   
-  /* -- RGB variants for charts (Updated for Navy/Red) -- */
+  /* -- RGB variants for charts -- */
   --rgb-blue:  27, 53, 96;
-  --rgb-red:   212, 43, 30;
+  --rgb-red:   0, 0, 245;
 
   /* -- Institutional Palette (Warm Beige - FT Inspired) -- */
   --bg-primary:    #FDF6EE;            /* General background */
@@ -21,15 +21,15 @@
   --border-strong: rgba(120, 90, 50, 0.20);   /* Emphasis border/dividers */
   --border-focus:  var(--brand-blue);
   
-  --text-primary:   #1a1208;            /* Neutral Base Text */
-  --text-secondary: hsl(210, 30%, 25%);
-  --text-muted:     hsl(210, 15%, 45%);
+  --text-primary:   #33302E;            /* Neutral Base Text */
+  --text-secondary: hsl(30, 5%, 40%);
+  --text-muted:     hsl(30, 5%, 55%);
 
   /* -- Semantic Statuses -- */
-  --color-positive: #1A5C3A;
-  --bg-positive:    rgba(26, 92, 58, 0.09);
-  --color-negative: #8C2A1C;
-  --bg-negative:    rgba(156, 48, 32, 0.08);
+  --color-positive: #5A8B29;
+  --bg-positive:    rgba(90, 139, 41, 0.09);
+  --color-negative: #BD3022;
+  --bg-negative:    rgba(189, 48, 34, 0.08);
   --color-amber:    #9A6508;
   
   /* -- Semantic Aliases -- */
@@ -49,8 +49,8 @@
   --shadow-premium: 0 12px 36px -8px hsla(28, 30%, 20%, 0.1);
 
   /* -- Typography -- */
-  --font-sans: -apple-system, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --font-sans: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: var(--font-sans);
 
   --font-weight-light: 300;
   --font-weight-regular: 400;
@@ -153,8 +153,8 @@ h1, h2, h3 { letter-spacing: -0.01em; font-weight: var(--font-weight-emphasis); 
 }
 
 /* ── Status Colors ── */
-.positive { color: var(--color-positive) !important; }
-.negative { color: var(--color-negative) !important; }
+.positive { color: var(--color-positive) !important; font-weight: var(--font-weight-emphasis); }
+.negative { color: var(--color-negative) !important; font-weight: var(--font-weight-emphasis); }
 .brand    { color: var(--brand-blue) !important; }
 .amber    { color: var(--color-amber) !important; }
 

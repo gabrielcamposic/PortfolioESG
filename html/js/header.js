@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   header.js — PortfolioESG · auto-inject shared header + nav
+   header.js — PortfolioESG · Premium Dual-Layer Header
    Usage: <script src="../js/header.js" data-page="portfolio|risk|model"></script>
    ───────────────────────────────────────────────────────────── */
 (function () {
@@ -9,139 +9,112 @@
   /* ─── 1. Inject header CSS ─── */
   const style = document.createElement('style');
   style.textContent = `
+    :root {
+      --header-top-bg: #272A32;
+      --header-main-bg: #FEF9F6;
+    }
+
+    /* Outer wrapper to keep everything sticky */
+    .header-wrapper {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      width: 100%;
+      margin-bottom: 32px;
+    }
+
+    /* Dark Top Bar */
+    .top-bar {
+      background: var(--header-top-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      padding: 8px 32px;
+      font-size: 11px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .top-bar .tb-item { display: flex; align-items: center; gap: 8px; }
+    .top-bar .tb-label { color: rgba(255,255,255,0.6); text-transform: uppercase; font-size: 9px; letter-spacing: 0.05em; font-weight: 700; }
+    .top-bar .tb-value { font-weight: 700; }
+    .top-bar .pv-pnl { font-weight: 700; }
+    .top-bar .pv-pnl.positive { color: #A2CB4A !important; }
+    .top-bar .pv-pnl.negative { color: #EE7E80 !important; }
+    .top-bar .decision-badge { 
+      padding: 2px 10px; border-radius: 4px; 
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+    }
+    .top-bar .decision-badge.rebalance { background: #EE7E80; color: #fff; }
+    .top-bar .decision-badge.hold { background: #A2CB4A; color: #fff; }
+
+    /* Light Main Header */
     .header-bar {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: 16px;
-      padding: 14px 24px;
-      background: var(--glass-bg);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      margin-bottom: 32px;
-      box-shadow: var(--shadow-premium);
-      position: sticky;
-      top: 10px;
-      z-index: 100;
+      justify-content: space-between;
+      padding: 12px 32px;
+      background: var(--header-main-bg);
+      border-bottom: 1px solid var(--border-strong);
+      border-left: 1px solid var(--border-strong);
+      border-right: 1px solid var(--border-strong);
+      border-bottom-left-radius: var(--radius-md);
+      border-bottom-right-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
     }
 
     .header-logo-block {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
+      align-items: center;
+      gap: 12px;
     }
     .header-brand-logo {
-      height: 28px;
+      height: 24px;
       width: auto;
-      object-fit: contain;
     }
     .header-logo {
-      font-size: 20px;
-      font-weight: var(--font-weight-emphasis);
+      font-size: 18px;
+      font-weight: 800;
       letter-spacing: -0.02em;
-      color: var(--text-primary);
+      color: #33302E;
       text-decoration: none;
-      line-height: 1;
     }
-    .header-logo span { color: var(--accent-blue); }
-    .header-date {
-      font-size: 9px;
-      color: var(--text-muted);
-      font-family: var(--font-sans);
-      font-weight: var(--font-weight-emphasis);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-    .header-separator {
-      width: 1px;
-      height: 48px;
-      background: var(--border-strong);
-      flex-shrink: 0;
-    }
+    .header-logo span { color: var(--brand-blue); }
     .nav-tabs { 
       display: flex; 
       align-items: center; 
       gap: 4px; 
-      background: var(--bg-card-alt);
-      padding: 4px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-strong);
     }
     .nav-tab {
       display: inline-flex;
       align-items: center;
-      padding: 6px 4px;
-      margin: 0 10px;
-      border-radius: 0;
+      padding: 6px 12px;
       font-size: 13px;
-      font-weight: var(--font-weight-emphasis);
-      color: var(--text-secondary);
+      font-weight: 600;
+      color: #5C6B7A;
       text-decoration: none;
       transition: all 0.2s ease;
-      border-bottom: 3px solid transparent;
+      border-bottom: 2px solid transparent;
     }
-    .nav-tab:hover {
-      color: var(--brand-blue);
-    }
+    .nav-tab:hover { color: var(--brand-blue); }
     .nav-tab.active {
       color: var(--brand-blue);
-      border-bottom-color: var(--brand-red);
+      border-bottom-color: #0000F5;
     }
-    /* Pipeline status */
-    .pipeline-status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-    .status-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-card); box-shadow: 0 0 0 1px var(--border); }
-    .status-dot.running { background: var(--accent-yellow); animation: hdr-pulse 1.5s ease-in-out infinite; }
-    .status-dot.error   { background: var(--color-negative); }
-    @keyframes hdr-pulse { 0%,100%{opacity:1; transform: scale(1);} 50%{opacity:.5; transform: scale(0.9);} }
-    
-    .decision-badge {
-      display: inline-flex; align-items: center;
-      padding: 4px 10px; border-radius: 20px;
-      font-size: 9px; font-weight: var(--font-weight-emphasis); letter-spacing: 0.05em; text-transform: uppercase;
-      box-shadow: var(--shadow-sm);
-    }
-    .decision-badge.rebalance {
-      background: var(--bg-negative); color: var(--color-negative); border: 1px solid var(--color-negative);
-    }
-    .decision-badge.hold {
-      background: var(--bg-positive); color: var(--color-positive); border: 1px solid var(--color-positive);
-    }
-    
-    .portfolio-value { 
-      margin-left: auto; 
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-    .portfolio-value .pv-label {
-      font-size: 9px; color: var(--color-label);
-      text-transform: uppercase; font-weight: var(--font-weight-emphasis); letter-spacing: 0.8px;
-    }
-    .portfolio-value .pv-amount {
-      font-size: 26px; font-weight: var(--font-weight-light);
-      font-family: var(--font-sans); color: var(--text-primary);
-      line-height: 1; letter-spacing: -0.5px;
-    }
-    .portfolio-value .pv-pnl { font-size: 11px; font-weight: var(--font-weight-emphasis); font-family: var(--font-sans); }
-    
+
+    /* Pipeline status in top bar */
+    .pipeline-status { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 10px; color: rgba(255,255,255,0.7); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.running { background: #F2C057; animation: hdr-pulse 1.5s infinite; }
+    .status-dot.error   { background: #BD3022; }
+    @keyframes hdr-pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
     @media (max-width: 1024px) {
-      .header-bar { padding: 10px 16px; border-radius: var(--radius-md); top: 0; margin-bottom: 16px; width: 100%; left: 0; border-left: none; border-right: none; }
-      .nav-tabs { width: 100%; order: 3; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
-      .nav-tabs::-webkit-scrollbar { display: none; }
-      .header-separator { display: none; }
-      .portfolio-value { margin-left: auto; }
+      .top-bar { padding: 6px 16px; gap: 16px; overflow-x: auto; white-space: nowrap; }
+      .header-bar { padding: 10px 16px; flex-direction: column; gap: 12px; align-items: flex-start; }
+      .nav-tabs { margin-left: 0; width: 100%; overflow-x: auto; }
     }
-    @media (max-width: 640px) {
-      .header-logo { font-size: 18px; }
-      .portfolio-value .pv-amount { font-size: 18px; }
-      .nav-tab { padding: 5px 10px; font-size: 12px; }
-      .header-brand-logo { height: 22px; }
-    }
-
-
   `;
   document.head.appendChild(style);
 
@@ -159,26 +132,54 @@
     const navHTML = PAGES.map(p =>
       `<a class="nav-tab${p.id === currentPage ? ' active' : ''}" href="${p.href}">${p.label}</a>`
     ).join('');
-    const el = document.createElement('div');
-    el.id = 'header-bar';
-    el.className = 'header-bar';
-    el.innerHTML = `
-      <div class="header-logo-block">
-        <img src="../img/logo.png" class="header-brand-logo" alt="Logo">
-        <a class="header-logo" href="1_portfolio.html">Portfolio<span>ESG</span></a>
-        <span id="header-date" class="header-date">—</span>
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'header-wrapper';
+
+    wrapper.innerHTML = `
+      <!-- Top Dark Bar -->
+      <div class="top-bar" id="top-bar">
+        <div class="tb-item" id="tb-value">
+          <span class="tb-label">Portfolio</span>
+          <span class="tb-value">—</span>
+        </div>
+        <div class="tb-item" id="tb-pnl">
+          <span class="tb-label">Valorização</span>
+          <span class="tb-value">—</span>
+        </div>
+        <div class="tb-item" id="tb-alpha">
+          <span class="tb-label">Alpha</span>
+          <span class="tb-value">—</span>
+        </div>
+        <div class="tb-item" id="tb-cdi">
+          <span class="tb-label">% CDI</span>
+          <span class="tb-value">—</span>
+        </div>
+        <div class="tb-item" id="tb-sharpe">
+          <span class="tb-label">Sharpe</span>
+          <span class="tb-value">—</span>
+        </div>
+        <div class="tb-item" id="tb-exp">
+          <span class="tb-label">Exp. 12M Modelo</span>
+          <span class="tb-value">—</span>
+        </div>
+        <div class="tb-item" id="tb-decision">
+          <span class="tb-label">Decisão</span>
+          <span class="tb-value">—</span>
+        </div>
+        <div class="tb-item" id="tb-update">
+          <span class="tb-label">Ult.</span>
+          <span class="tb-value">—</span>
+        </div>
+        <div id="pipeline-status" class="pipeline-status" style="display:none"></div>
       </div>
 
-      <div class="header-separator"></div>
-      <nav class="nav-tabs">${navHTML}</nav>
-      <div id="pipeline-separator" class="header-separator" style="display:none"></div>
-      <div id="pipeline-status" class="pipeline-status" style="display:none"></div>
-      <div class="portfolio-value" id="portfolio-value">
-        <div class="pv-label">Valor do Portfolio</div>
-        <div class="pv-amount">—</div>
-      </div>
+      <!-- Main Navigation Bar -->
+      <header class="header-bar">
+        <nav class="nav-tabs">${navHTML}</nav>
+      </header>
     `;
-    return el;
+    return wrapper;
   }
 
   /* ─── 3. Formatters ─── */
@@ -188,9 +189,8 @@
   }
   function fmtPct(v) {
     if (v == null || isNaN(v)) return '—';
-    return (v * 100).toFixed(2) + '%';
+    return (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%';
   }
-  // "20260321-060232" → "21 mar 2026"
   function fmtRunDate(rid) {
     if (!rid) return '—';
     const m = rid.match(/^(\d{4})(\d{2})(\d{2})-/);
@@ -214,59 +214,62 @@
         fetchJSON('pipeline_progress.json').catch(() => null),
       ]);
 
-      // ── Date below logo (from run_id) ──────────────────────────────────
-      const runId = dashboard.model?.meta?.run_id;
-      const dateEl = document.getElementById('header-date');
-      if (dateEl) dateEl.textContent = fmtRunDate(runId);
-
-      // ── Pipeline status — only show when actively running or errored ───
-      const pStatus = progress?.pipeline_run_status;
-      if (pStatus) {
-        const stage = (pStatus.current_stage || '').toLowerCase();
-        let dotClass = null;
-        let text = '';
-        if (pStatus.start_time && !pStatus.end_time) {
-          dotClass = 'running';
-          text = pStatus.current_stage || 'Em execução…';
-        } else if (stage === 'error' || pStatus.status_message?.toLowerCase().includes('error')) {
-          dotClass = 'error';
-          text = pStatus.status_message || 'Erro';
-        }
-        // Only render if there's something actionable to show
-        if (dotClass) {
-          document.getElementById('pipeline-status').style.display = 'flex';
-          document.getElementById('pipeline-status').innerHTML =
-            `<div class="status-dot ${dotClass}"></div><span class="status-text">${text}</span>`;
-          document.getElementById('pipeline-separator').style.display = '';
-        }
-      }
-
-      // ── Portfolio value + decision badge ──────────────────────────────
+      const runId    = dashboard.model?.meta?.run_id;
       const market   = positions.total_current_market;
       const invested = positions.total_invested_cash;
       const pnl      = positions.total_unrealized_pnl;
       const pnlClass = pnl >= 0 ? 'positive' : 'negative';
-      const pnlSign  = pnl >= 0 ? '+' : '';
       const pnlPct   = invested ? pnl / invested : 0;
-
+      
+      const twr      = dashboard.real?.twr || {};
+      const alpha    = dashboard.real?.alpha || {};
+      const mRet     = dashboard.model?.returns || {};
       const verdict  = dashboard.model?.decision?.verdict;
-      const decCls   = verdict?.toUpperCase() === 'REBALANCE' ? 'rebalance' : 'hold';
-      const decLabel = verdict?.toUpperCase() === 'REBALANCE' ? 'Rebalancear' : 'Manter';
-      const decHTML  = verdict
-        ? `<span class="decision-badge ${decCls}">${decLabel}</span>`
-        : '';
 
-      document.getElementById('portfolio-value').innerHTML = `
-        <div class="pv-label">Valor do Portfolio</div>
-        <div class="pv-amount">${fmtBRL(market)}</div>
-        <div class="pv-pnl ${pnlClass}">${pnlSign}${fmtBRL(pnl)} (${pnlSign}${fmtPct(pnlPct)})</div>
-        ${decHTML}
-      `;
+      // 1) Valor
+      document.querySelector('#tb-value .tb-value').textContent = fmtBRL(market);
+      
+      // 2) Valorização
+      document.querySelector('#tb-pnl .tb-value').innerHTML = 
+        `<span class="pv-pnl ${pnlClass}">${pnl >= 0 ? '+' : ''}${fmtBRL(pnl)} (${fmtPct(pnlPct)})</span>`;
+
+      // 3) % do CDI
+      const pctCdi = twr.pct_cdi || 0;
+      document.querySelector('#tb-cdi .tb-value').innerHTML = 
+        `<span class="pv-pnl ${pctCdi >= 100 ? 'positive' : 'negative'}">${pctCdi.toFixed(1)}%</span>`;
+
+      // 4) Sharpe Ratio
+      document.querySelector('#tb-sharpe .tb-value').textContent = (twr.sharpe || 0).toFixed(2);
+
+      // 5) Alpha vs Ibov
+      const alphaVal = alpha.total || 0;
+      document.querySelector('#tb-alpha .tb-value').innerHTML = 
+        `<span class="pv-pnl ${alphaVal >= 0 ? 'positive' : 'negative'}">${fmtPct(alphaVal)}</span>`;
+
+      // 6) Retorno esperado (Modelo)
+      document.querySelector('#tb-exp .tb-value').textContent = (mRet.gross_12m || 0).toFixed(2) + '%';
+
+      // 7) Decisão
+      if (verdict) {
+        const decCls = verdict.toUpperCase() === 'REBALANCE' ? 'rebalance' : 'hold';
+        const decLabel = verdict.toUpperCase() === 'REBALANCE' ? 'Rebalancear' : 'Manter';
+        document.querySelector('#tb-decision .tb-value').innerHTML = 
+          `<span class="decision-badge ${decCls}">${decLabel}</span>`;
+      }
+
+      // 8) Última Atualização
+      document.querySelector('#tb-update .tb-value').textContent = fmtRunDate(runId);
+
+      // Pipeline Status
+      const pStatus = progress?.pipeline_run_status;
+      if (pStatus && pStatus.start_time && !pStatus.end_time) {
+        const pEl = document.getElementById('pipeline-status');
+        pEl.style.display = 'flex';
+        pEl.innerHTML = `<div class="status-dot running"></div><span>${pStatus.current_stage || 'Executando...'}</span>`;
+      }
 
     } catch (err) {
       console.error('Header render error:', err);
-      document.getElementById('portfolio-value').innerHTML =
-        `<div class="pv-label">Valor do Portfolio</div><div class="pv-amount">—</div>`;
     }
   }
 

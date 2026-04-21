@@ -11,15 +11,15 @@ export const DC = {
 
   // ── Semântica de valor (P&L, retorno, ação recomendada) ─────────
   pos: {
-    strong:  '#1A5C3A',   // P&L alto, retorno expressivo (>= 20%)
-    mid:     '#2E7D52',   // P&L moderado (>= 5%)
-    light:   '#5C9E78',   // P&L baixo positivo (>= 2%)
-    bg:      'rgba(26,92,58,0.09)',
+    strong:  '#5A8B29',   // Use requested green consistently
+    mid:     '#5A8B29',
+    light:   '#5A8B29',
+    bg:      'rgba(90, 139, 41, 0.09)',
   },
   neg: {
-    strong:  '#8C2A1C',   // perda expressiva (<= -20%)
-    mid:     '#B8351F',   // perda moderada
-    bg:      'rgba(140,42,28,0.10)',
+    strong:  '#BD3022',   // Use requested red consistently
+    mid:     '#BD3022',
+    bg:      'rgba(189, 48, 34, 0.10)',
   },
   neutral: {
     line:    '#5C6B7A',   // Valores entre -2% e +2%
@@ -28,26 +28,26 @@ export const DC = {
 
   // ── Ativos — paleta categórica (até 6 séries distintas) ─────────
   assets: [
-    '#1B3560',  // a1 — navy   (ativo de maior peso)
+    '#1B3560',  // a1 — navy
     '#B8780A',  // a2 — âmbar
     '#6B3FA0',  // a3 — roxo
-    '#1A5C3A',  // a4 — verde escuro
-    '#8C2A1C',  // a5 — terracota
-    '#5C6B7A',  // a6 — slate (demais / agrupados)
+    '#5A8B29',  // a4 — verde
+    '#BD3022',  // a5 — vermelho
+    '#5C6B7A',  // a6 — slate
   ],
 
   // ── Heatmap de correlação (escala divergente) ────────────────────
   heatmap: {
-    positive: '#1B3560',   // correlação alta positiva
-    zero:     '#F5F0E8',   // correlação próxima de zero
-    negative: '#8C2A1C',   // correlação negativa
+    positive: '#1B3560',
+    zero:     '#F5F0E8',
+    negative: '#BD3022',
   },
 
   // ── Score sequencial (ESG, qualidade, momentum) ──────────────────
   score: {
-    high:    '#1A5C3A',   // score >= 0,55
+    high:    '#5A8B29',   // score >= 0,55
     medium:  '#B8780A',   // score 0,35–0,54
-    low:     '#8C2A1C',   // score < 0,35
+    low:     '#BD3022',   // score < 0,35
     scoreThresholds: [0.35, 0.55],
   },
 };
@@ -95,7 +95,7 @@ export function scoreColor(v) {
 export function interpHeatmap(v) {
   const zero = [245, 240, 232]; // #F5F0E8
   const pos  = [ 27,  53,  96]; // #1B3560
-  const neg  = [140,  42,  28]; // #8C2A1C
+  const neg  = [189,  48,  34]; // #BD3022
   
   const t = Math.abs(v);
   const base = v >= 0 ? pos : neg;

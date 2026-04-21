@@ -29,11 +29,11 @@
     box-shadow: var(--shadow-sm);
   }
   .table-card .table-title {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: var(--font-weight-emphasis);
-    color: var(--color-label);
+    color: var(--text-primary);
     margin-bottom: 12px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     display: flex;
     align-items: center;
@@ -65,7 +65,7 @@
     padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text-primary);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-weight: 500;
   }
   .risk-table td:first-child {
@@ -90,11 +90,11 @@
     box-shadow: var(--shadow-sm);
   }
   .chart-card .chart-title {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: var(--font-weight-emphasis);
-    color: var(--color-label);
+    color: var(--text-primary);
     margin-bottom: 12px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     display: flex;
     align-items: center;
@@ -121,7 +121,6 @@
 </head>
 <body>
 
-<div class="period-header" id="period-header"></div>
 
 <!-- Raio-X de Risco Histórico -->
 <div class="table-card" style="background: transparent; border: none; padding: 0;">
@@ -215,14 +214,6 @@ async function render() {
     const rw   = real.risk_windows || {};
     const all  = rw.All || {};
 
-    // ── Period header ──
-    const MO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-    if (meta.history_start && meta.history_end) {
-      const [sy,sm] = meta.history_start.split('-');
-      const [ey,em] = meta.history_end.split('-');
-      document.getElementById('period-header').innerHTML =
-        `Período de análise · <span class="dates">${MO[+sm-1]}/${sy.slice(2)} – ${MO[+em-1]}/${ey.slice(2)} · ${meta.trading_days||'?'} pregões</span>`;
-    }
 
     // ── Comparison Table (Actual vs Model) ──
     const t_vol_real = dashboard.real.twr?.volatility ? fmtPct(dashboard.real.twr.volatility) : '—';
@@ -297,7 +288,7 @@ async function render() {
           layout: { padding: { right: 40, left: 10 } },
           scales: {
             x: {
-              ticks: { color: 'hsl(222, 16%, 55%)', font: { size: 10, family: "var(--font-mono)", weight: 600 }, callback: v => v + '%' },
+              ticks: { color: 'hsl(222, 16%, 55%)', font: { size: 10, family: "var(--font-sans)", weight: 600 }, callback: v => v + '%' },
               grid: { color: 'rgba(0,0,0,0.04)' },
               border: { display: false }
             },
@@ -312,7 +303,7 @@ async function render() {
               backgroundColor: 'rgba(15, 23, 42, 0.95)', padding: 12, cornerRadius: 10,
               titleColor: '#ffffff', bodyColor: '#e2e8f0',
               titleFont: { weight: 600, size: 13 },
-              bodyFont: { family: "var(--font-mono)", size: 12 },
+              bodyFont: { family: "var(--font-sans)", size: 12 },
               callbacks: { label: ctx => `${ctx.parsed.x.toFixed(2)}%` }
             }
           }

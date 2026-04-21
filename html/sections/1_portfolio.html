@@ -48,10 +48,6 @@
   
   /* Desktop Layouts */
   @media (min-width: 1024px) {
-    .dashboard-grid.layout-hero {
-      grid-template-columns: 160px 1fr;
-      align-items: stretch;
-    }
     .dashboard-grid.layout-split {
       grid-template-columns: 1fr 1fr;
       align-items: start;
@@ -72,11 +68,11 @@
   }
 
   .chart-title, .table-title {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: var(--font-weight-emphasis);
-    color: var(--color-label);
-    margin-bottom: 14px;
-    letter-spacing: 0.1em;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     display: flex;
     align-items: center;
@@ -98,7 +94,7 @@
     border: 1px solid var(--border-strong);
     border-radius: 8px;
     padding: 8px 12px;
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: 10px;
     z-index: 10;
     box-shadow: var(--shadow-sm);
@@ -151,7 +147,7 @@
     padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text-primary);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-weight: 500;
   }
   .perf-table td:first-child {
@@ -197,7 +193,6 @@
 </head>
 <body>
 
-<div class="period-header" id="period-header"></div>
 
 <!-- Top Tables Side-by-Side -->
 <div class="dashboard-grid layout-top" style="margin-bottom: 16px;">
@@ -214,13 +209,8 @@
   </div>
 </div>
 
-<div class="dashboard-grid layout-hero" style="margin-bottom: 16px;">
-  <!-- Left Column: Cards Vertical -->
-  <div class="cards-vertical" id="cards-snapshot">
-    <div class="card"><span class="loading">Carregando...</span></div>
-  </div>
-
-  <!-- Right Column: Line chart with integrated metrics -->
+<div class="dashboard-grid" style="margin-bottom: 16px; grid-template-columns: 1fr;">
+  <!-- Full Width: Line chart with integrated metrics -->
   <div class="chart-card" style="margin-bottom: 0; position: relative;">
     <div class="chart-title">Evolução base 100 — Portfólio vs Ibovespa vs CDI</div>
     <div class="chart-wrapper">
@@ -250,7 +240,9 @@ function fmtNum(v, d = 1) {
 }
 function card(label, value, colorHex, sub, tooltipText, valueStyle = "") {
   const tooltipHtml = tooltipText ? `<div class="tooltip-icon" data-tooltip="${tooltipText}">?</div>` : '';
-  const style = colorHex ? `color: ${colorHex}; ${valueStyle}` : valueStyle;
+  const isStatusColor = colorHex === DC.pos.mid || colorHex === DC.pos.strong || colorHex === DC.neg.mid || colorHex === DC.neg.strong;
+  const weight = isStatusColor ? 'font-weight: 600;' : '';
+  const style = colorHex ? `color: ${colorHex}; ${weight} ${valueStyle}` : valueStyle;
   
   return `<div class="card">
     <div class="label-container">
@@ -292,23 +284,9 @@ async function render() {
     const model = dashboard.model || {};
     const mRet = model.returns || {};
 
-    const pctCdiStr = cdi.pct_of_cdi != null ? (cdi.pct_of_cdi * 100).toFixed(1) + '%' : '—';
+    const pctCdiStr = twr.pct_cdi != null ? twr.pct_cdi.toFixed(1) + '%' : '—';
 
-    // ── Period header ──
-    const MO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-    if (meta.history_start && meta.history_end) {
-      const [sy,sm] = meta.history_start.split('-');
-      const [ey,em] = meta.history_end.split('-');
-      document.getElementById('period-header').innerHTML =
-        `Período de análise · <span class="dates">${MO[+sm-1]}/${sy.slice(2)} – ${MO[+em-1]}/${ey.slice(2)} · ${meta.trading_days||'?'} pregões</span>`;
-    }
 
-    // ── Row 1: Snapshot cards (Mini) ──
-    document.getElementById('cards-snapshot').innerHTML =
-      card('Exp. 12M (Atual)', fmtPct(mRet.hold_12m / 100), plColor(mRet.hold_12m / 100), 'retorno esperado', 'Projeção (Forward Looking): Retorno matemático esperado da carteira atual (sem rebalanceamento) em 12 meses') +
-      card('% do CDI', pctCdiStr, DC.portfolio.line, `CDI ${fmtPct(cdi.total_return)} no período`, 'Quanto o seu TWR representa sobre o rendimento do CDI no período (objetivo: >100%)') +
-      card('Volatilidade', fmtPct(twr.volatility), '', `sharpe <span style="color: ${DC.portfolio.line}">${fmtNum(twr.sharpe)}</span>`, 'Risco: quanto a carteira oscila. Sharpe indica se esse risco compensou sobre o CDI livre de risco.') +
-      card('Alpha vs Ibov', fmtPct(alpha.total), plColor(alpha.total), 'TWR − bench', 'Alpha: Quanto sua carteira rendeu de prêmio (a mais ou a menos) contra o Ibovespa');
 
     // ── Integrated Performance Overlay ──
     const wins = ['YTD','6M','12M','24M'];
@@ -501,9 +479,9 @@ async function render() {
 
         html += `<tr>
           <td>${mesLabel(m.mes)}</td>
-          <td style="color: ${retColor}">${isGap ? '—' : fmtPct(ret)}</td>
+          <td style="color: ${retColor}; font-weight: 600;">${isGap ? '—' : fmtPct(ret)}</td>
           <td>${cdiVal != null && !isGap ? fmtPct(cdiVal) : '—'}</td>
-          <td style="color: ${acumColor}">${fmtPct(acum)}</td>
+          <td style="color: ${acumColor}; font-weight: 600;">${fmtPct(acum)}</td>
         </tr>`;
       }
 
@@ -553,15 +531,14 @@ async function render() {
 
       for (const h of holdings) {
         const plC = plColor(h.plPct);
-        const tickerC = assetColor(h.symbol, holdingsTickers);
         html += `<tr>
-          <td style="font-family: var(--font-sans); font-weight: 600; color: ${tickerC}; text-align: left;">${h.symbol}</td>
+          <td style="font-family: var(--font-sans); font-weight: 600; text-align: left;">${h.symbol}</td>
           <td>${(h.weight * 100).toFixed(1)}%</td>
           <td>${h.qty}</td>
           <td>${fmtBRL(h.currentPrice)}</td>
           <td>${fmtBRL(h.mktVal)}</td>
-          <td style="color: ${plC}">${fmtBRL(h.pl)}</td>
-          <td style="color: ${plC}">${fmtPct(h.plPct)}</td>
+          <td style="color: ${plC}; font-weight: 600;">${fmtBRL(h.pl)}</td>
+          <td style="color: ${plC}; font-weight: 600;">${fmtPct(h.plPct)}</td>
         </tr>`;
       }
 
@@ -576,8 +553,8 @@ async function render() {
         <td></td>
         <td></td>
         <td>${fmtBRL(totalMktVal)}</td>
-        <td style="color: ${totalPLc}">${fmtBRL(totalPL)}</td>
-        <td style="color: ${totalPLc}">${fmtPct(totalPLpct)}</td>
+        <td style="color: ${totalPLc}; font-weight: 600;">${fmtBRL(totalPL)}</td>
+        <td style="color: ${totalPLc}; font-weight: 600;">${fmtPct(totalPLpct)}</td>
       </tr>`;
 
 
