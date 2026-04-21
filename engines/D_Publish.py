@@ -559,11 +559,24 @@ def publish_pipeline_latest(target_map: Dict[str, float]) -> None:
     """Generate pipeline_latest.json: model portfolio projected onto real values."""
     logger.info("Step 3: Generating pipeline_latest.json")
 
-    # Load latest_run_summary.json for model stocks/weights
-    summary = read_json_safe(resolve_source(LATEST_RUN_SUMMARY_JSON))
-    bp = summary.get("best_portfolio_details", {})
-    stocks = bp.get("stocks", [])
-    weights = bp.get("weights", [])
+    # Load optimized_recommendation.json for optimal (transition) model weights
+    optimized = read_json_safe(resolve_source(OPTIMIZED_RECOMMENDATION_JSON))
+    comparison = optimized.get("comparison", {})
+    optimal_weights = comparison.get("optimal", {}).get("weights", {})
+    ideal_weights = comparison.get("ideal", {}).get("weights", {})
+    
+    # Prefer optimal weights, fallback to ideal
+    model_weights_dict = optimal_weights if optimal_weights else ideal_weights
+    
+    if model_weights_dict:
+        stocks = list(model_weights_dict.keys())
+        weights = [model_weights_dict[k] for k in stocks]
+    else:
+        # Fallback to latest_run_summary.json
+        summary = read_json_safe(resolve_source(LATEST_RUN_SUMMARY_JSON))
+        bp = summary.get("best_portfolio_details", {})
+        stocks = bp.get("stocks", [])
+        weights = bp.get("weights", [])
 
     if not stocks:
         # Fallback: try portfolio_results_db.csv
@@ -1127,6 +1140,30 @@ def _compute_risk_windows(daily_df: pd.DataFrame, hist_df: pd.DataFrame) -> dict
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+def _compute_sector_exposure(weights_dict: Dict[str, float]) -> List[Dict[str, Any]]:
+    """Compute sector exposure given a weights dictionary using TICKERS_FILE."""
+    sector_map = {}
+    try:
+        import csv
+        with open(TICKERS_FILE, encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                ticker = row.get("Ticker", "").strip()
+                sector_map[ticker.replace('.SA', '')] = row.get("Sector", "Outros")
+    except Exception as e:
+        logger.warning(f"Failed to load tickers for sector map: {e}")
+
+    sector_weights = {}
+    for stock, w in weights_dict.items():
+        sym = stock.replace(".SA", "")
+        sec = sector_map.get(sym, "Outros")
+        sector_weights[sec] = sector_weights.get(sec, 0.0) + w
+
+    sector_list = [{"sector": s, "pct": round(w, 4)} for s, w in sector_weights.items()]
+    sector_list.sort(key=lambda x: x["pct"], reverse=True)
+    return sector_list
+
+
 def _build_model_section() -> dict:
     """Build the 'model' section of dashboard_latest.json."""
     latest_summary = read_json_safe(resolve_source(LATEST_RUN_SUMMARY_JSON))
@@ -1225,7 +1262,7 @@ def _build_model_section() -> dict:
             "momentum_signal": momentum_val.get("portfolio_momentum"),
         },
         "composition": {
-            "sector_exposure": bp.get("sector_exposure_list", []),
+            "sector_exposure": _compute_sector_exposure(model_weights_dict),
         },
     }
 

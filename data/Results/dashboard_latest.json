@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-21T02:16:45.282308+00:00",
+  "generated_at": "2026-04-21T19:04:13.398509+00:00",
   "model": {
     "meta": {
       "run_id": "20260420-224310",
@@ -36,28 +36,36 @@
     "composition": {
       "sector_exposure": [
         {
-          "sector": "Basic Materials",
-          "pct": 0.4693
-        },
-        {
           "sector": "Energy",
-          "pct": 0.1996
+          "pct": 0.3021
         },
         {
           "sector": "Utilities",
-          "pct": 0.1539
+          "pct": 0.2489
+        },
+        {
+          "sector": "Basic Materials",
+          "pct": 0.1956
+        },
+        {
+          "sector": "Real Estate",
+          "pct": 0.1835
         },
         {
           "sector": "Consumer Defensive",
-          "pct": 0.0724
+          "pct": 0.0232
         },
         {
           "sector": "Industrials",
-          "pct": 0.0648
+          "pct": 0.0207
+        },
+        {
+          "sector": "Consumer Cyclical",
+          "pct": 0.0132
         },
         {
           "sector": "Financial Services",
-          "pct": 0.04
+          "pct": 0.0128
         }
       ]
     }
@@ -97,7 +105,8 @@
     "cdi": {
       "total_return": 0.0508,
       "annual_rate": 0.1506,
-      "source": "LFTS11.SA"
+      "source": "LFTS11.SA",
+      "pct_of_cdi": 4.627
     },
     "alpha": {
       "total": -0.0802,
