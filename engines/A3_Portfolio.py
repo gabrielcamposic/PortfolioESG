@@ -279,7 +279,10 @@ def _calculate_portfolio_metrics_from_precomputed(
     mean_returns_annualized: pd.Series,
     covariance_matrix_annualized: pd.DataFrame,
     rf_rate: float,
-    blended_returns: pd.Series = None
+    blended_returns: pd.Series = None,
+    sector_matrix: np.ndarray = None,
+    hhi_penalty_power: float = 0.0,
+    hhi_sector_weight: float = 0.0
 ) -> Tuple[float, float, float]:
     """
     Calculates core portfolio metrics using pre-computed returns and covariance.
@@ -292,10 +295,30 @@ def _calculate_portfolio_metrics_from_precomputed(
     
     if blended_returns is not None:
         proj_score = np.dot(weights_arr, blended_returns)
-        sharpe = (proj_score - rf_rate) / vol if vol != 0 else -np.inf
+        raw_sharpe = (proj_score - rf_rate) / vol if vol != 0 else -np.inf
     else:
-        sharpe = (exp_ret - rf_rate) / vol if vol != 0 else -np.inf
-        
+        raw_sharpe = (exp_ret - rf_rate) / vol if vol != 0 else -np.inf
+
+    if hhi_penalty_power > 0.0:
+        asset_hhi = np.sum(weights_arr**2)
+        if sector_matrix is not None and hhi_sector_weight > 0.0:
+            sector_weights = np.dot(weights_arr, sector_matrix)
+            sector_hhi = np.sum(sector_weights**2)
+            hhi_blend = (1.0 - hhi_sector_weight) * asset_hhi + hhi_sector_weight * sector_hhi
+        else:
+            hhi_blend = asset_hhi
+            
+        if hhi_blend > 0:
+            hhi_multiplier = (1.0 / (hhi_blend ** hhi_penalty_power))
+            if raw_sharpe > 0:
+                sharpe = raw_sharpe * hhi_multiplier
+            else:
+                sharpe = raw_sharpe / hhi_multiplier
+        else:
+            sharpe = raw_sharpe
+    else:
+        sharpe = raw_sharpe
+
     return exp_ret, vol, sharpe
 
 def simulation_engine_calc(
@@ -303,7 +326,10 @@ def simulation_engine_calc(
     weights,
     current_rf_rate,  # Annual decimal risk-free rate
     logger_instance,
-    blended_returns_map=None
+    blended_returns_map=None,
+    stock_sector_map=None,
+    hhi_penalty_power=0.0,
+    hhi_sector_weight=0.0
 ):
     """
     Calculates forward-looking (ex-ante) portfolio metrics for optimization.
@@ -319,17 +345,30 @@ def simulation_engine_calc(
         covariance_matrix_annualized = asset_returns_df.cov() * 252
         
         combo_blended_returns = None
+        sector_matrix = None
         if blended_returns_map is not None:
             stocks = stock_combo_prices_df.columns[1:]
             projected_scores_data = [blended_returns_map.get(s, mean_asset_returns_annualized[s]) for s in stocks]
             combo_blended_returns = pd.Series(projected_scores_data, index=stocks)
+            
+        if stock_sector_map is not None and hhi_sector_weight > 0.0:
+            stocks = stock_combo_prices_df.columns[1:]
+            combo_sectors = [stock_sector_map.get(s, 'Unknown') for s in stocks]
+            unique_sectors = list(set(combo_sectors))
+            sector_matrix = __import__('numpy').zeros((len(stocks), len(unique_sectors)))
+            for i, sector in enumerate(combo_sectors):
+                j = unique_sectors.index(sector)
+                sector_matrix[i, j] = 1.0
 
         # Use the centralized, vectorized calculation function
         expected_portfolio_return_decimal, expected_volatility_decimal, sharpe_ratio = \
             _calculate_portfolio_metrics_from_precomputed(
                 weights, mean_asset_returns_annualized,
                 covariance_matrix_annualized, current_rf_rate,
-                blended_returns=combo_blended_returns
+                blended_returns=combo_blended_returns,
+                sector_matrix=sector_matrix,
+                hhi_penalty_power=hhi_penalty_power,
+                hhi_sector_weight=hhi_sector_weight
             )
 
         return expected_portfolio_return_decimal, expected_volatility_decimal, sharpe_ratio
@@ -380,7 +419,7 @@ def filter_available_stocks(source_df, stock_list):
 # ----------------------------------------------
 # 3. Simulate Portfolio Combination
 # ----------------------------------------------
-def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger, blended_returns_map=None):
+def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger, blended_returns_map=None, stock_sector_map=None, hhi_penalty_power=0.0, hhi_sector_weight=0.0):
     """
     Optimized simulation for a single stock combination.
     Used by the Genetic Algorithm and Refinement phases.
@@ -393,10 +432,19 @@ def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger, blended_retur
     k = len(df_subset.columns) - 1
     
     combo_blended_returns = None
+    sector_matrix = None
+    stocks = df_subset.columns[1:]
     if blended_returns_map is not None:
-        stocks = df_subset.columns[1:]
         projected_scores_data = [blended_returns_map.get(s, mean_returns_annualized[s]) for s in stocks]
         combo_blended_returns = pd.Series(projected_scores_data, index=stocks)
+        
+    if stock_sector_map is not None and hhi_sector_weight > 0.0:
+        combo_sectors = [stock_sector_map.get(s, 'Unknown') for s in stocks]
+        unique_sectors = list(set(combo_sectors))
+        sector_matrix = __import__('numpy').zeros((len(stocks), len(unique_sectors)))
+        for i, sector in enumerate(combo_sectors):
+            j = unique_sectors.index(sector)
+            sector_matrix[i, j] = 1.0
     
     best_sharpe = -float("inf")
     best_weights = None
@@ -406,7 +454,10 @@ def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger, blended_retur
     
         exp_ret, vol, sharpe = _calculate_portfolio_metrics_from_precomputed(
             weights, mean_returns_annualized, covariance_matrix_annualized, rf_rate,
-            blended_returns=combo_blended_returns
+            blended_returns=combo_blended_returns,
+            sector_matrix=sector_matrix,
+            hhi_penalty_power=hhi_penalty_power,
+            hhi_sector_weight=hhi_sector_weight
         )
     
         # Ensure sharpe is a scalar number before comparing
@@ -416,9 +467,7 @@ def simulate_portfolio_combo(df_subset, num_sims, rf_rate, logger, blended_retur
             
     # After the loop, if we found a valid portfolio, run the full calculation once.
     if best_weights is not None:
-        exp_ret, vol, sharpe  = simulation_engine_calc(
-            df_subset, best_weights, rf_rate, logger, blended_returns_map=blended_returns_map
-        )
+        exp_ret, vol, sharpe  = simulation_engine_calc(df_subset, best_weights, rf_rate, logger, blended_returns_map=blended_returns_map, stock_sector_map=stock_sector_map, hhi_penalty_power=hhi_penalty_power, hhi_sector_weight=hhi_sector_weight)
         return {
             'sharpe': sharpe, 'weights': best_weights, 'exp_ret': exp_ret,
             'vol': vol
@@ -501,7 +550,8 @@ def mutate_portfolio(portfolio: List[str], available_stocks: List[str], mutation
 def _run_brute_force_iteration(
     k, available_stocks, stock_sector_map, max_stocks_per_sector,
     source_stock_prices_df, sim, timer_instance, current_initial_investment,
-    current_rf_rate, logger_instance, best_sharpe_overall
+    current_rf_rate, logger_instance, best_sharpe_overall,
+    blended_returns_map=None
 ):
     """Helper to run one iteration of the brute-force search for a given k."""
     combos = list(itertools.combinations(available_stocks, k))
@@ -509,6 +559,9 @@ def _run_brute_force_iteration(
         stock_sector_map.get(s, 'Unknown') for s in c).values()) <= max_stocks_per_sector]
     total = len(diversified)
     last_logged_progress = -1
+    
+    hhi_penalty_power = float(sim.get("hhi_penalty_power", 0.0))
+    hhi_sector_weight = float(sim.get("hhi_sector_weight", 0.0))
 
     best_result_for_k: Dict[str, Any] = {
         'combo': None, 'weights': None, 'sharpe': -float("inf"),
@@ -521,8 +574,6 @@ def _run_brute_force_iteration(
         df_subset = source_stock_prices_df[['Date'] + combo_list]
         
         # --- PERFORMANCE OPTIMIZATION ---
-        # Pre-calculate returns and annualized metrics ONCE per stock combination.
-        # This avoids recalculating these in every simulation run for the same combo.
         asset_returns_df = df_subset.iloc[:, 1:].pct_change().fillna(0)
         mean_returns_annualized = asset_returns_df.mean() * 252
         covariance_matrix_annualized = asset_returns_df.cov() * 252
@@ -531,6 +582,21 @@ def _run_brute_force_iteration(
         best_exp_ret_this = best_vol_this = np.nan
         sharpes = []
         sims_run = 0
+        
+        combo_blended_returns = None
+        sector_matrix = None
+        stocks = df_subset.columns[1:]
+        if blended_returns_map is not None:
+            projected_scores_data = [blended_returns_map.get(s, mean_returns_annualized[s]) for s in stocks]
+            combo_blended_returns = pd.Series(projected_scores_data, index=stocks)
+            
+        if stock_sector_map is not None and hhi_sector_weight > 0.0:
+            combo_sectors = [stock_sector_map.get(s, 'Unknown') for s in stocks]
+            unique_sectors = list(set(combo_sectors))
+            sector_matrix = __import__('numpy').zeros((len(stocks), len(unique_sectors)))
+            for idx, sector in enumerate(combo_sectors):
+                j = unique_sectors.index(sector)
+                sector_matrix[idx, j] = 1.0
 
         if k < 2:
             max_sims = sim["PROGRESSIVE_MIN_SIMS"]
@@ -542,15 +608,13 @@ def _run_brute_force_iteration(
         for _ in range(max_sims):
             weights = generate_portfolio_weights(k)
 
-            combo_blended_returns = None
-            if blended_returns_map is not None:
-                stocks = df_subset.columns[1:]
-                projected_scores_data = [blended_returns_map.get(s, mean_returns_annualized[s]) for s in stocks]
-                combo_blended_returns = pd.Series(projected_scores_data, index=stocks)
-                
             # Use the centralized, vectorized calculation function
             exp_ret, vol, sharpe = _calculate_portfolio_metrics_from_precomputed(
-                weights, mean_returns_annualized, covariance_matrix_annualized, current_rf_rate, blended_returns=combo_blended_returns
+                weights, mean_returns_annualized, covariance_matrix_annualized, current_rf_rate, 
+                blended_returns=combo_blended_returns,
+                sector_matrix=sector_matrix,
+                hhi_penalty_power=hhi_penalty_power,
+                hhi_sector_weight=hhi_sector_weight
             )
 
             sims_run += 1
@@ -582,9 +646,7 @@ def _run_brute_force_iteration(
 
         # After the simulation loop for a combo, calculate full metrics ONCE using the best weights found.
         if best_weights_this is not None:
-            (exp_ret_final, vol_final, sharpe_final) = simulation_engine_calc(
-                df_subset, best_weights_this, current_rf_rate, logger_instance
-            )
+            (exp_ret_final, vol_final, sharpe_final) = simulation_engine_calc(df_subset, best_weights_this, current_rf_rate, logger_instance, blended_returns_map=blended_returns_map, stock_sector_map=stock_sector_map, hhi_penalty_power=hhi_penalty_power, hhi_sector_weight=hhi_sector_weight)
 
             # Check if this combo is the best for the current k (ensure sharpe_final is scalar)
             if isinstance(sharpe_final, Real) and pd.notna(sharpe_final) and sharpe_final > best_result_for_k['sharpe']:
@@ -616,9 +678,7 @@ def _run_refinement_phase(
 
     for combo_data in top_refine:
         df_subset = source_stock_prices_df[['Date'] + combo_data['stocks']]
-        result = simulate_portfolio_combo(
-            df_subset, sim["SIM_RUNS"], current_rf_rate, logger_instance, blended_returns_map=blended_returns_map
-        )
+        result = simulate_portfolio_combo(df_subset, sim["SIM_RUNS"], current_rf_rate, logger_instance, blended_returns_map=blended_returns_map, stock_sector_map=stock_sector_map, hhi_penalty_power=float(sim.get("hhi_penalty_power", 0.0)), hhi_sector_weight=float(sim.get("hhi_sector_weight", 0.0)))
         if result and result['sharpe'] > refined_best_result['sharpe']:
             refined_best_result.update({
                 'combo': combo_data['stocks'], 'weights': result['weights'], 'sharpe': result['sharpe'],
@@ -674,11 +734,7 @@ def find_best_stock_combination(
                 all_bf_results.extend(bf_results_for_k)
         else:
             # Refactored call: Assign the returned dictionary directly to k_result.
-            k_result = run_genetic_algorithm(
-                source_stock_prices_df, available_stocks, k, current_rf_rate,
-                logger_instance, timer_instance, sim["SIM_RUNS"], sim_params,
-                blended_returns_map=blended_returns_map
-            )
+            k_result = run_genetic_algorithm(source_stock_prices_df, available_stocks, k, current_rf_rate, logger_instance, timer_instance, sim["SIM_RUNS"], sim_params, blended_returns_map=blended_returns_map, stock_sector_map=stock_sector_map)
             # Extract the fitness history from the result dictionary.
             if k_result:
                 ga_history_for_k = k_result.get('ga_fitness_history', [])
@@ -691,11 +747,7 @@ def find_best_stock_combination(
                 ga_fitness_history = ga_history_for_k
 
     if sim["ADAPTIVE_SIM_ENABLED"] and sim["TOP_N_PERCENT_REFINEMENT"] > 0 and all_bf_results:
-        best_result = _run_refinement_phase(
-            all_bf_results, source_stock_prices_df, sim,
-            current_rf_rate, logger_instance, best_result,
-            blended_returns_map=blended_returns_map
-        )
+        best_result = _run_refinement_phase(all_bf_results, source_stock_prices_df, sim, current_rf_rate, logger_instance, best_result, blended_returns_map=blended_returns_map, stock_sector_map=stock_sector_map)
 
     # Add the GA history to the final result dictionary
     best_result['ga_fitness_history'] = ga_fitness_history
@@ -710,8 +762,7 @@ def run_genetic_algorithm(
         timer_instance,
         num_simulation_runs,
         sim_params,
-        blended_returns_map=None
-):
+        blended_returns_map=None, stock_sector_map=None):
     """
     Performs portfolio optimization using a Genetic Algorithm.
     Uses custom crossover and mutation functions defined by the user.
@@ -776,7 +827,7 @@ def run_genetic_algorithm(
         evaluated_population = []
         for combo in population:
             df_subset = source_stock_prices_df[["Date"] + combo]
-            result = simulate_portfolio_combo(df_subset, num_simulation_runs, current_rf_rate, logger_instance, blended_returns_map=blended_returns_map)
+            result = simulate_portfolio_combo(df_subset, num_simulation_runs, current_rf_rate, logger_instance, blended_returns_map=blended_returns_map, stock_sector_map=stock_sector_map, hhi_penalty_power=float(sim_params.get("hhi_penalty_power", 0.0)), hhi_sector_weight=float(sim_params.get("hhi_sector_weight", 0.0)))
             if result:
                 evaluated_population.append({
                     'combo': combo,

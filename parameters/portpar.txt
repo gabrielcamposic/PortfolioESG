@@ -101,3 +101,7 @@ blend_highvol_bull_past = 0.70
 blend_highvol_bear_past = 0.80
 blend_lowvol_bull_past = 0.30
 blend_lowvol_bear_past = 0.40
+
+# --- Concentration Penalty Strategy ---
+hhi_penalty_power = 0.5
+hhi_sector_weight = 0.3
