@@ -1,59 +1,63 @@
 {
-  "generated_at": "2026-04-20T18:11:45.778275+00:00",
+  "generated_at": "2026-04-21T02:16:45.282308+00:00",
   "model": {
     "meta": {
-      "run_id": "20260420-145138",
-      "timestamp": "2026-04-20 15:10:31"
+      "run_id": "20260420-224310",
+      "timestamp": "2026-04-20 23:15:27"
     },
     "returns": {
-      "hold_12m": 18.44,
-      "gross_12m": 200.0,
-      "net_12m": 199.9906,
-      "historical_annual": -0.59,
-      "excess_net_12m": 181.5506
+      "hold_12m": 17.99,
+      "gross_12m": 281.6,
+      "net_12m": 281.5829,
+      "historical_annual": 21.88,
+      "excess_net_12m": 263.5929
     },
     "risk": {
-      "volatility_annual": 21.14,
+      "volatility_annual": 14.39,
       "risk_free_annual": 14.75,
-      "sharpe": 16.7552,
+      "sharpe": 24.3179,
       "sharpe_source": "optimization",
-      "hhi": 0.7913,
-      "top5": 0.9963,
-      "liquidity_avg": 7637146.927693355,
-      "avg_internal_corr": 0.23126790383884602
+      "hhi": 0.2753,
+      "top5": 0.8952,
+      "liquidity_avg": 8724384.58700676,
+      "avg_internal_corr": 0.2507215700174812
     },
     "decision": {
       "verdict": "REBALANCE",
       "threshold_pct": 0.5,
-      "intensity": 18.0
+      "intensity": 32.0
     },
     "valuation": {
-      "portfolio_pe": 2.2,
-      "benchmark_pe": 10.3,
+      "portfolio_pe": 5.69,
+      "benchmark_pe": 10.24,
       "dividend_yield": null,
-      "momentum_signal": 0.0898
+      "momentum_signal": 0.2682
     },
     "composition": {
       "sector_exposure": [
         {
           "sector": "Basic Materials",
-          "pct": 0.8907
+          "pct": 0.4693
+        },
+        {
+          "sector": "Energy",
+          "pct": 0.1996
         },
         {
           "sector": "Utilities",
-          "pct": 0.0581
+          "pct": 0.1539
+        },
+        {
+          "sector": "Consumer Defensive",
+          "pct": 0.0724
         },
         {
           "sector": "Industrials",
-          "pct": 0.0269
-        },
-        {
-          "sector": "Consumer Cyclical",
-          "pct": 0.0184
+          "pct": 0.0648
         },
         {
           "sector": "Financial Services",
-          "pct": 0.006
+          "pct": 0.04
         }
       ]
     }
@@ -134,7 +138,7 @@
       ]
     },
     "valuation": {
-      "portfolio_pe": 6.2378301993921745
+      "portfolio_pe": 6.257833475505312
     },
     "risk": {
       "liquidity_avg": 8583881.826597407,
