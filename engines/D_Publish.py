@@ -1151,24 +1151,10 @@ def _build_model_section() -> dict:
     )
     expected_volatility = safe_float(bp.get("expected_volatility_annual_pct"), 0.0)
 
-    # Clamp runaway expected returns coming from outlier target prices (e.g., faulty targetMeanPrice)
-    MAX_EXPECTED_RETURN_PCT = 200.0  # cap to +200% to avoid 10x+ artifacts
-    def clamp_pct(val: float) -> float:
-        if val > MAX_EXPECTED_RETURN_PCT:
-            logger.warning(
-                f"  Model expected return capped: {val:.2f}% → {MAX_EXPECTED_RETURN_PCT:.2f}%"
-            )
-            return MAX_EXPECTED_RETURN_PCT
-        if val < -MAX_EXPECTED_RETURN_PCT:
-            logger.warning(
-                f"  Model expected return capped: {val:.2f}% → {-MAX_EXPECTED_RETURN_PCT:.2f}%"
-            )
-            return -MAX_EXPECTED_RETURN_PCT
-        return val
-
-    expected_return_gross = clamp_pct(expected_return_gross)
-    expected_return_hold = clamp_pct(expected_return_hold)
-    historical_return = clamp_pct(historical_return)
+    # Expected returns are now controlled algorithmically via HHI, so we pass raw values
+    expected_return_gross = float(expected_return_gross)
+    expected_return_hold = float(expected_return_hold)
+    historical_return = float(historical_return)
 
     # Sharpe — use the value from A3 optimization (computed consistently with
     # historical returns + volatility).  Recomputing here with target-price
@@ -1192,8 +1178,8 @@ def _build_model_section() -> dict:
     threshold = safe_float(optimized.get("min_threshold_pct"), 0.5)
     decision = "REBALANCE" if excess_return > threshold else "HOLD"
 
-    net_return = clamp_pct(net_return)
-    excess_return = clamp_pct(excess_return)
+    net_return = float(net_return)
+    excess_return = float(excess_return)
 
     # Additional Risk Metrics (Liquidity and Correlation)
     financials = _load_financials()
