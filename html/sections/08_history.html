@@ -217,7 +217,11 @@ async function init() {
   try {
     const response = await fetch(DATA_URL);
     if (!response.ok) throw new Error('Falha ao carregar dados enriquecidos');
-    const data = await response.json();
+    let data = await response.json();
+
+    // Remover simulações de estabilidade (STAB) e ordenar por data/hora (mais recente primeiro)
+    data = data.filter(r => r.run_id && !r.run_id.startsWith('STAB'));
+    data.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
 
     const container = document.getElementById('history-container');
     const loading = document.getElementById('history-loading');
