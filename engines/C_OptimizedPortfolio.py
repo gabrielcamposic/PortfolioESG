@@ -979,6 +979,7 @@ def generate_recommendation(
             ideal, ideal.get('expected_return', 0), ideal.get('sharpe_ratio', 0),
             calculate_portfolio_momentum(ideal, logger), params
         ), 4),
+        'ideal_momentum': round(calculate_portfolio_momentum(ideal, logger), 4),
         'comparison': {
             'window_days': int(params.get('EXPECTED_RETURN_WINDOW_DAYS', 252)),
             'holdings': {
@@ -1057,6 +1058,7 @@ def save_recommendation(
             'optimal_score': recommendation['optimal_score'],
             'holdings_score': recommendation['holdings_score'],
             'ideal_score': recommendation['ideal_score'],
+            'ideal_momentum': recommendation.get('ideal_momentum'),
             'holdings_return_pct': recommendation['comparison']['holdings']['expected_return_pct'],
             'ideal_return_pct': recommendation['comparison']['ideal']['expected_return_pct'],
             'optimal_return_pct': recommendation['comparison']['optimal']['expected_return_pct'],

@@ -1662,6 +1662,7 @@ def publish_history_enriched() -> None:
                 if best_match:
                     entry["ret_proj_12m"] = best_match.get("ideal_return_pct")
                     entry["score"] = best_match.get("ideal_score")
+                    entry["momentum"] = best_match.get("ideal_momentum")
                     entry["decision"] = best_match.get("decision")
                     entry["transition_cost_pct"] = best_match.get("transition_cost_pct")
                     entry["holdings_return_pct"] = best_match.get("holdings_return_pct")
@@ -1669,8 +1670,8 @@ def publish_history_enriched() -> None:
             except Exception:
                 pass
 
-        # Momentum: only available for latest run (not persisted per-run)
-        if run_id == latest_run_id and latest_momentum is not None:
+        # Momentum fallback for the absolute latest run if not present in JSONL
+        if run_id == latest_run_id and latest_momentum is not None and entry.get("momentum") is None:
             entry["momentum"] = latest_momentum
 
         enriched.append(entry)
