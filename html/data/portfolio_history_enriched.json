@@ -360,6 +360,41 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260422-214016",
+    "timestamp": "2026-04-22 22:11:08",
+    "n_assets": 8,
+    "stocks": [
+      "CXSE3.SA",
+      "SLCE3.SA",
+      "VULC3.SA",
+      "KLBN4.SA",
+      "AMBP3.SA",
+      "CMIG3.SA",
+      "WEGE3.SA",
+      "PRIO3.SA"
+    ],
+    "weights": [
+      0.0691,
+      0.1345,
+      0.1206,
+      0.3602,
+      0.0243,
+      0.0985,
+      0.0626,
+      0.1303
+    ],
+    "sharpe_forward": 24.6813,
+    "ret_hist_12m": 6.4,
+    "vol_12m": 14.67,
+    "ret_proj_12m": 242.99,
+    "score": 0.8777,
+    "momentum": 0.165,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.0194,
+    "holdings_return_pct": 18.03,
+    "excess_return_pct": 83.2176
+  },
+  {
     "run_id": "20260420-224310",
     "timestamp": "2026-04-20 23:15:26",
     "n_assets": 7,
