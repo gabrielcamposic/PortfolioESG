@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-04-23T01:12:31.825231+00:00",
+  "generated_at": "2026-04-23T11:55:11.435382+00:00",
   "model": {
     "meta": {
       "run_id": "20260422-214016",
       "timestamp": "2026-04-22 22:11:08"
     },
     "returns": {
-      "hold_12m": 18.03,
-      "gross_12m": 242.99,
-      "net_12m": 242.97060000000002,
+      "hold_12m": 18.13,
+      "gross_12m": 242.6,
+      "net_12m": 242.5807,
       "historical_annual": 6.4,
-      "excess_net_12m": 224.94060000000002
+      "excess_net_12m": 224.4507
     },
     "risk": {
       "volatility_annual": 14.67,
@@ -19,8 +19,8 @@
       "sharpe_source": "optimization",
       "hhi": 0.1983,
       "top5": 0.844,
-      "liquidity_avg": 7063737.874947501,
-      "avg_internal_corr": 0.23003520190447402
+      "liquidity_avg": 7026835.468757827,
+      "avg_internal_corr": 0.23003520190447405
     },
     "decision": {
       "verdict": "REBALANCE",
@@ -37,23 +37,23 @@
       "sector_exposure": [
         {
           "sector": "Energy",
-          "pct": 0.2728
+          "pct": 0.2689
         },
         {
           "sector": "Utilities",
-          "pct": 0.2211
+          "pct": 0.2214
         },
         {
           "sector": "Basic Materials",
-          "pct": 0.1746
+          "pct": 0.1753
         },
         {
           "sector": "Real Estate",
-          "pct": 0.1677
+          "pct": 0.17
         },
         {
           "sector": "Consumer Cyclical",
-          "pct": 0.0564
+          "pct": 0.0569
         },
         {
           "sector": "Consumer Defensive",

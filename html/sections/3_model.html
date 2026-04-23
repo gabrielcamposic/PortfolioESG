@@ -445,8 +445,10 @@ function renderTransactions(recommendation) {
       <th class="right">Peso Atual</th>
       <th class="right">Peso Alvo</th>
       <th class="right">Δ Peso</th>
+      <th class="right">Preço Atual</th>
+      <th class="right">Qtd Est.</th>
       <th class="right">Valor Est.</th>
-      <th class="right">Custo por Operação</th>
+      <th class="right">Custo Op.</th>
     </tr></thead><tbody>`;
 
   for (const tx of sorted) {
@@ -464,6 +466,8 @@ function renderTransactions(recommendation) {
       <td class="right">${fmtPct((tx.current_weight || 0) * 100)}</td>
       <td class="right">${fmtPct((tx.target_weight || 0) * 100)}</td>
       <td class="right" style="color: ${deltaColor}; font-weight: 600;">${delta >= 0 ? '+' : ''}${fmtPct(delta)}</td>
+      <td class="right">${tx.current_price != null ? fmtBRL(tx.current_price) : '—'}</td>
+      <td class="right">${tx.shares != null ? fmtNum(tx.shares) : '—'}</td>
       <td class="right">${fmtBRL(Math.abs(tx.value_change))}</td>
       <td class="right">${tx.cost != null ? fmtBRL(tx.cost) : '—'}</td>
     </tr>`;

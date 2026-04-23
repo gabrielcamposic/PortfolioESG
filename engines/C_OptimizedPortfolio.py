@@ -453,29 +453,29 @@ def calculate_dynamic_transaction_cost(logger: logging.Logger, params: Dict) -> 
 
 
 def get_current_price(symbol: str, logger: logging.Logger) -> Optional[float]:
-    """Get current price for a symbol from StockDataDB (latest available price)"""
+    """Get current price for a symbol.
+
+    Priority: StockDataDB (last close) → FinancialsDB (currentPrice).
+    Using StockDataDB first ensures consistency with ledger_positions.json,
+    which also derives its prices from StockDataDB.
+    """
     symbol_clean = symbol.replace('.SA', '') + '.SA' if '.SA' not in symbol else symbol
 
-    # First try FinancialsDB for currentPrice
+    # First try StockDataDB (most recent close price) — same source as ledger
+    prices_db = _load_stock_prices_db(logger)
+    if symbol_clean in prices_db:
+        ticker_prices = prices_db[symbol_clean]
+        if ticker_prices:
+            sorted_dates = sorted(ticker_prices.keys(), reverse=True)
+            if sorted_dates:
+                return ticker_prices[sorted_dates[0]]
+
+    # Fall back to FinancialsDB currentPrice
     financials = _load_financials_db(logger)
     if symbol_clean in financials:
         current = financials[symbol_clean].get('current_price')
         if current and pd.notna(current):
             return float(current)
-
-    # Fall back to StockDataDB (most recent close price)
-    prices_db = _load_stock_prices_db(logger)
-    if symbol_clean not in prices_db:
-        return None
-
-    ticker_prices = prices_db[symbol_clean]
-    if not ticker_prices:
-        return None
-
-    # Get the most recent date's price
-    sorted_dates = sorted(ticker_prices.keys(), reverse=True)
-    if sorted_dates:
-        return ticker_prices[sorted_dates[0]]
 
     return None
 
@@ -681,6 +681,7 @@ def calculate_transition_cost(
     holdings_weights = holdings.get('weights', {})
     target_weights = target.get('weights', {})
     holdings_value = holdings.get('total_value', 0)
+    current_prices = holdings.get('current_prices', {})
 
     transactions = []
     total_traded_value = 0
@@ -701,6 +702,13 @@ def calculate_transition_cost(
 
         action = 'BUY' if weight_diff > 0 else 'SELL'
         estimated_cost = round(value_change * transaction_cost_pct / 100, 4)
+
+        # Resolve current price and estimated shares
+        price = current_prices.get(stock)
+        if price is None:
+            price = get_current_price(stock, logger)
+        shares = int(round(value_change / price)) if price and price > 0 else None
+
         transactions.append({
             'symbol': stock,
             'action': action,
@@ -709,6 +717,8 @@ def calculate_transition_cost(
             'current_weight': current_weight,
             'target_weight': target_weight,
             'cost': estimated_cost,
+            'current_price': round(price, 2) if price else None,
+            'shares': shares,
         })
 
     # Total cost as percentage of portfolio

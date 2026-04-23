@@ -1,40 +1,40 @@
 {
   "stocks": [
-    "TEND3.SA",
+    "PETR3.SA",
+    "VULC3.SA",
+    "VALE3.SA",
+    "PRIO3.SA",
+    "CMIG3.SA",
+    "PLPL3.SA",
+    "MDNE3.SA",
     "SLCE3.SA",
     "WEGE3.SA",
-    "PRIO3.SA",
-    "AMBP3.SA",
-    "KLBN4.SA",
-    "MDNE3.SA",
     "SAPR11.SA",
-    "VULC3.SA",
-    "PLPL3.SA",
-    "PETR3.SA",
-    "VALE3.SA",
-    "CMIG3.SA",
-    "CXSE3.SA"
+    "CXSE3.SA",
+    "TEND3.SA",
+    "AMBP3.SA",
+    "KLBN4.SA"
   ],
   "weights": [
-    1.541055085754294,
+    22.066385974496715,
+    5.686049654747954,
+    4.20467817307858,
+    4.8209216258998415,
+    7.162400623127711,
+    5.973884279503359,
+    9.479362039564386,
     4.976315876312578,
     2.316114303770761,
-    4.8209216258998415,
+    14.980321033418756,
+    2.556605405599993,
+    1.5509873715040166,
     0.8990667345308224,
-    13.326906904444538,
-    9.357116041427915,
-    15.073223131398567,
-    5.635935391690945,
-    5.87400013792735,
-    22.455374106705424,
-    4.129364810429785,
-    7.038000444107196,
-    2.556605405599993
+    13.326906904444538
   ],
   "rows": [
     {
       "ticker": "PETR3.SA",
-      "weight": 22.455374106705424,
+      "weight": 22.066385974496715,
       "current": 51.7400016784668,
       "projectedQty": 11,
       "projectedInvested": 569.1400184631348,
@@ -48,7 +48,7 @@
     },
     {
       "ticker": "SAPR11.SA",
-      "weight": 15.073223131398567,
+      "weight": 14.980321033418756,
       "current": 42.150001525878906,
       "projectedQty": 9,
       "projectedInvested": 379.35001373291016,
@@ -76,7 +76,7 @@
     },
     {
       "ticker": "MDNE3.SA",
-      "weight": 9.357116041427915,
+      "weight": 9.479362039564386,
       "current": 33.34000015258789,
       "projectedQty": 7,
       "projectedInvested": 233.38000106811523,
@@ -90,7 +90,7 @@
     },
     {
       "ticker": "CMIG3.SA",
-      "weight": 7.038000444107196,
+      "weight": 7.162400623127711,
       "current": 18.559999465942383,
       "projectedQty": 10,
       "projectedInvested": 185.59999465942383,
@@ -104,7 +104,7 @@
     },
     {
       "ticker": "PLPL3.SA",
-      "weight": 5.87400013792735,
+      "weight": 5.973884279503359,
       "current": 13.270000457763672,
       "projectedQty": 11,
       "projectedInvested": 145.9700050354004,
@@ -118,7 +118,7 @@
     },
     {
       "ticker": "VULC3.SA",
-      "weight": 5.635935391690945,
+      "weight": 5.686049654747954,
       "current": 17.219999313354492,
       "projectedQty": 8,
       "projectedInvested": 137.75999450683594,
@@ -160,7 +160,7 @@
     },
     {
       "ticker": "VALE3.SA",
-      "weight": 4.129364810429785,
+      "weight": 4.20467817307858,
       "current": 88.7300033569336,
       "projectedQty": 1,
       "projectedInvested": 88.7300033569336,
@@ -202,7 +202,7 @@
     },
     {
       "ticker": "TEND3.SA",
-      "weight": 1.541055085754294,
+      "weight": 1.5509873715040166,
       "current": 32.72999954223633,
       "projectedQty": 1,
       "projectedInvested": 32.72999954223633,
@@ -230,12 +230,12 @@
     }
   ],
   "totals": {
-    "totalPct": 100.00000000000001,
+    "totalPct": 100.00000000000003,
     "totalCurrentSum": 2658.84,
     "totalProjectedQty": 273,
     "totalProjectedInvested": 2503.6400357484818,
     "totalProjectedBRL": 5158.458559685125
   },
   "used_path": "/Users/gabrielcampos/PortfolioESG/data/results/latest_run_summary.json",
-  "generated_at": "2026-04-23T01:12:31.488604+00:00"
+  "generated_at": "2026-04-23T11:55:11.120412+00:00"
 }
