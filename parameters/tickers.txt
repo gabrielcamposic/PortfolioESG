@@ -100,7 +100,7 @@ JBSS32.SA,JBS N.V.,Consumer Defensive,Packaged Foods,
 JHSF3.SA,JHSF Participações S.A.,Real Estate,Real Estate - Development,
 JSLG3.SA,JSL S.A.,Industrials,Integrated Freight & Logistics,
 KEPL3.SA,Kepler Weber S.A.,Industrials,Farm & Heavy Construction Machinery,
-KLBN11.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,
+KLBN11.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,KLABIN S/A PN N2
 KLBN4.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,
 KRSA3.SA,N/A,Error,HTTP Error 404:,
 LAME4.SA,N/A,Unknown,Unknown,
@@ -143,7 +143,7 @@ PLPL3.SA,Plano & Plano Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate
 PNVL3.SA,Dimed S.A. Distribuidora de Medicamentos,Healthcare,Drug Manufacturers - General,
 PORT3.SA,Wilson Sons S.A.,Industrials,Marine Shipping,
 POSI3.SA,Positivo Tecnologia S.A.,Technology,Computer Hardware,
-PRIO3.SA,Prio S.A.,Energy,Oil & Gas E&P,
+PRIO3.SA,Prio S.A.,Energy,Oil & Gas E&P,PRIO ON NM
 PRNR3.SA,Priner Serviços Industriais S.A.,Industrials,Engineering & Construction,
 PRTB3.SA,N/A,Error,HTTP Error 404:,
 PSSA3.SA,Porto Seguro S.A.,Financial Services,Insurance - Diversified,
