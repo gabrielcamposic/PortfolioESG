@@ -100,8 +100,8 @@ JBSS32.SA,JBS N.V.,Consumer Defensive,Packaged Foods,
 JHSF3.SA,JHSF Participações S.A.,Real Estate,Real Estate - Development,
 JSLG3.SA,JSL S.A.,Industrials,Integrated Freight & Logistics,
 KEPL3.SA,Kepler Weber S.A.,Industrials,Farm & Heavy Construction Machinery,
-KLBN11.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,KLABIN S/A PN N2
-KLBN4.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,
+KLBN11.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,KLABIN S/A UNT N2
+KLBN4.SA,Klabin S.A.,Basic Materials,Paper & Paper Products,KLABIN S/A PN N2
 KRSA3.SA,N/A,Error,HTTP Error 404:,
 LAME4.SA,N/A,Unknown,Unknown,
 LAVV3.SA,Lavvi Empreendimentos Imobiliários S.A.,Real Estate,Real Estate Services,
@@ -136,7 +136,7 @@ ORVR3.SA,Orizon Valorização de Resíduos S.A.,Industrials,Waste Management,
 PARD3.SA,N/A,Unknown,Unknown,
 PCAR3.SA,Companhia Brasileira De Distribuicao,Consumer Cyclical,Department Stores,
 PETR3.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated,PETROBRAS ON N2
-PETR4.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated,
+PETR4.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated,PETROBRAS PN N2
 PETZ3.SA,Pet Center Comércio e Participações S.A.,Consumer Cyclical,Specialty Retail,
 PGMN3.SA,Empreendimentos Pague Menos S.A.,Healthcare,Pharmaceutical Retailers,
 PLPL3.SA,Plano & Plano Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate - Development,PLANOEPLANO ON NM

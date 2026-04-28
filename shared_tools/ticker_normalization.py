@@ -28,7 +28,9 @@ SKIP_PATTERNS = [" DO ", " DIR ", " SUB ", " BON "]
 # EX  = ex-something (ex-direitos, ex-dividendos)
 # EDS = ex-direitos de subscrição
 # ED  = ex-dividendos
-_MODIFIER_TOKENS = {"EX", "EDS", "ED"}
+# ERJ = ex-recebimento de juros
+# EJ  = ex-juros
+_MODIFIER_TOKENS = {"EX", "EDS", "ED", "ERJ", "EJ"}
 
 # Module-level cache
 _RESOLVED_CACHE: Dict[str, Optional[str]] = {}
