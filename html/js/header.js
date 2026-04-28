@@ -102,6 +102,16 @@
       color: var(--brand-blue);
       border-bottom-color: #0000F5;
     }
+    .export-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; margin-left: auto;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      color: #fff; background: #33302E;
+      border: none; border-radius: 4px;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.2s;
+    }
+    .export-btn:hover { background: var(--brand-blue); }
 
     /* Pipeline status in top bar */
     .pipeline-status { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 10px; color: rgba(255,255,255,0.7); }
@@ -177,6 +187,10 @@
       <!-- Main Navigation Bar -->
       <header class="header-bar">
         <nav class="nav-tabs">${navHTML}</nav>
+        <button class="export-btn" onclick="window.open('export_pdf.html', '_blank')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Exportar PDF
+        </button>
       </header>
     `;
     return wrapper;
