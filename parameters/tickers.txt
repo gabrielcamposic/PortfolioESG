@@ -188,6 +188,6 @@ VLID3.SA,Valid Soluções S.A.,Industrials,Specialty Business Services,
 VULC3.SA,Vulcabras S.A.,Consumer Cyclical,Footwear & Accessories,VULCABRAS ON NM
 VVAR3.SA,N/A,Unknown,Unknown,
 VVEO3.SA,CM Hospitalar S/A,Healthcare,Medical Distribution,
-WEGE3.SA,WEG S.A.,Industrials,Electrical Equipment & Parts,
+WEGE3.SA,WEG S.A.,Industrials,Electrical Equipment & Parts,WEG ON NM
 YDUQ3.SA,Yduqs Participações S.A.,Consumer Defensive,Education & Training Services,
 LAVV3.SA,Lavvi Empreendimentos Imobiliarios S.A.,Real Estate,Real Estate - Development,LAVVI ON NM

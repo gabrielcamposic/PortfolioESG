@@ -1322,7 +1322,7 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
         price = safe_float(pos.get("current_price"), 0.0)
         mv = qty * price
         if mv > 0:
-            sym = pos.get("resolved_symbol", pos.get("symbol", ""))
+            sym = pos.get("resolved_symbol") or pos.get("symbol", "")
             real_weights[sym] = mv / total_ledger_market
             real_tickers.append(sym)
 
@@ -1354,7 +1354,7 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
             if mv > 0:
                 w = mv / total_ledger_market
                 weights.append(w)
-                sym = pos.get("resolved_symbol", pos.get("symbol", "")).replace(".SA", "")
+                sym = (pos.get("resolved_symbol") or pos.get("symbol", "")).replace(".SA", "")
                 sec = sector_map.get(sym, "Outros")
                 sector_weights[sec] = sector_weights.get(sec, 0.0) + w
 
