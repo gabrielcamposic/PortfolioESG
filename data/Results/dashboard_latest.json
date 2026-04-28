@@ -1,71 +1,67 @@
 {
-  "generated_at": "2026-04-24T01:01:36.123435+00:00",
+  "generated_at": "2026-04-28T02:31:54.726518+00:00",
   "model": {
     "meta": {
-      "run_id": "20260423-212727",
-      "timestamp": "2026-04-23 22:01:30"
+      "run_id": "20260427-230250",
+      "timestamp": "2026-04-27 23:30:27"
     },
     "returns": {
-      "hold_12m": 18.13,
-      "gross_12m": 242.6,
-      "net_12m": 242.5807,
-      "historical_annual": 6.4,
-      "excess_net_12m": 224.4507
+      "hold_12m": 25.23,
+      "gross_12m": 297.23,
+      "net_12m": 297.2156,
+      "historical_annual": 2.37,
+      "excess_net_12m": 271.9856
     },
     "risk": {
-      "volatility_annual": 15.98,
+      "volatility_annual": 15.11,
       "risk_free_annual": 14.75,
-      "sharpe": 25.2674,
+      "sharpe": 25.7293,
       "sharpe_source": "optimization",
-      "hhi": 0.254,
-      "top5": 0.8732,
-      "liquidity_avg": 6995397.172555311,
-      "avg_internal_corr": 0.20911906690896473
+      "hhi": 0.2611,
+      "top5": 0.9798,
+      "liquidity_avg": 6370411.632412948,
+      "avg_internal_corr": 0.20912520445004645
     },
     "decision": {
       "verdict": "REBALANCE",
       "threshold_pct": 0.5,
-      "intensity": 37.0
+      "intensity": 28.000000000000004
     },
     "valuation": {
-      "portfolio_pe": 6.09,
-      "benchmark_pe": 10.5,
+      "portfolio_pe": 5.35,
+      "benchmark_pe": 10.31,
       "dividend_yield": null,
-      "momentum_signal": 0.2135
+      "momentum_signal": 0.1753
     },
     "composition": {
       "sector_exposure": [
         {
+          "sector": "Basic Materials",
+          "pct": 0.4488
+        },
+        {
           "sector": "Energy",
-          "pct": 0.2689
+          "pct": 0.2146
         },
         {
           "sector": "Utilities",
-          "pct": 0.2214
-        },
-        {
-          "sector": "Basic Materials",
-          "pct": 0.1753
+          "pct": 0.1609
         },
         {
           "sector": "Real Estate",
-          "pct": 0.17
-        },
-        {
-          "sector": "Consumer Cyclical",
-          "pct": 0.0569
+          "pct": 0.0726
         },
         {
           "sector": "Consumer Defensive",
-          "pct": 0.0498
+          "pct": 0.0497
+        },
+        {
+          "sector": "Consumer Cyclical",
+          "pct": 0.0396
         },
         {
           "sector": "Industrials",
-          "pct": 0.0322
-        },
-        {
-          "sector": "Financial Services",
-          "pct": 0.0256
+          "pct": 0.0138
         }
       ]
     }
@@ -73,160 +69,168 @@
   "real": {
     "meta": {
       "history_start": "2025-10-17",
-      "history_end": "2026-04-22",
-      "trading_days": 96,
+      "history_end": "2026-04-27",
+      "trading_days": 99,
       "coverage_pct": 100.0,
       "annualize_safe": false,
       "source": "portfolio_history.csv + ledger.csv"
     },
     "snapshot": {
-      "total_market": 2658.84,
-      "total_invested": 2321.16,
-      "unrealized_pnl": 337.68,
-      "simple_roi_pct": 14.55,
-      "n_positions": 8
+      "total_market": 4235.8,
+      "total_invested": 2478.31,
+      "unrealized_pnl": 1757.49,
+      "simple_roi_pct": 70.91,
+      "n_positions": 12
     },
     "twr": {
-      "total_return": 0.2535,
-      "annual_return": 0.8208,
-      "volatility": 0.2716,
-      "sharpe": 2.47,
-      "sortino": 2.88,
+      "total_return": 0.9117,
+      "annual_return": 4.2925,
+      "volatility": 0.9471,
+      "sharpe": 4.37,
+      "sortino": 18.27,
       "max_drawdown": 0.1066,
-      "calmar": 7.7,
-      "pct_cdi": 488.3,
-      "risk_free_annual": 0.1504
+      "calmar": 40.26,
+      "pct_cdi": 1721.9,
+      "risk_free_annual": 0.15
     },
     "benchmark": {
       "ticker": "^BVSP",
-      "total_return": 0.2961,
-      "annual_return": 1.035
+      "total_return": 0.2817,
+      "annual_return": 0.9453
     },
     "cdi": {
-      "total_return": 0.0519,
-      "annual_rate": 0.1504,
+      "total_return": 0.0529,
+      "annual_rate": 0.15,
       "source": "LFTS11.SA",
-      "pct_of_cdi": 4.883
+      "pct_of_cdi": 17.219
     },
     "alpha": {
-      "total": -0.0427,
-      "annual": -0.2142
+      "total": 0.63,
+      "annual": 3.3472
     },
     "relative": {
-      "beta": 0.93,
-      "tracking_error": 0.2123,
-      "information_ratio": -1.01,
-      "correlation": 0.64
+      "beta": 0.11,
+      "tracking_error": 0.9811,
+      "information_ratio": 3.41,
+      "correlation": 0.02
     },
     "structure": {
-      "hhi": 0.2194,
-      "top3": 0.7385,
-      "top5": 0.9001,
-      "n_assets": 8,
+      "hhi": 0.2603,
+      "top3": 0.7612,
+      "top5": 0.886,
+      "n_assets": 12,
       "sector_exposure": [
         {
+          "sector": "Basic Materials",
+          "pct": 0.4565
+        },
+        {
           "sector": "Energy",
-          "pct": 0.3503
+          "pct": 0.2368
         },
         {
           "sector": "Utilities",
-          "pct": 0.2936
+          "pct": 0.1675
         },
         {
           "sector": "Real Estate",
-          "pct": 0.2699
+          "pct": 0.1008
         },
         {
-          "sector": "Basic Materials",
-          "pct": 0.0667
+          "sector": "Consumer Defensive",
+          "pct": 0.0195
+        },
+        {
+          "sector": "Industrials",
+          "pct": 0.0113
         },
         {
           "sector": "Consumer Cyclical",
-          "pct": 0.0194
+          "pct": 0.0075
         }
       ]
     },
     "valuation": {
-      "portfolio_pe": 6.236560253568406
+      "portfolio_pe": 8.59630463655765
     },
     "risk": {
-      "liquidity_avg": 8171127.994967769,
-      "avg_internal_corr": 0.295200509389873
+      "liquidity_avg": 7101331.702975911,
+      "avg_internal_corr": 0.23598413445245653
     },
     "risk_windows": {
       "All": {
-        "tracking_error": 0.2123,
-        "information_ratio": -0.84,
-        "hhi": 0.2194,
-        "n_assets": 8,
-        "trading_days": 92
+        "tracking_error": 0.9811,
+        "information_ratio": 3.81,
+        "hhi": 0.2603,
+        "n_assets": 12,
+        "trading_days": 94
       },
       "YTD": {
-        "tracking_error": 0.2135,
-        "information_ratio": 1.56,
-        "hhi": 0.2194,
-        "n_assets": 8,
-        "trading_days": 76
+        "tracking_error": 1.0714,
+        "information_ratio": 6.08,
+        "hhi": 0.2603,
+        "n_assets": 12,
+        "trading_days": 78
       },
       "3M": {
-        "tracking_error": 0.2101,
-        "information_ratio": -0.04,
-        "hhi": 0.2194,
-        "n_assets": 8,
-        "trading_days": 62
+        "tracking_error": 1.2074,
+        "information_ratio": 5.65,
+        "hhi": 0.2603,
+        "n_assets": 12,
+        "trading_days": 61
       },
       "6M": {
-        "tracking_error": 0.2142,
-        "information_ratio": -0.92,
-        "hhi": 0.2194,
-        "n_assets": 8,
-        "trading_days": 90
+        "tracking_error": 1.0083,
+        "information_ratio": 3.54,
+        "hhi": 0.2603,
+        "n_assets": 12,
+        "trading_days": 89
       },
       "12M": {
-        "tracking_error": 0.2123,
-        "information_ratio": -0.84,
-        "hhi": 0.2194,
-        "n_assets": 8,
-        "trading_days": 92
+        "tracking_error": 0.9811,
+        "information_ratio": 3.81,
+        "hhi": 0.2603,
+        "n_assets": 12,
+        "trading_days": 94
       },
       "24M": {
-        "tracking_error": 0.2123,
-        "information_ratio": -0.84,
-        "hhi": 0.2194,
-        "n_assets": 8,
-        "trading_days": 92
+        "tracking_error": 0.9811,
+        "information_ratio": 3.81,
+        "hhi": 0.2603,
+        "n_assets": 12,
+        "trading_days": 94
       }
     },
     "performance": {
       "YTD": {
-        "portfolio": 0.2593,
-        "benchmark": 0.1971,
-        "cdi": 0.0429,
-        "pct_cdi": 604.3
+        "portfolio": 0.9206,
+        "benchmark": 0.1838,
+        "cdi": 0.0439,
+        "pct_cdi": 2094.8
       },
       "3M": {
-        "portfolio": 0.1213,
-        "benchmark": 0.1226,
-        "cdi": 0.0341,
-        "pct_cdi": 355.7
+        "portfolio": 0.6608,
+        "benchmark": 0.0673,
+        "cdi": 0.0336,
+        "pct_cdi": 1968.5
       },
       "6M": {
-        "portfolio": 0.244,
-        "benchmark": 0.29,
-        "cdi": 0.0505,
-        "pct_cdi": 483.2
+        "portfolio": 0.8234,
+        "benchmark": 0.2574,
+        "cdi": 0.05,
+        "pct_cdi": 1647.4
       },
       "12M": {
-        "portfolio": 0.2535,
-        "benchmark": 0.2961,
-        "cdi": 0.0519,
-        "pct_cdi": 488.3
+        "portfolio": 0.9117,
+        "benchmark": 0.2817,
+        "cdi": 0.0529,
+        "pct_cdi": 1721.9
       },
       "24M": {
-        "portfolio": 0.2535,
-        "benchmark": 0.2961,
-        "cdi": 0.0519,
-        "pct_cdi": 488.3
+        "portfolio": 0.9117,
+        "benchmark": 0.2817,
+        "cdi": 0.0529,
+        "pct_cdi": 1721.9
       }
     },
     "monthly_returns": {
@@ -301,17 +305,17 @@
         {
           "mes": "2026-04",
           "valor_inicial": 3199.95,
-          "fluxos": -563.09,
-          "valor_final": 2658.84,
-          "retorno_mes": -0.057115,
-          "retorno_cdi": 0.007441,
-          "retorno_acumulado": 0.253479,
-          "fator_acumulado": 1.253479,
-          "pregoes": 16
+          "fluxos": -672.29,
+          "valor_final": 4235.8,
+          "retorno_mes": 0.438021,
+          "retorno_cdi": 0.008437,
+          "retorno_acumulado": 0.911716,
+          "fator_acumulado": 1.911716,
+          "pregoes": 19
         }
       ],
-      "twr_total": 0.253479,
-      "cdi_total": 0.051907,
+      "twr_total": 0.911716,
+      "cdi_total": 0.052947,
       "periodo": {
         "inicio": "2025-10",
         "fim": "2026-04"
