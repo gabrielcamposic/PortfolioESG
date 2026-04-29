@@ -360,6 +360,39 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260428-214316",
+    "timestamp": "2026-04-28 22:16:52",
+    "n_assets": 7,
+    "stocks": [
+      "KLBN4.SA",
+      "CXSE3.SA",
+      "AMBP3.SA",
+      "NEOE3.SA",
+      "PETR4.SA",
+      "PRIO3.SA",
+      "RANI3.SA"
+    ],
+    "weights": [
+      0.4099,
+      0.0921,
+      0.0415,
+      0.1546,
+      0.0704,
+      0.0944,
+      0.137
+    ],
+    "sharpe_forward": 25.8804,
+    "ret_hist_12m": 9.86,
+    "vol_12m": 15.38,
+    "ret_proj_12m": 292.21,
+    "score": 0.8784,
+    "momentum": 0.1765,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.0055,
+    "holdings_return_pct": 113.7,
+    "excess_return_pct": 21.4158
+  },
+  {
     "run_id": "20260427-230250",
     "timestamp": "2026-04-27 23:30:27",
     "n_assets": 6,
