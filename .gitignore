@@ -39,6 +39,7 @@ data/*.csv
 data/*.json
 logs/
 *.log
+reports/
 
 # HTML data - symlinks para data/ (gerados por D_Publish.py)
 !html/data/.gitkeep

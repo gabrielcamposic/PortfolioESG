@@ -5,8 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relatório Consolidado - Portfolio ESG</title>
 <link rel="stylesheet" href="../css/base.css">
+
+<!-- Dependências Globais -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
 <style>
   body { margin: 0; padding: 0; background: #fff; font-family: var(--font-sans); }
+  
   .report-header {
     text-align: center;
     padding: 30px 20px;
@@ -25,14 +31,17 @@
     color: var(--text-secondary);
     font-size: 14px;
   }
-  iframe {
-    width: 100%;
-    border: none;
-    overflow: hidden;
-    margin-bottom: 20px;
-    display: block;
-    min-height: 800px;
+  
+  .section-container {
+    margin-bottom: 40px;
+    padding: 0 20px;
   }
+
+  .section-divider {
+    border-top: 2px dashed var(--border-strong);
+    margin: 40px 20px;
+  }
+
   #print-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -51,14 +60,27 @@
   }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+  /* Ajustes gerais de Print para o DOM Unificado */
   @media print {
     #print-overlay { display: none !important; }
     body { background: #fff; }
-    /* Configura cada iframe para imprimir como bloco completo (evita barras de scroll internas no PDF) */
-    iframe { margin-bottom: 0; display: block; }
+    .section-container { margin-bottom: 20px; padding: 0; }
+    .section-divider { margin: 30px 0; border-top: 1px solid var(--border-strong); }
     
-    /* Dependendo do navegador, definir height para auto e max-height para none pode ajudar a capturar todo o iframe */
-    /* No entanto, o cálculo via JavaScript costuma ser o mais seguro para iframes */
+    /* Prevenir scrollbars em tabelas e liberar expansão total */
+    ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+    * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+    .chart-card, .table-card, .card, .table-wrapper, .corr-table-wrap, div[style*="overflow"] {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    
+    /* Escala do heatmap para caber na folha sem quebrar */
+    .corr-table-wrap { zoom: 0.75; overflow-x: visible !important; }
+    
+    /* Evita que blocos pequenos sejam cortados, mas permite que grandes tabelas se dividam naturalmente */
+    .cards-vertical .card, .cards-row .card, .return-comparison, .risk-row { page-break-inside: avoid; }
   }
 </style>
 </head>
@@ -66,8 +88,8 @@
 
 <div id="print-overlay">
   <div class="loader"></div>
-  <h2 style="margin:0; font-weight: 800; color: #333;">Gerando Relatório PDF...</h2>
-  <p style="color: #666; font-size: 14px;">Carregando bases de dados e renderizando os gráficos.</p>
+  <h2 style="margin:0; font-weight: 800; color: #333;">Montando Relatório PDF...</h2>
+  <p style="color: #666; font-size: 14px;">Unificando seções e renderizando os gráficos.</p>
 </div>
 
 <div class="report-header" id="report-title">
@@ -75,63 +97,77 @@
   <p id="report-date"></p>
 </div>
 
-<!-- 
-  Carregamos os três módulos principais como iframes simultâneos.
-  O script aguarda a renderização deles para unificá-los em um único painel de impressão.
--->
-<iframe id="f1" src="1_portfolio.html"></iframe>
-<iframe id="f2" src="2_risk.html"></iframe>
-<iframe id="f3" src="3_model.html"></iframe>
+<div id="report-content"></div>
 
 <script>
-  // Seta a data atual
+  // Seta a data atual no cabeçalho
   const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' };
   document.getElementById('report-date').textContent = "Gerado em: " + new Date().toLocaleDateString('pt-BR', dateOptions);
 
-  let loadedCount = 0;
-  const iframes = [document.getElementById('f1'), document.getElementById('f2'), document.getElementById('f3')];
-  
-  function checkDone() {
-    loadedCount++;
-    if (loadedCount === 3) {
-      // 3 segundos de folga para os fetch() rodarem e os gráficos Chart.js fazerem a animação inicial.
-      // Se fosse impresso antes, poderia capturar gráficos vazios.
-      setTimeout(() => {
-        iframes.forEach(f => {
-           try {
-             const doc = f.contentWindow.document;
-             
-             // Oculta os cabeçalhos internos (navegação top bar) de cada página filha.
-             const headerWrapper = doc.querySelector('.header-wrapper');
-             if (headerWrapper) headerWrapper.style.display = 'none';
+  async function loadSection(url) {
+    const html = await fetch(url).then(r => r.text());
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // 1. Extrair e injetar CSS
+    const styles = doc.querySelectorAll('style');
+    styles.forEach(s => document.head.appendChild(s.cloneNode(true)));
+    
+    // 2. Extrair o HTML do Body (ignorando scripts e o header de navegação)
+    const container = document.createElement('div');
+    container.className = 'section-container';
+    
+    Array.from(doc.body.children).forEach(el => {
+      // Ignora scripts globais da página importada
+      if (el.tagName === 'SCRIPT') return;
+      // Ignora o header injetado caso ele exista no HTML nativo
+      if (el.classList && el.classList.contains('header-wrapper')) return;
+      
+      container.appendChild(el.cloneNode(true));
+    });
+    
+    document.getElementById('report-content').appendChild(container);
+    
+    // 3. Extrair e injetar os Scripts Modules para execução no contexto principal
+    const scripts = doc.querySelectorAll('script[type="module"]');
+    scripts.forEach(s => {
+      const newScript = document.createElement('script');
+      newScript.type = 'module';
+      newScript.textContent = s.textContent;
+      document.body.appendChild(newScript);
+    });
+  }
 
-             // Ajusta os estilos do body e a altura do iframe para forçar expansão total
-             const body = doc.body;
-             const html = doc.documentElement;
-             body.style.background = '#fff';
-             
-             // Calcula a maior altura possível do conteúdo e seta no iframe
-             const height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
-             f.style.height = (height + 20) + 'px';
-           } catch(e) {
-             console.error("Erro ao preparar o iframe para impressão:", e);
-           }
-        });
-        
+  async function buildReport() {
+    try {
+      // Carrega as seções sequencialmente para manter a ordem do DOM
+      await loadSection('1_portfolio.html');
+      
+      const div1 = document.createElement('div');
+      div1.className = 'section-divider';
+      document.getElementById('report-content').appendChild(div1);
+      
+      await loadSection('2_risk.html');
+      
+      const div2 = document.createElement('div');
+      div2.className = 'section-divider';
+      document.getElementById('report-content').appendChild(div2);
+      
+      await loadSection('3_model.html');
+      
+      // Aguardar a renderização dos gráficos do Chart.js e fetchs internos
+      setTimeout(() => {
         document.getElementById('print-overlay').style.display = 'none';
-        
-        // Remove título principal apenas do print se quiser economizar espaço? Não, o título é útil.
-        // Dispara o diálogo nativo do sistema operacional para "Imprimir / Salvar como PDF".
         window.print();
-        
-      }, 3000);
+      }, 3500);
+      
+    } catch (e) {
+      console.error("Erro ao montar relatório:", e);
+      document.getElementById('print-overlay').innerHTML = `<h2 style="color:red">Erro ao gerar relatório</h2><p>${e.message}</p>`;
     }
   }
 
-  // Atrela o evento onload de cada iframe
-  iframes.forEach(f => {
-    f.onload = checkDone;
-  });
+  buildReport();
 </script>
 
 </body>
