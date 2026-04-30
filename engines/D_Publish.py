@@ -654,7 +654,7 @@ def publish_pipeline_latest(target_map: Dict[str, float]) -> None:
         projected_brl = None
 
         if allocated is not None and current and current > 0:
-            projected_qty = int(math.floor(allocated / current))
+            projected_qty = max(1, int(math.floor(allocated / current)))
             projected_invested = projected_qty * current
         if projected_qty is not None and tp:
             projected_brl = projected_qty * tp

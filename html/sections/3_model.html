@@ -438,6 +438,13 @@ function renderTransactions(recommendation) {
 
   const tickers = sorted.map(t => t.symbol);
 
+  // Transaction summary (from backend or computed here as fallback)
+  const summary = recommendation.transaction_summary || {};
+  const totalBuy  = summary.total_buy_value  ?? sorted.filter(t => t.action === 'BUY').reduce((s, t) => s + Math.abs(t.value_change || 0), 0);
+  const totalSell = summary.total_sell_value ?? sorted.filter(t => t.action === 'SELL').reduce((s, t) => s + Math.abs(t.value_change || 0), 0);
+  const totalCost = summary.total_cost ?? sorted.reduce((s, t) => s + (t.cost || 0), 0);
+  const projectedBalance = summary.projected_balance ?? (totalSell - totalBuy - totalCost);
+
   let html = `<table>
     <thead><tr>
       <th>Ativo</th>
@@ -445,7 +452,9 @@ function renderTransactions(recommendation) {
       <th class="right">Peso Atual</th>
       <th class="right">Peso Alvo</th>
       <th class="right">Δ Peso</th>
+      <th class="right">PM Compra</th>
       <th class="right">Preço Atual</th>
+      <th class="right">Preço Proj.</th>
       <th class="right">Qtd Est.</th>
       <th class="right">Valor Est.</th>
       <th class="right">Custo Op.</th>
@@ -466,12 +475,37 @@ function renderTransactions(recommendation) {
       <td class="right">${fmtPct((tx.current_weight || 0) * 100)}</td>
       <td class="right">${fmtPct((tx.target_weight || 0) * 100)}</td>
       <td class="right" style="color: ${deltaColor}; font-weight: 600;">${delta >= 0 ? '+' : ''}${fmtPct(delta)}</td>
+      <td class="right">${tx.avg_purchase_price != null ? fmtBRL(tx.avg_purchase_price) : '—'}</td>
       <td class="right">${tx.current_price != null ? fmtBRL(tx.current_price) : '—'}</td>
+      <td class="right">${tx.target_price != null ? fmtBRL(tx.target_price) : '—'}</td>
       <td class="right">${tx.shares != null ? fmtNum(tx.shares) : '—'}</td>
       <td class="right">${fmtBRL(Math.abs(tx.value_change))}</td>
       <td class="right">${tx.cost != null ? fmtBRL(tx.cost) : '—'}</td>
     </tr>`;
   }
+
+  // Summary rows
+  const balanceColor = projectedBalance >= 0 ? 'var(--color-positive)' : 'var(--color-negative)';
+  const balanceBg    = projectedBalance >= 0 ? 'var(--bg-positive)' : 'var(--bg-negative)';
+  const balanceLabel = projectedBalance >= 0 ? 'Saldo p/ reinvestir' : 'Aporte necessário';
+
+  html += `
+    <tr class="totals">
+      <td colspan="5">Resumo</td>
+      <td colspan="4" class="right" style="font-size:10px; color: var(--text-muted); text-transform: uppercase;">
+        Compras ${fmtBRL(totalBuy)} &nbsp;·&nbsp; Vendas ${fmtBRL(totalSell)}
+      </td>
+      <td class="right">${fmtBRL(totalBuy + totalSell)}</td>
+      <td class="right">${fmtBRL(totalCost)}</td>
+    </tr>
+    <tr class="totals">
+      <td colspan="9" class="right" style="font-size: 11px; font-weight: 600;">${balanceLabel}</td>
+      <td colspan="2" class="right" style="color: ${balanceColor}; font-weight: 700; font-size: 14px;">
+        <span style="display: inline-block; padding: 4px 12px; border-radius: 8px; background: ${balanceBg};">
+          ${projectedBalance >= 0 ? '+' : ''}${fmtBRL(projectedBalance)}
+        </span>
+      </td>
+    </tr>`;
 
   html += '</tbody></table>';
   document.getElementById('tx-table').innerHTML = html;

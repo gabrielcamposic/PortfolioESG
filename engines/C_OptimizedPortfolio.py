@@ -25,6 +25,7 @@ import os
 import sys
 import json
 import logging
+import math
 import shutil
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple, Optional
@@ -668,6 +669,30 @@ def calculate_ideal_expected_return(
     return expected_return * 100  # Convert to percentage
 
 
+def _load_avg_purchase_prices(logger: logging.Logger) -> Dict[str, float]:
+    """Load weighted-average purchase price per symbol from ledger_positions.json.
+
+    avg_purchase_price = net_invested / net_qty
+    """
+    avg_prices: Dict[str, float] = {}
+    if not os.path.exists(LEDGER_POSITIONS_JSON):
+        return avg_prices
+    try:
+        with open(LEDGER_POSITIONS_JSON, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        positions = data.get('positions', []) if isinstance(data, dict) else data
+        for pos in positions:
+            symbol = pos.get('symbol') or pos.get('resolved_symbol', '')
+            qty = float(pos.get('net_qty', 0))
+            invested = float(pos.get('net_invested', 0))
+            if symbol and qty > 0 and invested > 0:
+                avg_prices[symbol] = round(invested / qty, 2)
+        logger.info(f"Loaded avg purchase prices for {len(avg_prices)} positions")
+    except Exception as e:
+        logger.warning(f"Could not load avg purchase prices: {e}")
+    return avg_prices
+
+
 def calculate_transition_cost(
     holdings: Dict[str, Any],
     target: Dict[str, Any],
@@ -677,11 +702,21 @@ def calculate_transition_cost(
     """
     Calculate the cost of transitioning from holdings to target portfolio.
     Returns (total_cost_pct, list_of_transactions)
+
+    Each transaction is enriched with:
+      - avg_purchase_price: weighted-average purchase price from ledger
+      - target_price: 12-month target price from FinancialsDB
+      - shares: integer ≥ 1 (ceil for BUY, floor for SELL) — B3 does not
+        allow fractional shares
+      - signed_value: positive for SELL (cash in), negative for BUY (cash out)
     """
     holdings_weights = holdings.get('weights', {})
     target_weights = target.get('weights', {})
     holdings_value = holdings.get('total_value', 0)
     current_prices = holdings.get('current_prices', {})
+
+    # Enrich: load avg purchase prices and target prices
+    avg_purchase_prices = _load_avg_purchase_prices(logger)
 
     transactions = []
     total_traded_value = 0
@@ -707,18 +742,39 @@ def calculate_transition_cost(
         price = current_prices.get(stock)
         if price is None:
             price = get_current_price(stock, logger)
-        shares = int(round(value_change / price)) if price and price > 0 else None
+
+        # Compute integer shares (B3 constraint: no fractional shares)
+        shares = None
+        if price and price > 0:
+            raw_shares = value_change / price
+            if action == 'BUY':
+                shares = max(1, math.ceil(raw_shares))
+            else:  # SELL
+                shares = max(1, math.floor(raw_shares)) if raw_shares >= 0.5 else 1
+
+        # Recalculate value_change based on actual integer shares
+        actual_value = shares * price if shares and price else value_change
+
+        # Resolve enrichment data
+        avg_price = avg_purchase_prices.get(stock)
+        tp = get_target_price(stock, logger)
+
+        # signed_value: positive = cash in (SELL), negative = cash out (BUY)
+        signed_value = actual_value if action == 'SELL' else -actual_value
 
         transactions.append({
             'symbol': stock,
             'action': action,
             'weight_change': weight_diff,
-            'value_change': value_change,
+            'value_change': actual_value,
             'current_weight': current_weight,
             'target_weight': target_weight,
             'cost': estimated_cost,
             'current_price': round(price, 2) if price else None,
             'shares': shares,
+            'avg_purchase_price': avg_price,
+            'target_price': round(tp, 2) if tp else None,
+            'signed_value': round(signed_value, 2),
         })
 
     # Total cost as percentage of portfolio
@@ -845,6 +901,112 @@ def calculate_portfolio_momentum(portfolio: Dict[str, Any], logger: logging.Logg
             continue
 
     return total_momentum / total_weight if total_weight > 0 else 0
+
+
+def _build_transaction_summary(transactions: List[Dict]) -> Dict[str, Any]:
+    """Build an aggregate summary of transactions.
+
+    Returns:
+        total_buy_value:  absolute value of all BUY transactions
+        total_sell_value: absolute value of all SELL transactions
+        total_cost:       sum of all estimated operational costs
+        projected_balance: sell_value − buy_value − costs
+            > 0 → surplus cash to reinvest
+            < 0 → additional cash (aporte) needed
+    """
+    total_buy = 0.0
+    total_sell = 0.0
+    total_cost = 0.0
+
+    for tx in transactions:
+        val = abs(tx.get('value_change', 0))
+        cost = tx.get('cost', 0) or 0
+        total_cost += cost
+        if tx.get('action') == 'BUY':
+            total_buy += val
+        elif tx.get('action') == 'SELL':
+            total_sell += val
+
+    projected_balance = total_sell - total_buy - total_cost
+
+    return {
+        'total_buy_value': round(total_buy, 2),
+        'total_sell_value': round(total_sell, 2),
+        'total_cost': round(total_cost, 2),
+        'projected_balance': round(projected_balance, 2),
+    }
+
+
+def discretize_to_integer_shares(
+    portfolio_weights: Dict[str, float],
+    total_value: float,
+    logger: logging.Logger
+) -> Tuple[Dict[str, float], Dict[str, int], float]:
+    """Convert continuous portfolio weights into integer share quantities.
+
+    MVO (Motor A) optimises in continuous weight-space.  The real B3
+    market only allows integer shares.  This function bridges the gap:
+
+      1. Given continuous weights and total portfolio value, compute how
+         many integer shares of each stock can be purchased.
+      2. Recalculate actual weights from those integer positions.
+
+    The caller should then recalculate expected return, Sharpe, etc.
+    using the *discretized* weights so the recommendation accurately
+    reflects the executable portfolio.
+
+    Args:
+        portfolio_weights: {stock: weight_fraction} summing to ~1.0
+        total_value: total portfolio value in BRL
+        logger: logger instance
+
+    Returns:
+        (actual_weights, share_quantities, total_invested_brl)
+    """
+    share_quantities: Dict[str, int] = {}
+    actual_invested: Dict[str, float] = {}
+
+    for stock, weight in portfolio_weights.items():
+        if weight <= 0.001:
+            continue
+
+        allocated = weight * total_value
+        price = get_current_price(stock, logger)
+
+        if price and price > 0:
+            qty = max(1, round(allocated / price))
+            share_quantities[stock] = qty
+            actual_invested[stock] = qty * price
+        else:
+            logger.warning(f"  Cannot discretize {stock}: no price available")
+            share_quantities[stock] = 0
+            actual_invested[stock] = allocated
+
+    total_actual = sum(actual_invested.values())
+    actual_weights: Dict[str, float] = {}
+    if total_actual > 0:
+        actual_weights = {
+            stock: inv / total_actual
+            for stock, inv in actual_invested.items()
+        }
+
+    # Log significant weight deviations
+    deviations = []
+    for stock in sorted(actual_weights.keys()):
+        orig_w = portfolio_weights.get(stock, 0) * 100
+        disc_w = actual_weights.get(stock, 0) * 100
+        diff = disc_w - orig_w
+        if abs(diff) > 0.1:
+            deviations.append(
+                f"  {stock}: {orig_w:.2f}% → {disc_w:.2f}% "
+                f"(Δ{diff:+.2f}%, {share_quantities.get(stock, 0)} shares)"
+            )
+    if deviations:
+        logger.info(f"Discretization weight deviations (>{0.1:.1f}%):")
+        for d in deviations:
+            logger.info(d)
+
+    return actual_weights, share_quantities, total_actual
 
 
 def find_optimal_portfolio(
@@ -1010,13 +1172,20 @@ def generate_recommendation(
             'optimal': {
                 'stocks': optimal.get('stocks', []),
                 'weights': optimal.get('weights', {}),
-                'expected_return_pct': round(optimal.get('expected_return', 0), 2),  # Based on target prices
+                'expected_return_pct': round(optimal.get('expected_return', 0), 2),
                 'net_return_pct': round(optimal_net_return, 2),
                 'blend_ratio': round(optimal.get('blend_ratio', 0), 2),
                 'transition_cost_pct': round(optimal.get('transition_cost', 0), 4),
+                'share_quantities': optimal.get('share_quantities', {}),
+                'total_discretized_value': round(optimal.get('total_discretized', 0), 2),
+                'expected_return_continuous_pct': round(
+                    optimal.get('expected_return_continuous', optimal.get('expected_return', 0)), 2
+                ),
+                'discretized': optimal.get('discretized', False),
             },
         },
         'transactions': transactions,
+        'transaction_summary': _build_transaction_summary(transactions),
         'transaction_cost_pct_used': round(transaction_cost_pct, 4),
         'parameters': {
             'weight_expected_return': float(params.get('WEIGHT_EXPECTED_RETURN', 0.4)),
@@ -1231,7 +1400,7 @@ def main():
     num_candidates = int(params.get('NUM_CANDIDATE_PORTFOLIOS', 100))
     candidates = generate_candidate_portfolios(holdings, ideal, num_candidates, logger)
 
-    # Find optimal portfolio
+    # Find optimal portfolio (continuous weights)
     optimal = find_optimal_portfolio(
         holdings, ideal, candidates, transaction_cost_pct, params, logger
     )
@@ -1240,10 +1409,58 @@ def main():
         logger.error("Could not find optimal portfolio")
         return 1
 
-    logger.info(f"Optimal portfolio: blend_ratio={optimal['blend_ratio']:.2f}, "
+    logger.info(f"Optimal portfolio (continuous): blend_ratio={optimal['blend_ratio']:.2f}, "
                f"score={optimal['score']:.4f}, net_return={optimal['net_return']:.2f}%")
 
-    # Generate recommendation
+    # ── Discretize to integer shares (B3 constraint) ──────────────────
+    # MVO optimises in continuous weight-space, but B3 only allows
+    # integer shares.  Discretize the optimal portfolio and recalculate
+    # ALL metrics so the recommendation reflects the executable portfolio.
+    logger.info("Discretizing optimal portfolio to integer shares (B3)...")
+
+    disc_weights, share_qtys, disc_total = discretize_to_integer_shares(
+        optimal['weights'], holdings['total_value'], logger
+    )
+
+    # Save continuous version for transparency
+    optimal['weights_continuous'] = optimal['weights']
+    optimal['expected_return_continuous'] = optimal.get('expected_return', 0)
+
+    # Replace weights with discretized version
+    optimal['weights'] = disc_weights
+    optimal['stocks'] = list(disc_weights.keys())
+    optimal['share_quantities'] = share_qtys
+    optimal['total_discretized'] = disc_total
+    optimal['discretized'] = True
+
+    # Recalculate expected return using discretized weights + target prices
+    disc_return = 0.0
+    stocks_with_target = 0
+    for stock, weight in disc_weights.items():
+        current = get_current_price(stock, logger)
+        target = get_target_price(stock, logger)
+        if current and target and current > 0:
+            disc_return += weight * ((target - current) / current)
+            stocks_with_target += 1
+    disc_return *= 100  # to percentage
+
+    # Recalculate transition cost with discretized weights
+    disc_cost, _ = calculate_transition_cost(
+        holdings, optimal, transaction_cost_pct, logger
+    )
+
+    optimal['expected_return'] = disc_return
+    optimal['transition_cost'] = disc_cost
+    optimal['net_return'] = disc_return - disc_cost
+
+    logger.info(
+        f"Discretized optimal: {len(disc_weights)} positions, "
+        f"return: {disc_return:.2f}% (continuous was {optimal['expected_return_continuous']:.2f}%), "
+        f"net: {optimal['net_return']:.2f}%, "
+        f"invested: {disc_total:.2f} BRL ({stocks_with_target}/{len(disc_weights)} with target price)"
+    )
+
+    # Generate recommendation (uses discretized weights)
     recommendation = generate_recommendation(
         holdings, ideal, optimal, transaction_cost_pct, params, logger
     )
