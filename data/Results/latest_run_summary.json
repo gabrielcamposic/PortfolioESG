@@ -1,139 +1,147 @@
 {
-    "last_updated_run_id": "20260428-214316",
-    "scoring_run_id": "20260428-214316",
-    "last_updated_timestamp": "2026-04-28 22:16:52",
+    "last_updated_run_id": "20260429-215740",
+    "scoring_run_id": "20260429-215740",
+    "last_updated_timestamp": "2026-04-29 22:29:57",
     "best_portfolio_details": {
         "stocks": [
-            "KLBN4.SA",
+            "FRAS3.SA",
+            "PETR4.SA",
             "CXSE3.SA",
+            "KLBN4.SA",
+            "PRIO3.SA",
             "AMBP3.SA",
             "NEOE3.SA",
-            "PETR4.SA",
-            "PRIO3.SA",
-            "RANI3.SA"
+            "PRNR3.SA"
         ],
         "weights": [
-            0.4099,
-            0.0921,
-            0.0415,
-            0.1546,
-            0.0704,
-            0.0944,
-            0.137
+            0.0402,
+            0.031,
+            0.0548,
+            0.5245,
+            0.0762,
+            0.0379,
+            0.1593,
+            0.0761
         ],
-        "sharpe_forward": 25.8804,
-        "expected_return_annual_pct": 9.86,
-        "expected_volatility_annual_pct": 15.38,
+        "sharpe_forward": 25.9126,
+        "expected_return_annual_pct": 6.53,
+        "expected_volatility_annual_pct": 16.0,
         "initial_investment": 5000.0,
         "sector_exposure": {
-            "Basic Materials": 0.4099,
-            "Financial Services": 0.0921,
-            "Industrials": 0.0415,
-            "Utilities": 0.1546,
-            "Energy": 0.1648,
-            "Consumer Cyclical": 0.137
+            "Consumer Cyclical": 0.0402,
+            "Energy": 0.1072,
+            "Financial Services": 0.0548,
+            "Basic Materials": 0.5245,
+            "Industrials": 0.1141,
+            "Utilities": 0.1593
         },
         "sector_exposure_list": [
             {
                 "sector": "Basic Materials",
-                "pct": 0.4099
-            },
-            {
-                "sector": "Energy",
-                "pct": 0.1648
+                "pct": 0.5245
             },
             {
                 "sector": "Utilities",
-                "pct": 0.1546
-            },
-            {
-                "sector": "Consumer Cyclical",
-                "pct": 0.137
-            },
-            {
-                "sector": "Financial Services",
-                "pct": 0.0921
+                "pct": 0.1593
             },
             {
                 "sector": "Industrials",
-                "pct": 0.0415
+                "pct": 0.1141
+            },
+            {
+                "sector": "Energy",
+                "pct": 0.1072
+            },
+            {
+                "sector": "Financial Services",
+                "pct": 0.0548
+            },
+            {
+                "sector": "Consumer Cyclical",
+                "pct": 0.0402
             }
         ],
         "concentration_risk": {
-            "hhi": 0.2348,
-            "top_5_holdings_pct": 0.8881,
+            "hhi": 0.3191,
+            "top_5_holdings_pct": 0.8909,
             "top_5_holdings": [
                 {
                     "stock": "KLBN4.SA",
-                    "weight": 0.4099
+                    "weight": 0.5245
                 },
                 {
                     "stock": "NEOE3.SA",
-                    "weight": 0.1546
-                },
-                {
-                    "stock": "RANI3.SA",
-                    "weight": 0.137
+                    "weight": 0.1593
                 },
                 {
                     "stock": "PRIO3.SA",
-                    "weight": 0.0944
+                    "weight": 0.0762
+                },
+                {
+                    "stock": "PRNR3.SA",
+                    "weight": 0.0761
                 },
                 {
                     "stock": "CXSE3.SA",
-                    "weight": 0.0921
+                    "weight": 0.0548
                 }
             ]
         },
-        "portfolio_weighted_pe": 5.04,
+        "portfolio_weighted_pe": 4.61,
         "momentum_valuation": {
-            "portfolio_momentum": 0.144,
-            "portfolio_forward_pe": 5.04,
-            "benchmark_forward_pe": 10.32,
+            "portfolio_momentum": 0.1555,
+            "portfolio_forward_pe": 4.61,
+            "benchmark_forward_pe": 10.18,
             "portfolio_dividend_yield": null
         },
         "holdings_meta": {
-            "KLBN4.SA": {
-                "forwardPE": 1.7061611,
-                "Momentum": 0.0300853686985087,
-                "currentPrice": 3.5899999141693115,
-                "targetPrice": 24.75248
+            "FRAS3.SA": {
+                "forwardPE": 12.335052,
+                "Momentum": -0.0461607138850996,
+                "currentPrice": 21.489999771118164,
+                "targetPrice": 27.14444
+            },
+            "PETR4.SA": {
+                "forwardPE": 4.358974,
+                "Momentum": 0.6103015957029783,
+                "currentPrice": 47.52000045776367,
+                "targetPrice": 51.7
             },
             "CXSE3.SA": {
-                "forwardPE": 10.680217,
-                "Momentum": 0.2153333028157551,
-                "currentPrice": 18.229999542236328,
+                "forwardPE": 10.4332075,
+                "Momentum": 0.2139037300204116,
+                "currentPrice": 18.15999984741211,
                 "targetPrice": 19.31429
+            },
+            "KLBN4.SA": {
+                "forwardPE": 1.6777252,
+                "Momentum": 0.0508672276629817,
+                "currentPrice": 3.5999999046325684,
+                "targetPrice": 24.75248
+            },
+            "PRIO3.SA": {
+                "forwardPE": 6.482776,
+                "Momentum": 0.8321479012871429,
+                "currentPrice": 64.4000015258789,
+                "targetPrice": 67.225
             },
             "AMBP3.SA": {
                 "forwardPE": 0.176,
-                "Momentum": -0.637931035368678,
-                "currentPrice": 0.209999993443489,
-                "targetPrice": 2.309999927878379
+                "Momentum": -0.4634146323734489,
+                "currentPrice": 0.2199999988079071,
+                "targetPrice": 2.419999986886978
             },
             "NEOE3.SA": {
                 "forwardPE": 10.154846,
-                "Momentum": 0.177762296498237,
-                "currentPrice": 33.790000915527344,
+                "Momentum": 0.1843026682830788,
+                "currentPrice": 33.79999923706055,
                 "targetPrice": 34.82889
             },
-            "PETR4.SA": {
-                "forwardPE": 4.230769,
-                "Momentum": 0.5922688716599922,
-                "currentPrice": 47.369998931884766,
-                "targetPrice": 51.7
-            },
-            "PRIO3.SA": {
-                "forwardPE": 7.3071136,
-                "Momentum": 0.8172832180575123,
-                "currentPrice": 64.3499984741211,
-                "targetPrice": 67.225
-            },
-            "RANI3.SA": {
-                "forwardPE": 5.78169,
-                "Momentum": -0.0580720116071362,
-                "currentPrice": 8.109999656677246,
-                "targetPrice": 12.25
+            "PRNR3.SA": {
+                "forwardPE": 5.428571,
+                "Momentum": 0.3269884709138735,
+                "currentPrice": 19.520000457763672,
+                "targetPrice": 26.7
             }
         }
     }

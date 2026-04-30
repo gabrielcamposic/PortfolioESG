@@ -360,6 +360,41 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260429-215740",
+    "timestamp": "2026-04-29 22:29:57",
+    "n_assets": 8,
+    "stocks": [
+      "FRAS3.SA",
+      "PETR4.SA",
+      "CXSE3.SA",
+      "KLBN4.SA",
+      "PRIO3.SA",
+      "AMBP3.SA",
+      "NEOE3.SA",
+      "PRNR3.SA"
+    ],
+    "weights": [
+      0.0402,
+      0.031,
+      0.0548,
+      0.5245,
+      0.0762,
+      0.0379,
+      0.1593,
+      0.0761
+    ],
+    "sharpe_forward": 25.9126,
+    "ret_hist_12m": 6.53,
+    "vol_12m": 16.0,
+    "ret_proj_12m": 351.38,
+    "score": 0.8749,
+    "momentum": 0.1233,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.0046,
+    "holdings_return_pct": 112.29,
+    "excess_return_pct": 26.4276
+  },
+  {
     "run_id": "20260428-214316",
     "timestamp": "2026-04-28 22:16:52",
     "n_assets": 7,
