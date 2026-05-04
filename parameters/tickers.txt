@@ -9,7 +9,7 @@ ALOS3.SA,Allos S.A.,Real Estate,Real Estate Services,
 ALPA4.SA,Alpargatas S.A.,Consumer Cyclical,Footwear & Accessories,
 ALUP11.SA,Alupar Investimento S.A.,Utilities,Utilities - Renewable,
 ALUP3.SA,Alupar Investimento S.A.,Utilities,Utilities - Renewable,
-AMBP3.SA,Ambipar Participações e Empreendimentos S.A.,Industrials,Waste Management,
+AMBP3.SA,Ambipar Participações e Empreendimentos S.A.,Industrials,Waste Management,AMBIPAR ON NM
 ANIM3.SA,Ânima Holding S.A.,Consumer Defensive,Education & Training Services,
 ASAI3.SA,Sendas Distribuidora S.A.,Consumer Defensive,Grocery Stores,
 AURA33.SA,Aura Minerals Inc.,Basic Materials,Gold,AURA 360 DR3
@@ -75,7 +75,7 @@ EZTC3.SA,EZTEC Empreendimentos e Participações S.A.,Real Estate,Real Estate - 
 FESA4.SA,Cia de Ferro Ligas da Bahia S.A. - FERBASA,Basic Materials,Steel,
 FIQE3.SA,Unifique Telecomunicações S.A.,Communication Services,Telecom Services,
 FLRY3.SA,Fleury S.A.,Healthcare,Diagnostics & Research,
-FRAS3.SA,Fras-le S.A.,Consumer Cyclical,Auto Parts,
+FRAS3.SA,Fras-le S.A.,Consumer Cyclical,Auto Parts,FRAS-LE ON N1
 G2DI33.SA,"G2D Investments, Ltd.",Financial Services,Asset Management,
 GFSA3.SA,Gafisa S.A.,Consumer Cyclical,Residential Construction,
 GGBR4.SA,Gerdau S.A.,Basic Materials,Steel,
