@@ -54,7 +54,7 @@ CSED3.SA,Cruzeiro do Sul Educacional S.A.,Consumer Defensive,Education & Trainin
 CSMG3.SA,Companhia de Saneamento de Minas Gerais - COPASA,Utilities,Utilities - Regulated Water,COPASA ON NM
 CSNA3.SA,Companhia Siderúrgica Nacional,Basic Materials,Steel,
 CURY3.SA,Cury Construtora e Incorporadora S.A.,Real Estate,Real Estate - Development,
-CXSE3.SA,Caixa Seguridade Participações S.A.,Financial Services,Insurance - Diversified,
+CXSE3.SA,Caixa Seguridade Participações S.A.,Financial Services,Insurance - Diversified,CAIXA SEGURION ED NM
 CYRE3.SA,Cyrela Brazil Realty S.A. Empreendimentos e Participações,Consumer Cyclical,Residential Construction,
 DASA3.SA,Diagnósticos da América S.A.,Healthcare,Diagnostics & Research,
 DESK3.SA,Desktop S.A.,Communication Services,Telecom Services,
@@ -126,7 +126,7 @@ MRVE3.SA,MRV Engenharia e Participações S.A.,Real Estate,Real Estate - Develop
 MTRE3.SA,Mitre Realty Empreendimentos e Participações S.A.,Real Estate,Real Estate - Development,
 MULT3.SA,Multiplan Empreendimentos Imobiliários S.A.,Real Estate,Real Estate Services,
 MYPK3.SA,Iochpe-Maxion S.A.,Consumer Cyclical,Auto Parts,
-NEOE3.SA,Neoenergia S.A.,Utilities,Utilities - Regulated Electric,
+NEOE3.SA,Neoenergia S.A.,Utilities,Utilities - Regulated Electric,NEOENERGIA ON
 NTCO3.SA,Natura &Co Holding S.A.,Consumer Defensive,Household & Personal Products,
 ODPT3.SA,N/A,Error,HTTP Error 404:,
 ODPV3.SA,Odontoprev S.A.,Healthcare,Healthcare Plans,
@@ -144,7 +144,7 @@ PNVL3.SA,Dimed S.A. Distribuidora de Medicamentos,Healthcare,Drug Manufacturers 
 PORT3.SA,Wilson Sons S.A.,Industrials,Marine Shipping,
 POSI3.SA,Positivo Tecnologia S.A.,Technology,Computer Hardware,
 PRIO3.SA,Prio S.A.,Energy,Oil & Gas E&P,PRIO ON NM
-PRNR3.SA,Priner Serviços Industriais S.A.,Industrials,Engineering & Construction,
+PRNR3.SA,Priner Serviços Industriais S.A.,Industrials,Engineering & Construction,PRINER ON NM
 PRTB3.SA,N/A,Error,HTTP Error 404:,
 PSSA3.SA,Porto Seguro S.A.,Financial Services,Insurance - Diversified,
 RADL3.SA,Raia Drogasil S.A.,Healthcare,Pharmaceutical Retailers,
