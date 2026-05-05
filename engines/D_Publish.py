@@ -1182,7 +1182,7 @@ def _build_model_section() -> dict:
 
     # Returns
     expected_return_hold = safe_float(holdings.get("expected_return_pct"), 0.0)
-    expected_return_gross = safe_float(ideal.get("expected_return_pct"), 0.0)
+    expected_return_gross = safe_float(optimal.get("expected_return_pct", ideal.get("expected_return_pct", 0.0)), 0.0)
     historical_return = safe_float(
         ideal.get("historical_return_pct"),
         safe_float(bp.get("expected_return_annual_pct"), 0.0),

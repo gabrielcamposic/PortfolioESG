@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-04T23:44:54.242831+00:00",
+  "generated_at": "2026-05-05T00:12:29.173378+00:00",
   "model": {
     "meta": {
       "run_id": "20260504-200719",
@@ -7,10 +7,10 @@
     },
     "returns": {
       "hold_12m": 139.46,
-      "gross_12m": 281.86,
-      "net_12m": 281.8551,
+      "gross_12m": 155.41,
+      "net_12m": 155.4051,
       "historical_annual": 6.97,
-      "excess_net_12m": 142.39509999999999
+      "excess_net_12m": 15.945099999999996
     },
     "risk": {
       "volatility_annual": 14.67,
