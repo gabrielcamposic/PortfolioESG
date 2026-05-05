@@ -848,18 +848,38 @@ def score_portfolio(
     w_sharpe = float(params.get('WEIGHT_SHARPE_RATIO', 0.4))
     w_momentum = float(params.get('WEIGHT_MOMENTUM', 0.2))
 
-    # Normalize values (simple min-max normalization with assumed ranges)
-    # Expected return: assume -20% to +100%
-    norm_return = (expected_return + 20) / 120 if expected_return is not None else 0
-    norm_return = max(0, min(1, norm_return))
+    import math
 
-    # Sharpe ratio: assume -1 to +3
-    norm_sharpe = (sharpe_ratio + 1) / 4 if sharpe_ratio is not None else 0
-    norm_sharpe = max(0, min(1, norm_sharpe))
+    # Expected return: Dynamic penalization using log scale for returns > 0
+    # Normalize such that 100% (1.0) expected return gives ~1.0 score (math.log1p(1.0) = 0.693)
+    if expected_return is not None:
+        r = expected_return / 100.0
+        if r > 0:
+            norm_return = math.log1p(r) / 0.693
+        else:
+            norm_return = r / 0.20  # -20% -> -1.0
+    else:
+        norm_return = 0.0
 
-    # Momentum: assume -1 to +2
-    norm_momentum = (momentum + 1) / 3 if momentum is not None else 0
-    norm_momentum = max(0, min(1, norm_momentum))
+    # Sharpe ratio: Dynamic penalization using log scale
+    # Normalize such that Sharpe of 3.0 gives ~1.0 score (math.log1p(3.0) = 1.386)
+    if sharpe_ratio is not None:
+        if sharpe_ratio > 0:
+            norm_sharpe = math.log1p(sharpe_ratio) / 1.386
+        else:
+            norm_sharpe = sharpe_ratio
+    else:
+        norm_sharpe = 0.0
+
+    # Momentum: Dynamic penalization using log scale
+    # Normalize such that Momentum of 2.0 gives ~1.0 score (math.log1p(2.0) = 1.098)
+    if momentum is not None:
+        if momentum > 0:
+            norm_momentum = math.log1p(momentum) / 1.098
+        else:
+            norm_momentum = momentum
+    else:
+        norm_momentum = 0.0
 
     score = w_return * norm_return + w_sharpe * norm_sharpe + w_momentum * norm_momentum
     return score
