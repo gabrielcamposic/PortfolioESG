@@ -492,7 +492,21 @@ def download_and_process_data(
     all_financials_data = []
     all_new_price_data = []  # Accumulate all new price data for direct DB mode
 
-    end_date = datetime.strptime(get_previous_business_day(params, logger), '%Y-%m-%d')
+    # Determine the latest available date on Yahoo Finance using the Bovespa Index (^BVSP) as a reference.
+    try:
+        logger.info("Querying Yahoo Finance (^BVSP) to determine the latest available market date...")
+        bvsp = yfin.Ticker("^BVSP")
+        bvsp_hist = bvsp.history(period="5d")
+        if not bvsp_hist.empty:
+            latest_yfinance_date = bvsp_hist.index[-1].date()
+            end_date = datetime.combine(latest_yfinance_date, datetime.min.time())
+            logger.info(f"Latest available date on Yahoo Finance is {latest_yfinance_date}.")
+        else:
+            raise ValueError("Empty history for ^BVSP")
+    except Exception as e:
+        logger.warning(f"Could not fetch latest date from Yahoo Finance: {e}. Falling back to get_previous_business_day().")
+        end_date = datetime.strptime(get_previous_business_day(params, logger), '%Y-%m-%d')
+
     history_years = params.get("history_years", 10)
     start_date = end_date - timedelta(days=365 * history_years)
     date_range_str = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
