@@ -1,26 +1,26 @@
 {
-  "generated_at": "2026-05-05T10:20:36.953057+00:00",
+  "generated_at": "2026-05-05T11:00:21.155797+00:00",
   "model": {
     "meta": {
-      "run_id": "20260504-200719",
-      "timestamp": "2026-05-04 20:43:42"
+      "run_id": "20260505-072445",
+      "timestamp": "2026-05-05 07:58:46"
     },
     "returns": {
       "hold_12m": 139.46,
-      "gross_12m": 285.28,
-      "net_12m": 285.23819999999995,
-      "historical_annual": 6.97,
-      "excess_net_12m": 145.77819999999994
+      "gross_12m": 284.63,
+      "net_12m": 284.59749999999997,
+      "historical_annual": 3.5,
+      "excess_net_12m": 145.13749999999996
     },
     "risk": {
-      "volatility_annual": 14.67,
+      "volatility_annual": 15.27,
       "risk_free_annual": 14.75,
-      "sharpe": 22.2709,
+      "sharpe": 22.6285,
       "sharpe_source": "optimization",
-      "hhi": 0.2432,
-      "top5": 0.9348,
-      "liquidity_avg": 10809374.829548836,
-      "avg_internal_corr": 0.4634864535194662
+      "hhi": 0.2212,
+      "top5": 0.8036,
+      "liquidity_avg": 5660247.351732312,
+      "avg_internal_corr": 0.3190103980221044
     },
     "decision": {
       "verdict": "REBALANCE",
@@ -28,36 +28,40 @@
       "intensity": 100.0
     },
     "valuation": {
-      "portfolio_pe": 5.45,
+      "portfolio_pe": 6.67,
       "benchmark_pe": 10.67,
       "dividend_yield": null,
-      "momentum_signal": 0.112
+      "momentum_signal": 0.1583
     },
     "composition": {
       "sector_exposure": [
         {
           "sector": "Basic Materials",
-          "pct": 0.4208
-        },
-        {
-          "sector": "Energy",
-          "pct": 0.1489
-        },
-        {
-          "sector": "Consumer Defensive",
-          "pct": 0.1252
-        },
-        {
-          "sector": "Consumer Cyclical",
-          "pct": 0.1231
-        },
-        {
-          "sector": "Utilities",
-          "pct": 0.117
+          "pct": 0.4076
         },
         {
           "sector": "Industrials",
-          "pct": 0.0649
+          "pct": 0.1948
+        },
+        {
+          "sector": "Energy",
+          "pct": 0.1706
+        },
+        {
+          "sector": "Utilities",
+          "pct": 0.0849
+        },
+        {
+          "sector": "Consumer Cyclical",
+          "pct": 0.0817
+        },
+        {
+          "sector": "Consumer Defensive",
+          "pct": 0.0499
+        },
+        {
+          "sector": "Financial Services",
+          "pct": 0.0105
         }
       ]
     }
@@ -65,8 +69,8 @@
   "real": {
     "meta": {
       "history_start": "2025-10-17",
-      "history_end": "2026-05-04",
-      "trading_days": 104,
+      "history_end": "2026-05-05",
+      "trading_days": 105,
       "coverage_pct": 100.0,
       "annualize_safe": false,
       "source": "portfolio_history.csv + ledger.csv"
@@ -80,12 +84,12 @@
     },
     "twr": {
       "total_return": 0.1423,
-      "annual_return": 0.3848,
-      "volatility": 0.2751,
-      "sharpe": 0.85,
-      "sortino": 1.03,
+      "annual_return": 0.3805,
+      "volatility": 0.2738,
+      "sharpe": 0.84,
+      "sortino": 1.01,
       "max_drawdown": 0.179,
-      "calmar": 2.15,
+      "calmar": 2.13,
       "pct_cdi": 257.7,
       "risk_free_annual": 0.1499
     },
@@ -102,12 +106,12 @@
     },
     "alpha": {
       "total": -0.1164,
-      "annual": -0.4221
+      "annual": -0.4264
     },
     "relative": {
       "beta": 0.98,
       "tracking_error": 0.2106,
-      "information_ratio": -2.0,
+      "information_ratio": -2.03,
       "correlation": 0.67
     },
     "structure": {
@@ -173,18 +177,18 @@
         "trading_days": 82
       },
       "3M": {
-        "tracking_error": 0.2101,
-        "information_ratio": -1.27,
+        "tracking_error": 0.2108,
+        "information_ratio": -1.57,
         "hhi": 0.1334,
         "n_assets": 18,
-        "trading_days": 59
+        "trading_days": 58
       },
       "6M": {
-        "tracking_error": 0.2129,
-        "information_ratio": -1.47,
+        "tracking_error": 0.2141,
+        "information_ratio": -1.42,
         "hhi": 0.1334,
         "n_assets": 18,
-        "trading_days": 87
+        "trading_days": 86
       },
       "12M": {
         "tracking_error": 0.2106,
@@ -209,16 +213,16 @@
         "pct_cdi": 319.5
       },
       "3M": {
-        "portfolio": -0.059,
-        "benchmark": 0.0089,
-        "cdi": 0.0322,
-        "pct_cdi": -183.0
+        "portfolio": -0.0472,
+        "benchmark": 0.0309,
+        "cdi": 0.0319,
+        "pct_cdi": -148.2
       },
       "6M": {
-        "portfolio": 0.1182,
-        "benchmark": 0.1997,
-        "cdi": 0.0489,
-        "pct_cdi": 241.9
+        "portfolio": 0.1197,
+        "benchmark": 0.1977,
+        "cdi": 0.0482,
+        "pct_cdi": 248.3
       },
       "12M": {
         "portfolio": 0.1423,
@@ -322,7 +326,7 @@
           "retorno_cdi": 0.0,
           "retorno_acumulado": 0.142337,
           "fator_acumulado": 1.142337,
-          "pregoes": 2
+          "pregoes": 3
         }
       ],
       "twr_total": 0.142337,

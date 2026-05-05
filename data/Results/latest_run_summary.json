@@ -1,103 +1,116 @@
 {
-    "last_updated_run_id": "20260504-200719",
-    "scoring_run_id": "20260504-200719",
-    "last_updated_timestamp": "2026-05-04 20:43:42",
+    "last_updated_run_id": "20260505-072445",
+    "scoring_run_id": "20260505-072445",
+    "last_updated_timestamp": "2026-05-05 07:58:46",
     "best_portfolio_details": {
         "stocks": [
-            "NEOE3.SA",
-            "KLBN4.SA",
-            "PETR4.SA",
             "AMBP3.SA",
-            "VULC3.SA",
-            "WEGE3.SA",
-            "SLCE3.SA"
+            "KLBN4.SA",
+            "SLCE3.SA",
+            "ABCB4.SA",
+            "FRAS3.SA",
+            "PETR3.SA",
+            "PRNR3.SA",
+            "CMIG3.SA",
+            "NEOE3.SA",
+            "PRIO3.SA",
+            "WEGE3.SA"
         ],
         "weights": [
-            0.1194,
-            0.4157,
-            0.1549,
-            0.0257,
-            0.1216,
-            0.0396,
-            0.1232
+            0.0352,
+            0.4159,
+            0.0493,
+            0.0025,
+            0.0796,
+            0.1223,
+            0.0512,
+            0.0147,
+            0.0682,
+            0.0435,
+            0.1175
         ],
-        "sharpe_forward": 22.2709,
-        "expected_return_annual_pct": 6.97,
-        "expected_volatility_annual_pct": 14.67,
+        "sharpe_forward": 22.6285,
+        "expected_return_annual_pct": 3.5,
+        "expected_volatility_annual_pct": 15.27,
         "initial_investment": 5000.0,
         "sector_exposure": {
-            "Utilities": 0.1194,
-            "Basic Materials": 0.4157,
-            "Energy": 0.1549,
-            "Industrials": 0.0652,
-            "Consumer Cyclical": 0.1216,
-            "Consumer Defensive": 0.1232
+            "Industrials": 0.2039,
+            "Basic Materials": 0.4159,
+            "Consumer Defensive": 0.0493,
+            "Financial Services": 0.0025,
+            "Consumer Cyclical": 0.0796,
+            "Energy": 0.1658,
+            "Utilities": 0.0829
         },
         "sector_exposure_list": [
             {
                 "sector": "Basic Materials",
-                "pct": 0.4157
-            },
-            {
-                "sector": "Energy",
-                "pct": 0.1549
-            },
-            {
-                "sector": "Consumer Defensive",
-                "pct": 0.1232
-            },
-            {
-                "sector": "Consumer Cyclical",
-                "pct": 0.1216
-            },
-            {
-                "sector": "Utilities",
-                "pct": 0.1194
+                "pct": 0.4159
             },
             {
                 "sector": "Industrials",
-                "pct": 0.0652
+                "pct": 0.2039
+            },
+            {
+                "sector": "Energy",
+                "pct": 0.1658
+            },
+            {
+                "sector": "Utilities",
+                "pct": 0.0829
+            },
+            {
+                "sector": "Consumer Cyclical",
+                "pct": 0.0796
+            },
+            {
+                "sector": "Consumer Defensive",
+                "pct": 0.0493
+            },
+            {
+                "sector": "Financial Services",
+                "pct": 0.0025
             }
         ],
         "concentration_risk": {
-            "hhi": 0.2432,
-            "top_5_holdings_pct": 0.9348,
+            "hhi": 0.2212,
+            "top_5_holdings_pct": 0.8036,
             "top_5_holdings": [
                 {
                     "stock": "KLBN4.SA",
-                    "weight": 0.4157
+                    "weight": 0.4159
                 },
                 {
-                    "stock": "PETR4.SA",
-                    "weight": 0.1549
+                    "stock": "PETR3.SA",
+                    "weight": 0.1223
                 },
                 {
-                    "stock": "SLCE3.SA",
-                    "weight": 0.1232
+                    "stock": "WEGE3.SA",
+                    "weight": 0.1175
                 },
                 {
-                    "stock": "VULC3.SA",
-                    "weight": 0.1216
+                    "stock": "FRAS3.SA",
+                    "weight": 0.0796
                 },
                 {
                     "stock": "NEOE3.SA",
-                    "weight": 0.1194
+                    "weight": 0.0682
                 }
             ]
         },
-        "portfolio_weighted_pe": 5.45,
+        "portfolio_weighted_pe": 6.67,
         "momentum_valuation": {
-            "portfolio_momentum": 0.112,
-            "portfolio_forward_pe": 5.45,
+            "portfolio_momentum": 0.1583,
+            "portfolio_forward_pe": 6.67,
             "benchmark_forward_pe": 10.67,
             "portfolio_dividend_yield": null
         },
         "holdings_meta": {
-            "NEOE3.SA": {
-                "forwardPE": 10.154846,
-                "Momentum": 0.1925795374510948,
-                "currentPrice": 33.75,
-                "targetPrice": 34.82889
+            "AMBP3.SA": {
+                "forwardPE": 0.168,
+                "Momentum": -0.4210526274512018,
+                "currentPrice": 0.2199999988079071,
+                "targetPrice": 2.419999986886978
             },
             "KLBN4.SA": {
                 "forwardPE": 1.6398106,
@@ -105,35 +118,59 @@
                 "currentPrice": 3.569999933242798,
                 "targetPrice": 24.75248
             },
-            "PETR4.SA": {
-                "forwardPE": 5.1071315,
-                "Momentum": 0.6257039073479673,
-                "currentPrice": 49.08000183105469,
-                "targetPrice": 51.7
+            "SLCE3.SA": {
+                "forwardPE": 8.228167,
+                "Momentum": 0.2096774237329726,
+                "currentPrice": 17.0,
+                "targetPrice": 19.66364
             },
-            "AMBP3.SA": {
-                "forwardPE": 0.168,
-                "Momentum": -0.4210526274512018,
-                "currentPrice": 0.2199999988079071,
-                "targetPrice": 2.419999986886978
+            "ABCB4.SA": {
+                "forwardPE": 5.076236,
+                "Momentum": 0.1442922329888232,
+                "currentPrice": 25.059999465942383,
+                "targetPrice": 27.88889
             },
-            "VULC3.SA": {
-                "forwardPE": 6.804078,
-                "Momentum": -0.2591549155778809,
-                "currentPrice": 15.779999732971191,
-                "targetPrice": 23.0
+            "FRAS3.SA": {
+                "forwardPE": 12.410159,
+                "Momentum": -0.0517543174259894,
+                "currentPrice": 21.6200008392334,
+                "targetPrice": 27.14444
+            },
+            "PETR3.SA": {
+                "forwardPE": 3.6704752,
+                "Momentum": 0.7113821240039053,
+                "currentPrice": 54.72999954223633,
+                "targetPrice": 52.36667
+            },
+            "PRNR3.SA": {
+                "forwardPE": 5.297143,
+                "Momentum": 0.2607238183483105,
+                "currentPrice": 18.809999465942383,
+                "targetPrice": 26.7
+            },
+            "CMIG3.SA": {
+                "forwardPE": 5.7929826,
+                "Momentum": 0.2119682483519207,
+                "currentPrice": 16.809999465942383,
+                "targetPrice": 32.36864204075674
+            },
+            "NEOE3.SA": {
+                "forwardPE": 10.154846,
+                "Momentum": 0.1925795374510948,
+                "currentPrice": 33.75,
+                "targetPrice": 34.82889
+            },
+            "PRIO3.SA": {
+                "forwardPE": 7.9606695,
+                "Momentum": 0.8016821096703712,
+                "currentPrice": 66.41000366210938,
+                "targetPrice": 67.08214
             },
             "WEGE3.SA": {
                 "forwardPE": 23.254473,
                 "Momentum": 0.0825290081317307,
                 "currentPrice": 44.86000061035156,
                 "targetPrice": 53.97143
-            },
-            "SLCE3.SA": {
-                "forwardPE": 8.228167,
-                "Momentum": 0.2096774237329726,
-                "currentPrice": 17.0,
-                "targetPrice": 19.66364
             }
         }
     }

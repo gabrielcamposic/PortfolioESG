@@ -360,6 +360,47 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260505-072445",
+    "timestamp": "2026-05-05 07:58:46",
+    "n_assets": 11,
+    "stocks": [
+      "AMBP3.SA",
+      "KLBN4.SA",
+      "SLCE3.SA",
+      "ABCB4.SA",
+      "FRAS3.SA",
+      "PETR3.SA",
+      "PRNR3.SA",
+      "CMIG3.SA",
+      "NEOE3.SA",
+      "PRIO3.SA",
+      "WEGE3.SA"
+    ],
+    "weights": [
+      0.0352,
+      0.4159,
+      0.0493,
+      0.0025,
+      0.0796,
+      0.1223,
+      0.0512,
+      0.0147,
+      0.0682,
+      0.0435,
+      0.1175
+    ],
+    "sharpe_forward": 22.6285,
+    "ret_hist_12m": 3.5,
+    "vol_12m": 15.27,
+    "ret_proj_12m": 290.44,
+    "score": 1.7134,
+    "momentum": 0.0829,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.0325,
+    "holdings_return_pct": 139.46,
+    "excess_return_pct": 145.1279
+  },
+  {
     "run_id": "20260504-200719",
     "timestamp": "2026-05-04 20:43:42",
     "n_assets": 7,
