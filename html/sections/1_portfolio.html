@@ -297,6 +297,7 @@ async function render() {
           <th class="val-p"><span class="legend-indicator" style="background: ${DC.portfolio.line}"></span>Port</th>
           <th class="val-b"><span class="legend-indicator dash" style="color: ${DC.ibov.line}"></span>Ibov</th>
           <th class="val-c"><span class="legend-indicator dash" style="color: ${DC.cdi.line}"></span>CDI</th>
+          <th class="val-b"><span class="legend-indicator" style="background: var(--accent-green)"></span>Fundo</th>
         </tr>
       </thead>
       <tbody>`;
@@ -307,6 +308,7 @@ async function render() {
           <td class="val-p">${fmtPct(perf[w].portfolio, 1)}</td>
           <td class="val-b">${fmtPct(perf[w].benchmark, 1)}</td>
           <td class="val-c">${fmtPct(perf[w].cdi, 1)}</td>
+          <td class="val-b" style="color: var(--accent-green)">${perf[w].fund !== undefined ? fmtPct(perf[w].fund, 1) : '—'}</td>
         </tr>`;
       }
     });
@@ -316,8 +318,8 @@ async function render() {
     // ── Line chart: Portfolio vs Ibovespa vs CDI, base 100 ──
     if (dailyRows.length > 0) {
       const labels = [dailyRows[0].date];
-      const pS = [100], bS = [100], cS = [100];
-      let pB = 100, bB = 100, cB = 100;
+      const pS = [100], bS = [100], cS = [100], fS = [100];
+      let pB = 100, bB = 100, cB = 100, fB = 100;
 
       for (let i = 1; i < dailyRows.length; i++) {
         const r = dailyRows[i];
@@ -325,8 +327,9 @@ async function render() {
         const pr = parseFloat(r.portfolio_return);
         const br = parseFloat(r.benchmark_return);
         const cr = parseFloat(r.cdi_return);
-        pB *= isNaN(pr)?1:(1+pr); bB *= isNaN(br)?1:(1+br); cB *= isNaN(cr)?1:(1+cr);
-        pS.push(pB); bS.push(bB); cS.push(cB);
+        const fr = parseFloat(r.fund_return);
+        pB *= isNaN(pr)?1:(1+pr); bB *= isNaN(br)?1:(1+br); cB *= isNaN(cr)?1:(1+cr); fB *= isNaN(fr)?1:(1+fr);
+        pS.push(pB); bS.push(bB); cS.push(cB); fS.push(fB);
       }
 
       // Find marker indices
@@ -349,6 +352,8 @@ async function render() {
               borderDash: DC.ibov.dash, pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
             { label:'CDI', data:cS, borderColor: DC.cdi.line, borderWidth:1.5,
               borderDash: DC.cdi.dash, pointRadius:0, pointHitRadius:8, tension:0, fill:false },
+            { label:'Fundo ESG Global', data:fS, borderColor: 'var(--accent-green)', borderWidth:2,
+              pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
           ]
         },
         options: {

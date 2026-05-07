@@ -797,6 +797,20 @@ def _build_real_daily_series() -> pd.DataFrame:
     cdi_is_synthetic = "fallback" in cdi_source
     selic_daily_fallback = (1 + SELIC_ANNUAL_FALLBACK) ** (1 / 252) - 1
 
+    # --- Load Fund Quota returns ---
+    fund_by_date = {}
+    fund_db_path = FINDB_DIR / "FundQuotaDB.csv"
+    if fund_db_path.exists():
+        try:
+            fund_df = pd.read_csv(fund_db_path)
+            for _, row in fund_df.iterrows():
+                dt = str(row.get("date", ""))[:10]
+                fr = safe_float(row.get("fund_return"), None)
+                if fr is not None:
+                    fund_by_date[dt] = fr
+        except Exception as e:
+            logger.warning(f"Could not load FundQuotaDB: {e}")
+
     # --- Build daily series (only dates present in portfolio_history, already business-days) ---
     dates = hist_daily["date"].tolist()
     rows = []
@@ -810,30 +824,27 @@ def _build_real_daily_series() -> pd.DataFrame:
             port_ret = None
             bench_ret = None
             cdi_ret = None
+            fund_ret = None
         else:
             prev_pv = hist_daily.iloc[i - 1]["portfolio_value"]
             prev_cb = hist_daily.iloc[i - 1]["cost_basis"]
 
-            # Determine actual cash flow for TWR calculation
-            # If cost_basis changed, there was a real transaction
             cost_delta = cb - prev_cb
             if abs(cost_delta) > 0.01:
-                # Use cost_basis delta as cash flow (more reliable than ledger
-                # because it's already aligned with the tracked portfolio)
                 effective_cf = cost_delta
             else:
                 effective_cf = 0.0
 
-            # TWR daily return: r = (V_t - CF_t) / V_{t-1} - 1
             if prev_pv > 0:
                 port_ret = (pv - effective_cf) / prev_pv - 1
             else:
                 port_ret = None
 
             bench_ret = bench_by_date.get(dt, None)
-
-            # CDI: real data from LFTS11, fallback to synthetic
             cdi_ret = cdi_by_date.get(dt, selic_daily_fallback if cdi_is_synthetic else None)
+            
+            # Se não houver cota no dia, assumimos variação 0 (que equivale a ffill da cota)
+            fund_ret = fund_by_date.get(dt, 0.0)
 
         rows.append({
             "date": dt,
@@ -843,6 +854,7 @@ def _build_real_daily_series() -> pd.DataFrame:
             "portfolio_return": round(port_ret, 8) if port_ret is not None else "",
             "benchmark_return": round(bench_ret, 8) if bench_ret is not None else "",
             "cdi_return": round(cdi_ret, 8) if cdi_ret is not None else "",
+            "fund_return": round(fund_ret, 8) if fund_ret is not None else "",
         })
 
     df = pd.DataFrame(rows)
@@ -1004,10 +1016,13 @@ def _compute_performance_windows(daily_df: pd.DataFrame) -> dict:
     df["port_r"] = pd.to_numeric(df["portfolio_return"], errors="coerce")
     df["bench_r"] = pd.to_numeric(df["benchmark_return"], errors="coerce")
     df["cdi_r"] = pd.to_numeric(df["cdi_return"], errors="coerce")
+    if "fund_return" in df.columns:
+        df["fund_r"] = pd.to_numeric(df["fund_return"], errors="coerce")
+    else:
+        df["fund_r"] = pd.Series([None] * len(df))
 
     last_date = df["date_dt"].max()
     result = {}
-
 
     windows = {
         "YTD": pd.Timestamp(last_date.year, 1, 1),
@@ -1022,6 +1037,7 @@ def _compute_performance_windows(daily_df: pd.DataFrame) -> dict:
         port_r = subset["port_r"].dropna()
         bench_r = subset["bench_r"].dropna()
         cdi_r = subset["cdi_r"].dropna()
+        fund_r = subset["fund_r"].dropna()
 
         if port_r.empty:
             continue
@@ -1029,12 +1045,14 @@ def _compute_performance_windows(daily_df: pd.DataFrame) -> dict:
         p_total = float(np.prod(1 + port_r.values) - 1)
         b_total = float(np.prod(1 + bench_r.values) - 1) if not bench_r.empty else None
         c_total = float(np.prod(1 + cdi_r.values) - 1) if not cdi_r.empty else None
+        f_total = float(np.prod(1 + fund_r.values) - 1) if not fund_r.empty else None
         pct_cdi = round((p_total / c_total) * 100, 1) if c_total and c_total > 0 else None
 
         result[label] = {
             "portfolio": round(p_total, 4),
             "benchmark": round(b_total, 4) if b_total is not None else None,
             "cdi": round(c_total, 4),
+            "fund": round(f_total, 4) if f_total is not None else None,
             "pct_cdi": pct_cdi,
         }
 

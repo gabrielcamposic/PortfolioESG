@@ -25,6 +25,7 @@ export PIPELINE_RUN_ID="${PIPELINE_RUN_ID:-$(date '+%Y%m%d-%H%M%S')}"
 # Define paths to the scripts and the main progress file
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 DOWNLOAD_SCRIPT="$PROJECT_ROOT/engines/A1_Download.py"
+FUND_SCRIPT="$PROJECT_ROOT/engines/A1b_DownloadFundCVM.py"
 SCORING_SCRIPT="$PROJECT_ROOT/engines/A2_Scoring.py"
 PORTFOLIO_SCRIPT="$PROJECT_ROOT/engines/A3_Portfolio.py"
 ANALYSIS_SCRIPT="$PROJECT_ROOT/engines/A4_Analysis.py"
@@ -109,6 +110,10 @@ jq -n --arg startTime "$(date '+%Y-%m-%d %H:%M:%S')" '{
 # 1. Run the Data Download script
 run_stage "Data Download" "$DOWNLOAD_SCRIPT"
 update_pipeline_status "Awaiting Next Stage" "Data Download completed successfully."
+
+# 1b. Run the CVM Fund Data Download script
+run_stage "CVM Fund Download" "$FUND_SCRIPT"
+update_pipeline_status "Awaiting Next Stage" "CVM Fund Download completed successfully."
 
 # 2. Run the Stock Scoring script
 run_stage "Stock Scoring" "$SCORING_SCRIPT"
