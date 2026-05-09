@@ -360,6 +360,47 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260509-095524",
+    "timestamp": "2026-05-09 10:44:50",
+    "n_assets": 11,
+    "stocks": [
+      "CMIG3.SA",
+      "CXSE3.SA",
+      "SLCE3.SA",
+      "KLBN4.SA",
+      "MILS3.SA",
+      "PRIO3.SA",
+      "GGBR4.SA",
+      "PETR4.SA",
+      "UGPA3.SA",
+      "FRAS3.SA",
+      "AMBP3.SA"
+    ],
+    "weights": [
+      0.0254,
+      0.0739,
+      0.1106,
+      0.3328,
+      0.0688,
+      0.0758,
+      0.0348,
+      0.0642,
+      0.0347,
+      0.1327,
+      0.0465
+    ],
+    "sharpe_forward": 22.6823,
+    "ret_hist_12m": -1.13,
+    "vol_12m": 15.68,
+    "ret_proj_12m": 263.34,
+    "score": 1.6699,
+    "momentum": 0.0675,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0154,
+    "holdings_return_pct": 299.78,
+    "excess_return_pct": -36.6054
+  },
+  {
     "run_id": "20260507-211421",
     "timestamp": "2026-05-07 21:49:34",
     "n_assets": 8,
