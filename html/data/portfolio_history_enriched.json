@@ -360,6 +360,41 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260511-203223",
+    "timestamp": "2026-05-11 20:52:06",
+    "n_assets": 8,
+    "stocks": [
+      "CXSE3.SA",
+      "CMIG3.SA",
+      "PETR4.SA",
+      "VULC3.SA",
+      "SLCE3.SA",
+      "KLBN4.SA",
+      "PRIO3.SA",
+      "AMBP3.SA"
+    ],
+    "weights": [
+      0.019,
+      0.0893,
+      0.0903,
+      0.0946,
+      0.1043,
+      0.4226,
+      0.1273,
+      0.0527
+    ],
+    "sharpe_forward": 23.4293,
+    "ret_hist_12m": -1.66,
+    "vol_12m": 16.91,
+    "ret_proj_12m": 334.75,
+    "score": 1.7755,
+    "momentum": 0.0275,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.016,
+    "holdings_return_pct": 304.13,
+    "excess_return_pct": 24.4455
+  },
+  {
     "run_id": "20260509-095524",
     "timestamp": "2026-05-09 10:44:50",
     "n_assets": 11,
