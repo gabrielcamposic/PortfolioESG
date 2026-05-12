@@ -162,7 +162,7 @@ SBFG3.SA,Grupo SBF S.A.,Consumer Cyclical,Specialty Retail,
 SBSP3.SA,Companhia de Saneamento Básico do Estado de São Paulo - SABESP,Utilities,Utilities - Regulated Water,
 SEER3.SA,Ser Educacional S.A.,Consumer Defensive,Education & Training Services,
 SIMH3.SA,SIMPAR S.A.,Industrials,Rental & Leasing Services,
-SLCE3.SA,SLC Agrícola S.A.,Consumer Defensive,Farm Products,
+SLCE3.SA,SLC Agrícola S.A.,Consumer Defensive,Farm Products,SLC AGRICOLAON NM
 SMFT3.SA,Smartfit Escola de Ginástica e Dança S.A.,Consumer Cyclical,Leisure,
 SMTO3.SA,São Martinho S.A.,Basic Materials,Specialty Chemicals,
 SOJA3.SA,Boa Safra Sementes S.A.,Basic Materials,Agricultural Inputs,
