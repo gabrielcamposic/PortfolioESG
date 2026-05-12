@@ -811,11 +811,13 @@ def _build_real_daily_series() -> pd.DataFrame:
         except Exception as e:
             logger.warning(f"Could not load FundQuotaDB: {e}")
 
-    # --- Load Manual Ledger (External Cash Flows and Fund Tx) ---
+    # --- Load Manual Ledger (External Cash Flows, BOLSA settlements, and Fund Tx) ---
     ext_aporte_by_date = {}
     ext_saque_by_date = {}
     fund_aplic_by_date = {}
     fund_resgate_by_date = {}
+    dividends_by_date = {}
+    bolsa_by_date: Dict[str, float] = {}  # Extrato BOLSA settlements (source of truth for cash)
     
     manual_ledger_path = ROOT / "data" / "manual_ledger.csv"
     if manual_ledger_path.exists():
@@ -834,27 +836,45 @@ def _build_real_daily_series() -> pd.DataFrame:
                     fund_aplic_by_date[dt] = fund_aplic_by_date.get(dt, 0.0) + val
                 elif op == "RESGATE_FUNDO":
                     fund_resgate_by_date[dt] = fund_resgate_by_date.get(dt, 0.0) + val
+                elif op == "DIVIDENDO":
+                    dividends_by_date[dt] = dividends_by_date.get(dt, 0.0) + val
+                elif op == "BOLSA":
+                    # val is signed: negative = cash out (bought), positive = cash in (sold)
+                    bolsa_by_date[dt] = bolsa_by_date.get(dt, 0.0) + val
         except Exception as e:
             logger.warning(f"Could not load manual_ledger.csv: {e}")
 
-    # --- Build daily series (only dates present in portfolio_history, already business-days) ---
-    dates = hist_daily["date"].tolist()
+    start_dt = hist_daily["date"].min() if not hist_daily.empty else None
+    
+    if start_dt and bench_by_date:
+        dates = sorted([d for d in bench_by_date.keys() if d >= start_dt])
+    else:
+        dates = hist_daily["date"].tolist()
+        
+    hist_dict = hist_daily.set_index("date").to_dict("index")
+    
     rows = []
 
     cash_balance = 0.0
     fund_balance = 0.0
     
     for i, dt in enumerate(dates):
-        pv = hist_daily.iloc[i]["portfolio_value"]
-        cb = hist_daily.iloc[i]["cost_basis"]
+        pv = hist_dict.get(dt, {}).get("portfolio_value", 0.0)
+        cb = hist_dict.get(dt, {}).get("cost_basis", 0.0)
         
         aporte = ext_aporte_by_date.get(dt, 0.0)
         saque = ext_saque_by_date.get(dt, 0.0)
         aplic = fund_aplic_by_date.get(dt, 0.0)
         resgate = fund_resgate_by_date.get(dt, 0.0)
+        div = dividends_by_date.get(dt, 0.0)
         
         fund_ret = fund_by_date.get(dt, 0.0) if i > 0 else 0.0
 
+        # BOLSA = extrato settlement (source of truth for cash balance)
+        # cf = per-trade ledger cash flow (source of truth for equity TWRR)
+        bolsa = bolsa_by_date.get(dt, 0.0)  # signed: neg=bought, pos=sold
+        cf = cf_by_date.get(dt, 0.0)        # per-trade: pos=bought, neg=sold (opposite sign)
+        
         if i == 0:
             port_ret = None
             bench_ret = None
@@ -862,20 +882,19 @@ def _build_real_daily_series() -> pd.DataFrame:
             cons_ret = None
             
             fund_balance = aplic - resgate
-            # Initial cash flow into equities is cb.
-            cash_balance = aporte - saque - cb - aplic + resgate
+            
+            # Cash balance uses extrato BOLSA (includes real fees)
+            cash_balance = aporte - saque + bolsa + div - aplic + resgate
             total_value = pv + fund_balance + cash_balance
-            effective_cf = cb
+            effective_cf = cf - div  # for equity TWRR only
         else:
-            prev_pv = hist_daily.iloc[i - 1]["portfolio_value"]
-            prev_cb = hist_daily.iloc[i - 1]["cost_basis"]
+            prev_dt = dates[i - 1]
+            prev_pv = hist_dict.get(prev_dt, {}).get("portfolio_value", 0.0)
+            prev_cb = hist_dict.get(prev_dt, {}).get("cost_basis", 0.0)
             prev_total = rows[-1]["total_value"]
 
-            cost_delta = cb - prev_cb
-            if abs(cost_delta) > 0.01:
-                effective_cf = cost_delta
-            else:
-                effective_cf = 0.0
+            # Equity TWRR uses per-trade cash flow (accurate for return attribution)
+            effective_cf = cf - div
 
             if prev_pv > 0:
                 port_ret = (pv - effective_cf) / prev_pv - 1
@@ -885,9 +904,9 @@ def _build_real_daily_series() -> pd.DataFrame:
             bench_ret = bench_by_date.get(dt, None)
             cdi_ret = cdi_by_date.get(dt, selic_daily_fallback if cdi_is_synthetic else None)
             
-            # Update Multi-Strategy Balances
+            # Update Multi-Strategy Balances (cash uses extrato BOLSA)
             fund_balance = fund_balance * (1 + fund_ret) + aplic - resgate
-            cash_balance = cash_balance + aporte - saque - effective_cf - aplic + resgate
+            cash_balance = cash_balance + aporte - saque + bolsa + div - aplic + resgate
             total_value = pv + fund_balance + cash_balance
             
             cons_cf = aporte - saque
