@@ -294,10 +294,11 @@ async function render() {
       <thead>
         <tr>
           <th>Janela</th>
-          <th class="val-p"><span class="legend-indicator" style="background: ${DC.portfolio.line}"></span>Port</th>
+          <th class="val-p"><span class="legend-indicator" style="background: ${DC.portfolio.line}"></span>Cons.</th>
+          <th class="val-p">Ações</th>
+          <th class="val-b"><span class="legend-indicator" style="background: var(--accent-green)"></span>Fundo</th>
           <th class="val-b"><span class="legend-indicator dash" style="color: ${DC.ibov.line}"></span>Ibov</th>
           <th class="val-c"><span class="legend-indicator dash" style="color: ${DC.cdi.line}"></span>CDI</th>
-          <th class="val-b"><span class="legend-indicator" style="background: var(--accent-green)"></span>Fundo</th>
         </tr>
       </thead>
       <tbody>`;
@@ -306,9 +307,10 @@ async function render() {
         overlayHtml += `<tr>
           <td class="win-label">${w}</td>
           <td class="val-p">${fmtPct(perf[w].portfolio, 1)}</td>
+          <td class="val-p">${perf[w].equity_only !== undefined ? fmtPct(perf[w].equity_only, 1) : '—'}</td>
+          <td class="val-b" style="color: var(--accent-green)">${perf[w].fund !== undefined ? fmtPct(perf[w].fund, 1) : '—'}</td>
           <td class="val-b">${fmtPct(perf[w].benchmark, 1)}</td>
           <td class="val-c">${fmtPct(perf[w].cdi, 1)}</td>
-          <td class="val-b" style="color: var(--accent-green)">${perf[w].fund !== undefined ? fmtPct(perf[w].fund, 1) : '—'}</td>
         </tr>`;
       }
     });
@@ -324,7 +326,7 @@ async function render() {
       for (let i = 1; i < dailyRows.length; i++) {
         const r = dailyRows[i];
         labels.push(r.date);
-        const pr = parseFloat(r.portfolio_return);
+        const pr = parseFloat(r.consolidated_return);
         const br = parseFloat(r.benchmark_return);
         const cr = parseFloat(r.cdi_return);
         const fr = parseFloat(r.fund_return);

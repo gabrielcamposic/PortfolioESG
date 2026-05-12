@@ -811,23 +811,65 @@ def _build_real_daily_series() -> pd.DataFrame:
         except Exception as e:
             logger.warning(f"Could not load FundQuotaDB: {e}")
 
+    # --- Load Manual Ledger (External Cash Flows and Fund Tx) ---
+    ext_aporte_by_date = {}
+    ext_saque_by_date = {}
+    fund_aplic_by_date = {}
+    fund_resgate_by_date = {}
+    
+    manual_ledger_path = ROOT / "data" / "manual_ledger.csv"
+    if manual_ledger_path.exists():
+        try:
+            m_df = pd.read_csv(manual_ledger_path)
+            for _, row in m_df.iterrows():
+                dt = str(row.get("date", ""))[:10]
+                op = str(row.get("operation", "")).upper()
+                val = safe_float(row.get("value"), 0.0)
+                
+                if op == "APORTE":
+                    ext_aporte_by_date[dt] = ext_aporte_by_date.get(dt, 0.0) + val
+                elif op == "SAQUE":
+                    ext_saque_by_date[dt] = ext_saque_by_date.get(dt, 0.0) + val
+                elif op == "APLICACAO_FUNDO":
+                    fund_aplic_by_date[dt] = fund_aplic_by_date.get(dt, 0.0) + val
+                elif op == "RESGATE_FUNDO":
+                    fund_resgate_by_date[dt] = fund_resgate_by_date.get(dt, 0.0) + val
+        except Exception as e:
+            logger.warning(f"Could not load manual_ledger.csv: {e}")
+
     # --- Build daily series (only dates present in portfolio_history, already business-days) ---
     dates = hist_daily["date"].tolist()
     rows = []
 
+    cash_balance = 0.0
+    fund_balance = 0.0
+    
     for i, dt in enumerate(dates):
         pv = hist_daily.iloc[i]["portfolio_value"]
         cb = hist_daily.iloc[i]["cost_basis"]
-        cf = cf_by_date.get(dt, 0.0)
+        
+        aporte = ext_aporte_by_date.get(dt, 0.0)
+        saque = ext_saque_by_date.get(dt, 0.0)
+        aplic = fund_aplic_by_date.get(dt, 0.0)
+        resgate = fund_resgate_by_date.get(dt, 0.0)
+        
+        fund_ret = fund_by_date.get(dt, 0.0) if i > 0 else 0.0
 
         if i == 0:
             port_ret = None
             bench_ret = None
             cdi_ret = None
-            fund_ret = None
+            cons_ret = None
+            
+            fund_balance = aplic - resgate
+            # Initial cash flow into equities is cb.
+            cash_balance = aporte - saque - cb - aplic + resgate
+            total_value = pv + fund_balance + cash_balance
+            effective_cf = cb
         else:
             prev_pv = hist_daily.iloc[i - 1]["portfolio_value"]
             prev_cb = hist_daily.iloc[i - 1]["cost_basis"]
+            prev_total = rows[-1]["total_value"]
 
             cost_delta = cb - prev_cb
             if abs(cost_delta) > 0.01:
@@ -843,18 +885,31 @@ def _build_real_daily_series() -> pd.DataFrame:
             bench_ret = bench_by_date.get(dt, None)
             cdi_ret = cdi_by_date.get(dt, selic_daily_fallback if cdi_is_synthetic else None)
             
-            # Se não houver cota no dia, assumimos variação 0 (que equivale a ffill da cota)
-            fund_ret = fund_by_date.get(dt, 0.0)
+            # Update Multi-Strategy Balances
+            fund_balance = fund_balance * (1 + fund_ret) + aplic - resgate
+            cash_balance = cash_balance + aporte - saque - effective_cf - aplic + resgate
+            total_value = pv + fund_balance + cash_balance
+            
+            cons_cf = aporte - saque
+            if prev_total > 0:
+                cons_ret = (total_value - cons_cf) / prev_total - 1
+            else:
+                cons_ret = None
 
         rows.append({
             "date": dt,
             "portfolio_value": round(pv, 2),
+            "fund_value": round(fund_balance, 2),
+            "cash_value": round(cash_balance, 2),
+            "total_value": round(total_value, 2),
             "cost_basis": round(cb, 2),
-            "cash_flow": round(cf, 2),
+            "cash_flow": round(effective_cf, 2),
             "portfolio_return": round(port_ret, 8) if port_ret is not None else "",
             "benchmark_return": round(bench_ret, 8) if bench_ret is not None else "",
             "cdi_return": round(cdi_ret, 8) if cdi_ret is not None else "",
-            "fund_return": round(fund_ret, 8) if fund_ret is not None else "",
+            "fund_return": round(fund_ret, 8) if i > 0 else "",
+            "consolidated_return": round(cons_ret, 8) if cons_ret is not None else "",
+            "consolidated_cf": round(aporte - saque, 2),
         })
 
     df = pd.DataFrame(rows)
@@ -880,11 +935,15 @@ def _compute_real_metrics(daily_df: pd.DataFrame) -> dict:
         return {}
 
     # Extract return series (skip first row which has no return)
-    port_rets = pd.to_numeric(daily_df["portfolio_return"], errors="coerce").dropna()
+    # Mudança da Fase 4: O Header e as métricas principais agora usam a Cota Consolidada
+    port_rets = pd.to_numeric(daily_df["consolidated_return"], errors="coerce").dropna()
     bench_rets = pd.to_numeric(daily_df["benchmark_return"], errors="coerce").dropna()
 
     if port_rets.empty:
-        return {}
+        # Fallback to portfolio_return if consolidated is empty for some reason
+        port_rets = pd.to_numeric(daily_df["portfolio_return"], errors="coerce").dropna()
+        if port_rets.empty:
+            return {}
 
     n = len(port_rets)
 
@@ -1020,6 +1079,11 @@ def _compute_performance_windows(daily_df: pd.DataFrame) -> dict:
         df["fund_r"] = pd.to_numeric(df["fund_return"], errors="coerce")
     else:
         df["fund_r"] = pd.Series([None] * len(df))
+        
+    if "consolidated_return" in df.columns:
+        df["cons_r"] = pd.to_numeric(df["consolidated_return"], errors="coerce")
+    else:
+        df["cons_r"] = df["port_r"]
 
     last_date = df["date_dt"].max()
     result = {}
@@ -1038,18 +1102,21 @@ def _compute_performance_windows(daily_df: pd.DataFrame) -> dict:
         bench_r = subset["bench_r"].dropna()
         cdi_r = subset["cdi_r"].dropna()
         fund_r = subset["fund_r"].dropna()
+        cons_r = subset["cons_r"].dropna()
 
-        if port_r.empty:
+        if cons_r.empty:
             continue
 
-        p_total = float(np.prod(1 + port_r.values) - 1)
+        p_total = float(np.prod(1 + port_r.values) - 1) if not port_r.empty else None
+        c_total_port = float(np.prod(1 + cons_r.values) - 1) if not cons_r.empty else None
         b_total = float(np.prod(1 + bench_r.values) - 1) if not bench_r.empty else None
         c_total = float(np.prod(1 + cdi_r.values) - 1) if not cdi_r.empty else None
         f_total = float(np.prod(1 + fund_r.values) - 1) if not fund_r.empty else None
-        pct_cdi = round((p_total / c_total) * 100, 1) if c_total and c_total > 0 else None
+        pct_cdi = round((c_total_port / c_total) * 100, 1) if c_total and c_total > 0 and c_total_port is not None else None
 
         result[label] = {
-            "portfolio": round(p_total, 4),
+            "portfolio": round(c_total_port, 4), # Renomeado visualmente, mas ainda é a chave "portfolio"
+            "equity_only": round(p_total, 4) if p_total is not None else None,
             "benchmark": round(b_total, 4) if b_total is not None else None,
             "cdi": round(c_total, 4),
             "fund": round(f_total, 4) if f_total is not None else None,
@@ -1389,6 +1456,15 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
             "sector_exposure": sector_list
         }
 
+    try:
+        real_daily = pd.read_csv(PORTFOLIO_REAL_DAILY_CSV)
+        if not real_daily.empty:
+            total_market_cons = float(real_daily["total_value"].iloc[-1])
+        else:
+            total_market_cons = total_ledger_market
+    except Exception:
+        total_market_cons = total_ledger_market
+
     real: Dict[str, Any] = {
         "meta": {
             "history_start": history_start,
@@ -1399,7 +1475,8 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
             "source": "portfolio_history.csv + ledger.csv",
         },
         "snapshot": {
-            "total_market": round(total_ledger_market, 2),
+            "total_market": round(total_market_cons, 2),
+            "equity_market": round(total_ledger_market, 2),
             "total_invested": round(total_ledger_invested, 2),
             "unrealized_pnl": round(total_pnl, 2),
             "simple_roi_pct": round(simple_roi, 2),
