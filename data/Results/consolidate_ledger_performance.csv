@@ -36,3 +36,5 @@ run_start_timestamp,2.0.0_version,param_load_duration_s,data_load_duration_s,ove
 20260507-211421,2026-05-07 21:49:54,B2_Consolidate_Ledger,0.0,0.0,0.0,24,9,success,1.5554413795471191
 20260509-095524,2026-05-09 10:45:20,B2_Consolidate_Ledger,0.0,0.0,0.0,24,9,success,0.998236894607544
 20260511-203223,2026-05-11 20:52:25,B2_Consolidate_Ledger,0.0,0.0,0.0,24,9,success,0.9621801376342773
+,2026-05-12 20:19:24,B2_Consolidate_Ledger,0.0,0.0,0.0,23,8,success,1.621377944946289
+,2026-05-12 20:20:18,B2_Consolidate_Ledger,0.0,0.0,0.0,23,8,success,1.5646030902862549
