@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-11T23:53:26.681658+00:00",
+  "generated_at": "2026-05-12T01:51:53.183974+00:00",
   "model": {
     "meta": {
       "run_id": "20260511-203223",
@@ -76,21 +76,22 @@
       "source": "portfolio_history.csv + ledger.csv"
     },
     "snapshot": {
-      "total_market": 2345.54,
+      "total_market": 4989.61,
+      "equity_market": 2345.54,
       "total_invested": 2315.86,
       "unrealized_pnl": 29.68,
       "simple_roi_pct": 1.28,
       "n_positions": 9
     },
     "twr": {
-      "total_return": 0.0865,
-      "annual_return": 0.2137,
-      "volatility": 0.2743,
-      "sharpe": 0.23,
-      "sortino": 0.29,
-      "max_drawdown": 0.2141,
-      "calmar": 1.0,
-      "pct_cdi": 147.9,
+      "total_return": 0.0253,
+      "annual_return": 0.06,
+      "volatility": 0.1508,
+      "sharpe": -0.59,
+      "sortino": -0.7,
+      "max_drawdown": 0.116,
+      "calmar": 0.52,
+      "pct_cdi": 43.2,
       "risk_free_annual": 0.1492
     },
     "benchmark": {
@@ -102,17 +103,17 @@
       "total_return": 0.0585,
       "annual_rate": 0.1492,
       "source": "LFTS11.SA",
-      "pct_of_cdi": 1.479
+      "pct_of_cdi": 0.43200000000000005
     },
     "alpha": {
-      "total": -0.1358,
-      "annual": -0.4129
+      "total": -0.1971,
+      "annual": -0.5667
     },
     "relative": {
-      "beta": 0.95,
-      "tracking_error": 0.2116,
-      "information_ratio": -1.95,
-      "correlation": 0.65
+      "beta": 0.48,
+      "tracking_error": 0.1586,
+      "information_ratio": -3.57,
+      "correlation": 0.6
     },
     "structure": {
       "hhi": 0.2422,
@@ -207,39 +208,44 @@
     },
     "performance": {
       "YTD": {
-        "portfolio": 0.0916,
+        "portfolio": 0.0291,
+        "equity_only": 0.0916,
         "benchmark": 0.129,
         "cdi": 0.0494,
         "fund": 0.045,
-        "pct_cdi": 185.2
+        "pct_cdi": 58.9
       },
       "3M": {
-        "portfolio": -0.1186,
+        "portfolio": -0.0545,
+        "equity_only": -0.1186,
         "benchmark": -0.0216,
         "cdi": 0.0328,
         "fund": 0.0291,
-        "pct_cdi": -362.1
+        "pct_cdi": -166.2
       },
       "6M": {
-        "portfolio": 0.0916,
+        "portfolio": 0.0291,
+        "equity_only": 0.0916,
         "benchmark": 0.129,
         "cdi": 0.0494,
         "fund": 0.045,
-        "pct_cdi": 185.2
+        "pct_cdi": 58.9
       },
       "12M": {
-        "portfolio": 0.0865,
+        "portfolio": 0.0253,
+        "equity_only": 0.0865,
         "benchmark": 0.2224,
         "cdi": 0.0585,
         "fund": 0.0531,
-        "pct_cdi": 147.9
+        "pct_cdi": 43.2
       },
       "24M": {
-        "portfolio": 0.0865,
+        "portfolio": 0.0253,
+        "equity_only": 0.0865,
         "benchmark": 0.2224,
         "cdi": 0.0585,
         "fund": 0.0531,
-        "pct_cdi": 147.9
+        "pct_cdi": 43.2
       }
     },
     "monthly_returns": {
@@ -259,7 +265,7 @@
         {
           "mes": "2025-11",
           "valor_inicial": 1942.11,
-          "fluxos": 572.91,
+          "fluxos": 594.94,
           "valor_final": 1563.95,
           "retorno_mes": -0.047242,
           "retorno_cdi": 0.003022,
@@ -281,7 +287,7 @@
         {
           "mes": "2026-01",
           "valor_inicial": 968.85,
-          "fluxos": 977.03,
+          "fluxos": -605.79,
           "valor_final": 1137.55,
           "retorno_mes": 0.182149,
           "retorno_cdi": 0.012311,
@@ -292,7 +298,7 @@
         {
           "mes": "2026-02",
           "valor_inicial": 3117.48,
-          "fluxos": 1643.93,
+          "fluxos": 1700.27,
           "valor_final": 3016.62,
           "retorno_mes": 0.069107,
           "retorno_cdi": 0.009783,
@@ -314,7 +320,7 @@
         {
           "mes": "2026-04",
           "valor_inicial": 3199.95,
-          "fluxos": -778.5,
+          "fluxos": -431.98,
           "valor_final": 2333.87,
           "retorno_mes": -0.140717,
           "retorno_cdi": 0.01063,
@@ -325,7 +331,7 @@
         {
           "mes": "2026-05",
           "valor_inicial": 2333.87,
-          "fluxos": 69.12,
+          "fluxos": -119.55,
           "valor_final": 2102.08,
           "retorno_mes": -0.048852,
           "retorno_cdi": 0.00309,
