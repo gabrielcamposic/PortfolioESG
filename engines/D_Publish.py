@@ -1460,10 +1460,16 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
         real_daily = pd.read_csv(PORTFOLIO_REAL_DAILY_CSV)
         if not real_daily.empty:
             total_market_cons = float(real_daily["total_value"].iloc[-1])
+            fund_market_cons = float(real_daily["fund_value"].iloc[-1])
+            cash_market_cons = float(real_daily["cash_value"].iloc[-1])
         else:
             total_market_cons = total_ledger_market
+            fund_market_cons = 0.0
+            cash_market_cons = 0.0
     except Exception:
         total_market_cons = total_ledger_market
+        fund_market_cons = 0.0
+        cash_market_cons = 0.0
 
     real: Dict[str, Any] = {
         "meta": {
@@ -1477,6 +1483,8 @@ def _build_real_section(real_metrics: dict, risk_windows: Optional[dict] = None,
         "snapshot": {
             "total_market": round(total_market_cons, 2),
             "equity_market": round(total_ledger_market, 2),
+            "fund_market": round(fund_market_cons, 2),
+            "cash_market": round(cash_market_cons, 2),
             "total_invested": round(total_ledger_invested, 2),
             "unrealized_pnl": round(total_pnl, 2),
             "simple_roi_pct": round(simple_roi, 2),

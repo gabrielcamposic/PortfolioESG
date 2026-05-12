@@ -508,13 +508,50 @@ async function render() {
     }
 
     // ── Current Portfolio Composition ──
-    const totalMkt = positions?.total_current_market || 0;
-    if (positions && positions.positions && positions.positions.length > 0 && totalMkt > 0) {
+    const totalMkt = snap.total_market || positions?.total_current_market || 0;
+    const equityMkt = snap.equity_market || positions?.total_current_market || 0;
+    const fundMkt = snap.fund_market || 0;
+    const cashMkt = snap.cash_market || 0;
+
+    let html = '';
+    if (totalMkt > 0) {
+      html += `<table class="perf-table" style="margin-bottom: 24px;">
+        <thead><tr>
+          <th style="text-align: left;">Classe de Ativo</th>
+          <th>Peso</th>
+          <th>Mercado</th>
+        </tr></thead><tbody>
+        <tr>
+          <td style="font-family: var(--font-sans); font-weight: 600; text-align: left;"><span class="legend-indicator" style="background: ${DC.portfolio.line}"></span>Ações</td>
+          <td>${fmtPct(equityMkt / totalMkt, 1)}</td>
+          <td>${fmtBRL(equityMkt)}</td>
+        </tr>
+        <tr>
+          <td style="font-family: var(--font-sans); font-weight: 600; text-align: left;"><span class="legend-indicator" style="background: var(--accent-green)"></span>Fundo (Bradesco ESG)</td>
+          <td>${fmtPct(fundMkt / totalMkt, 1)}</td>
+          <td>${fmtBRL(fundMkt)}</td>
+        </tr>
+        <tr>
+          <td style="font-family: var(--font-sans); font-weight: 600; text-align: left;"><span class="legend-indicator" style="background: var(--text-muted)"></span>Caixa Corretora</td>
+          <td>${fmtPct(cashMkt / totalMkt, 1)}</td>
+          <td>${fmtBRL(cashMkt)}</td>
+        </tr>
+        <tr style="border-top: 2px solid var(--border-strong); font-weight: 600;">
+          <td style="text-align: left;">Total Consolidado</td>
+          <td>100.0%</td>
+          <td style="color: var(--brand-blue)">${fmtBRL(totalMkt)}</td>
+        </tr>
+        </tbody></table>
+        <div class="chart-title" style="margin-bottom: 12px; font-size: 11px;">Detalhamento: Ações</div>`;
+    }
+
+    const eqTotal = positions?.total_current_market || 0;
+    if (positions && positions.positions && positions.positions.length > 0 && eqTotal > 0) {
       const holdings = positions.positions
         .map(p => {
           const symbol = (p.resolved_symbol || p.symbol || '').replace('.SA', '');
           const mktVal = p.net_qty * p.current_price;
-          const weight = mktVal / totalMkt;
+          const weight = mktVal / eqTotal;
           const avgCost = p.net_qty > 0 ? p.net_invested / p.net_qty : 0;
           const pl = mktVal - p.net_invested;
           const plPct = p.net_invested > 0 ? pl / p.net_invested : 0;
@@ -523,12 +560,10 @@ async function render() {
         .filter(h => h.weight > 0)
         .sort((a, b) => b.weight - a.weight);
 
-      const holdingsTickers = holdings.map(h => h.symbol);
-
-      let html = `<table class="perf-table" style="text-align: right;">
+      html += `<table class="perf-table" style="text-align: right;">
         <thead><tr>
           <th style="text-align: left;">Ativo</th>
-          <th>Peso</th>
+          <th>Peso (Eq.)</th>
           <th>Qtd</th>
           <th>Preço</th>
           <th>Mercado</th>
@@ -568,7 +603,12 @@ async function render() {
       html += `</tbody></table>`;
       document.getElementById('composition-table-container').innerHTML = html;
     } else {
-      document.getElementById('composition-table-container').innerHTML = '<span class="loading">Nenhuma posição atual encontrada.</span>';
+      if (html) {
+        html += '<div style="padding: 12px 0; color: var(--text-muted); font-size: 13px;">Nenhuma posição de Ações encontrada.</div>';
+        document.getElementById('composition-table-container').innerHTML = html;
+      } else {
+        document.getElementById('composition-table-container').innerHTML = '<span class="loading">Nenhuma posição atual encontrada.</span>';
+      }
     }
 
   } catch (err) {
