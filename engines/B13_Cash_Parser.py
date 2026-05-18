@@ -2,26 +2,30 @@
 """
 engines/B13_Cash_Parser.py — Ágora Brokerage Statement Parser
 
-Parses account statement PDFs (Extratos) from the Ágora broker into a
-structured CSV of cash movements: deposits, withdrawals, dividends,
-and fund transfers.
+Parses account statement PDFs and XLSX spreadsheets (Extratos) from the
+Ágora broker into a structured CSV of cash movements and updates the
+manual_ledger.csv used by D_Publish for fund/cash balance computation.
 
-Input:  PDF files matching *Extrato*.pdf in Notas_Negociação/
+Input:  PDF files matching *Extrato*.pdf  in Notas_Negociação/
+        XLSX files matching *Extrato*.xlsx in Notas_Negociação/
 Output: data/cash_movements.csv
+        data/manual_ledger.csv  (consumed by D_Publish.py)
 
-Columns: date, type, amount, description, source_file
+Columns (cash_movements): date, type, amount, description, source_file
+Columns (manual_ledger):   date, operation, value, description
 
 Types:
   DEPOSIT       — TED/DOC from bank into brokerage account
   WITHDRAWAL    — SPB/TED from brokerage back to bank
   DIVIDEND      — Dividend payments credited to account
   FUND_TRANSFER — Applications to external funds (e.g. Bradesco ESG)
+  BOLSA         — Stock exchange settlement (buy/sell)
 
 Usage:
     python3 engines/B13_Cash_Parser.py
 """
 
-B13_VERSION = "1.0.0"
+B13_VERSION = "2.0.0"
 
 import csv
 import json
@@ -42,6 +46,7 @@ from engines.B11_Transactions_Parser import extract_text_from_pdf
 
 NOTAS_DIR = ROOT / "Notas_Negociação"
 CASH_MOVEMENTS_CSV = ROOT / "data" / "cash_movements.csv"
+MANUAL_LEDGER_CSV = ROOT / "data" / "manual_ledger.csv"
 MANIFEST_PATH = ROOT / "data" / "processed_extratos.json"
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -323,6 +328,125 @@ def _extract_fund_transfers(block: str) -> List[Tuple[float, str]]:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# XLSX PARSER
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+def parse_xlsx_statement(xlsx_path: Path) -> List[Dict[str, Any]]:
+    """Parse an Ágora brokerage XLSX extract into manual_ledger-format entries.
+
+    XLSX layout (sheet "Extrato Financeiro"):
+      Row 7:  Headers — 'Data de referência', 'Data da liquidação', 'Lançamento',
+              'Débito (R$)', [merged], 'Crédito (R$)', [merged], 'Saldo (R$)', [merged]
+      Row 8+: Data rows — col A=ref_date, B=settlement_date, C=description,
+              D=debit (negative), F=credit (positive), H=balance
+
+    Returns a list of dicts: {date, operation, value, description}
+    Operations: APORTE, SAQUE, BOLSA, DIVIDENDO, APLICACAO_FUNDO, RESGATE_FUNDO
+    """
+    import openpyxl
+
+    entries: List[Dict[str, Any]] = []
+
+    try:
+        wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    except Exception as e:
+        logger.warning(f"  Failed to open XLSX: {xlsx_path.name} — {e}")
+        return entries
+
+    ws = wb.active or wb[wb.sheetnames[0]]
+
+    for row_idx in range(8, ws.max_row + 1):  # Data starts at row 8 (1-indexed)
+        ref_date_raw = ws.cell(row=row_idx, column=1).value
+        desc_raw = ws.cell(row=row_idx, column=3).value
+        debit_raw = ws.cell(row=row_idx, column=4).value
+        credit_raw = ws.cell(row=row_idx, column=6).value
+
+        # Skip header/footer/empty rows
+        if not desc_raw:
+            continue
+        desc = str(desc_raw).strip()
+        if desc in ('SALDO ANTERIOR', 'SALDO FINAL', 'Lançamentos Futuros', ''):
+            continue
+        if desc.startswith('Os dados acima'):
+            continue
+
+        # Parse date
+        if not ref_date_raw:
+            continue
+        if isinstance(ref_date_raw, datetime):
+            date_str = ref_date_raw.strftime("%Y-%m-%d")
+        else:
+            date_str = str(ref_date_raw).strip()
+            if not date_str:
+                continue
+            # DD/MM/YYYY → YYYY-MM-DD
+            m = re.match(r"(\d{2})/(\d{2})/(\d{4})", date_str)
+            if m:
+                date_str = f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+            else:
+                continue
+
+        # Parse amounts
+        debit = float(debit_raw) if debit_raw and debit_raw != 0 else 0.0
+        credit = float(credit_raw) if credit_raw and credit_raw != 0 else 0.0
+
+        # Classify the entry
+        operation, value = _classify_xlsx_entry(desc, debit, credit)
+        if operation is None:
+            logger.debug(f"  XLSX: Unclassified entry: {date_str} | {desc} | D={debit} C={credit}")
+            continue
+
+        entries.append({
+            "date": date_str,
+            "operation": operation,
+            "value": round(value, 2),
+            "description": desc,
+        })
+
+    wb.close()
+    return entries
+
+
+def _classify_xlsx_entry(desc: str, debit: float, credit: float) -> Tuple[Optional[str], float]:
+    """Classify an XLSX extract line into a manual_ledger operation.
+
+    Returns (operation, value) or (None, 0) if unclassified.
+    """
+    desc_upper = desc.upper()
+
+    # Fund application: "PAG - APLIC. BRADESCO ESG ..."
+    if "PAG" in desc_upper and "APLIC" in desc_upper:
+        return "APLICACAO_FUNDO", abs(debit) if debit else abs(credit)
+
+    # Fund redemption: "RESGATE" or "CREDITO FUNDO"
+    if "RESGATE" in desc_upper and ("FUNDO" in desc_upper or "BRADESCO" in desc_upper):
+        return "RESGATE_FUNDO", abs(credit) if credit else abs(debit)
+
+    # Stock exchange settlement: "OPERACOES NA BOLSA"
+    if "OPERACOES NA BOLSA" in desc_upper:
+        # debit = bought (cash out, negative), credit = sold (cash in, positive)
+        value = debit if debit else credit  # debit is already negative
+        return "BOLSA", value
+
+    # Dividend: "DIVIDENDOS" or "PAGAMENTO DE DIVIDENDOS"
+    if "DIVIDENDO" in desc_upper:
+        return "DIVIDENDO", abs(credit) if credit else abs(debit)
+
+    # Deposit: TED/DOC into the account (credit side)
+    if credit and credit > 0:
+        if any(kw in desc_upper for kw in ("TED BCO", "DOC BCO", "TRANSF", "CTA")):
+            return "APORTE", credit
+
+    # Withdrawal: SPB/TED out of the account (debit side)
+    if debit and debit < 0:
+        if "#SPB#RET#" in desc_upper or "RETIRADA" in desc_upper:
+            return "SAQUE", abs(debit)
+
+    return None, 0.0
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # CSV OUTPUT
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -358,6 +482,42 @@ def _write_csv(entries: List[Dict[str, Any]]) -> None:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# MANUAL LEDGER OUTPUT (consumed by D_Publish.py)
+# ═════════════════════════════════════════════════════════════════════════════
+
+MANUAL_LEDGER_COLUMNS = ["date", "operation", "value", "description"]
+
+
+def _load_existing_manual_ledger() -> List[Dict[str, Any]]:
+    """Load existing manual_ledger.csv entries."""
+    if not MANUAL_LEDGER_CSV.exists():
+        return []
+    entries = []
+    with open(MANUAL_LEDGER_CSV, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            entries.append(row)
+    return entries
+
+
+def _write_manual_ledger(entries: List[Dict[str, Any]]) -> None:
+    """Write entries to manual_ledger.csv, sorted by date."""
+    entries.sort(key=lambda e: (e["date"], e.get("operation", "")))
+    MANUAL_LEDGER_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with open(MANUAL_LEDGER_CSV, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=MANUAL_LEDGER_COLUMNS)
+        writer.writeheader()
+        for entry in entries:
+            writer.writerow({
+                "date": entry["date"],
+                "operation": entry["operation"],
+                "value": entry["value"],
+                "description": entry.get("description", ""),
+            })
+    logger.info(f"  Wrote {MANUAL_LEDGER_CSV.name} ({len(entries)} entries)")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # MANIFEST (idempotent processing)
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -390,19 +550,16 @@ def main() -> int:
         logger.warning(f"  Notas directory not found: {NOTAS_DIR}")
         return 0
 
-    # Find Extrato PDFs
-    pdfs = sorted(NOTAS_DIR.glob("*Extrato*.pdf"))
-    if not pdfs:
-        logger.info("  No Extrato PDFs found")
-        return 0
-
-    logger.info(f"  Found {len(pdfs)} Extrato PDF(s)")
-
     manifest = _load_manifest()
     processed_set = set(manifest.get("processed", []))
 
-    all_entries: List[Dict[str, Any]] = []
+    all_csv_entries: List[Dict[str, Any]] = []  # For cash_movements.csv
+    all_ledger_entries: List[Dict[str, Any]] = []  # For manual_ledger.csv
     new_count = 0
+
+    # ── Phase 1: Process PDF Extracts ────────────────────────────────────────
+    pdfs = sorted(NOTAS_DIR.glob("*Extrato*.pdf"))
+    logger.info(f"  Found {len(pdfs)} Extrato PDF(s)")
 
     for pdf in pdfs:
         key = pdf.name
@@ -410,7 +567,7 @@ def main() -> int:
             logger.info(f"  Skipping (already processed): {key}")
             continue
 
-        logger.info(f"  Processing: {key}")
+        logger.info(f"  Processing PDF: {key}")
         text = extract_text_from_pdf(pdf)
         if not text or not text.strip():
             logger.warning(f"  Failed to extract text from: {key}")
@@ -424,57 +581,96 @@ def main() -> int:
         for e in entries:
             logger.info(f"    {e['date']}  {e['type']:15s}  {e['amount']:>10.2f}  {e['description']}")
 
-        all_entries.extend(entries)
+        all_csv_entries.extend(entries)
         processed_set.add(key)
         new_count += 1
 
-    if new_count == 0 and not all_entries:
-        # No new PDFs — but regenerate CSV from all processed PDFs
-        # to ensure consistency
+    # ── Phase 2: Process XLSX Extracts ───────────────────────────────────────
+    xlsx_files = sorted(NOTAS_DIR.glob("*Extrato*.xlsx"))
+    logger.info(f"  Found {len(xlsx_files)} Extrato XLSX file(s)")
+
+    # XLSX files are always re-parsed (they're the source of truth for
+    # manual_ledger.csv). We use the manifest only to track which XLSX
+    # files contributed, but always re-read to catch updated exports.
+    xlsx_ledger_entries: List[Dict[str, Any]] = []
+
+    for xlsx_path in xlsx_files:
+        key = xlsx_path.name
+        logger.info(f"  Processing XLSX: {key}")
+
+        entries = parse_xlsx_statement(xlsx_path)
+        logger.info(f"    Found {len(entries)} ledger entries")
+        for e in entries:
+            logger.info(f"    {e['date']}  {e['operation']:20s}  {e['value']:>10.2f}  {e['description'][:60]}")
+
+        xlsx_ledger_entries.extend(entries)
+
+        if key not in processed_set:
+            processed_set.add(key)
+            new_count += 1
+
+    # ── Phase 3: Write manual_ledger.csv from XLSX data ──────────────────────
+    if xlsx_ledger_entries:
+        # Deduplicate: same (date, operation, value) = same entry
+        seen_ledger = set()
+        unique_ledger = []
+        for e in xlsx_ledger_entries:
+            k = (e["date"], e["operation"], str(e["value"]))
+            if k not in seen_ledger:
+                seen_ledger.add(k)
+                unique_ledger.append(e)
+            else:
+                logger.info(f"    Dedup ledger: skipped {k}")
+
+        _write_manual_ledger(unique_ledger)
+        all_ledger_entries = unique_ledger
+    else:
+        logger.info("  No XLSX extracts found — manual_ledger.csv unchanged")
+
+    # ── Phase 4: Write cash_movements.csv from PDF data ──────────────────────
+    if not all_csv_entries and not pdfs:
+        logger.info("  No Extrato PDFs found")
+    elif not all_csv_entries:
         logger.info("  No new PDFs to process")
         if not CASH_MOVEMENTS_CSV.exists():
             logger.info("  Reprocessing all PDFs to generate CSV...")
-            processed_set.clear()
             for pdf in pdfs:
-                text = extract_text_from_pdf(pdf)
-                if text and text.strip():
-                    entries = parse_statement(text, pdf.name)
-                    for e in entries:
-                        e["source_file"] = pdf.name
-                    all_entries.extend(entries)
-                    processed_set.add(pdf.name)
-        else:
-            return 0
+                if pdf.name in processed_set or True:  # force reprocess
+                    text = extract_text_from_pdf(pdf)
+                    if text and text.strip():
+                        entries = parse_statement(text, pdf.name)
+                        for e in entries:
+                            e["source_file"] = pdf.name
+                        all_csv_entries.extend(entries)
 
-    if all_entries:
-        # Deduplicate: same date + type + amount = same entry
+    if all_csv_entries:
+        # Deduplicate
         seen = set()
         unique = []
-        for e in all_entries:
-            key = (e["date"], e["type"], e["amount"])
-            if key not in seen:
-                seen.add(key)
+        for e in all_csv_entries:
+            k = (e["date"], e["type"], e["amount"])
+            if k not in seen:
+                seen.add(k)
                 unique.append(e)
-            else:
-                logger.info(f"    Dedup: skipped duplicate {key}")
-        all_entries = unique
+        all_csv_entries = unique
 
-        # Merge with existing entries from other (already-processed) PDFs
+        # Merge with existing
         existing = _load_existing_entries()
-        existing_keys = {(e["date"], e["type"], e["amount"]) for e in existing}
         for e in existing:
-            key = (e["date"], e["type"], e["amount"])
-            if key not in seen:
-                all_entries.append(e)
-                seen.add(key)
+            k = (e["date"], e["type"], e["amount"])
+            if k not in seen:
+                all_csv_entries.append(e)
+                seen.add(k)
 
-        _write_csv(all_entries)
+        _write_csv(all_csv_entries)
 
     # Save manifest
     manifest["processed"] = sorted(list(processed_set))
     manifest["last_run"] = datetime.now().isoformat()
     _save_manifest(manifest)
-    logger.info(f"  Done. Processed {new_count} new PDF(s), {len(all_entries)} total entries.")
+    logger.info(f"  Done. Processed {new_count} new file(s), "
+                f"{len(all_csv_entries)} CSV entries, "
+                f"{len(all_ledger_entries)} ledger entries.")
 
     return 0
 

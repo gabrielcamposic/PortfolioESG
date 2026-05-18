@@ -29,6 +29,7 @@ export PYTHONUNBUFFERED=1
 
 # Scripts
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
+CASH_PARSER_SCRIPT="$PROJECT_ROOT/engines/B13_Cash_Parser.py"
 PROCESS_NOTES_SCRIPT="$PROJECT_ROOT/engines/B1_Process_Notes.py"
 CONSOLIDATE_LEDGER_SCRIPT="$PROJECT_ROOT/engines/B2_Consolidate_Ledger.py"
 PORTFOLIO_HISTORY_SCRIPT="$PROJECT_ROOT/engines/B4_Portfolio_History.py"
@@ -78,6 +79,12 @@ log "║  Log file:  $LOG_FILE"
 log "╚══════════════════════════════════════════════════════════════╝"
 
 PIPELINE_START=$(date +%s)
+
+# 0) Parse brokerage extract statements (PDF + XLSX → manual_ledger.csv)
+if ! run_stage "B13_Cash_Parser" "$CASH_PARSER_SCRIPT"; then
+    log "CashParser failed. Continuing..." >&2
+    # Non-critical: continue even if cash parser fails
+fi
 
 # 1) Process broker notes (idempotent)
 if ! run_stage "B1_Process_Notes" "$PROCESS_NOTES_SCRIPT"; then
