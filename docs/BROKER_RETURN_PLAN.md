@@ -148,7 +148,7 @@ Para cada mês no range (first_transaction_month → last_data_month):
 
 ### Mudança 3 — Exibir no frontend
 
-Adicionar um card ou tooltip em `1_portfolio.html` ou `2_risk.html` mostrando o retorno estilo-corretora, com sub-texto explicando a diferença:
+Adicionar um card ou tooltip em `portfolio.html` ou `risk.html` mostrando o retorno estilo-corretora, com sub-texto explicando a diferença:
 
 ```
 Card: "Retorno Corretora"
@@ -241,6 +241,6 @@ para fins de Modified Dietz (dinheiro saindo da conta de ações).
 | `data/processed_extratos.json` | **NOVO** — Manifesto de extratos processados |
 | `engines/D_Publish.py` | Nova função `_compute_broker_return()`, integrar no `real` section |
 | `data/results/dashboard_latest.json` | Nova seção `real.broker_return` |
-| `html/sections/1_portfolio.html` | Card "Retorno Corretora" em Row 1 (3º card, grid 5 colunas) |
+| `html/sections/portfolio.html` | Card "Retorno Corretora" em Row 1 (3º card, grid 5 colunas) |
 | `docs/METRICS_REFERENCE.md` | Documentar a métrica Modified Dietz |
 

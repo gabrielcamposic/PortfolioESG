@@ -130,12 +130,12 @@
 
   /* ─── 2. Build header DOM ─── */
   const PAGES = [
-    { id: 'portfolio', label: 'Portfólio',   href: '1_portfolio.html' },
-    { id: 'risk',      label: 'Risco',        href: '2_risk.html'      },
-    { id: 'model',     label: 'Modelo',       href: '3_model.html'     },
-    { id: 'scoring',   label: 'Scoring ESG',  href: '07_scoring.html'  },
-    { id: 'history',   label: 'Histórico',    href: '08_history.html'  },
-    { id: 'glossary',  label: 'Explicações',  href: '09_glossary.html' },
+    { id: 'portfolio', label: 'Portfólio',   href: 'portfolio.html' },
+    { id: 'risk',      label: 'Risco',        href: 'risk.html'      },
+    { id: 'model',     label: 'Modelo',       href: 'model.html'     },
+    { id: 'scoring',   label: 'Scoring ESG',  href: 'scoring.html'  },
+    { id: 'history',   label: 'Histórico',    href: 'history.html'  },
+    { id: 'glossary',  label: 'Explicações',  href: 'glossary.html' },
   ];
 
   function buildHeader() {

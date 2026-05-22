@@ -360,6 +360,72 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260520-211654",
+    "timestamp": "2026-05-20 21:48:47",
+    "n_assets": 7,
+    "stocks": [
+      "SLCE3.SA",
+      "KLBN4.SA",
+      "VULC3.SA",
+      "PETR4.SA",
+      "AMBP3.SA",
+      "ISAE4.SA",
+      "BBSE3.SA"
+    ],
+    "weights": [
+      0.0989,
+      0.4403,
+      0.059,
+      0.1244,
+      0.0404,
+      0.1001,
+      0.1369
+    ],
+    "sharpe_forward": 23.9768,
+    "ret_hist_12m": -8.67,
+    "vol_12m": 15.87,
+    "ret_proj_12m": 332.19,
+    "score": 1.7626,
+    "momentum": -0.0545,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.0172,
+    "holdings_return_pct": 325.78,
+    "excess_return_pct": 9.7947
+  },
+  {
+    "run_id": "20260519-201947",
+    "timestamp": "2026-05-19 20:52:28",
+    "n_assets": 7,
+    "stocks": [
+      "SLCE3.SA",
+      "KLBN4.SA",
+      "PSSA3.SA",
+      "RADL3.SA",
+      "CMIG3.SA",
+      "PETR4.SA",
+      "AMBP3.SA"
+    ],
+    "weights": [
+      0.1053,
+      0.4348,
+      0.0927,
+      0.0464,
+      0.133,
+      0.104,
+      0.0839
+    ],
+    "sharpe_forward": 25.0223,
+    "ret_hist_12m": 3.03,
+    "vol_12m": 18.18,
+    "ret_proj_12m": 391.93,
+    "score": 1.8431,
+    "momentum": -0.085,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.0151,
+    "holdings_return_pct": 330.01,
+    "excess_return_pct": 66.9669
+  },
+  {
     "run_id": "20260518-203237",
     "timestamp": "2026-05-18 21:06:34",
     "n_assets": 10,

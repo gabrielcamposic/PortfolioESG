@@ -141,19 +141,19 @@
   async function buildReport() {
     try {
       // Carrega as seções sequencialmente para manter a ordem do DOM
-      await loadSection('1_portfolio.html');
+      await loadSection('portfolio.html');
       
       const div1 = document.createElement('div');
       div1.className = 'section-divider';
       document.getElementById('report-content').appendChild(div1);
       
-      await loadSection('2_risk.html');
+      await loadSection('risk.html');
       
       const div2 = document.createElement('div');
       div2.className = 'section-divider';
       document.getElementById('report-content').appendChild(div2);
       
-      await loadSection('3_model.html');
+      await loadSection('model.html');
       
       // Aguardar a renderização dos gráficos do Chart.js e fetchs internos
       setTimeout(() => {
