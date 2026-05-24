@@ -360,6 +360,43 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260524-092640",
+    "timestamp": "2026-05-24 10:00:53",
+    "n_assets": 9,
+    "stocks": [
+      "CMIG3.SA",
+      "FRAS3.SA",
+      "ISAE4.SA",
+      "RADL3.SA",
+      "PSSA3.SA",
+      "KLBN4.SA",
+      "AMBP3.SA",
+      "PETR4.SA",
+      "RANI3.SA"
+    ],
+    "weights": [
+      0.0746,
+      0.0389,
+      0.0645,
+      0.0759,
+      0.0965,
+      0.385,
+      0.0704,
+      0.0991,
+      0.0951
+    ],
+    "sharpe_forward": 24.8058,
+    "ret_hist_12m": 3.41,
+    "vol_12m": 17.5,
+    "ret_proj_12m": 340.74,
+    "score": 1.7869,
+    "momentum": -0.0367,
+    "decision": "REBALANCE",
+    "transition_cost_pct": 0.0228,
+    "holdings_return_pct": 331.25,
+    "excess_return_pct": 6.9484
+  },
+  {
     "run_id": "20260520-211654",
     "timestamp": "2026-05-20 21:48:47",
     "n_assets": 7,
