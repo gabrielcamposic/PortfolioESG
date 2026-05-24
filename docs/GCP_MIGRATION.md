@@ -21,9 +21,10 @@ Migrate **PortfolioESG** from **local-only execution** to Google Cloud Platform 
 🔴 **No automation**: Manual pipeline execution, no scheduled runs  
 
 ### Goals
-✅ **Automate daily execution**: Cloud Scheduler triggers Cloud Run every day at 9 AM  
-✅ **Keep GitHub as source of truth**: All code stays in GitHub, deployment is automatic  
-✅ **Develop locally**: Continue using IDE, deploy to GCP on push to `main`  
+✅ **Automate daily execution**: Cloud Scheduler triggers Cloud Run every weekday at 8 PM GMT-3 (11 PM UTC)  
+✅ **Brazilian business days only**: Skip holidays, weekends  
+✅ **Keep GitHub as source of truth**: All code stays in GitHub  
+✅ **Develop locally**: Continue using IDE, test locally before pushing  
 ✅ **Always-on frontend**: Firebase Hosting serves portfolio dashboard globally (not just localhost)  
 ✅ **Zero manual intervention**: No more daily `run_all.sh` execution
 
@@ -39,22 +40,22 @@ FUTURE STATE (GCP Cloud):
 ┌─────────────────────────────────────────────────────────┐
 │                     GitHub Repository                    │
 │  (Source of truth: engines/, html/, parameters/)        │
+│  (You develop locally, push when ready)                 │
 └──────────────────────┬──────────────────────────────────┘
                        │
-        ┌──────────────┼──────────────┐
-        │              │              │
-   Cloud Build    GitHub Actions  Local Dev (for testing)
-        │              │              │
-        └──────────────┴──────────────┘
+            (Push triggers auto-build)
                        │
         ┌──────────────▼──────────────┐
         │   Artifact Registry         │
         │  (Docker image storage)     │
+        │  (Updated on git push)      │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
         │      Cloud Scheduler        │
-        │   (Daily 9:00 AM UTC)       │
+        │   (8 PM GMT-3 / 11 PM UTC   │
+        │    Weekdays only)           │
+        │   (Excludes BR holidays)    │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
@@ -66,6 +67,7 @@ FUTURE STATE (GCP Cloud):
         ┌──────────────▼──────────────┐
         │  Google Cloud Storage       │
         │  (html/data/ contents)      │
+        │  (Updated after each run)   │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
@@ -209,21 +211,55 @@ curl -X POST https://portfolioesg-engine-XXXXX.run.app/analyze \
 
 #### 4.1 Configure Cloud Scheduler
 - [ ] Create Cloud Scheduler job: `portfolioesg-daily-analysis`
-- [ ] Frequency: `0 9 * * *` (Daily at 9:00 AM UTC)
+- [ ] Frequency: `0 23 * * 1-5` (11 PM UTC = 8 PM GMT-3, Mon-Fri only)
 - [ ] Target: HTTP POST to Cloud Run service URL
 - [ ] Auth: Use service account from Phase 1.3
 - [ ] Payload (optional): `{"trigger": "scheduler"}`
+
+**⚠️ Brazilian Holiday Handling**:
+Cloud Scheduler doesn't natively support holiday exclusion. Options:
+1. **Simple approach** (Recommended): Use cron `0 23 * * 1-5` (skip weekends, accept holidays)
+2. **Advanced approach**: Create Cloud Function wrapper that checks against Brazilian holiday list:
+   - [ ] Add `shared_tools/br_holidays.py` with 2026 Brazilian business days
+   - [ ] Create Cloud Function that checks if today is a business day
+   - [ ] Cloud Scheduler triggers function (not Cloud Run directly)
+   - [ ] Function triggers Cloud Run only on business days
+
+**Quick reference - Brazilian holidays 2026**:
+```
+Jan 1  - New Year
+Feb 16 - Carnival Monday
+Feb 17 - Carnival Tuesday
+Feb 18 - Ash Wednesday
+Apr 3  - Good Friday
+Apr 21 - Tiradentes' Day
+May 1  - Labor Day
+Jun 4  - Corpus Christi
+Sep 7  - Independence Day
+Oct 12 - Our Lady Aparecida
+Nov 2  - All Souls' Day
+Nov 15 - Proclamation of the Republic
+Nov 20 - Black Consciousness Day
+Dec 25 - Christmas
+```
 
 #### 4.2 Test Scheduler
 - [ ] Manually trigger job in Cloud Console
 - [ ] Wait for execution and verify in Cloud Run logs
 - [ ] Check GCS bucket for new output files
 
-#### 4.3 GitHub Actions Integration (Optional)
-- [ ] Create `.github/workflows/deploy-cloud-run.yml`
-- [ ] Trigger: On push to `main` branch
-- [ ] Action: Build Docker image → Push to Artifact Registry
-- [ ] Auto-deploy to Cloud Run
+#### 4.3 Docker Image Updates (Manual or Cloud Build)
+**Option A - Manual (Simpler)**:
+- [ ] Build Docker image locally: `docker build -t portfolioesg .`
+- [ ] Push to Artifact Registry manually after code changes
+- [ ] Cloud Run uses latest image
+
+**Option B - Cloud Build (Auto-Deploy, Optional)**:
+- [ ] Create `.cloudbuild.yaml` in repo root
+- [ ] Connect GitHub to Cloud Build
+- [ ] Automatic build & push on git push to `main` branch
+- [ ] No GitHub Actions needed; Cloud Build handles everything
+- [ ] Cost: Free within quota (120 builds/day)
 
 ---
 
@@ -447,10 +483,12 @@ firebase deploy --only hosting
 |----------|--------|-----------|
 | **Backend Service** | Cloud Run | Supports containerized workloads, pay-per-invocation, simple deployment, 30-min timeout sufficient |
 | **Scheduling** | Cloud Scheduler | Native GCP integration, reliable, free for first 3 jobs, cron-like interface |
+| **Holiday Handling** | Manual check or simple weekday cron | Cloud Scheduler doesn't support holiday exclusion natively; weekday cron is simplest; advanced: add Cloud Function wrapper |
 | **Data Storage** | GCS + Firestore (optional) | GCS for large files (reports, historical data), Firestore optional for real-time DB |
 | **Frontend Hosting** | Firebase Hosting | Integrated with GCP, free tier, SSL by default, auto-deployment |
 | **Container Registry** | Artifact Registry | Modern GCP service, supports Docker/OCI images, integrated with Cloud Build |
-| **CI/CD** | GitHub Actions + Cloud Build | GitHub Actions for frontend, Cloud Build for backend (both free within limits) |
+| **Docker Updates** | Manual build OR Cloud Build | Manual: Push locally when code changes. Cloud Build: Auto-build on git push (both free within limits, Cloud Build simpler) |
+| **GitHub Actions** | **NOT required** ⚠️ | Cloud Build or manual push handles Docker updates; GitHub Actions adds unnecessary complexity for this workflow |
 | **Secrets** | Secret Manager | Native GCP, secure, integrates with Cloud Run |
 
 ---
