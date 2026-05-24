@@ -8,24 +8,34 @@
 
 ## 📋 Executive Summary
 
-Migrate **PortfolioESG** from AWS to Google Cloud Platform (GCP), utilizing:
-- **Firebase Hosting** for frontend (replaces S3 + CloudFront)
-- **Cloud Run** for Python analysis engines (replaces local execution)
-- **Cloud Scheduler** for daily automated analysis (replaces manual triggers)
-- **Google Cloud Storage (GCS)** for data/reports (replaces local `data/` directory)
+Migrate **PortfolioESG** from **local-only execution** to Google Cloud Platform (GCP), utilizing:
+- **Firebase Hosting** for frontend (currently hosted locally via http.server)
+- **Cloud Run** for Python analysis engines (replaces manual `./engines/run_all.sh` execution)
+- **Cloud Scheduler** for daily automated analysis (replaces manual daily trigger)
+- **Google Cloud Storage (GCS)** for data/reports (replaces local `data/` and `html/data/` directories)
 - **Firestore** (optional) for real-time data syncing
 
+### Current State
+🔴 **Local execution**: You manually run `./engines/run_all.sh` daily  
+🔴 **Local frontend**: HTML files served via `python -m http.server` on localhost  
+🔴 **No automation**: Manual pipeline execution, no scheduled runs  
+
 ### Goals
-✅ Low-cost, fully automated daily analysis pipeline  
-✅ Keep GitHub repo as single source of truth  
-✅ Develop locally in IDE, deploy automatically  
-✅ Frontend always shows latest analysis results  
+✅ **Automate daily execution**: Cloud Scheduler triggers Cloud Run every day at 9 AM  
+✅ **Keep GitHub as source of truth**: All code stays in GitHub, deployment is automatic  
+✅ **Develop locally**: Continue using IDE, deploy to GCP on push to `main`  
+✅ **Always-on frontend**: Firebase Hosting serves portfolio dashboard globally (not just localhost)  
+✅ **Zero manual intervention**: No more daily `run_all.sh` execution
 
 ---
 
 ## 🏗️ Target Architecture
 
 ```
+CURRENT STATE (Local):
+  Your Computer → run_all.sh (manual) → html/data/ → http://localhost:8000
+
+FUTURE STATE (GCP Cloud):
 ┌─────────────────────────────────────────────────────────┐
 │                     GitHub Repository                    │
 │  (Source of truth: engines/, html/, parameters/)        │
@@ -33,8 +43,7 @@ Migrate **PortfolioESG** from AWS to Google Cloud Platform (GCP), utilizing:
                        │
         ┌──────────────┼──────────────┐
         │              │              │
-        ▼              ▼              ▼
-   Cloud Build   GitHub Actions  Local Dev
+   Cloud Build    GitHub Actions  Local Dev (for testing)
         │              │              │
         └──────────────┴──────────────┘
                        │
@@ -50,19 +59,19 @@ Migrate **PortfolioESG** from AWS to Google Cloud Platform (GCP), utilizing:
                        │
         ┌──────────────▼──────────────┐
         │       Cloud Run             │
-        │  (Python analysis engines)  │
-        │  A1, A2, A3, A4, B series   │
+        │  (Python: run_all.sh via    │
+        │   A1, A2, A3, A4, B, C, D)  │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
         │  Google Cloud Storage       │
-        │  (data/, reports/, JSON)    │
+        │  (html/data/ contents)      │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
         │   Firebase Hosting          │
         │  (Frontend HTML/JS/CSS)     │
-        │ + Real-time data via GCS    │
+        │ + Reads from GCS JSON data  │
         └─────────────────────────────┘
 ```
 
@@ -223,29 +232,30 @@ curl -X POST https://portfolioesg-engine-XXXXX.run.app/analyze \
 **Estimated Effort**: 2-3 hours  
 
 #### 5.1 Update File I/O Paths
-Current behavior: Write to local `data/`, `html/data/` directories  
-New behavior: Write to GCS bucket
+Current behavior: `run_all.sh` executes locally, writes to `data/` and `html/data/` directories  
+New behavior: Cloud Run executes in container, writes to GCS bucket
 
 **Files to Modify**:
-- [ ] `engines/A4_Analysis.py` — Update output paths
-- [ ] `engines/D_Publish.py` — Update publish paths
-- [ ] `shared_tools/path_utils.py` — Add GCS path utilities
+- [ ] Engines that write output (A2, A3, A4, B series, C, D scripts)
+- [ ] Change from writing to local filesystem to GCS bucket
+- [ ] Example: `html/data/pipeline_latest.json` → `gs://portfolioesg-data-XXXXX/html/data/pipeline_latest.json`
 
 **Pattern**:
 ```python
 # Old: local filesystem
-output_file = "data/portfolio_analysis.json"
-df.to_csv(output_file)
+output_file = "html/data/pipeline_latest.json"
+with open(output_file, 'w') as f:
+    json.dump(data, f)
 
 # New: GCS
 from google.cloud import storage
 bucket = storage.Client().bucket(os.getenv('GCS_BUCKET'))
-blob = bucket.blob('data/portfolio_analysis.json')
-blob.upload_from_string(df.to_csv())
+blob = bucket.blob('html/data/pipeline_latest.json')
+blob.upload_from_string(json.dumps(data))
 ```
 
 #### 5.2 Update Data Loading
-- [ ] Modify code to read input data from GCS (if needed)
+- [ ] Modify code to read input data from GCS (if needed for second run, historical comparison)
 - [ ] Handle missing files gracefully (first run has no historical data)
 
 #### 5.3 Add GCS Helper Module
@@ -516,6 +526,12 @@ See checklist items above (marked with `[ ]` for pending, `[x]` for completed).
 ---
 
 ## 🤝 Notes for AI Assistants
+
+**IMPORTANT CURRENT STATE**:
+- Project is **local-only**, NOT on AWS or any cloud platform
+- User manually runs `./engines/run_all.sh` daily
+- Frontend is served locally via `python -m http.server`
+- Goal: Automate this via GCP Cloud Run + Cloud Scheduler
 
 This document is designed to be:
 1. **Self-contained**: Each phase includes all required steps and context
