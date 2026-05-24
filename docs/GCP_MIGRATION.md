@@ -8,61 +8,72 @@
 
 ## 📋 Executive Summary
 
-Migrate **PortfolioESG** from AWS to Google Cloud Platform (GCP), utilizing:
-- **Firebase Hosting** for frontend (replaces S3 + CloudFront)
-- **Cloud Run** for Python analysis engines (replaces local execution)
-- **Cloud Scheduler** for daily automated analysis (replaces manual triggers)
-- **Google Cloud Storage (GCS)** for data/reports (replaces local `data/` directory)
+Migrate **PortfolioESG** from **local-only execution** to Google Cloud Platform (GCP), utilizing:
+- **Firebase Hosting** for frontend (currently hosted locally via http.server)
+- **Cloud Run** for Python analysis engines (replaces manual `./engines/run_all.sh` execution)
+- **Cloud Scheduler** for daily automated analysis (replaces manual daily trigger)
+- **Google Cloud Storage (GCS)** for data/reports (replaces local `data/` and `html/data/` directories)
 - **Firestore** (optional) for real-time data syncing
 
+### Current State
+🔴 **Local execution**: You manually run `./engines/run_all.sh` daily  
+🔴 **Local frontend**: HTML files served via `python -m http.server` on localhost  
+🔴 **No automation**: Manual pipeline execution, no scheduled runs  
+
 ### Goals
-✅ Low-cost, fully automated daily analysis pipeline  
-✅ Keep GitHub repo as single source of truth  
-✅ Develop locally in IDE, deploy automatically  
-✅ Frontend always shows latest analysis results  
+✅ **Automate daily execution**: Cloud Scheduler triggers Cloud Run every weekday at 8 PM GMT-3 (11 PM UTC)  
+✅ **Brazilian business days only**: Skip holidays, weekends  
+✅ **Keep GitHub as source of truth**: All code stays in GitHub  
+✅ **Develop locally**: Continue using IDE, test locally before pushing  
+✅ **Always-on frontend**: Firebase Hosting serves portfolio dashboard globally (not just localhost)  
+✅ **Zero manual intervention**: No more daily `run_all.sh` execution
 
 ---
 
 ## 🏗️ Target Architecture
 
 ```
+CURRENT STATE (Local):
+  Your Computer → run_all.sh (manual) → html/data/ → http://localhost:8000
+
+FUTURE STATE (GCP Cloud):
 ┌─────────────────────────────────────────────────────────┐
 │                     GitHub Repository                    │
 │  (Source of truth: engines/, html/, parameters/)        │
+│  (You develop locally, push when ready)                 │
 └──────────────────────┬──────────────────────────────────┘
                        │
-        ┌──────────────┼──────────────┐
-        │              │              │
-        ▼              ▼              ▼
-   Cloud Build   GitHub Actions  Local Dev
-        │              │              │
-        └──────────────┴──────────────┘
+            (Push triggers auto-build)
                        │
         ┌──────────────▼──────────────┐
         │   Artifact Registry         │
         │  (Docker image storage)     │
+        │  (Updated on git push)      │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
         │      Cloud Scheduler        │
-        │   (Daily 9:00 AM UTC)       │
+        │   (8 PM GMT-3 / 11 PM UTC   │
+        │    Weekdays only)           │
+        │   (Excludes BR holidays)    │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
         │       Cloud Run             │
-        │  (Python analysis engines)  │
-        │  A1, A2, A3, A4, B series   │
+        │  (Python: run_all.sh via    │
+        │   A1, A2, A3, A4, B, C, D)  │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
         │  Google Cloud Storage       │
-        │  (data/, reports/, JSON)    │
+        │  (html/data/ contents)      │
+        │  (Updated after each run)   │
         └──────────────┬──────────────┘
                        │
         ┌──────────────▼──────────────┐
         │   Firebase Hosting          │
         │  (Frontend HTML/JS/CSS)     │
-        │ + Real-time data via GCS    │
+        │ + Reads from GCS JSON data  │
         └─────────────────────────────┘
 ```
 
@@ -200,21 +211,55 @@ curl -X POST https://portfolioesg-engine-XXXXX.run.app/analyze \
 
 #### 4.1 Configure Cloud Scheduler
 - [ ] Create Cloud Scheduler job: `portfolioesg-daily-analysis`
-- [ ] Frequency: `0 9 * * *` (Daily at 9:00 AM UTC)
+- [ ] Frequency: `0 23 * * 1-5` (11 PM UTC = 8 PM GMT-3, Mon-Fri only)
 - [ ] Target: HTTP POST to Cloud Run service URL
 - [ ] Auth: Use service account from Phase 1.3
 - [ ] Payload (optional): `{"trigger": "scheduler"}`
+
+**⚠️ Brazilian Holiday Handling**:
+Cloud Scheduler doesn't natively support holiday exclusion. Options:
+1. **Simple approach** (Recommended): Use cron `0 23 * * 1-5` (skip weekends, accept holidays)
+2. **Advanced approach**: Create Cloud Function wrapper that checks against Brazilian holiday list:
+   - [ ] Add `shared_tools/br_holidays.py` with 2026 Brazilian business days
+   - [ ] Create Cloud Function that checks if today is a business day
+   - [ ] Cloud Scheduler triggers function (not Cloud Run directly)
+   - [ ] Function triggers Cloud Run only on business days
+
+**Quick reference - Brazilian holidays 2026**:
+```
+Jan 1  - New Year
+Feb 16 - Carnival Monday
+Feb 17 - Carnival Tuesday
+Feb 18 - Ash Wednesday
+Apr 3  - Good Friday
+Apr 21 - Tiradentes' Day
+May 1  - Labor Day
+Jun 4  - Corpus Christi
+Sep 7  - Independence Day
+Oct 12 - Our Lady Aparecida
+Nov 2  - All Souls' Day
+Nov 15 - Proclamation of the Republic
+Nov 20 - Black Consciousness Day
+Dec 25 - Christmas
+```
 
 #### 4.2 Test Scheduler
 - [ ] Manually trigger job in Cloud Console
 - [ ] Wait for execution and verify in Cloud Run logs
 - [ ] Check GCS bucket for new output files
 
-#### 4.3 GitHub Actions Integration (Optional)
-- [ ] Create `.github/workflows/deploy-cloud-run.yml`
-- [ ] Trigger: On push to `main` branch
-- [ ] Action: Build Docker image → Push to Artifact Registry
-- [ ] Auto-deploy to Cloud Run
+#### 4.3 Docker Image Updates (Manual or Cloud Build)
+**Option A - Manual (Simpler)**:
+- [ ] Build Docker image locally: `docker build -t portfolioesg .`
+- [ ] Push to Artifact Registry manually after code changes
+- [ ] Cloud Run uses latest image
+
+**Option B - Cloud Build (Auto-Deploy, Optional)**:
+- [ ] Create `.cloudbuild.yaml` in repo root
+- [ ] Connect GitHub to Cloud Build
+- [ ] Automatic build & push on git push to `main` branch
+- [ ] No GitHub Actions needed; Cloud Build handles everything
+- [ ] Cost: Free within quota (120 builds/day)
 
 ---
 
@@ -223,29 +268,30 @@ curl -X POST https://portfolioesg-engine-XXXXX.run.app/analyze \
 **Estimated Effort**: 2-3 hours  
 
 #### 5.1 Update File I/O Paths
-Current behavior: Write to local `data/`, `html/data/` directories  
-New behavior: Write to GCS bucket
+Current behavior: `run_all.sh` executes locally, writes to `data/` and `html/data/` directories  
+New behavior: Cloud Run executes in container, writes to GCS bucket
 
 **Files to Modify**:
-- [ ] `engines/A4_Analysis.py` — Update output paths
-- [ ] `engines/D_Publish.py` — Update publish paths
-- [ ] `shared_tools/path_utils.py` — Add GCS path utilities
+- [ ] Engines that write output (A2, A3, A4, B series, C, D scripts)
+- [ ] Change from writing to local filesystem to GCS bucket
+- [ ] Example: `html/data/pipeline_latest.json` → `gs://portfolioesg-data-XXXXX/html/data/pipeline_latest.json`
 
 **Pattern**:
 ```python
 # Old: local filesystem
-output_file = "data/portfolio_analysis.json"
-df.to_csv(output_file)
+output_file = "html/data/pipeline_latest.json"
+with open(output_file, 'w') as f:
+    json.dump(data, f)
 
 # New: GCS
 from google.cloud import storage
 bucket = storage.Client().bucket(os.getenv('GCS_BUCKET'))
-blob = bucket.blob('data/portfolio_analysis.json')
-blob.upload_from_string(df.to_csv())
+blob = bucket.blob('html/data/pipeline_latest.json')
+blob.upload_from_string(json.dumps(data))
 ```
 
 #### 5.2 Update Data Loading
-- [ ] Modify code to read input data from GCS (if needed)
+- [ ] Modify code to read input data from GCS (if needed for second run, historical comparison)
 - [ ] Handle missing files gracefully (first run has no historical data)
 
 #### 5.3 Add GCS Helper Module
@@ -437,10 +483,12 @@ firebase deploy --only hosting
 |----------|--------|-----------|
 | **Backend Service** | Cloud Run | Supports containerized workloads, pay-per-invocation, simple deployment, 30-min timeout sufficient |
 | **Scheduling** | Cloud Scheduler | Native GCP integration, reliable, free for first 3 jobs, cron-like interface |
+| **Holiday Handling** | Manual check or simple weekday cron | Cloud Scheduler doesn't support holiday exclusion natively; weekday cron is simplest; advanced: add Cloud Function wrapper |
 | **Data Storage** | GCS + Firestore (optional) | GCS for large files (reports, historical data), Firestore optional for real-time DB |
 | **Frontend Hosting** | Firebase Hosting | Integrated with GCP, free tier, SSL by default, auto-deployment |
 | **Container Registry** | Artifact Registry | Modern GCP service, supports Docker/OCI images, integrated with Cloud Build |
-| **CI/CD** | GitHub Actions + Cloud Build | GitHub Actions for frontend, Cloud Build for backend (both free within limits) |
+| **Docker Updates** | Manual build OR Cloud Build | Manual: Push locally when code changes. Cloud Build: Auto-build on git push (both free within limits, Cloud Build simpler) |
+| **GitHub Actions** | **NOT required** ⚠️ | Cloud Build or manual push handles Docker updates; GitHub Actions adds unnecessary complexity for this workflow |
 | **Secrets** | Secret Manager | Native GCP, secure, integrates with Cloud Run |
 
 ---
@@ -516,6 +564,12 @@ See checklist items above (marked with `[ ]` for pending, `[x]` for completed).
 ---
 
 ## 🤝 Notes for AI Assistants
+
+**IMPORTANT CURRENT STATE**:
+- Project is **local-only**, NOT on AWS or any cloud platform
+- User manually runs `./engines/run_all.sh` daily
+- Frontend is served locally via `python -m http.server`
+- Goal: Automate this via GCP Cloud Run + Cloud Scheduler
 
 This document is designed to be:
 1. **Self-contained**: Each phase includes all required steps and context
