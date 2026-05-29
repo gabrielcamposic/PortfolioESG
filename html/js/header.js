@@ -161,6 +161,10 @@
           <span class="tb-label">Alpha</span>
           <span class="tb-value">—</span>
         </div>
+        <div class="tb-item" id="tb-beta">
+          <span class="tb-label">Beta</span>
+          <span class="tb-value">—</span>
+        </div>
         <div class="tb-item" id="tb-cdi">
           <span class="tb-label">% CDI</span>
           <span class="tb-value">—</span>
@@ -259,6 +263,10 @@
       const alphaVal = alpha.total || 0;
       document.querySelector('#tb-alpha .tb-value').innerHTML = 
         `<span class="pv-pnl ${alphaVal >= 0 ? 'positive' : 'negative'}">${fmtPct(alphaVal)}</span>`;
+
+      // 5.5) Beta
+      const betaVal = dashboard.real?.relative?.beta || 0;
+      document.querySelector('#tb-beta .tb-value').textContent = betaVal.toFixed(2);
 
       // 6) Retorno esperado (Modelo)
       document.querySelector('#tb-exp .tb-value').textContent = (mRet.gross_12m || 0).toFixed(2) + '%';

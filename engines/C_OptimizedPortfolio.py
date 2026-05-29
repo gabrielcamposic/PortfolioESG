@@ -693,6 +693,25 @@ def _load_avg_purchase_prices(logger: logging.Logger) -> Dict[str, float]:
     return avg_prices
 
 
+def _load_current_share_quantities(logger: logging.Logger) -> Dict[str, int]:
+    """Load current share quantities per symbol from ledger_positions.json."""
+    qty_map: Dict[str, int] = {}
+    if not os.path.exists(LEDGER_POSITIONS_JSON):
+        return qty_map
+    try:
+        with open(LEDGER_POSITIONS_JSON, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        positions = data.get('positions', []) if isinstance(data, dict) else data
+        for pos in positions:
+            symbol = pos.get('symbol') or pos.get('resolved_symbol', '')
+            net_qty = pos.get('net_qty', 0)
+            if symbol and net_qty > 0:
+                qty_map[symbol] = int(net_qty)
+    except Exception as e:
+        logger.warning(f"Could not load current share quantities: {e}")
+    return qty_map
+
+
 def calculate_transition_cost(
     holdings: Dict[str, Any],
     target: Dict[str, Any],
@@ -703,11 +722,18 @@ def calculate_transition_cost(
     Calculate the cost of transitioning from holdings to target portfolio.
     Returns (total_cost_pct, list_of_transactions)
 
+    When the target portfolio has been discretized (has 'share_quantities'),
+    transactions are computed as the exact integer delta between current and
+    target share counts.  This guarantees that all recommended quantities are
+    whole numbers consistent with B3 rules.
+
+    Falls back to the weight-based approach when share_quantities is not yet
+    available (e.g. during candidate scoring).
+
     Each transaction is enriched with:
       - avg_purchase_price: weighted-average purchase price from ledger
       - target_price: 12-month target price from FinancialsDB
-      - shares: integer ≥ 1 (ceil for BUY, floor for SELL) — B3 does not
-        allow fractional shares
+      - shares: integer (exact delta between current and target positions)
       - signed_value: positive for SELL (cash in), negative for BUY (cash out)
     """
     holdings_weights = holdings.get('weights', {})
@@ -717,6 +743,14 @@ def calculate_transition_cost(
 
     # Enrich: load avg purchase prices and target prices
     avg_purchase_prices = _load_avg_purchase_prices(logger)
+
+    # ── Share-based path (post-discretization) ─────────────────────
+    target_share_quantities = target.get('share_quantities', {})
+    use_share_delta = bool(target_share_quantities)
+
+    current_share_quantities: Dict[str, int] = {}
+    if use_share_delta:
+        current_share_quantities = _load_current_share_quantities(logger)
 
     transactions = []
     total_traded_value = 0
@@ -732,28 +766,42 @@ def calculate_transition_cost(
         if abs(weight_diff) < 0.001:  # Ignore tiny differences
             continue
 
-        value_change = abs(weight_diff) * holdings_value
-        total_traded_value += value_change
-
         action = 'BUY' if weight_diff > 0 else 'SELL'
-        estimated_cost = round(value_change * transaction_cost_pct / 100, 4)
 
-        # Resolve current price and estimated shares
+        # Resolve current price
         price = current_prices.get(stock)
         if price is None:
             price = get_current_price(stock, logger)
 
-        # Compute integer shares (B3 constraint: no fractional shares)
-        shares = None
-        if price and price > 0:
-            raw_shares = value_change / price
-            if action == 'BUY':
-                shares = max(1, math.ceil(raw_shares))
-            else:  # SELL
-                shares = max(1, math.floor(raw_shares)) if raw_shares >= 0.5 else 1
+        # ── Compute shares ─────────────────────────────────────
+        if use_share_delta:
+            # Exact integer delta between target and current positions
+            target_qty = target_share_quantities.get(stock, 0)
+            current_qty = current_share_quantities.get(stock, 0)
+            delta = target_qty - current_qty
 
-        # Recalculate value_change based on actual integer shares
-        actual_value = shares * price if shares and price else value_change
+            if delta == 0:
+                continue
+
+            shares = abs(delta)
+            # Override action based on actual delta sign
+            action = 'BUY' if delta > 0 else 'SELL'
+        else:
+            # Weight-based fallback (used during candidate scoring)
+            shares = None
+            if price and price > 0:
+                value_change_est = abs(weight_diff) * holdings_value
+                raw_shares = value_change_est / price
+                if action == 'BUY':
+                    shares = max(1, math.ceil(raw_shares))
+                else:
+                    shares = max(1, math.floor(raw_shares)) if raw_shares >= 0.5 else 1
+
+        # Compute value from actual integer shares
+        actual_value = shares * price if shares and price else abs(weight_diff) * holdings_value
+        total_traded_value += actual_value
+
+        estimated_cost = round(actual_value * transaction_cost_pct / 100, 4)
 
         # Resolve enrichment data
         avg_price = avg_purchase_prices.get(stock)

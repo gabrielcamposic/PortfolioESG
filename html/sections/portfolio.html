@@ -320,18 +320,19 @@ async function render() {
     // ── Line chart: Portfolio vs Ibovespa vs CDI, base 100 ──
     if (dailyRows.length > 0) {
       const labels = [dailyRows[0].date];
-      const pS = [100], bS = [100], cS = [100], fS = [100];
-      let pB = 100, bB = 100, cB = 100, fB = 100;
+      const pS = [100], aS = [100], bS = [100], cS = [100], fS = [100];
+      let pB = 100, aB = 100, bB = 100, cB = 100, fB = 100;
 
       for (let i = 1; i < dailyRows.length; i++) {
         const r = dailyRows[i];
         labels.push(r.date);
         const pr = parseFloat(r.consolidated_return);
+        const ar = parseFloat(r.portfolio_return);
         const br = parseFloat(r.benchmark_return);
         const cr = parseFloat(r.cdi_return);
         const fr = parseFloat(r.fund_return);
-        pB *= isNaN(pr)?1:(1+pr); bB *= isNaN(br)?1:(1+br); cB *= isNaN(cr)?1:(1+cr); fB *= isNaN(fr)?1:(1+fr);
-        pS.push(pB); bS.push(bB); cS.push(cB); fS.push(fB);
+        pB *= isNaN(pr)?1:(1+pr); aB *= isNaN(ar)?1:(1+ar); bB *= isNaN(br)?1:(1+br); cB *= isNaN(cr)?1:(1+cr); fB *= isNaN(fr)?1:(1+fr);
+        pS.push(pB); aS.push(aB); bS.push(bB); cS.push(cB); fS.push(fB);
       }
 
       // Find marker indices
@@ -350,6 +351,8 @@ async function render() {
           datasets: [
             { label:'Portfólio', data:pS, borderColor: DC.portfolio.line, backgroundColor: DC.portfolio.area,
               fill:true, borderWidth:3, pointRadius:0, pointHitRadius:8, tension:0.15 },
+            { label:'Ações', data:aS, borderColor: '#7c3aed', borderWidth:2,
+              pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
             { label:'Ibovespa', data:bS, borderColor: DC.ibov.line, borderWidth:1.5,
               borderDash: DC.ibov.dash, pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
             { label:'CDI', data:cS, borderColor: DC.cdi.line, borderWidth:1.5,

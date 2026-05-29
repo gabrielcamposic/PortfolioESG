@@ -896,8 +896,8 @@ def _build_real_daily_series() -> pd.DataFrame:
             # Equity TWRR uses per-trade cash flow (accurate for return attribution)
             effective_cf = cf - div
 
-            if prev_pv > 0:
-                port_ret = (pv - effective_cf) / prev_pv - 1
+            if (prev_pv + effective_cf) > 0:
+                port_ret = pv / (prev_pv + effective_cf) - 1
             else:
                 port_ret = None
 
@@ -910,8 +910,8 @@ def _build_real_daily_series() -> pd.DataFrame:
             total_value = pv + fund_balance + cash_balance
             
             cons_cf = aporte - saque
-            if prev_total > 0:
-                cons_ret = (total_value - cons_cf) / prev_total - 1
+            if (prev_total + cons_cf) > 0:
+                cons_ret = total_value / (prev_total + cons_cf) - 1
             else:
                 cons_ret = None
 
@@ -1033,6 +1033,17 @@ def _compute_real_metrics(daily_df: pd.DataFrame) -> dict:
         corr_val = np.corrcoef(port_common.values, bench_common.values)[0, 1]
         correlation = float(corr_val) if np.isfinite(corr_val) else None
 
+    # --- Equity Only Beta ---
+    eq_rets = pd.to_numeric(daily_df["portfolio_return"], errors="coerce").dropna()
+    eq_common_idx = eq_rets.index.intersection(bench_rets.index)
+    eq_common = eq_rets.loc[eq_common_idx]
+    bench_eq_common = bench_rets.loc[eq_common_idx]
+
+    beta_equity = None
+    if len(eq_common) > 1 and bench_eq_common.std() > 0:
+        cov_matrix_eq = np.cov(eq_common.values, bench_eq_common.values)
+        beta_equity = float(cov_matrix_eq[0, 1] / cov_matrix_eq[1, 1])
+
     # % do CDI: standard Brazilian fund metric
     pct_cdi = round((total_return / cdi_total) * 100, 1) if cdi_total > 0 else None
 
@@ -1071,6 +1082,7 @@ def _compute_real_metrics(daily_df: pd.DataFrame) -> dict:
         },
         "relative": {
             "beta": round(beta, 2) if beta is not None else None,
+            "beta_equity": round(beta_equity, 2) if beta_equity is not None else None,
             "tracking_error": round(tracking_error, 4) if tracking_error is not None else None,
             "information_ratio": round(information_ratio, 2) if information_ratio is not None else None,
             "correlation": round(correlation, 2) if correlation is not None else None,

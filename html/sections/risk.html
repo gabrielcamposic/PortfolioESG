@@ -248,6 +248,7 @@ async function render() {
     // ── Stress Cards ──
     const max_dd = dashboard.real.twr?.max_drawdown ? fmtPct(-dashboard.real.twr.max_drawdown) : '—';
     const beta = dashboard.real.relative?.beta ? fmtNum(dashboard.real.relative.beta) : '—';
+    const beta_eq = dashboard.real.relative?.beta_equity ? fmtNum(dashboard.real.relative.beta_equity) : '—';
     const sortino = dashboard.real.twr?.sortino ? fmtNum(dashboard.real.twr.sortino) : '—';
     const te = all.tracking_error != null ? fmtPct(all.tracking_error) : '—';
     const ir = all.information_ratio != null ? fmtNum(all.information_ratio) : '—';
@@ -256,7 +257,8 @@ async function render() {
     document.getElementById('cards-stress').innerHTML =
       card('Tracking Error', te, 'desvio do IBOV') +
       card('Info Ratio', ir, 'alfa / tracking error') +
-      card('Beta (vs. IBOV)', beta, 'risco direcional') +
+      card('Beta (Geral)', beta, 'sensibilidade do total') +
+      card('Beta (Ações)', beta_eq, 'sensibilidade ações') +
       card('Max Drawdown', max_dd, 'pior queda do topo') +
       card('Sortino Ratio', sortino, 'ret. ajustado a queda') +
       card('Índice Calmar', calmar, 'retorno / drawdown');
