@@ -793,9 +793,9 @@ def calculate_transition_cost(
                 value_change_est = abs(weight_diff) * holdings_value
                 raw_shares = value_change_est / price
                 if action == 'BUY':
-                    shares = max(1, math.ceil(raw_shares))
+                    shares = max(1, int(math.floor(raw_shares)))
                 else:
-                    shares = max(1, math.floor(raw_shares)) if raw_shares >= 0.5 else 1
+                    shares = max(1, int(math.floor(raw_shares))) if raw_shares >= 0.5 else 1
 
         # Compute value from actual integer shares
         actual_value = shares * price if shares and price else abs(weight_diff) * holdings_value
@@ -1023,6 +1023,12 @@ def discretize_to_integer_shares(
     using the *discretized* weights so the recommendation accurately
     reflects the executable portfolio.
 
+    NOTE: Uses floor() rounding to ensure conservative allocation (never
+    over-allocates). This matches the strategy in D_Publish.py for the
+    pipeline_latest.json generation, ensuring that the recommended
+    transactions in optimized_recommendation.json align with the model
+    portfolio shown in the "Alocação do Modelo" table.
+
     Args:
         portfolio_weights: {stock: weight_fraction} summing to ~1.0
         total_value: total portfolio value in BRL
@@ -1042,7 +1048,7 @@ def discretize_to_integer_shares(
         price = get_current_price(stock, logger)
 
         if price and price > 0:
-            qty = max(1, round(allocated / price))
+            qty = max(1, int(math.floor(allocated / price)))
             share_quantities[stock] = qty
             actual_invested[stock] = qty * price
         else:
@@ -1484,10 +1490,28 @@ def main():
     # MVO optimises in continuous weight-space, but B3 only allows
     # integer shares.  Discretize the optimal portfolio and recalculate
     # ALL metrics so the recommendation reflects the executable portfolio.
+    #
+    # IMPORTANT: Use the total_current_market from ledger_positions.json
+    # for consistency with D_Publish.py (which generates pipeline_latest.json).
+    # This ensures recommended transactions match the model portfolio shown
+    # in the "Alocação do Modelo" table.
     logger.info("Discretizing optimal portfolio to integer shares (B3)...")
 
+    # Load portfolio market value from ledger_positions.json for consistency
+    portfolio_value_for_discretization = holdings['total_value']
+    try:
+        with open(LEDGER_POSITIONS_JSON, 'r', encoding='utf-8') as f:
+            ledger_data = json.load(f)
+            ledger_total_market = ledger_data.get('total_current_market', 0)
+            if ledger_total_market > 0:
+                portfolio_value_for_discretization = ledger_total_market
+                logger.info(f"Using ledger total_current_market ({ledger_total_market:.2f}) for discretization "
+                           f"(was calculated as {holdings['total_value']:.2f})")
+    except Exception as e:
+        logger.warning(f"Could not load ledger_positions.json: {e}. Using calculated total_value.")
+
     disc_weights, share_qtys, disc_total = discretize_to_integer_shares(
-        optimal['weights'], holdings['total_value'], logger
+        optimal['weights'], portfolio_value_for_discretization, logger
     )
 
     # Save continuous version for transparency

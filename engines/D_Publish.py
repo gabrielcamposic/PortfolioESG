@@ -564,9 +564,11 @@ def publish_pipeline_latest(target_map: Dict[str, float]) -> None:
     comparison = optimized.get("comparison", {})
     optimal_weights = comparison.get("optimal", {}).get("weights", {})
     ideal_weights = comparison.get("ideal", {}).get("weights", {})
+    optimal_share_quantities = comparison.get("optimal", {}).get("share_quantities", {})
     
-    # Prefer optimal weights, fallback to ideal
-    model_weights_dict = optimal_weights if optimal_weights else ideal_weights
+    # Use ideal weights (which are discretized) rather than optimal (continuous)
+    # This ensures projectedQty matches the actual discretized recommendations
+    model_weights_dict = ideal_weights if ideal_weights else optimal_weights
     
     if model_weights_dict:
         stocks = list(model_weights_dict.keys())
@@ -653,9 +655,16 @@ def publish_pipeline_latest(target_map: Dict[str, float]) -> None:
         projected_invested = None
         projected_brl = None
 
-        if allocated is not None and current and current > 0:
+        # Prefer using discretized share quantities from C_OptimizedPortfolio
+        # This ensures consistency between recommendations and pipeline projections
+        if stock in optimal_share_quantities and optimal_share_quantities[stock]:
+            projected_qty = optimal_share_quantities[stock]
+            if current and current > 0:
+                projected_invested = projected_qty * current
+        elif allocated is not None and current and current > 0:
             projected_qty = max(1, int(math.floor(allocated / current)))
             projected_invested = projected_qty * current
+        
         if projected_qty is not None and tp:
             projected_brl = projected_qty * tp
 
