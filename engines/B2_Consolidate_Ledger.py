@@ -344,7 +344,9 @@ def match_symbol_for_position(
         if nk and len(nk) >= 4 and (nk in key or key in nk):
             return symbol
 
-    # Strategy 4: Token-based fuzzy match
+    # Strategy 4: Token-based fuzzy match. Require at least two overlapping
+    # tokens; a single generic token such as "ENERGIA" can map to the wrong
+    # company (e.g. ISA ENERGIA -> Aeris Energia).
     if tickers_entries:
         ledger_tokens = set([t.upper() for t in re.split(r'[^A-Za-z0-9]+', ledger_ticker) if len(t) >= 3])
         best_match = None
@@ -359,7 +361,7 @@ def match_symbol_for_position(
                 best_score = score
                 best_match = entry
 
-        if best_score >= 1 and best_match:
+        if best_score >= 2 and best_match:
             return best_match.get('symbol')
 
     return None

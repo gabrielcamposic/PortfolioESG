@@ -20,12 +20,11 @@ PROCESS_NOTES_VERSION = "2.0.0"  # Refactored with shared_utils, logging, and pa
 from pathlib import Path
 import sys
 import csv
-import re
 import logging
 import time
 from datetime import datetime
 import json
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Any
 
 # Ensure project root is on sys.path when running from engines/
 ROOT = Path(__file__).resolve().parents[1]
@@ -102,109 +101,6 @@ def load_config(logger: logging.Logger) -> Dict[str, Any]:
 # ----------------------------------------------------------- #
 #                     Helper Functions                        #
 # ----------------------------------------------------------- #
-
-def normalize_for_match(s: Optional[str]) -> str:
-    """Normalize a string for fuzzy matching: uppercase, remove spaces and punctuation."""
-    if not s:
-        return ''
-    return re.sub(r'[^A-Z0-9]', '', str(s).upper())
-
-
-def update_broker_names_in_tickers(broker_names_found: Dict[str, str], tickers_file: Path, logger: logging.Logger) -> None:
-    """
-    Update tickers.txt with BrokerName values for matched symbols.
-    broker_names_found: dict of {symbol: broker_name} to update
-
-    Only updates if the current BrokerName is empty for that symbol.
-    """
-    if not broker_names_found or not tickers_file.exists():
-        return
-
-    try:
-        # Read all rows
-        rows = []
-        fieldnames = None
-        with tickers_file.open('r', newline='', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            fieldnames = reader.fieldnames
-            for row in reader:
-                rows.append(row)
-
-        if not fieldnames or 'BrokerName' not in fieldnames:
-            logger.warning("Cannot update BrokerName: column not found in tickers.txt")
-            return
-
-        # Update rows where BrokerName is empty and we have a match
-        updated = False
-        for row in rows:
-            ticker = (row.get('Ticker') or '').strip()
-            current_broker_name = (row.get('BrokerName') or '').strip()
-
-            if ticker in broker_names_found and not current_broker_name:
-                row['BrokerName'] = broker_names_found[ticker]
-                updated = True
-                logger.info(f"Updated BrokerName for {ticker}: {broker_names_found[ticker]}")
-
-        # Write back if updated
-        if updated:
-            with tickers_file.open('w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(rows)
-
-    except FileNotFoundError:
-        logger.error(f"Tickers file not found: {tickers_file}")
-    except csv.Error as e:
-        logger.error(f"CSV error reading tickers file: {e}")
-    except IOError as e:
-        logger.error(f"IO error updating tickers file: {e}")
-
-
-def find_symbol_for_broker_name(broker_name: str, tickers_file: Path, logger: logging.Logger) -> Tuple[Optional[str], bool]:
-    """
-    Try to find the symbol (Ticker) for a given broker name by matching against tickers.txt.
-    Returns (symbol, matched) tuple or (None, False) if not found.
-    """
-    if not broker_name or not tickers_file.exists():
-        return None, False
-
-    broker_norm = normalize_for_match(broker_name)
-    # Extract first word for partial matching
-    first_word = broker_name.split()[0].upper() if broker_name.split() else ''
-    first_word_norm = normalize_for_match(first_word)
-
-    try:
-        with tickers_file.open('r', newline='', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                ticker = (row.get('Ticker') or '').strip()
-                name = (row.get('Name') or '').strip()
-                existing_broker = row.get('BrokerName')
-
-                # Handle None values
-                if existing_broker is None:
-                    existing_broker = ''
-                else:
-                    existing_broker = existing_broker.strip()
-
-                # Check if BrokerName already matches
-                if existing_broker:
-                    if normalize_for_match(existing_broker) == broker_norm:
-                        return ticker, True
-
-                # Check if official Name matches (partial)
-                name_norm = normalize_for_match(name)
-                if first_word_norm and len(first_word_norm) >= 4:
-                    if first_word_norm in name_norm or name_norm.startswith(first_word_norm):
-                        return ticker, True
-
-    except FileNotFoundError:
-        logger.warning(f"Tickers file not found: {tickers_file}")
-    except csv.Error as e:
-        logger.warning(f"CSV error reading tickers file: {e}")
-
-    return None, False
-
 
 def find_pdfs_to_process(notas_dir: Path) -> List[Path]:
     """Find all PDFs in the notes directory, sorted by modification time."""
@@ -446,7 +342,6 @@ def main():
 
         any_new = False
         new_docs = []
-        broker_names_to_update = {}
         pdfs_processed = 0
         pdfs_skipped = 0
 
@@ -479,14 +374,6 @@ def main():
                 processed_files.add(key)
                 continue
 
-            # Collect broker names for updating tickers.txt
-            for trade in parsed.get('trades', []):
-                ticker_name = trade.get('ticker', '').strip()
-                if ticker_name:
-                    symbol, matched = find_symbol_for_broker_name(ticker_name, config['TICKERS_FILE'], logger)
-                    if symbol and matched and symbol not in broker_names_to_update:
-                        broker_names_to_update[symbol] = ticker_name
-
             # Append to CSVs
             broker_doc = append_parsed_csvs(parsed, config, logger)
             logger.info(f"Appended parsed data for broker_document={broker_doc}")
@@ -499,11 +386,6 @@ def main():
         logger.info(f"Processed {pdfs_processed} new PDFs, skipped {pdfs_skipped} already processed")
         perf_data['pdfs_processed'] = pdfs_processed
         perf_data['pdfs_skipped'] = pdfs_skipped
-
-        # Update tickers.txt with new broker names
-        if broker_names_to_update:
-            logger.info(f"Updating {len(broker_names_to_update)} BrokerNames in tickers.txt...")
-            update_broker_names_in_tickers(broker_names_to_update, config['TICKERS_FILE'], logger)
 
         # Save manifest
         manifest['processed'] = sorted(list(processed_files))

@@ -91,7 +91,7 @@ MEAL3.SA,International Meal Company Alimentação S.A.,Consumer Cyclical,Restaur
 INTB3.SA,Intelbras S.A. - Indústria de Telecomunicação Eletrônica Brasileira,Technology,Communication Equipment,
 RANI3.SA,Irani Papel e Embalagem S.A.,Consumer Cyclical,Packaging & Containers,IRANI ON NM
 IRBR3.SA,IRB-Brasil Resseguros S.A.,Financial Services,Insurance - Reinsurance,
-ISAE4.SA,ISA Energía Brasil S.A.,Utilities,Utilities - Independent Power Producers,
+ISAE4.SA,ISA Energía Brasil S.A.,Utilities,Utilities - Independent Power Producers,ISA ENERGIA PN N1
 ITSA4.SA,Itaúsa S.A.,Industrials,Conglomerates,
 ITUB3.SA,Itaú Unibanco Holding S.A.,Financial Services,Banks - Regional,
 ITUB4.SA,Itaú Unibanco Holding S.A.,Financial Services,Banks - Regional,
@@ -147,7 +147,7 @@ PRIO3.SA,Prio S.A.,Energy,Oil & Gas E&P,PRIO ON NM
 PRNR3.SA,Priner Serviços Industriais S.A.,Industrials,Engineering & Construction,PRINER ON NM
 PRTB3.SA,N/A,Error,HTTP Error 404:,
 PSSA3.SA,Porto Seguro S.A.,Financial Services,Insurance - Diversified,PORTO SEGUROON NM
-RADL3.SA,Raia Drogasil S.A.,Healthcare,Pharmaceutical Retailers,
+RADL3.SA,Raia Drogasil S.A.,Healthcare,Pharmaceutical Retailers,RAIADROGASILON NM
 RAIL3.SA,Rumo S.A.,Industrials,Railroads,
 RAIZ4.SA,Raízen S.A.,Utilities,Utilities - Renewable,
 RANI3.SA,Irani Papel e Embalagem S.A.,Consumer Cyclical,Packaging & Containers,IRANI ON NM

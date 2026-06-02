@@ -8,6 +8,7 @@
 #
 # Stages:
 #   B1: Process broker notes (PDF parsing)
+#   B14: Validate BrokerName mappings / write review CSV
 #   B2: Consolidate ledger positions
 #   B4: Generate portfolio history for charts
 #   D:  Publish frontend assets
@@ -32,6 +33,7 @@ VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 CASH_PARSER_SCRIPT="$PROJECT_ROOT/engines/B13_Cash_Parser.py"
 PROCESS_NOTES_SCRIPT="$PROJECT_ROOT/engines/B1_Process_Notes.py"
 CONSOLIDATE_LEDGER_SCRIPT="$PROJECT_ROOT/engines/B2_Consolidate_Ledger.py"
+BROKERNAME_REVIEW_SCRIPT="$PROJECT_ROOT/engines/B14_BrokerName_Review.py"
 PORTFOLIO_HISTORY_SCRIPT="$PROJECT_ROOT/engines/B4_Portfolio_History.py"
 
 # Logging
@@ -92,19 +94,26 @@ if ! run_stage "B1_Process_Notes" "$PROCESS_NOTES_SCRIPT"; then
     exit 1
 fi
 
-# 2) Consolidate ledger into positions JSON
+# 2) Validate BrokerName mappings before portfolio stages
+if ! run_stage "B14_BrokerName_Review" "$BROKERNAME_REVIEW_SCRIPT"; then
+    log "BrokerName review required. Aborting before consolidation/publish." >&2
+    log "Open data/brokername_review.csv, fill approved_symbol, set status=approved, then rerun." >&2
+    exit 1
+fi
+
+# 3) Consolidate ledger into positions JSON
 if ! run_stage "B2_Consolidate_Ledger" "$CONSOLIDATE_LEDGER_SCRIPT"; then
     log "Consolidate ledger failed. Aborting." >&2
     exit 1
 fi
 
-# 3) Generate portfolio history for charts
+# 4) Generate portfolio history for charts
 if ! run_stage "B4_Portfolio_History" "$PORTFOLIO_HISTORY_SCRIPT"; then
     log "Generate portfolio history failed. Aborting." >&2
     exit 1
 fi
 
-# 4) Publish frontend assets
+# 5) Publish frontend assets
 if ! run_stage "D_Publish" "$PROJECT_ROOT/engines/D_Publish.py"; then
     log "Publish assets failed. Aborting." >&2
     exit 1
