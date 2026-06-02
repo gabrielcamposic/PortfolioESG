@@ -104,9 +104,11 @@
   .chart-perf-overlay th { text-align: left; color: var(--color-label); padding-right: 12px; font-weight: 600; padding-bottom: 4px; }
   .chart-perf-overlay td { text-align: right; padding: 2px 8px; font-weight: 600; }
   .chart-perf-overlay .win-label { color: var(--text-secondary); text-align: left; padding-left: 0; font-weight: 400; }
-  .chart-perf-overlay .val-p { color: var(--brand-blue); }
-  .chart-perf-overlay .val-b { color: #64748b; }
-  .chart-perf-overlay .val-c { color: #1e293b; }
+  .chart-perf-overlay .val-p { color: #4F8CC9; }
+  .chart-perf-overlay .val-e { color: #C76C98; }
+  .chart-perf-overlay .val-f { color: #43AFA3; }
+  .chart-perf-overlay .val-b { color: #D79A43; }
+  .chart-perf-overlay .val-c { color: #8793B0; }
   
   .legend-indicator {
     display: inline-block;
@@ -122,6 +124,16 @@
     border-radius: 1px;
     border-bottom: 2px dashed currentColor;
     background: none !important;
+  }
+  .legend-indicator.line {
+    width: 14px;
+    height: 0;
+    border-radius: 0;
+    border-top: 3px solid currentColor;
+    background: none !important;
+  }
+  .legend-indicator.line.dashed {
+    border-top-style: dashed;
   }
 
   /* ── Performance table ── */
@@ -294,9 +306,9 @@ async function render() {
       <thead>
         <tr>
           <th>Janela</th>
-          <th class="val-p"><span class="legend-indicator" style="background: ${DC.portfolio.line}"></span>Cons.</th>
-          <th class="val-p">Ações</th>
-          <th class="val-b"><span class="legend-indicator" style="background: var(--accent-green)"></span>Fundo</th>
+          <th class="val-p"><span class="legend-indicator line" style="color: ${DC.portfolio.line}"></span>Cons.</th>
+          <th class="val-e"><span class="legend-indicator line dashed" style="color: ${DC.equity.line}"></span>Ações</th>
+          <th class="val-f"><span class="legend-indicator line" style="color: ${DC.fund.line}"></span>Fundo</th>
           <th class="val-b"><span class="legend-indicator dash" style="color: ${DC.ibov.line}"></span>Ibov</th>
           <th class="val-c"><span class="legend-indicator dash" style="color: ${DC.cdi.line}"></span>CDI</th>
         </tr>
@@ -307,8 +319,8 @@ async function render() {
         overlayHtml += `<tr>
           <td class="win-label">${w}</td>
           <td class="val-p">${fmtPct(perf[w].portfolio, 1)}</td>
-          <td class="val-p">${perf[w].equity_only !== undefined ? fmtPct(perf[w].equity_only, 1) : '—'}</td>
-          <td class="val-b" style="color: var(--accent-green)">${perf[w].fund !== undefined ? fmtPct(perf[w].fund, 1) : '—'}</td>
+          <td class="val-e">${perf[w].equity_only !== undefined ? fmtPct(perf[w].equity_only, 1) : '—'}</td>
+          <td class="val-f">${perf[w].fund !== undefined ? fmtPct(perf[w].fund, 1) : '—'}</td>
           <td class="val-b">${fmtPct(perf[w].benchmark, 1)}</td>
           <td class="val-c">${fmtPct(perf[w].cdi, 1)}</td>
         </tr>`;
@@ -350,15 +362,16 @@ async function render() {
           labels,
           datasets: [
             { label:'Portfólio', data:pS, borderColor: DC.portfolio.line, backgroundColor: DC.portfolio.area,
-              fill:true, borderWidth:3, pointRadius:0, pointHitRadius:8, tension:0.15 },
-            { label:'Ações', data:aS, borderColor: '#7c3aed', borderWidth:2,
-              pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
-            { label:'Ibovespa', data:bS, borderColor: DC.ibov.line, borderWidth:1.5,
+              fill:true, borderWidth:3, pointRadius:0, pointHitRadius:10, tension:0.15 },
+            { label:'Ações', data:aS, borderColor: DC.equity.line, backgroundColor: DC.equity.area, borderWidth:2.2,
+              borderDash: DC.equity.dash, pointRadius:0, pointHitRadius:10, tension:0.15, fill:true },
+            { label:'Ibovespa', data:bS, borderColor: DC.ibov.line, borderWidth:1.8,
               borderDash: DC.ibov.dash, pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
-            { label:'CDI', data:cS, borderColor: DC.cdi.line, borderWidth:1.5,
+            { label:'CDI', data:cS, borderColor: DC.cdi.line, borderWidth:1.8,
               borderDash: DC.cdi.dash, pointRadius:0, pointHitRadius:8, tension:0, fill:false },
-            { label:'Fundo ESG Global', data:fS, borderColor: 'var(--accent-green)', borderWidth:2,
-              pointRadius:0, pointHitRadius:8, tension:0.15, fill:false },
+            { label:'Fundo ESG Global', data:fS, borderColor: DC.fund.line, backgroundColor: DC.fund.area, borderWidth:2.1,
+              borderDash: DC.fund.dash,
+              pointRadius:0, pointHitRadius:8, tension:0.15, fill:true },
           ]
         },
         options: {
@@ -525,12 +538,12 @@ async function render() {
           <th>Mercado</th>
         </tr></thead><tbody>
         <tr>
-          <td style="font-family: var(--font-sans); font-weight: 600; text-align: left;"><span class="legend-indicator" style="background: ${DC.portfolio.line}"></span>Ações</td>
+          <td style="font-family: var(--font-sans); font-weight: 600; text-align: left;"><span class="legend-indicator" style="background: ${DC.equity.line}"></span>Ações</td>
           <td>${fmtPct(equityMkt / totalMkt, 1)}</td>
           <td>${fmtBRL(equityMkt)}</td>
         </tr>
         <tr>
-          <td style="font-family: var(--font-sans); font-weight: 600; text-align: left;"><span class="legend-indicator" style="background: var(--accent-green)"></span>Fundo (Bradesco ESG)</td>
+          <td style="font-family: var(--font-sans); font-weight: 600; text-align: left;"><span class="legend-indicator" style="background: ${DC.fund.line}"></span>Fundo (Bradesco ESG)</td>
           <td>${fmtPct(fundMkt / totalMkt, 1)}</td>
           <td>${fmtBRL(fundMkt)}</td>
         </tr>
@@ -624,4 +637,3 @@ render();
 </script>
 </body>
 </html>
-

@@ -174,12 +174,16 @@ const fmtBRL = v => (v == null || isNaN(v)) ? '—'
   : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const REGIME_COLORS = {
-  strong_bull:'#2f9e44', bull:'#74c069', neutral:'#adb5bd', bear:'#e67700', strong_bear:'#e03131'
+  strong_bull: DC.pos.strong,
+  bull: DC.pos.light,
+  neutral: DC.neutral.line,
+  bear: DC.score.medium,
+  strong_bear: DC.neg.strong,
 };
 const REGIME_LABELS = {
   strong_bull:'Alta Forte', bull:'Alta', neutral:'Neutro', bear:'Baixa', strong_bear:'Baixa Forte'
 };
-const regimeColor = r => REGIME_COLORS[(r||'').toLowerCase()] || '#adb5bd';
+const regimeColor = r => REGIME_COLORS[(r||'').toLowerCase()] || DC.neutral.line;
 const regimeLabel = r => REGIME_LABELS[(r||'').toLowerCase()] || (r || '—');
 
 // ── Component cell: raw value + normalized bar + weighted contribution ──
@@ -189,7 +193,7 @@ function compCell(rawHtml, norm, normCls, weight, contribCls, fillColor) {
   return `<div class="comp-cell">
     <span class="comp-raw">${rawHtml}</span>
     <span class="comp-norm ${normCls}">
-      <span class="norm-bar-track"><span class="norm-bar-fill" style="width:${normPct}%;background:${fillColor || '#adb5bd'}"></span></span>
+      <span class="norm-bar-track"><span class="norm-bar-fill" style="width:${normPct}%;background:${fillColor || DC.neutral.line}"></span></span>
       norm&nbsp;${fmtNum(norm, 3)}
     </span>
     ${contrib != null
@@ -380,4 +384,3 @@ render();
 </script>
 </body>
 </html>
-

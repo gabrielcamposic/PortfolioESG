@@ -5,49 +5,53 @@
 
 export const DC = {
   // ── Séries temporais fixas ──────────────────────────────────────
-  portfolio:   { line: '#1B3560', area: 'rgba(27,53,96,0.13)',  dash: []       },
-  ibov:        { line: '#B8780A', area: 'rgba(184,120,10,0.10)', dash: [6, 3]  },
-  cdi:         { line: '#8a7a65', area: 'rgba(138,122,101,0.10)',dash: [2, 4]  },
+  portfolio:   { line: '#4F8CC9', area: 'rgba(79,140,201,0.13)',  dash: []       },
+  equity:      { line: '#C76C98', area: 'rgba(199,108,152,0.11)', dash: [10, 4]  },
+  fund:        { line: '#43AFA3', area: 'rgba(67,175,163,0.11)',  dash: [8, 3]  },
+  ibov:        { line: '#D79A43', area: 'rgba(215,154,67,0.10)',  dash: [6, 3]  },
+  cdi:         { line: '#8793B0', area: 'rgba(135,147,176,0.09)', dash: [2, 4]  },
 
   // ── Semântica de valor (P&L, retorno, ação recomendada) ─────────
   pos: {
-    strong:  '#5A8B29',   // Use requested green consistently
-    mid:     '#5A8B29',
-    light:   '#5A8B29',
-    bg:      'rgba(90, 139, 41, 0.09)',
+    strong:  '#5F8234',
+    mid:     '#6F9341',
+    light:   '#86AA59',
+    bg:      'rgba(111, 147, 65, 0.11)',
   },
   neg: {
-    strong:  '#BD3022',   // Use requested red consistently
-    mid:     '#BD3022',
-    bg:      'rgba(189, 48, 34, 0.10)',
+    strong:  '#A45A4E',
+    mid:     '#B86D5D',
+    bg:      'rgba(184, 109, 93, 0.11)',
   },
   neutral: {
-    line:    '#5C6B7A',   // Valores entre -2% e +2%
-    bg:      'rgba(92,107,122,0.10)',
+    line:    '#8793B0',   // Valores entre -2% e +2%
+    bg:      'rgba(135,147,176,0.12)',
   },
 
-  // ── Ativos — paleta categórica (até 6 séries distintas) ─────────
+  // ── Ativos e setores — paleta categórica comum para barras e rosca ──
   assets: [
-    '#1B3560',  // a1 — navy
-    '#B8780A',  // a2 — âmbar
-    '#6B3FA0',  // a3 — roxo
-    '#5A8B29',  // a4 — verde
-    '#BD3022',  // a5 — vermelho
-    '#5C6B7A',  // a6 — slate
+    '#4F8CC9',  // a1 — soft blue
+    '#43AFA3',  // a2 — aqua
+    '#D79A43',  // a3 — amber
+    '#C76C98',  // a4 — rose
+    '#7D8F4E',  // a5 — olive
+    '#B86D5D',  // a6 — clay
+    '#8793B0',  // a7 — lavender slate
+    '#9B80C9',  // a8 — lilac
   ],
 
   // ── Heatmap de correlação (escala divergente) ────────────────────
   heatmap: {
-    positive: '#1B3560',
+    positive: '#3F78AE',
     zero:     '#F5F0E8',
-    negative: '#BD3022',
+    negative: '#B86D5D',
   },
 
   // ── Score sequencial (ESG, qualidade, momentum) ──────────────────
   score: {
-    high:    '#5A8B29',   // score >= 0,55
-    medium:  '#B8780A',   // score 0,35–0,54
-    low:     '#BD3022',   // score < 0,35
+    high:    '#6F9341',   // score >= 0,55
+    medium:  '#D79A43',   // score 0,35–0,54
+    low:     '#B86D5D',   // score < 0,35
     scoreThresholds: [0.35, 0.55],
   },
 };
@@ -94,8 +98,8 @@ export function scoreColor(v) {
  */
 export function interpHeatmap(v) {
   const zero = [245, 240, 232]; // #F5F0E8
-  const pos  = [ 27,  53,  96]; // #1B3560
-  const neg  = [189,  48,  34]; // #BD3022
+  const pos  = [ 63, 120, 174]; // #3F78AE
+  const neg  = [184, 109,  93]; // #B86D5D
   
   const t = Math.abs(v);
   const base = v >= 0 ? pos : neg;
