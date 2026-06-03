@@ -22,7 +22,7 @@ B3SA4.SA,N/A,Error,HTTP Error 404:,
 BBAS3.SA,Banco do Brasil S.A.,Financial Services,Banks - Regional,
 BBDC3.SA,Banco Bradesco S.A.,Financial Services,Banks - Regional,
 BBDC4.SA,Banco Bradesco S.A.,Financial Services,Banks - Regional,
-BBSE3.SA,BB Seguridade Participações S.A.,Financial Services,Insurance - Diversified,
+BBSE3.SA,BB Seguridade Participações S.A.,Financial Services,Insurance - Diversified,BBSEGURIDADEON NM
 BEEF3.SA,Minerva S.A.,Consumer Defensive,Farm Products,
 BEEF9.SA,Minerva S.A.,,,
 BHIA3.SA,Grupo Casas Bahia S.A.,Consumer Cyclical,Specialty Retail,
@@ -140,7 +140,7 @@ PETR4.SA,Petróleo Brasileiro S.A. - Petrobras,Energy,Oil & Gas Integrated,PETRO
 PETZ3.SA,Pet Center Comércio e Participações S.A.,Consumer Cyclical,Specialty Retail,
 PGMN3.SA,Empreendimentos Pague Menos S.A.,Healthcare,Pharmaceutical Retailers,
 PLPL3.SA,Plano & Plano Desenvolvimento Imobiliário S.A.,Real Estate,Real Estate - Development,PLANOEPLANO ON NM
-PNVL3.SA,Dimed S.A. Distribuidora de Medicamentos,Healthcare,Drug Manufacturers - General,
+PNVL3.SA,Dimed S.A. Distribuidora de Medicamentos,Healthcare,Drug Manufacturers - General,DIMED ON NM
 PORT3.SA,Wilson Sons S.A.,Industrials,Marine Shipping,
 POSI3.SA,Positivo Tecnologia S.A.,Technology,Computer Hardware,
 PRIO3.SA,Prio S.A.,Energy,Oil & Gas E&P,PRIO ON NM

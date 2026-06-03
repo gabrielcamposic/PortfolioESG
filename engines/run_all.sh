@@ -122,6 +122,33 @@ log_success() {
     log "[SUCCESS] $1"
 }
 
+report_brokername_review() {
+    local review_file="$PROJECT_ROOT/data/brokername_review.csv"
+    local tickers_file="$PROJECT_ROOT/parameters/tickers.txt"
+
+    if [ ! -s "$review_file" ]; then
+        return 0
+    fi
+
+    local pending_count
+    pending_count=$(awk 'NR > 1 && $1 != "" { count++ } END { print count + 0 }' "$review_file")
+    if [ "$pending_count" -eq 0 ]; then
+        return 0
+    fi
+
+    log_error "BrokerName mapping missing. Pipeline stopped before consolidation/publish."
+    log_error "Update the canonical mapping in: $tickers_file"
+    log_error "Fill the BrokerName column for the matching Ticker, or approve rows in: $review_file"
+    log_error "Missing BrokerName value(s):"
+
+    awk -F, 'NR > 1 && $1 != "" {
+        suggestion = ($9 == "" ? "(no suggestion)" : $9)
+        printf "  - %s | qty=%s | suggested_symbol=%s | confidence=%s\n", $1, $2, suggestion, $10
+    }' "$review_file" | while IFS= read -r line; do
+        log_error "$line"
+    done
+}
+
 run_stage() {
     local stage_name="$1"
     local script_path="$2"
@@ -279,8 +306,9 @@ main() {
 
         if ! run_stage "B_Ledger" "$SCRIPT_DIR/B_Ledger.sh"; then
             failed_stages+=("B_Ledger")
-            # B failure is not critical, continue to C
-            log "[WARN] Ledger processing failed but continuing..."
+            report_brokername_review
+            log_error "Aborting due to failure in B_Ledger"
+            return 1
         fi
     fi
 
@@ -345,4 +373,3 @@ cd "$PROJECT_ROOT"
 # Run main
 main
 exit $?
-

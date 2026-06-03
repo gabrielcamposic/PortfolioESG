@@ -326,10 +326,15 @@ def main() -> int:
     if pending:
         print(f"[ERROR] {len(pending)} BrokerName mapping(s) need review.")
         print(f"[ERROR] Review file: {REVIEW_CSV}")
-        print("[ERROR] Fill approved_symbol and set status=approved, or add BrokerName to parameters/tickers.txt.")
+        print(f"[ERROR] Canonical mapping file: {TICKERS_FILE}")
+        print("[ERROR] Add each missing name to the BrokerName column for its Ticker,")
+        print("[ERROR] or fill approved_symbol and set status=approved in the review file.")
         for row in pending:
             suggestion = row["suggested_symbol"] or "(no suggestion)"
-            print(f"  - {row['broker_name']} qty={row['net_qty']} suggested={suggestion} confidence={row['confidence']}")
+            print(
+                f"  - missing BrokerName='{row['broker_name']}' "
+                f"qty={row['net_qty']} suggested_symbol={suggestion} confidence={row['confidence']}"
+            )
         return 2
 
     print(f"[INFO] BrokerName validation passed for {len(active)} active broker name(s).")
