@@ -453,6 +453,56 @@
   <!-- CATEGORIA: MODELO / SCORING -->
   <section class="category-section category-model">
     <div class="category-title">Indicadores do Modelo & Scoring</div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Target Quality (Qualidade do Preço-Alvo)</div>
+        <div class="metric-tag tag-model">Modelo</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">O que é?</div>
+          <div class="info-content">Nota de confiabilidade do preço-alvo usado para calcular o upside de cada ativo. Ela não mede se a empresa é boa ou ruim; mede se o dado de target parece seguro o bastante para entrar no retorno esperado sem cautela extra.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Para que serve?</div>
+          <div class="info-content">Separar oportunidades plausíveis de targets possivelmente distorcidos por fallback de valuation, preço muito baixo, upside extremo, dados antigos ou incompatibilidade entre classes de ações/units.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como ler?</div>
+          <div class="info-content"><strong>High</strong>: target sem flags relevantes. <strong>Medium</strong>: target utilizável, mas com alguma cautela. <strong>Low</strong>: target fraco; deve sofrer shrinkage forte nas próximas fases. <strong>Reject</strong>: target suspeito demais para ser tratado como retorno esperado confiável.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Como é calculada?</div>
+          <div class="formula-box">Score 0-1 - Penalidades(flags) → high/medium/low/reject</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <div class="metric-name">Flags e Parâmetros de Target Quality</div>
+        <div class="metric-tag tag-model">Modelo</div>
+      </div>
+      <div class="metric-grid">
+        <div class="info-group">
+          <div class="info-label">Flags principais</div>
+          <div class="info-content"><strong>sector_pe_fallback</strong>: target veio de P/E setorial, não de consenso. <strong>extreme_upside</strong>: upside acima do limite configurado. <strong>very_low_price</strong>: ação abaixo do piso de preço. <strong>stale_target</strong>: dado antigo. <strong>target_class_mismatch_suspected</strong>: target parecido com outro ticker da mesma empresa, mas preço em escala diferente. <strong>distressed_price_action</strong>: queda/preço sugere situação estressada.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Parâmetros atuais</div>
+          <div class="info-content"><strong>TARGET_EXTREME_UPSIDE_PCT</strong>: 150%. <strong>TARGET_REJECT_UPSIDE_PCT</strong>: 300%. <strong>TARGET_LOW_PRICE</strong>: R$ 1,00. <strong>TARGET_STALE_DAYS</strong>: 45 dias. <strong>TARGET_MAX_FALLBACK_QUALITY</strong>: 0,35. <strong>TARGET_CLASS_PRICE_RATIO</strong>: 3x.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Impacto na decisão</div>
+          <div class="info-content">Na Fase 1, a qualidade é apenas diagnóstica: ela aparece no dashboard e nos JSONs, mas ainda não muda a recomendação oficial. A partir da Fase 2, esses buckets devem controlar o shrinkage do retorno esperado.</div>
+        </div>
+        <div class="info-group">
+          <div class="info-label">Exemplos recentes</div>
+          <div class="info-content"><strong>KLBN4.SA</strong>: reject por upside extremo e suspeita de mismatch com KLBN11. <strong>AMBP3.SA</strong>: reject por fallback PE, upside extremo e preço muito baixo. <strong>CMIG3.SA</strong>: low por depender de fallback PE setorial.</div>
+        </div>
+      </div>
+    </div>
     
     <div class="metric-card">
       <div class="metric-header">
