@@ -20,6 +20,20 @@ DEFAULT_TARGET_QUALITY_PARAMS = {
     "TARGET_DISTRESSED_RETURN_PCT": -50.0,
 }
 
+DEFAULT_RETURN_ADJUSTMENT_PARAMS = {
+    "RETURN_ADJUSTMENT_CAP_PCT": 150.0,
+    "RETURN_ADJUSTMENT_FLOOR_PCT": -80.0,
+    "RETURN_ADJUSTMENT_BASE_PCT": 0.0,
+    "RETURN_ADJUSTMENT_REJECT_BASE_PCT": 0.0,
+    "RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT": 0.0,
+}
+
+
+DEFAULT_PARAMS = {
+    **DEFAULT_TARGET_QUALITY_PARAMS,
+    **DEFAULT_RETURN_ADJUSTMENT_PARAMS,
+}
+
 
 def _float_or_none(value: Any) -> Optional[float]:
     if value is None or value == "":
@@ -34,12 +48,13 @@ def _float_or_none(value: Any) -> Optional[float]:
 
 
 def _param_float(params: Dict[str, Any], key: str) -> float:
-    return float(_float_or_none(params.get(key)) or DEFAULT_TARGET_QUALITY_PARAMS[key])
+    value = _float_or_none(params.get(key))
+    return float(value if value is not None else DEFAULT_PARAMS[key])
 
 
 def _param_int(params: Dict[str, Any], key: str) -> int:
     value = _float_or_none(params.get(key))
-    return int(value if value is not None else DEFAULT_TARGET_QUALITY_PARAMS[key])
+    return int(value if value is not None else DEFAULT_PARAMS[key])
 
 
 def ticker_root(ticker: str) -> str:
@@ -208,4 +223,87 @@ def evaluate_target_quality(
         "target_quality_flags": sorted(set(flags)),
         "target_quality_related": related_context.get(stock),
         "raw_upside_pct": round(raw_upside_pct, 4) if raw_upside_pct is not None else None,
+    }
+
+
+def calculate_adjusted_return(
+    record: Dict[str, Any],
+    params: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Shrink a raw forward return according to target quality confidence.
+
+    The returned value is diagnostic/shadow data only: callers keep their
+    official decision logic on the existing raw expected return until a later
+    rollout phase explicitly switches the model.
+    """
+    params = params or {}
+
+    raw_return_pct = _float_or_none(
+        record.get(
+            "raw_expected_return_pct",
+            record.get("raw_upside_pct", record.get("RawExpectedReturnPct")),
+        )
+    )
+    if raw_return_pct is None:
+        raw_return_pct = 0.0
+
+    bucket = str(
+        record.get(
+            "target_quality_bucket",
+            record.get("TargetQualityBucket", ""),
+        )
+        or ""
+    ).lower()
+    score = _float_or_none(
+        record.get(
+            "target_quality_score",
+            record.get("TargetQualityScore"),
+        )
+    )
+    if score is None:
+        score = 0.0 if bucket == "reject" else 1.0
+    shrinkage_factor = max(0.0, min(1.0, score))
+    if bucket == "reject":
+        shrinkage_factor = 0.0
+
+    cap_pct = _param_float(params, "RETURN_ADJUSTMENT_CAP_PCT")
+    floor_pct = _param_float(params, "RETURN_ADJUSTMENT_FLOOR_PCT")
+    capped_raw_return_pct = max(floor_pct, min(cap_pct, raw_return_pct))
+
+    base_return_pct = _float_or_none(
+        record.get("base_return_pct", record.get("BaseReturnPct"))
+    )
+    base_return_source = str(
+        record.get("base_return_source", record.get("BaseReturnSource", "configured_base"))
+        or "configured_base"
+    )
+    return_source = str(record.get("return_source") or "").lower()
+
+    if base_return_pct is None:
+        if bucket == "reject" and return_source != "historical":
+            base_return_pct = _param_float(params, "RETURN_ADJUSTMENT_REJECT_BASE_PCT")
+            base_return_source = "reject_base"
+        else:
+            base_return_pct = _param_float(params, "RETURN_ADJUSTMENT_BASE_PCT")
+            base_return_source = "configured_base"
+
+    max_penalty_pct = _param_float(params, "RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT")
+    uncertainty_penalty_pct = max_penalty_pct * (1.0 - shrinkage_factor)
+
+    adjusted_return_pct = (
+        shrinkage_factor * capped_raw_return_pct
+        + (1.0 - shrinkage_factor) * base_return_pct
+        - uncertainty_penalty_pct
+    )
+
+    return {
+        "raw_expected_return_pct": round(raw_return_pct, 4),
+        "capped_raw_return_pct": round(capped_raw_return_pct, 4),
+        "base_return_pct": round(base_return_pct, 4),
+        "base_return_source": base_return_source,
+        "target_quality_score": round(shrinkage_factor, 4),
+        "shrinkage_factor": round(shrinkage_factor, 4),
+        "uncertainty_penalty_pct": round(uncertainty_penalty_pct, 4),
+        "adjusted_expected_return_pct": round(adjusted_return_pct, 4),
+        "adjusted_return_delta_pct": round(raw_return_pct - adjusted_return_pct, 4),
     }

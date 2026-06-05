@@ -1300,6 +1300,7 @@ def _build_model_section() -> dict:
     ideal = comparison.get("ideal", {})
     optimal = comparison.get("optimal", {})
     diagnostics = optimized.get("diagnostics", {})
+    shadow = optimized.get("shadow", {})
     momentum_val = bp.get("momentum_valuation", {})
 
     # Extract model portfolio composition
@@ -1309,6 +1310,14 @@ def _build_model_section() -> dict:
     # Returns
     expected_return_hold = safe_float(holdings.get("expected_return_pct"), 0.0)
     expected_return_gross = safe_float(optimal.get("expected_return_pct", ideal.get("expected_return_pct", 0.0)), 0.0)
+    expected_return_hold_adjusted = safe_float(
+        holdings.get("adjusted_expected_return_pct"),
+        safe_float(shadow.get("holdings_adjusted_return_pct"), expected_return_hold),
+    )
+    expected_return_gross_adjusted = safe_float(
+        optimal.get("adjusted_expected_return_pct"),
+        safe_float(shadow.get("optimal_adjusted_gross_return_pct"), expected_return_gross),
+    )
     historical_return = safe_float(
         ideal.get("historical_return_pct"),
         safe_float(bp.get("expected_return_annual_pct"), 0.0),
@@ -1318,6 +1327,8 @@ def _build_model_section() -> dict:
     # Expected returns are now controlled algorithmically via HHI, so we pass raw values
     expected_return_gross = float(expected_return_gross)
     expected_return_hold = float(expected_return_hold)
+    expected_return_gross_adjusted = float(expected_return_gross_adjusted)
+    expected_return_hold_adjusted = float(expected_return_hold_adjusted)
     historical_return = float(historical_return)
 
     # Sharpe — use the value from A3 optimization (computed consistently with
@@ -1339,11 +1350,21 @@ def _build_model_section() -> dict:
     cost_pct = safe_float(optimal.get("transition_cost_pct"), 0.0)
     net_return = expected_return_gross - cost_pct
     excess_return = net_return - expected_return_hold
+    net_return_adjusted = safe_float(
+        optimal.get("adjusted_net_return_pct"),
+        expected_return_gross_adjusted - cost_pct,
+    )
+    excess_return_adjusted = safe_float(
+        shadow.get("adjusted_excess_return_pct"),
+        net_return_adjusted - expected_return_hold_adjusted,
+    )
     threshold = safe_float(optimized.get("min_threshold_pct"), 0.5)
     decision = "REBALANCE" if excess_return > threshold else "HOLD"
 
     net_return = float(net_return)
     excess_return = float(excess_return)
+    net_return_adjusted = float(net_return_adjusted)
+    excess_return_adjusted = float(excess_return_adjusted)
 
     # Additional Risk Metrics (Liquidity and Correlation)
     financials = _load_financials()
@@ -1363,8 +1384,12 @@ def _build_model_section() -> dict:
             "hold_12m": expected_return_hold,
             "gross_12m": expected_return_gross,
             "net_12m": net_return,
+            "hold_adjusted_12m": expected_return_hold_adjusted,
+            "gross_adjusted_12m": expected_return_gross_adjusted,
+            "net_adjusted_12m": net_return_adjusted,
             "historical_annual": historical_return,
             "excess_net_12m": excess_return,
+            "excess_adjusted_net_12m": excess_return_adjusted,
         },
         "risk": {
             "volatility_annual": expected_volatility,
@@ -1395,6 +1420,7 @@ def _build_model_section() -> dict:
             "return_concentration": diagnostics.get("return_concentration", {}),
             "return_source_summary": diagnostics.get("return_source_summary", {}),
             "target_quality_summary": diagnostics.get("target_quality_summary", {}),
+            "adjusted_returns": diagnostics.get("adjusted_returns", {}),
             "turnover": diagnostics.get("turnover", {}),
         },
     }
@@ -1939,4 +1965,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

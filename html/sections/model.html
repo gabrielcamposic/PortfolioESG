@@ -81,12 +81,13 @@
 
   /* ── Return Diagnostics ── */
   .diag-block { margin: 14px 0 16px; padding-top: 14px; border-top: 1px solid var(--border-strong); }
-  .diag-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .diag-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
   .diag-title { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); letter-spacing: 0.08em; }
+  .diag-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   .diag-chip { font-size: 10px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; white-space: nowrap; }
   .diag-alert { margin-bottom: 10px; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(184, 109, 93, 0.35); background: rgba(184, 109, 93, 0.08); color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-emphasis); line-height: 1.35; }
   .diag-table-wrap { overflow-x: auto; }
-  .diag-table { table-layout: fixed; min-width: 760px; }
+  .diag-table { table-layout: fixed; min-width: 940px; }
   .diag-table td { padding: 8px 10px; font-size: 11px; }
   .diag-table td:first-child { font-size: 12px; }
   .source-pill { display: inline-block; max-width: 145px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; padding: 3px 7px; border-radius: 6px; background: rgba(79, 140, 201, 0.10); color: var(--brand-blue); font-size: 9px; font-weight: var(--font-weight-emphasis); white-space: nowrap; }
@@ -304,6 +305,7 @@ function renderReturnDiagnostics(dashboard, recommendation) {
 
   const optimalConc = diag.return_concentration?.optimal || {};
   const qualitySummary = diag.target_quality_summary?.optimal || [];
+  const adjustedSummary = diag.adjusted_returns?.optimal || {};
   const lowRejectReturn = qualitySummary
     .filter(row => ['low', 'reject'].includes(row.bucket))
     .reduce((sum, row) => sum + (row.return_contribution_pct || 0), 0);
@@ -319,7 +321,12 @@ function renderReturnDiagnostics(dashboard, recommendation) {
     <div class="diag-block">
       <div class="diag-head">
         <div class="diag-title">Origem do Retorno Esperado</div>
-        <div class="diag-chip">Top 5: ${fmtNum(optimalConc.top5_contribution_pct, 1)}% · Low/Reject: ${fmtPct(lowRejectReturn)}</div>
+        <div class="diag-chips">
+          <div class="diag-chip">Bruto: ${fmtPct(adjustedSummary.raw_expected_return_pct ?? optimalConc.expected_return_pct)}</div>
+          <div class="diag-chip">Ajustado: ${fmtPct(adjustedSummary.adjusted_expected_return_pct)}</div>
+          <div class="diag-chip">Redução: ${fmtPct(adjustedSummary.adjusted_return_reduction_pct)}</div>
+          <div class="diag-chip">Top 5: ${fmtNum(optimalConc.top5_contribution_pct, 1)}% · Low/Reject: ${fmtPct(lowRejectReturn)}</div>
+        </div>
       </div>
       ${alert}
       <div class="diag-table-wrap">
@@ -332,6 +339,8 @@ function renderReturnDiagnostics(dashboard, recommendation) {
               <th class="right">Alvo</th>
               <th class="right">Upside</th>
               <th class="right">Contrib.</th>
+              <th class="right">Adj.</th>
+              <th class="right">Redução</th>
               <th>Fonte</th>
               <th>Qualidade</th>
             </tr>
@@ -350,6 +359,8 @@ function renderReturnDiagnostics(dashboard, recommendation) {
                   <td class="right">${fmtBRL(row.target_price)}</td>
                   <td class="right" style="color:${plColor((row.raw_upside_pct || 0) / 100)}">${fmtPct(row.raw_upside_pct)}</td>
                   <td class="right" style="color:${plColor((row.return_contribution_pct || 0) / 100)}">${fmtPct(row.return_contribution_pct)}</td>
+                  <td class="right" style="color:${plColor((row.adjusted_return_contribution_pct || 0) / 100)}">${fmtPct(row.adjusted_return_contribution_pct)}</td>
+                  <td class="right">${fmtPct(row.adjusted_return_reduction_contribution_pct)}</td>
                   <td><span class="source-pill ${sourceClass(source)}" title="${esc(source)}">${esc(source)}</span></td>
                   <td><span class="quality-badge ${qualityClass(bucket)}" title="${esc(qualityTitle)}">${esc(bucket)} ${row.target_quality_score != null ? fmtNum(row.target_quality_score, 2) : ''}</span></td>
                 </tr>`;

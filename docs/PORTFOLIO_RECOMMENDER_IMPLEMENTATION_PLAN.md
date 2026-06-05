@@ -87,7 +87,7 @@ Frontend:
 |---|---|---|---|
 | 0 | Baseline e diagnostico atual | Implementado em 2026-06-05 | Explicar de onde vem o retorno esperado atual |
 | 1 | Quality gate de targets | Implementado em 2026-06-05 | Identificar targets confiaveis, suspeitos e rejeitados |
-| 2 | Retorno esperado com shrinkage | Pendente | Criar retorno ajustado sem substituir decisao oficial |
+| 2 | Retorno esperado com shrinkage | Implementado em 2026-06-05 | Criar retorno ajustado sem substituir decisao oficial |
 | 3 | Regime de mercado com stress pos-pico | Pendente | Detectar drawdown recente e elevar cautela |
 | 4 | Gate de rebalanceamento shadow | Pendente | Comparar decisao oficial vs decisao alternativa |
 | 5 | Estados HOLD/WATCH/PARTIAL/REBALANCE | Pendente | Reduzir binariedade da recomendacao |
@@ -254,6 +254,24 @@ Regras iniciais:
 - Target medium: mistura target e base setorial.
 - Target low: forte shrinkage para base.
 - Target reject: nao usar target; usar base conservadora ou excluir do retorno forward.
+
+Implementacao atual:
+
+- `shared_tools/target_quality.py` adiciona `calculate_adjusted_return`.
+- `A2_Scoring.py` salva campos shadow por ativo: `RawExpectedReturnPct`, `CappedRawExpectedReturnPct`, `AdjustedExpectedReturnPct`, `ShrinkageFactor`, `AdjustedReturnBasePct`, `AdjustedReturnDeltaPct` e `UncertaintyPenaltyPct`.
+- `C_OptimizedPortfolio.py` adiciona `diagnostics.adjusted_returns`, contributors com contribuicao bruta/ajustada/reduzida e bloco `shadow` com ganho ajustado.
+- `D_Publish.py` publica `hold_adjusted_12m`, `gross_adjusted_12m`, `net_adjusted_12m` e `excess_adjusted_net_12m`.
+- `html/sections/model.html` mostra retorno bruto vs ajustado, reducao total e reducao por ativo.
+
+Parametros atuais:
+
+```text
+RETURN_ADJUSTMENT_CAP_PCT = 150
+RETURN_ADJUSTMENT_FLOOR_PCT = -80
+RETURN_ADJUSTMENT_BASE_PCT = 0
+RETURN_ADJUSTMENT_REJECT_BASE_PCT = 0
+RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT = 0
+```
 
 ### Dashboard
 
@@ -566,6 +584,11 @@ Lista inicial, sem compromisso de valores finais:
 | `TARGET_REJECT_UPSIDE_PCT` | Rejeicao ou shrinkage maximo de upside absurdo |
 | `TARGET_STALE_DAYS` | Idade maxima para target pleno |
 | `TARGET_MAX_FALLBACK_QUALITY` | Qualidade maxima para fallback PE setorial |
+| `RETURN_ADJUSTMENT_CAP_PCT` | Teto aplicado ao retorno bruto antes do shrinkage |
+| `RETURN_ADJUSTMENT_FLOOR_PCT` | Piso aplicado ao retorno bruto antes do shrinkage |
+| `RETURN_ADJUSTMENT_BASE_PCT` | Retorno-base conservador usado no shrinkage |
+| `RETURN_ADJUSTMENT_REJECT_BASE_PCT` | Retorno-base para target rejeitado |
+| `RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT` | Penalidade maxima adicional por incerteza |
 | `REGIME_DRAWDOWN_STRESS_PCT` | Drawdown de indice para stress |
 | `REGIME_NEGATIVE_BREADTH_PCT` | Percentual de ativos negativos para stress |
 | `SHADOW_MIN_PERSISTENCE_DAYS` | Persistencia minima do sinal |
@@ -586,6 +609,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-05 | Fase 2 implementada: retorno esperado ajustado por qualidade do target em modo shadow, novas colunas `Adjusted*`/`ShrinkageFactor` no scoring, `diagnostics.adjusted_returns` e `shadow` no otimizador, campos ajustados em `dashboard_latest.json`, e comparacao bruto vs ajustado no card de origem do retorno |
 | 2026-06-05 | Fase 1 implementada: helper compartilhado `shared_tools/target_quality.py`, novas colunas `TargetQuality*` em `scored_stocks.csv`, contributors com `target_quality_score/bucket/flags`, resumo por bucket em `dashboard_latest.json`, e coluna "Qualidade" no card de origem do retorno |
 | 2026-06-05 | Fase 0 implementada: `optimized_recommendation.json` ganhou `diagnostics` com concentracao de retorno, top contribuintes, fonte do target e turnover; `dashboard_latest.json` publica resumo diagnostico; `model.html` exibe origem do retorno esperado e alerta de concentracao |
 | 2026-06-05 | Criacao do plano inicial de implementacao |

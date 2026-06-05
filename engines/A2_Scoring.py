@@ -32,6 +32,7 @@ from shared_tools.shared_utils import (
 from shared_tools.path_utils import resolve_paths_in_params
 from shared_tools.target_quality import (
     build_related_target_context,
+    calculate_adjusted_return,
     evaluate_target_quality,
 )
 
@@ -470,6 +471,9 @@ def main():
         "TARGET_MAX_FALLBACK_QUALITY": float, "TARGET_LOW_LIQUIDITY_AVG_VOLUME": float,
         "TARGET_CLASS_TARGET_TOLERANCE_PCT": float, "TARGET_CLASS_PRICE_RATIO": float,
         "TARGET_DISTRESSED_RETURN_PCT": float,
+        "RETURN_ADJUSTMENT_CAP_PCT": float, "RETURN_ADJUSTMENT_FLOOR_PCT": float,
+        "RETURN_ADJUSTMENT_BASE_PCT": float, "RETURN_ADJUSTMENT_REJECT_BASE_PCT": float,
+        "RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT": float,
     }
 
     # 2. --- Load Parameters ---
@@ -718,6 +722,47 @@ def main():
             for q in target_quality
         ]
 
+        return_adjustments = []
+        for row, quality in zip(quality_records, target_quality):
+            raw_upside_pct = 0.0
+            if pd.notna(row.get('UpsidePotential')):
+                raw_upside_pct = float(row.get('UpsidePotential')) * 100
+            elif quality.get('raw_upside_pct') is not None:
+                raw_upside_pct = float(quality.get('raw_upside_pct'))
+
+            return_adjustments.append(
+                calculate_adjusted_return(
+                    {
+                        'raw_expected_return_pct': raw_upside_pct,
+                        'target_quality_score': quality.get('target_quality_score'),
+                        'target_quality_bucket': quality.get('target_quality_bucket'),
+                    },
+                    params,
+                )
+            )
+
+        scored_df['RawExpectedReturnPct'] = [
+            adj['raw_expected_return_pct'] for adj in return_adjustments
+        ]
+        scored_df['CappedRawExpectedReturnPct'] = [
+            adj['capped_raw_return_pct'] for adj in return_adjustments
+        ]
+        scored_df['AdjustedExpectedReturnPct'] = [
+            adj['adjusted_expected_return_pct'] for adj in return_adjustments
+        ]
+        scored_df['ShrinkageFactor'] = [
+            adj['shrinkage_factor'] for adj in return_adjustments
+        ]
+        scored_df['AdjustedReturnBasePct'] = [
+            adj['base_return_pct'] for adj in return_adjustments
+        ]
+        scored_df['AdjustedReturnDeltaPct'] = [
+            adj['adjusted_return_delta_pct'] for adj in return_adjustments
+        ]
+        scored_df['UncertaintyPenaltyPct'] = [
+            adj['uncertainty_penalty_pct'] for adj in return_adjustments
+        ]
+
         scored_df.sort_values(by='CompositeScore', ascending=False, inplace=True)
         perf_data["stocks_successfully_scored"] = len(scored_df)
         perf_data["scoring_and_analysis_duration_s"] = time.time() - analysis_start_time
@@ -815,6 +860,10 @@ def main():
             'AnnualizedMeanReturn', 'AnnualizedStdDev', 'CurrentPrice', 'TargetPrice',
             'TargetPriceSource', 'TargetQualityScore', 'TargetQualityBucket',
             'TargetQualityFlags', 'TargetQualityRelatedTicker',
+            'RawExpectedReturnPct', 'CappedRawExpectedReturnPct',
+            'AdjustedExpectedReturnPct', 'ShrinkageFactor',
+            'AdjustedReturnBasePct', 'AdjustedReturnDeltaPct',
+            'UncertaintyPenaltyPct',
             'forwardPE', 'forwardEPS', 'SectorMedianPE'
         ]
         missing_columns = [col for col in required_columns if col not in filtered_df.columns]

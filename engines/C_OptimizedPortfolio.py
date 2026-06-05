@@ -38,6 +38,7 @@ from shared_tools.shared_utils import (
 )
 from shared_tools.target_quality import (
     build_related_target_context,
+    calculate_adjusted_return,
     evaluate_target_quality,
 )
 
@@ -267,6 +268,11 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'TARGET_CLASS_TARGET_TOLERANCE_PCT': float,
         'TARGET_CLASS_PRICE_RATIO': float,
         'TARGET_DISTRESSED_RETURN_PCT': float,
+        'RETURN_ADJUSTMENT_CAP_PCT': float,
+        'RETURN_ADJUSTMENT_FLOOR_PCT': float,
+        'RETURN_ADJUSTMENT_BASE_PCT': float,
+        'RETURN_ADJUSTMENT_REJECT_BASE_PCT': float,
+        'RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT': float,
     }
 
     params = {}
@@ -306,6 +312,11 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'TARGET_CLASS_TARGET_TOLERANCE_PCT': 15.0,
         'TARGET_CLASS_PRICE_RATIO': 3.0,
         'TARGET_DISTRESSED_RETURN_PCT': -50.0,
+        'RETURN_ADJUSTMENT_CAP_PCT': 150.0,
+        'RETURN_ADJUSTMENT_FLOOR_PCT': -80.0,
+        'RETURN_ADJUSTMENT_BASE_PCT': 0.0,
+        'RETURN_ADJUSTMENT_REJECT_BASE_PCT': 0.0,
+        'RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT': 0.0,
     }
 
     for key, default in defaults.items():
@@ -1201,6 +1212,26 @@ def _build_return_contributors(
         if meta_flags:
             quality['target_quality_flags'] = sorted(set(quality['target_quality_flags']) | set(meta_flags))
 
+        base_return_pct = None
+        base_return_source = None
+        if return_source == 'historical' and raw_upside_pct is not None:
+            base_return_pct = raw_upside_pct
+            base_return_source = 'historical_fallback'
+
+        adjustment = calculate_adjusted_return(
+            {
+                'raw_expected_return_pct': raw_upside_pct,
+                'target_quality_score': quality.get('target_quality_score'),
+                'target_quality_bucket': quality.get('target_quality_bucket'),
+                'return_source': return_source,
+                'base_return_pct': base_return_pct,
+                'base_return_source': base_return_source,
+            },
+            params,
+        )
+        adjusted_contribution_pct = weight * adjustment['adjusted_expected_return_pct']
+        reduction_contribution_pct = contribution_pct - adjusted_contribution_pct
+
         contributors.append({
             'stock': stock,
             'weight': round(weight, 6),
@@ -1209,6 +1240,16 @@ def _build_return_contributors(
             'target_price': _round_or_none(target, 4),
             'raw_upside_pct': _round_or_none(raw_upside_pct, 2),
             'return_contribution_pct': _round_or_none(contribution_pct, 2),
+            'raw_expected_return_pct': _round_or_none(adjustment.get('raw_expected_return_pct'), 2),
+            'capped_raw_return_pct': _round_or_none(adjustment.get('capped_raw_return_pct'), 2),
+            'adjusted_expected_return_pct': _round_or_none(adjustment.get('adjusted_expected_return_pct'), 2),
+            'adjusted_return_contribution_pct': _round_or_none(adjusted_contribution_pct, 2),
+            'adjusted_return_delta_pct': _round_or_none(adjustment.get('adjusted_return_delta_pct'), 2),
+            'adjusted_return_reduction_contribution_pct': _round_or_none(reduction_contribution_pct, 2),
+            'shrinkage_factor': _round_or_none(adjustment.get('shrinkage_factor'), 4),
+            'base_return_pct': _round_or_none(adjustment.get('base_return_pct'), 2),
+            'base_return_source': adjustment.get('base_return_source'),
+            'uncertainty_penalty_pct': _round_or_none(adjustment.get('uncertainty_penalty_pct'), 2),
             'target_source': target_source,
             'return_source': return_source,
             'sector': target_meta.get('sector'),
@@ -1298,6 +1339,46 @@ def _build_return_source_summary(contributors: List[Dict[str, Any]]) -> List[Dic
     return summary
 
 
+def _build_adjusted_return_summary(
+    contributors: List[Dict[str, Any]],
+    expected_return_pct: float,
+) -> Dict[str, Any]:
+    """Summarize the shadow expected return after target-quality shrinkage."""
+    raw_sum = sum(row.get('return_contribution_pct') or 0 for row in contributors)
+    adjusted_sum = sum(row.get('adjusted_return_contribution_pct') or 0 for row in contributors)
+    raw_total = expected_return_pct if abs(expected_return_pct or 0) > 1e-9 else raw_sum
+    reduction_pct = raw_total - adjusted_sum
+
+    top_reductions = [
+        {
+            'stock': row.get('stock'),
+            'weight_pct': row.get('weight_pct'),
+            'raw_return_contribution_pct': row.get('return_contribution_pct'),
+            'adjusted_return_contribution_pct': row.get('adjusted_return_contribution_pct'),
+            'reduction_pct': row.get('adjusted_return_reduction_contribution_pct'),
+            'raw_expected_return_pct': row.get('raw_expected_return_pct'),
+            'adjusted_expected_return_pct': row.get('adjusted_expected_return_pct'),
+            'shrinkage_factor': row.get('shrinkage_factor'),
+            'target_quality_bucket': row.get('target_quality_bucket'),
+            'target_quality_flags': row.get('target_quality_flags', []),
+        }
+        for row in contributors
+        if (row.get('adjusted_return_reduction_contribution_pct') or 0) > 0
+    ]
+    top_reductions.sort(key=lambda row: row.get('reduction_pct') or 0, reverse=True)
+
+    return {
+        'raw_expected_return_pct': round(raw_total or 0, 2),
+        'raw_contributor_sum_pct': round(raw_sum, 2),
+        'adjusted_expected_return_pct': round(adjusted_sum, 2),
+        'adjusted_return_reduction_pct': round(reduction_pct, 2),
+        'adjusted_return_reduction_pct_of_raw': (
+            round((reduction_pct / raw_total) * 100, 2) if raw_total else None
+        ),
+        'top_reductions': top_reductions[:5],
+    }
+
+
 def _build_target_quality_summary(contributors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Aggregate target quality by bucket for a portfolio."""
     by_bucket: Dict[str, Dict[str, Any]] = {}
@@ -1363,7 +1444,7 @@ def build_baseline_diagnostics(
     params: Dict[str, Any],
     logger: logging.Logger,
 ) -> Dict[str, Any]:
-    """Build baseline and target-quality diagnostics without changing decisions."""
+    """Build target-quality and adjusted-return diagnostics without changing decisions."""
     portfolios = {
         'holdings': (holdings, holdings.get('expected_return', 0), True),
         'ideal': (ideal, ideal.get('expected_return', 0), False),
@@ -1374,6 +1455,7 @@ def build_baseline_diagnostics(
     concentration: Dict[str, Dict[str, Any]] = {}
     source_summary: Dict[str, List[Dict[str, Any]]] = {}
     quality_summary: Dict[str, List[Dict[str, Any]]] = {}
+    adjusted_returns: Dict[str, Dict[str, Any]] = {}
     related_target_context = _build_target_quality_context(logger, params)
 
     for name, (portfolio, expected_return, allow_hist) in portfolios.items():
@@ -1389,14 +1471,16 @@ def build_baseline_diagnostics(
         concentration[name] = _build_return_concentration(rows, expected_return)
         source_summary[name] = _build_return_source_summary(rows)
         quality_summary[name] = _build_target_quality_summary(rows)
+        adjusted_returns[name] = _build_adjusted_return_summary(rows, expected_return)
 
     return {
-        'phase': '1_target_quality_diagnostics',
-        'description': 'Explains current target-based return and target quality without changing the official decision.',
+        'phase': '2_adjusted_return_diagnostics',
+        'description': 'Explains raw target-based return, target quality and adjusted shadow return without changing the official decision.',
         'return_concentration': concentration,
         'return_contributors': contributors,
         'return_source_summary': source_summary,
         'target_quality_summary': quality_summary,
+        'adjusted_returns': adjusted_returns,
         'turnover': _build_turnover_diagnostics(transactions, holdings, transaction_summary),
     }
 
@@ -1603,6 +1687,18 @@ def generate_recommendation(
         params,
         logger,
     )
+    adjusted_diagnostics = diagnostics.get('adjusted_returns', {})
+    holdings_adjusted_return = (
+        adjusted_diagnostics.get('holdings', {}).get('adjusted_expected_return_pct', holdings_return)
+    )
+    ideal_adjusted_return = (
+        adjusted_diagnostics.get('ideal', {}).get('adjusted_expected_return_pct', ideal.get('expected_return', 0))
+    )
+    optimal_adjusted_gross_return = (
+        adjusted_diagnostics.get('optimal', {}).get('adjusted_expected_return_pct', optimal.get('expected_return', 0))
+    )
+    optimal_adjusted_net_return = optimal_adjusted_gross_return - optimal.get('transition_cost', 0)
+    adjusted_excess_return = optimal_adjusted_net_return - holdings_adjusted_return
 
     # Determine decision
     if excess_return >= min_excess_threshold:
@@ -1638,6 +1734,7 @@ def generate_recommendation(
                 'stocks': holdings.get('stocks', []),
                 'weights': holdings.get('weights', {}),
                 'expected_return_pct': round(holdings_return, 2),
+                'adjusted_expected_return_pct': round(holdings_adjusted_return, 2),
                 'total_value': round(holdings.get('total_value', 0), 2),
                 'total_invested': round(holdings.get('total_invested', 0), 2),
             },
@@ -1645,6 +1742,7 @@ def generate_recommendation(
                 'stocks': ideal.get('stocks', []),
                 'weights': ideal.get('weights', {}),
                 'expected_return_pct': round(ideal.get('expected_return', 0), 2),  # Based on target prices
+                'adjusted_expected_return_pct': round(ideal_adjusted_return, 2),
                 'historical_return_pct': round(ideal.get('expected_return_annual_pct', ideal.get('expected_return', 0)), 2),  # Based on historical data
                 'sharpe_ratio': round(ideal.get('sharpe_ratio', 0), 4),
                 'run_id': ideal.get('run_id', ''),
@@ -1653,7 +1751,9 @@ def generate_recommendation(
                 'stocks': optimal.get('stocks', []),
                 'weights': optimal.get('weights', {}),
                 'expected_return_pct': round(optimal.get('expected_return', 0), 2),
+                'adjusted_expected_return_pct': round(optimal_adjusted_gross_return, 2),
                 'net_return_pct': round(optimal_net_return, 2),
+                'adjusted_net_return_pct': round(optimal_adjusted_net_return, 2),
                 'blend_ratio': round(optimal.get('blend_ratio', 0), 2),
                 'transition_cost_pct': round(optimal.get('transition_cost', 0), 4),
                 'share_quantities': optimal.get('share_quantities', {}),
@@ -1667,11 +1767,29 @@ def generate_recommendation(
         'transactions': transactions,
         'transaction_summary': transaction_summary,
         'diagnostics': diagnostics,
+        'shadow': {
+            'phase': '2_adjusted_return_diagnostics',
+            'official_decision': decision,
+            'official_excess_return_pct': round(excess_return, 4),
+            'holdings_adjusted_return_pct': round(holdings_adjusted_return, 4),
+            'ideal_adjusted_return_pct': round(ideal_adjusted_return, 4),
+            'optimal_adjusted_gross_return_pct': round(optimal_adjusted_gross_return, 4),
+            'optimal_adjusted_net_return_pct': round(optimal_adjusted_net_return, 4),
+            'adjusted_excess_return_pct': round(adjusted_excess_return, 4),
+            'min_threshold_pct': min_excess_threshold,
+            'would_rebalance_on_adjusted_return': bool(adjusted_excess_return >= min_excess_threshold),
+        },
         'transaction_cost_pct_used': round(transaction_cost_pct, 4),
         'parameters': {
             'weight_expected_return': float(params.get('WEIGHT_EXPECTED_RETURN', 0.4)),
             'weight_sharpe_ratio': float(params.get('WEIGHT_SHARPE_RATIO', 0.4)),
             'weight_momentum': float(params.get('WEIGHT_MOMENTUM', 0.2)),
+            'return_adjustment_cap_pct': float(params.get('RETURN_ADJUSTMENT_CAP_PCT', 150.0)),
+            'return_adjustment_base_pct': float(params.get('RETURN_ADJUSTMENT_BASE_PCT', 0.0)),
+            'return_adjustment_reject_base_pct': float(params.get('RETURN_ADJUSTMENT_REJECT_BASE_PCT', 0.0)),
+            'return_adjustment_uncertainty_penalty_pct': float(
+                params.get('RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT', 0.0)
+            ),
         }
     }
 
