@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-05T20:17:05.397060+00:00",
+  "generated_at": "2026-06-05T21:44:31.558314+00:00",
   "model": {
     "meta": {
       "run_id": "20260603-114747",
@@ -24,7 +24,7 @@
       "hhi": 0.2061,
       "top5": 0.8288,
       "liquidity_avg": 5814626.875921228,
-      "avg_internal_corr": 0.22947233945245554
+      "avg_internal_corr": 0.22947233945245551
     },
     "decision": {
       "verdict": "REBALANCE",
@@ -74,7 +74,7 @@
       ]
     },
     "diagnostics": {
-      "phase": "2_adjusted_return_diagnostics",
+      "phase": "3_market_regime_diagnostics",
       "return_concentration": {
         "holdings": {
           "expected_return_pct": 344.3,
@@ -447,6 +447,51 @@
               ]
             }
           ]
+        }
+      },
+      "market_regime": {
+        "state": "stress",
+        "as_of": "2026-06-03",
+        "benchmark_ticker": "^BVSP",
+        "benchmark_found": true,
+        "triggers": [
+          "benchmark_drawdown_3m",
+          "benchmark_drawdown_6m",
+          "negative_breadth_3m",
+          "broad_asset_drawdown",
+          "high_cross_sectional_dispersion"
+        ],
+        "metrics": {
+          "benchmark_current": 171511.27,
+          "benchmark_peak_3m": 198657.0,
+          "benchmark_peak_6m": 198657.0,
+          "benchmark_return_3m_pct": -6.33,
+          "benchmark_return_6m_pct": 8.17,
+          "benchmark_drawdown_3m_pct": -13.66,
+          "benchmark_drawdown_6m_pct": -13.66,
+          "benchmark_volatility_annual_pct": 19.54,
+          "benchmark_volatility_percentile": 51.82,
+          "universe_negative_return_3m_pct": 68.85,
+          "universe_negative_return_6m_pct": 60.99,
+          "universe_drawdown_gt_20_pct": 54.95,
+          "cross_sectional_dispersion_3m_pct": 45.31,
+          "sector_median_return_3m_pct": -11.12,
+          "worst_sector_3m": "Healthcare",
+          "worst_sector_return_3m_pct": -16.61,
+          "universe_count": 184
+        },
+        "thresholds": {
+          "drawdown_stress_pct": 10.0,
+          "negative_breadth_pct": 60.0,
+          "drawdown_breadth_pct": 45.0,
+          "asset_drawdown_threshold_pct": 20.0,
+          "volatility_watch_pct": 25.0,
+          "dispersion_watch_pct": 35.0
+        },
+        "impact": {
+          "suggested_shrinkage_multiplier": 1.25,
+          "suggested_hurdle_addon_pct": 1.0,
+          "suggested_turnover_budget_multiplier": 0.7
         }
       },
       "turnover": {

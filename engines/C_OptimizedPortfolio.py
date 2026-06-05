@@ -36,6 +36,7 @@ from shared_tools.shared_utils import (
     setup_logger,
     load_parameters_from_file,
 )
+from shared_tools.market_regime import compute_market_regime
 from shared_tools.target_quality import (
     build_related_target_context,
     calculate_adjusted_return,
@@ -273,6 +274,15 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'RETURN_ADJUSTMENT_BASE_PCT': float,
         'RETURN_ADJUSTMENT_REJECT_BASE_PCT': float,
         'RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT': float,
+        'REGIME_BENCHMARK_TICKER': str,
+        'REGIME_LOOKBACK_3M_DAYS': int,
+        'REGIME_LOOKBACK_6M_DAYS': int,
+        'REGIME_DRAWDOWN_STRESS_PCT': float,
+        'REGIME_NEGATIVE_BREADTH_PCT': float,
+        'REGIME_DRAWDOWN_BREADTH_PCT': float,
+        'REGIME_ASSET_DRAWDOWN_THRESHOLD_PCT': float,
+        'REGIME_VOLATILITY_WATCH_PCT': float,
+        'REGIME_DISPERSION_WATCH_PCT': float,
     }
 
     params = {}
@@ -317,6 +327,15 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'RETURN_ADJUSTMENT_BASE_PCT': 0.0,
         'RETURN_ADJUSTMENT_REJECT_BASE_PCT': 0.0,
         'RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT': 0.0,
+        'REGIME_BENCHMARK_TICKER': '^BVSP',
+        'REGIME_LOOKBACK_3M_DAYS': 63,
+        'REGIME_LOOKBACK_6M_DAYS': 126,
+        'REGIME_DRAWDOWN_STRESS_PCT': 10.0,
+        'REGIME_NEGATIVE_BREADTH_PCT': 60.0,
+        'REGIME_DRAWDOWN_BREADTH_PCT': 45.0,
+        'REGIME_ASSET_DRAWDOWN_THRESHOLD_PCT': 20.0,
+        'REGIME_VOLATILITY_WATCH_PCT': 25.0,
+        'REGIME_DISPERSION_WATCH_PCT': 35.0,
     }
 
     for key, default in defaults.items():
@@ -1126,6 +1145,52 @@ def _portfolio_weights(portfolio: Dict[str, Any]) -> Dict[str, float]:
     return {}
 
 
+def _load_sector_mapping(logger: logging.Logger) -> Dict[str, str]:
+    """Load ticker -> sector mapping for market breadth diagnostics."""
+    if not os.path.exists(TICKERS_FILE):
+        logger.warning(f"Tickers file not found for sector mapping: {TICKERS_FILE}")
+        return {}
+
+    try:
+        df = pd.read_csv(TICKERS_FILE, comment='#')
+        if 'Ticker' not in df.columns or 'Sector' not in df.columns:
+            return {}
+        df = df.dropna(subset=['Ticker'])
+        return {
+            str(row['Ticker']).strip(): str(row.get('Sector') or 'Unknown').strip()
+            for _, row in df.iterrows()
+            if str(row['Ticker']).strip()
+        }
+    except Exception as e:
+        logger.warning(f"Could not load sector mapping from tickers.txt: {e}")
+        return {}
+
+
+def _build_market_regime_diagnostics(
+    logger: logging.Logger,
+    params: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Build post-peak market regime diagnostics from StockDataDB."""
+    if not os.path.exists(STOCK_DATA_DB):
+        logger.warning(f"StockDataDB not found for market regime diagnostics: {STOCK_DATA_DB}")
+        return {'state': 'unknown', 'reason': 'stock_data_db_missing'}
+
+    try:
+        df = pd.read_csv(STOCK_DATA_DB, usecols=['Date', 'Stock', 'Close'])
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df = df.dropna(subset=['Date', 'Stock', 'Close'])
+        prices = df.pivot(index='Date', columns='Stock', values='Close').sort_index()
+        regime = compute_market_regime(prices, params, _load_sector_mapping(logger))
+        logger.info(
+            "Market regime diagnostics: "
+            f"{regime.get('state')} ({', '.join(regime.get('triggers', [])) or 'no triggers'})"
+        )
+        return regime
+    except Exception as e:
+        logger.warning(f"Could not build market regime diagnostics: {e}")
+        return {'state': 'unknown', 'reason': str(e)}
+
+
 def _build_target_quality_context(logger: logging.Logger, params: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """Build related-ticker context for target quality checks."""
     financials = _load_financials_db(logger)
@@ -1457,6 +1522,7 @@ def build_baseline_diagnostics(
     quality_summary: Dict[str, List[Dict[str, Any]]] = {}
     adjusted_returns: Dict[str, Dict[str, Any]] = {}
     related_target_context = _build_target_quality_context(logger, params)
+    market_regime = _build_market_regime_diagnostics(logger, params)
 
     for name, (portfolio, expected_return, allow_hist) in portfolios.items():
         rows = _build_return_contributors(
@@ -1474,13 +1540,14 @@ def build_baseline_diagnostics(
         adjusted_returns[name] = _build_adjusted_return_summary(rows, expected_return)
 
     return {
-        'phase': '2_adjusted_return_diagnostics',
-        'description': 'Explains raw target-based return, target quality and adjusted shadow return without changing the official decision.',
+        'phase': '3_market_regime_diagnostics',
+        'description': 'Explains raw/adjusted target return and market stress regime without changing the official decision.',
         'return_concentration': concentration,
         'return_contributors': contributors,
         'return_source_summary': source_summary,
         'target_quality_summary': quality_summary,
         'adjusted_returns': adjusted_returns,
+        'market_regime': market_regime,
         'turnover': _build_turnover_diagnostics(transactions, holdings, transaction_summary),
     }
 
@@ -1699,6 +1766,8 @@ def generate_recommendation(
     )
     optimal_adjusted_net_return = optimal_adjusted_gross_return - optimal.get('transition_cost', 0)
     adjusted_excess_return = optimal_adjusted_net_return - holdings_adjusted_return
+    market_regime = diagnostics.get('market_regime', {}) or {}
+    market_regime_impact = market_regime.get('impact', {}) or {}
 
     # Determine decision
     if excess_return >= min_excess_threshold:
@@ -1768,7 +1837,7 @@ def generate_recommendation(
         'transaction_summary': transaction_summary,
         'diagnostics': diagnostics,
         'shadow': {
-            'phase': '2_adjusted_return_diagnostics',
+            'phase': '3_market_regime_diagnostics',
             'official_decision': decision,
             'official_excess_return_pct': round(excess_return, 4),
             'holdings_adjusted_return_pct': round(holdings_adjusted_return, 4),
@@ -1776,6 +1845,13 @@ def generate_recommendation(
             'optimal_adjusted_gross_return_pct': round(optimal_adjusted_gross_return, 4),
             'optimal_adjusted_net_return_pct': round(optimal_adjusted_net_return, 4),
             'adjusted_excess_return_pct': round(adjusted_excess_return, 4),
+            'market_regime_state': market_regime.get('state'),
+            'market_regime_triggers': market_regime.get('triggers', []),
+            'market_regime_hurdle_addon_pct': market_regime_impact.get('suggested_hurdle_addon_pct'),
+            'market_regime_shrinkage_multiplier': market_regime_impact.get('suggested_shrinkage_multiplier'),
+            'market_regime_turnover_budget_multiplier': (
+                market_regime_impact.get('suggested_turnover_budget_multiplier')
+            ),
             'min_threshold_pct': min_excess_threshold,
             'would_rebalance_on_adjusted_return': bool(adjusted_excess_return >= min_excess_threshold),
         },
@@ -1861,6 +1937,28 @@ def save_recommendation(
                 recommendation.get('diagnostics', {})
                 .get('turnover', {})
                 .get('total_trade_value_pct')
+            ),
+            'diagnostic_market_regime_state': (
+                recommendation.get('diagnostics', {})
+                .get('market_regime', {})
+                .get('state')
+            ),
+            'diagnostic_market_regime_triggers': (
+                recommendation.get('diagnostics', {})
+                .get('market_regime', {})
+                .get('triggers', [])
+            ),
+            'diagnostic_benchmark_drawdown_3m_pct': (
+                recommendation.get('diagnostics', {})
+                .get('market_regime', {})
+                .get('metrics', {})
+                .get('benchmark_drawdown_3m_pct')
+            ),
+            'diagnostic_universe_negative_return_3m_pct': (
+                recommendation.get('diagnostics', {})
+                .get('market_regime', {})
+                .get('metrics', {})
+                .get('universe_negative_return_3m_pct')
             ),
             'holdings_stocks': recommendation['comparison']['holdings']['stocks'],
             'ideal_stocks': recommendation['comparison']['ideal']['stocks'],

@@ -88,7 +88,7 @@ Frontend:
 | 0 | Baseline e diagnostico atual | Implementado em 2026-06-05 | Explicar de onde vem o retorno esperado atual |
 | 1 | Quality gate de targets | Implementado em 2026-06-05 | Identificar targets confiaveis, suspeitos e rejeitados |
 | 2 | Retorno esperado com shrinkage | Implementado em 2026-06-05 | Criar retorno ajustado sem substituir decisao oficial |
-| 3 | Regime de mercado com stress pos-pico | Pendente | Detectar drawdown recente e elevar cautela |
+| 3 | Regime de mercado com stress pos-pico | Implementado em 2026-06-05 | Detectar drawdown recente e elevar cautela |
 | 4 | Gate de rebalanceamento shadow | Pendente | Comparar decisao oficial vs decisao alternativa |
 | 5 | Estados HOLD/WATCH/PARTIAL/REBALANCE | Pendente | Reduzir binariedade da recomendacao |
 | 6 | Otimizacao com penalidade de turnover | Pendente | Preferir estabilidade quando ganho marginal e baixo |
@@ -319,6 +319,27 @@ Regras iniciais:
 - `stress` se Ibovespa cair mais de 10% desde pico recente ou se dispersao/drawdown amplo for alto.
 - `volatile_watch` se volatilidade e dispersao estiverem elevadas sem queda forte do indice.
 - `dislocation_opportunity` apenas se preco cair, mas qualidade de target/fundamento permanecer alta.
+
+Implementacao atual:
+
+- `shared_tools/market_regime.py` calcula regime com `^BVSP`, janelas de 63/126 pregoes, breadth negativa, breadth de drawdown e dispersao robusta `p90-p10`.
+- `C_OptimizedPortfolio.py` grava `diagnostics.market_regime` e campos resumidos no `shadow`.
+- `D_Publish.py` publica o regime em `dashboard_latest.json`.
+- `html/sections/risk.html` exibe card "Regime de Mercado" com drawdown 3M/6M, volatilidade, breadth, dispersao e pior setor.
+
+Parametros atuais:
+
+```text
+REGIME_BENCHMARK_TICKER = ^BVSP
+REGIME_LOOKBACK_3M_DAYS = 63
+REGIME_LOOKBACK_6M_DAYS = 126
+REGIME_DRAWDOWN_STRESS_PCT = 10
+REGIME_NEGATIVE_BREADTH_PCT = 60
+REGIME_DRAWDOWN_BREADTH_PCT = 45
+REGIME_ASSET_DRAWDOWN_THRESHOLD_PCT = 20
+REGIME_VOLATILITY_WATCH_PCT = 25
+REGIME_DISPERSION_WATCH_PCT = 35
+```
 
 ### Dashboard
 
@@ -591,6 +612,10 @@ Lista inicial, sem compromisso de valores finais:
 | `RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT` | Penalidade maxima adicional por incerteza |
 | `REGIME_DRAWDOWN_STRESS_PCT` | Drawdown de indice para stress |
 | `REGIME_NEGATIVE_BREADTH_PCT` | Percentual de ativos negativos para stress |
+| `REGIME_DRAWDOWN_BREADTH_PCT` | Percentual de ativos em drawdown relevante para stress |
+| `REGIME_ASSET_DRAWDOWN_THRESHOLD_PCT` | Drawdown minimo por ativo para breadth de stress |
+| `REGIME_VOLATILITY_WATCH_PCT` | Volatilidade anualizada para alerta |
+| `REGIME_DISPERSION_WATCH_PCT` | Dispersao cross-sectional para alerta |
 | `SHADOW_MIN_PERSISTENCE_DAYS` | Persistencia minima do sinal |
 | `SHADOW_TURNOVER_BUDGET_PCT` | Turnover maximo para trade |
 | `SHADOW_CONFIDENCE_FLOOR` | Confianca minima do portfolio |
@@ -609,6 +634,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-05 | Fase 3 implementada: helper `shared_tools/market_regime.py`, `diagnostics.market_regime` no otimizador, resumo de regime no shadow/historico, publicacao no dashboard, e card de regime em `risk.html` |
 | 2026-06-05 | Fase 2 implementada: retorno esperado ajustado por qualidade do target em modo shadow, novas colunas `Adjusted*`/`ShrinkageFactor` no scoring, `diagnostics.adjusted_returns` e `shadow` no otimizador, campos ajustados em `dashboard_latest.json`, e comparacao bruto vs ajustado no card de origem do retorno |
 | 2026-06-05 | Fase 1 implementada: helper compartilhado `shared_tools/target_quality.py`, novas colunas `TargetQuality*` em `scored_stocks.csv`, contributors com `target_quality_score/bucket/flags`, resumo por bucket em `dashboard_latest.json`, e coluna "Qualidade" no card de origem do retorno |
 | 2026-06-05 | Fase 0 implementada: `optimized_recommendation.json` ganhou `diagnostics` com concentracao de retorno, top contribuintes, fonte do target e turnover; `dashboard_latest.json` publica resumo diagnostico; `model.html` exibe origem do retorno esperado e alerta de concentracao |

@@ -104,6 +104,38 @@
   }
   .bar-chart-wrapper { position: relative; height: 280px; }
 
+  /* ── Market Regime ── */
+  .regime-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-card-alt);
+    padding: 14px;
+  }
+  .regime-panel.stress {
+    border-color: rgba(184, 109, 93, 0.35);
+    background: rgba(184, 109, 93, 0.08);
+  }
+  .regime-panel.volatile_watch {
+    border-color: rgba(199, 143, 64, 0.35);
+    background: rgba(199, 143, 64, 0.10);
+  }
+  .regime-panel.normal {
+    border-color: rgba(46, 125, 50, 0.28);
+    background: rgba(46, 125, 50, 0.08);
+  }
+  .regime-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .regime-name { font-size: 18px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); }
+  .regime-sub { margin-top: 3px; color: var(--text-secondary); font-size: 11px; font-weight: 600; }
+  .regime-badge { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 10px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; white-space: nowrap; border: 1px solid var(--border); color: var(--text-muted); background: var(--bg-card); }
+  .regime-badge.stress { color: var(--color-negative); border-color: rgba(184, 109, 93, 0.45); background: var(--bg-negative); }
+  .regime-badge.volatile_watch { color: var(--color-amber); border-color: rgba(199, 143, 64, 0.45); background: rgba(199, 143, 64, 0.12); }
+  .regime-badge.normal { color: var(--color-positive); border-color: rgba(46, 125, 50, 0.40); background: var(--bg-positive); }
+  .regime-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; }
+  .regime-metric { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 9px; }
+  .regime-metric-label { display: block; color: var(--color-label); font-size: 9px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .regime-metric-value { color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-emphasis); }
+  .regime-impact { margin-top: 10px; color: var(--text-secondary); font-size: 11px; font-weight: 600; line-height: 1.35; }
+
   /* ── Duo Charts Layout ── */
   .charts-row {
     display: grid;
@@ -123,6 +155,11 @@
 
 
 <!-- Raio-X de Risco Histórico -->
+<div class="table-card">
+  <div class="table-title">Regime de Mercado</div>
+  <div id="market-regime-panel"><span class="loading">Carregando...</span></div>
+</div>
+
 <div class="table-card" style="background: transparent; border: none; padding: 0;">
   <div class="table-title" style="padding-left: 5px;">Raio-X de Estresse Histórico (Carteira Real)</div>
   <div class="cards-row" id="cards-stress">
@@ -192,6 +229,41 @@ function fmtLargeNum(v) {
   if (v >= 1e3) return (v / 1e3).toFixed(1) + 'k';
   return v.toFixed(0);
 }
+function fmtPctPoint(v, d = 1) {
+  if (v == null || isNaN(v)) return '—';
+  return `${Number(v).toFixed(d)}%`;
+}
+function fmtIndexLevel(v) {
+  if (v == null || isNaN(v)) return '—';
+  return Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+function regimeLabel(state) {
+  return ({
+    normal: 'Normal',
+    volatile_watch: 'Volátil',
+    stress: 'Stress',
+    dislocation_opportunity: 'Dislocação',
+    unknown: 'Indisponível',
+  })[state] || (state || '—');
+}
+function regimeTriggerLabel(trigger) {
+  return ({
+    benchmark_drawdown_3m: 'drawdown do Ibov em 3M',
+    benchmark_drawdown_6m: 'drawdown do Ibov em 6M',
+    negative_breadth_3m: 'maioria dos ativos negativa em 3M',
+    broad_asset_drawdown: 'muitos ativos em drawdown > 20%',
+    elevated_benchmark_volatility: 'volatilidade elevada',
+    high_cross_sectional_dispersion: 'dispersão alta entre ativos',
+  })[trigger] || trigger;
+}
+function regimeImpactText(regime) {
+  const impact = regime?.impact || {};
+  const hurdle = impact.suggested_hurdle_addon_pct;
+  const turnover = impact.suggested_turnover_budget_multiplier;
+  const shrink = impact.suggested_shrinkage_multiplier;
+  if (regime?.state === 'unknown') return 'Sem dados suficientes para classificar o regime.';
+  return `Impacto shadow: shrinkage ${fmtNum(shrink, 2)}x · hurdle +${fmtPctPoint(hurdle)} · orçamento de turnover ${fmtNum(turnover, 2)}x`;
+}
 
 function card(label, value, sub) {
   return `<div class="card">
@@ -213,6 +285,58 @@ async function render() {
     const meta = real.meta || {};
     const rw   = real.risk_windows || {};
     const all  = rw.All || {};
+    const regime = dashboard.model?.diagnostics?.market_regime
+      || recommendation?.diagnostics?.market_regime
+      || {};
+    const regimeState = regime.state || 'unknown';
+    const regimeMetrics = regime.metrics || {};
+    const regimeTriggers = (regime.triggers || []).map(regimeTriggerLabel);
+
+    document.getElementById('market-regime-panel').innerHTML = `
+      <div class="regime-panel ${regimeState}">
+        <div class="regime-head">
+          <div>
+            <div class="regime-name">${regimeLabel(regimeState)}</div>
+            <div class="regime-sub">${regime.benchmark_ticker || 'Benchmark'} · ${regime.as_of || '—'}${regimeTriggers.length ? ` · ${regimeTriggers.join(', ')}` : ''}</div>
+          </div>
+          <span class="regime-badge ${regimeState}">${regimeLabel(regimeState)}</span>
+        </div>
+        <div class="regime-grid">
+          <div class="regime-metric">
+            <span class="regime-metric-label">Ibov atual</span>
+            <span class="regime-metric-value">${fmtIndexLevel(regimeMetrics.benchmark_current)}</span>
+          </div>
+          <div class="regime-metric">
+            <span class="regime-metric-label">Drawdown 3M</span>
+            <span class="regime-metric-value" style="color:${plColor((regimeMetrics.benchmark_drawdown_3m_pct || 0) / 100)}">${fmtPctPoint(regimeMetrics.benchmark_drawdown_3m_pct)}</span>
+          </div>
+          <div class="regime-metric">
+            <span class="regime-metric-label">Drawdown 6M</span>
+            <span class="regime-metric-value" style="color:${plColor((regimeMetrics.benchmark_drawdown_6m_pct || 0) / 100)}">${fmtPctPoint(regimeMetrics.benchmark_drawdown_6m_pct)}</span>
+          </div>
+          <div class="regime-metric">
+            <span class="regime-metric-label">Vol anual</span>
+            <span class="regime-metric-value">${fmtPctPoint(regimeMetrics.benchmark_volatility_annual_pct)}</span>
+          </div>
+          <div class="regime-metric">
+            <span class="regime-metric-label">Ativos negativos 3M</span>
+            <span class="regime-metric-value">${fmtPctPoint(regimeMetrics.universe_negative_return_3m_pct)}</span>
+          </div>
+          <div class="regime-metric">
+            <span class="regime-metric-label">Ativos DD > 20%</span>
+            <span class="regime-metric-value">${fmtPctPoint(regimeMetrics.universe_drawdown_gt_20_pct)}</span>
+          </div>
+          <div class="regime-metric">
+            <span class="regime-metric-label">Dispersão 3M</span>
+            <span class="regime-metric-value">${fmtPctPoint(regimeMetrics.cross_sectional_dispersion_3m_pct)}</span>
+          </div>
+          <div class="regime-metric">
+            <span class="regime-metric-label">Pior setor 3M</span>
+            <span class="regime-metric-value">${regimeMetrics.worst_sector_3m || '—'} ${fmtPctPoint(regimeMetrics.worst_sector_return_3m_pct)}</span>
+          </div>
+        </div>
+        <div class="regime-impact">${regimeImpactText(regime)}</div>
+      </div>`;
 
 
     // ── Comparison Table (Actual vs Model) ──
@@ -364,4 +488,3 @@ render();
 </script>
 </body>
 </html>
-

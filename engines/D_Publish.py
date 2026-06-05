@@ -1421,6 +1421,7 @@ def _build_model_section() -> dict:
             "return_source_summary": diagnostics.get("return_source_summary", {}),
             "target_quality_summary": diagnostics.get("target_quality_summary", {}),
             "adjusted_returns": diagnostics.get("adjusted_returns", {}),
+            "market_regime": diagnostics.get("market_regime", {}),
             "turnover": diagnostics.get("turnover", {}),
         },
     }
