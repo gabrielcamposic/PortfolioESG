@@ -1394,6 +1394,7 @@ def _build_model_section() -> dict:
             "phase": diagnostics.get("phase"),
             "return_concentration": diagnostics.get("return_concentration", {}),
             "return_source_summary": diagnostics.get("return_source_summary", {}),
+            "target_quality_summary": diagnostics.get("target_quality_summary", {}),
             "turnover": diagnostics.get("turnover", {}),
         },
     }
@@ -1938,5 +1939,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
 

@@ -29,3 +29,15 @@ momentum_period_days = 126
 sharpe_weight = 0.6
 upside_weight = 0.3
 momentum_weight = 0.1
+
+# --- Target Quality Diagnostics ---
+# These flags do not change the official score yet; they feed diagnostics/shadow logic.
+TARGET_EXTREME_UPSIDE_PCT = 150
+TARGET_REJECT_UPSIDE_PCT = 300
+TARGET_LOW_PRICE = 1.00
+TARGET_STALE_DAYS = 45
+TARGET_MAX_FALLBACK_QUALITY = 0.35
+TARGET_LOW_LIQUIDITY_AVG_VOLUME = 100000
+TARGET_CLASS_TARGET_TOLERANCE_PCT = 15
+TARGET_CLASS_PRICE_RATIO = 3
+TARGET_DISTRESSED_RETURN_PCT = -50

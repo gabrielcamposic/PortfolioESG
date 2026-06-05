@@ -1,6 +1,6 @@
 {
   "date": "2026-06-05",
-  "timestamp": "2026-06-05 16:32:41",
+  "timestamp": "2026-06-05 16:47:01",
   "decision": "REBALANCE",
   "reason": "Excess return (59.61%) exceeds threshold (0.5%)",
   "excess_return_pct": 59.6128,
@@ -70,38 +70,38 @@
     },
     "optimal": {
       "stocks": [
-        "PETR3.SA",
-        "CURY3.SA",
-        "BBSE3.SA",
-        "AMBP3.SA",
         "SLCE3.SA",
+        "BBSE3.SA",
+        "CURY3.SA",
         "CMIG3.SA",
-        "KLBN4.SA",
-        "RADL3.SA"
+        "PETR3.SA",
+        "RADL3.SA",
+        "AMBP3.SA",
+        "KLBN4.SA"
       ],
       "weights": {
-        "PETR3.SA": 0.08921847563718789,
-        "CURY3.SA": 0.044147563480905296,
-        "BBSE3.SA": 0.11691409458149529,
-        "AMBP3.SA": 0.13651119511362977,
         "SLCE3.SA": 0.1025396850231281,
+        "BBSE3.SA": 0.11691409458149529,
+        "CURY3.SA": 0.044147563480905296,
         "CMIG3.SA": 0.06773621010020629,
-        "KLBN4.SA": 0.3914849954305411,
-        "RADL3.SA": 0.05144778063290616
+        "PETR3.SA": 0.08921847563718789,
+        "RADL3.SA": 0.05144778063290616,
+        "AMBP3.SA": 0.13651119511362977,
+        "KLBN4.SA": 0.3914849954305411
       },
       "expected_return_pct": 403.93,
       "net_return_pct": 403.92,
       "blend_ratio": 1.0,
       "transition_cost_pct": 0.0178,
       "share_quantities": {
-        "PETR3.SA": 4,
-        "CURY3.SA": 3,
-        "BBSE3.SA": 7,
-        "AMBP3.SA": 1577,
         "SLCE3.SA": 14,
+        "BBSE3.SA": 7,
+        "CURY3.SA": 3,
         "CMIG3.SA": 9,
-        "KLBN4.SA": 243,
-        "RADL3.SA": 6
+        "PETR3.SA": 4,
+        "RADL3.SA": 6,
+        "AMBP3.SA": 1577,
+        "KLBN4.SA": 243
       },
       "total_discretized_value": 2079.39,
       "expected_return_continuous_pct": 393.8,
@@ -110,60 +110,18 @@
   },
   "transactions": [
     {
-      "symbol": "PETR4.SA",
+      "symbol": "WEGE3.SA",
       "action": "SELL",
-      "weight_change": -0.01937778331171731,
-      "value_change": 41.52000045776367,
-      "current_weight": 0.01937778331171731,
+      "weight_change": -0.05817535209110727,
+      "value_change": 124.64999771118164,
+      "current_weight": 0.05817535209110727,
       "target_weight": 0,
-      "cost": 0.0119,
-      "current_price": 41.52,
-      "shares": 1,
-      "avg_purchase_price": 63.66,
-      "target_price": 53.28,
-      "signed_value": 41.52
-    },
-    {
-      "symbol": "PETR3.SA",
-      "action": "BUY",
-      "weight_change": 0.08921847563718789,
-      "value_change": 185.52000427246094,
-      "current_weight": 0,
-      "target_weight": 0.08921847563718789,
-      "cost": 0.0534,
-      "current_price": 46.38,
-      "shares": 4,
-      "avg_purchase_price": null,
-      "target_price": 58.57,
-      "signed_value": -185.52
-    },
-    {
-      "symbol": "CURY3.SA",
-      "action": "BUY",
-      "weight_change": 0.044147563480905296,
-      "value_change": 91.80000114440918,
-      "current_weight": 0,
-      "target_weight": 0.044147563480905296,
-      "cost": 0.0264,
-      "current_price": 30.6,
+      "cost": 0.0359,
+      "current_price": 41.55,
       "shares": 3,
-      "avg_purchase_price": null,
-      "target_price": 45.79,
-      "signed_value": -91.8
-    },
-    {
-      "symbol": "PSSA3.SA",
-      "action": "SELL",
-      "weight_change": -0.06747220671133523,
-      "value_change": 144.56999588012695,
-      "current_weight": 0.06747220671133523,
-      "target_weight": 0,
-      "cost": 0.0416,
-      "current_price": 48.19,
-      "shares": 3,
-      "avg_purchase_price": 49.3,
-      "target_price": 55.82,
-      "signed_value": 144.57
+      "avg_purchase_price": 43.8,
+      "target_price": 52.59,
+      "signed_value": 124.65
     },
     {
       "symbol": "BBSE3.SA",
@@ -180,46 +138,18 @@
       "signed_value": -104.19
     },
     {
-      "symbol": "WEGE3.SA",
-      "action": "SELL",
-      "weight_change": -0.05817535209110727,
-      "value_change": 124.64999771118164,
-      "current_weight": 0.05817535209110727,
-      "target_weight": 0,
-      "cost": 0.0359,
-      "current_price": 41.55,
-      "shares": 3,
-      "avg_purchase_price": 43.8,
-      "target_price": 52.59,
-      "signed_value": 124.65
-    },
-    {
-      "symbol": "AMBP3.SA",
+      "symbol": "CURY3.SA",
       "action": "BUY",
-      "weight_change": 0.0377181004798422,
-      "value_change": 72.18000286817548,
-      "current_weight": 0.09879309463378758,
-      "target_weight": 0.13651119511362977,
-      "cost": 0.0208,
-      "current_price": 0.18,
-      "shares": 401,
-      "avg_purchase_price": 0.19,
-      "target_price": 1.98,
-      "signed_value": -72.18
-    },
-    {
-      "symbol": "RANI3.SA",
-      "action": "SELL",
-      "weight_change": -0.09525543069048126,
-      "value_change": 204.09999752044678,
-      "current_weight": 0.09525543069048126,
-      "target_weight": 0,
-      "cost": 0.0587,
-      "current_price": 7.85,
-      "shares": 26,
-      "avg_purchase_price": 8.05,
-      "target_price": 12.25,
-      "signed_value": 204.1
+      "weight_change": 0.044147563480905296,
+      "value_change": 91.80000114440918,
+      "current_weight": 0,
+      "target_weight": 0.044147563480905296,
+      "cost": 0.0264,
+      "current_price": 30.6,
+      "shares": 3,
+      "avg_purchase_price": null,
+      "target_price": 45.79,
+      "signed_value": -91.8
     },
     {
       "symbol": "CMIG3.SA",
@@ -250,18 +180,46 @@
       "signed_value": 89.84
     },
     {
-      "symbol": "KLBN4.SA",
+      "symbol": "PETR4.SA",
+      "action": "SELL",
+      "weight_change": -0.01937778331171731,
+      "value_change": 41.52000045776367,
+      "current_weight": 0.01937778331171731,
+      "target_weight": 0,
+      "cost": 0.0119,
+      "current_price": 41.52,
+      "shares": 1,
+      "avg_purchase_price": 63.66,
+      "target_price": 53.28,
+      "signed_value": 41.52
+    },
+    {
+      "symbol": "PETR3.SA",
       "action": "BUY",
-      "weight_change": 0.044393066726784,
-      "value_change": 70.34999799728394,
-      "current_weight": 0.3470919287037571,
-      "target_weight": 0.3914849954305411,
-      "cost": 0.0202,
-      "current_price": 3.35,
-      "shares": 21,
-      "avg_purchase_price": 3.63,
-      "target_price": 24.75,
-      "signed_value": -70.35
+      "weight_change": 0.08921847563718789,
+      "value_change": 185.52000427246094,
+      "current_weight": 0,
+      "target_weight": 0.08921847563718789,
+      "cost": 0.0534,
+      "current_price": 46.38,
+      "shares": 4,
+      "avg_purchase_price": null,
+      "target_price": 58.57,
+      "signed_value": -185.52
+    },
+    {
+      "symbol": "RADL3.SA",
+      "action": "BUY",
+      "weight_change": 0.05144778063290616,
+      "value_change": 106.97999954223633,
+      "current_weight": 0,
+      "target_weight": 0.05144778063290616,
+      "cost": 0.0308,
+      "current_price": 17.83,
+      "shares": 6,
+      "avg_purchase_price": null,
+      "target_price": 26.92,
+      "signed_value": -106.98
     },
     {
       "symbol": "ISAE4.SA",
@@ -278,18 +236,60 @@
       "signed_value": 27.01
     },
     {
-      "symbol": "RADL3.SA",
+      "symbol": "RANI3.SA",
+      "action": "SELL",
+      "weight_change": -0.09525543069048126,
+      "value_change": 204.09999752044678,
+      "current_weight": 0.09525543069048126,
+      "target_weight": 0,
+      "cost": 0.0587,
+      "current_price": 7.85,
+      "shares": 26,
+      "avg_purchase_price": 8.05,
+      "target_price": 12.25,
+      "signed_value": 204.1
+    },
+    {
+      "symbol": "AMBP3.SA",
       "action": "BUY",
-      "weight_change": 0.05144778063290616,
-      "value_change": 106.97999954223633,
-      "current_weight": 0,
-      "target_weight": 0.05144778063290616,
-      "cost": 0.0308,
-      "current_price": 17.83,
-      "shares": 6,
-      "avg_purchase_price": null,
-      "target_price": 26.92,
-      "signed_value": -106.98
+      "weight_change": 0.0377181004798422,
+      "value_change": 72.18000286817548,
+      "current_weight": 0.09879309463378758,
+      "target_weight": 0.13651119511362977,
+      "cost": 0.0208,
+      "current_price": 0.18,
+      "shares": 401,
+      "avg_purchase_price": 0.19,
+      "target_price": 1.98,
+      "signed_value": -72.18
+    },
+    {
+      "symbol": "PSSA3.SA",
+      "action": "SELL",
+      "weight_change": -0.06747220671133523,
+      "value_change": 144.56999588012695,
+      "current_weight": 0.06747220671133523,
+      "target_weight": 0,
+      "cost": 0.0416,
+      "current_price": 48.19,
+      "shares": 3,
+      "avg_purchase_price": 49.3,
+      "target_price": 55.82,
+      "signed_value": 144.57
+    },
+    {
+      "symbol": "KLBN4.SA",
+      "action": "BUY",
+      "weight_change": 0.044393066726784,
+      "value_change": 70.34999799728394,
+      "current_weight": 0.3470919287037571,
+      "target_weight": 0.3914849954305411,
+      "cost": 0.0202,
+      "current_price": 3.35,
+      "shares": 21,
+      "avg_purchase_price": 3.63,
+      "target_price": 24.75,
+      "signed_value": -70.35
     }
   ],
   "transaction_summary": {
@@ -299,8 +299,8 @@
     "projected_balance": 62.89
   },
   "diagnostics": {
-    "phase": "0_baseline_diagnostics",
-    "description": "Explains current target-based return without changing the official decision.",
+    "phase": "1_target_quality_diagnostics",
+    "description": "Explains current target-based return and target quality without changing the official decision.",
     "return_concentration": {
       "holdings": {
         "expected_return_pct": 344.3,
@@ -366,6 +366,19 @@
           "sector": "Basic Materials",
           "forward_pe": 1.5877,
           "forward_eps": 2.11,
+          "target_quality_score": 0.2,
+          "target_quality_bucket": "reject",
+          "target_quality_flags": [
+            "corporate_action_check_required",
+            "extreme_upside",
+            "target_class_mismatch_suspected",
+            "unit_or_share_class_mismatch_suspected"
+          ],
+          "target_quality_related": {
+            "matched_ticker": "KLBN11.SA",
+            "target_delta_pct": 7.45,
+            "price_ratio": 4.99
+          },
           "portfolio_expected_return_pct": 344.3
         },
         {
@@ -380,7 +393,16 @@
           "return_source": "target",
           "sector": "Industrials",
           "forward_pe": 0.136,
-          "forward_eps": 1.25
+          "forward_eps": 1.25,
+          "target_quality_score": 0.0,
+          "target_quality_bucket": "reject",
+          "target_quality_flags": [
+            "distressed_price_action",
+            "extreme_upside",
+            "sector_pe_fallback",
+            "very_low_price"
+          ],
+          "target_quality_related": null
         },
         {
           "stock": "CMIG3.SA",
@@ -394,7 +416,13 @@
           "return_source": "target",
           "sector": "Utilities",
           "forward_pe": 5.5228,
-          "forward_eps": 2.85
+          "forward_eps": 2.85,
+          "target_quality_score": 0.35,
+          "target_quality_bucket": "low",
+          "target_quality_flags": [
+            "sector_pe_fallback"
+          ],
+          "target_quality_related": null
         },
         {
           "stock": "RANI3.SA",
@@ -408,7 +436,11 @@
           "return_source": "target",
           "sector": "Consumer Cyclical",
           "forward_pe": 5.5845,
-          "forward_eps": 1.42
+          "forward_eps": 1.42,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "SLCE3.SA",
@@ -422,7 +454,11 @@
           "return_source": "target",
           "sector": "Consumer Defensive",
           "forward_pe": 9.3525,
-          "forward_eps": 1.6295
+          "forward_eps": 1.6295,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "PNVL3.SA",
@@ -436,7 +472,11 @@
           "return_source": "target",
           "sector": "Healthcare",
           "forward_pe": 7.7801,
-          "forward_eps": 1.41
+          "forward_eps": 1.41,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "WEGE3.SA",
@@ -450,7 +490,11 @@
           "return_source": "target",
           "sector": "Industrials",
           "forward_pe": 22.9053,
-          "forward_eps": 1.8411
+          "forward_eps": 1.8411,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "PSSA3.SA",
@@ -464,7 +508,11 @@
           "return_source": "target",
           "sector": "Financial Services",
           "forward_pe": 7.8028,
-          "forward_eps": 6.2272
+          "forward_eps": 6.2272,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "PETR4.SA",
@@ -478,7 +526,11 @@
           "return_source": "target",
           "sector": "Energy",
           "forward_pe": 4.3039,
-          "forward_eps": 9.661
+          "forward_eps": 9.661,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "BBSE3.SA",
@@ -492,7 +544,11 @@
           "return_source": "target",
           "sector": "Financial Services",
           "forward_pe": 7.8441,
-          "forward_eps": 4.4479
+          "forward_eps": 4.4479,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "ISAE4.SA",
@@ -506,7 +562,11 @@
           "return_source": "target",
           "sector": "Utilities",
           "forward_pe": 9.408,
-          "forward_eps": 2.872
+          "forward_eps": 2.872,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         }
       ],
       "ideal": [
@@ -523,6 +583,19 @@
           "sector": "Basic Materials",
           "forward_pe": 1.5877,
           "forward_eps": 2.11,
+          "target_quality_score": 0.2,
+          "target_quality_bucket": "reject",
+          "target_quality_flags": [
+            "corporate_action_check_required",
+            "extreme_upside",
+            "target_class_mismatch_suspected",
+            "unit_or_share_class_mismatch_suspected"
+          ],
+          "target_quality_related": {
+            "matched_ticker": "KLBN11.SA",
+            "target_delta_pct": 7.45,
+            "price_ratio": 4.99
+          },
           "portfolio_expected_return_pct": 393.8
         },
         {
@@ -537,7 +610,16 @@
           "return_source": "target",
           "sector": "Industrials",
           "forward_pe": 0.136,
-          "forward_eps": 1.25
+          "forward_eps": 1.25,
+          "target_quality_score": 0.0,
+          "target_quality_bucket": "reject",
+          "target_quality_flags": [
+            "distressed_price_action",
+            "extreme_upside",
+            "sector_pe_fallback",
+            "very_low_price"
+          ],
+          "target_quality_related": null
         },
         {
           "stock": "CMIG3.SA",
@@ -551,7 +633,13 @@
           "return_source": "target",
           "sector": "Utilities",
           "forward_pe": 5.5228,
-          "forward_eps": 2.85
+          "forward_eps": 2.85,
+          "target_quality_score": 0.35,
+          "target_quality_bucket": "low",
+          "target_quality_flags": [
+            "sector_pe_fallback"
+          ],
+          "target_quality_related": null
         },
         {
           "stock": "RADL3.SA",
@@ -565,7 +653,11 @@
           "return_source": "target",
           "sector": "Healthcare",
           "forward_pe": 14.5782,
-          "forward_eps": 1.2011
+          "forward_eps": 1.2011,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "SLCE3.SA",
@@ -579,7 +671,11 @@
           "return_source": "target",
           "sector": "Consumer Defensive",
           "forward_pe": 9.3525,
-          "forward_eps": 1.6295
+          "forward_eps": 1.6295,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "PETR3.SA",
@@ -593,7 +689,11 @@
           "return_source": "target",
           "sector": "Energy",
           "forward_pe": 3.1479,
-          "forward_eps": 14.791
+          "forward_eps": 14.791,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "CURY3.SA",
@@ -607,7 +707,11 @@
           "return_source": "target",
           "sector": "Real Estate",
           "forward_pe": 6.2533,
-          "forward_eps": 4.8215
+          "forward_eps": 4.8215,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "BBSE3.SA",
@@ -621,7 +725,11 @@
           "return_source": "target",
           "sector": "Financial Services",
           "forward_pe": 7.8441,
-          "forward_eps": 4.4479
+          "forward_eps": 4.4479,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         }
       ],
       "optimal": [
@@ -638,6 +746,19 @@
           "sector": "Basic Materials",
           "forward_pe": 1.5877,
           "forward_eps": 2.11,
+          "target_quality_score": 0.2,
+          "target_quality_bucket": "reject",
+          "target_quality_flags": [
+            "corporate_action_check_required",
+            "extreme_upside",
+            "target_class_mismatch_suspected",
+            "unit_or_share_class_mismatch_suspected"
+          ],
+          "target_quality_related": {
+            "matched_ticker": "KLBN11.SA",
+            "target_delta_pct": 7.45,
+            "price_ratio": 4.99
+          },
           "portfolio_expected_return_pct": 403.93
         },
         {
@@ -652,7 +773,16 @@
           "return_source": "target",
           "sector": "Industrials",
           "forward_pe": 0.136,
-          "forward_eps": 1.25
+          "forward_eps": 1.25,
+          "target_quality_score": 0.0,
+          "target_quality_bucket": "reject",
+          "target_quality_flags": [
+            "distressed_price_action",
+            "extreme_upside",
+            "sector_pe_fallback",
+            "very_low_price"
+          ],
+          "target_quality_related": null
         },
         {
           "stock": "CMIG3.SA",
@@ -666,7 +796,13 @@
           "return_source": "target",
           "sector": "Utilities",
           "forward_pe": 5.5228,
-          "forward_eps": 2.85
+          "forward_eps": 2.85,
+          "target_quality_score": 0.35,
+          "target_quality_bucket": "low",
+          "target_quality_flags": [
+            "sector_pe_fallback"
+          ],
+          "target_quality_related": null
         },
         {
           "stock": "SLCE3.SA",
@@ -680,7 +816,11 @@
           "return_source": "target",
           "sector": "Consumer Defensive",
           "forward_pe": 9.3525,
-          "forward_eps": 1.6295
+          "forward_eps": 1.6295,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "RADL3.SA",
@@ -694,7 +834,11 @@
           "return_source": "target",
           "sector": "Healthcare",
           "forward_pe": 14.5782,
-          "forward_eps": 1.2011
+          "forward_eps": 1.2011,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "PETR3.SA",
@@ -708,7 +852,11 @@
           "return_source": "target",
           "sector": "Energy",
           "forward_pe": 3.1479,
-          "forward_eps": 14.791
+          "forward_eps": 14.791,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "CURY3.SA",
@@ -722,7 +870,11 @@
           "return_source": "target",
           "sector": "Real Estate",
           "forward_pe": 6.2533,
-          "forward_eps": 4.8215
+          "forward_eps": 4.8215,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         },
         {
           "stock": "BBSE3.SA",
@@ -736,7 +888,11 @@
           "return_source": "target",
           "sector": "Financial Services",
           "forward_pe": 7.8441,
-          "forward_eps": 4.4479
+          "forward_eps": 4.4479,
+          "target_quality_score": 1.0,
+          "target_quality_bucket": "high",
+          "target_quality_flags": [],
+          "target_quality_related": null
         }
       ]
     },
@@ -781,6 +937,113 @@
           "count": 2,
           "weight_pct": 20.42,
           "return_contribution_pct": 143.04
+        }
+      ]
+    },
+    "target_quality_summary": {
+      "holdings": [
+        {
+          "bucket": "high",
+          "count": 8,
+          "weight_pct": 45.92,
+          "return_contribution_pct": 14.61,
+          "symbols": [
+            "RANI3.SA",
+            "SLCE3.SA",
+            "PNVL3.SA",
+            "WEGE3.SA",
+            "PSSA3.SA",
+            "PETR4.SA",
+            "BBSE3.SA",
+            "ISAE4.SA"
+          ]
+        },
+        {
+          "bucket": "low",
+          "count": 1,
+          "weight_pct": 9.5,
+          "return_contribution_pct": 9.16,
+          "symbols": [
+            "CMIG3.SA"
+          ]
+        },
+        {
+          "bucket": "reject",
+          "count": 2,
+          "weight_pct": 44.59,
+          "return_contribution_pct": 320.54,
+          "symbols": [
+            "KLBN4.SA",
+            "AMBP3.SA"
+          ]
+        }
+      ],
+      "ideal": [
+        {
+          "bucket": "high",
+          "count": 5,
+          "weight_pct": 41.89,
+          "return_contribution_pct": 11.37,
+          "symbols": [
+            "RADL3.SA",
+            "SLCE3.SA",
+            "PETR3.SA",
+            "CURY3.SA",
+            "BBSE3.SA"
+          ]
+        },
+        {
+          "bucket": "low",
+          "count": 1,
+          "weight_pct": 6.75,
+          "return_contribution_pct": 6.51,
+          "symbols": [
+            "CMIG3.SA"
+          ]
+        },
+        {
+          "bucket": "reject",
+          "count": 2,
+          "weight_pct": 51.35,
+          "return_contribution_pct": 375.91,
+          "symbols": [
+            "KLBN4.SA",
+            "AMBP3.SA"
+          ]
+        }
+      ],
+      "optimal": [
+        {
+          "bucket": "high",
+          "count": 5,
+          "weight_pct": 40.41,
+          "return_contribution_pct": 10.78,
+          "symbols": [
+            "SLCE3.SA",
+            "RADL3.SA",
+            "PETR3.SA",
+            "CURY3.SA",
+            "BBSE3.SA"
+          ]
+        },
+        {
+          "bucket": "low",
+          "count": 1,
+          "weight_pct": 6.77,
+          "return_contribution_pct": 6.53,
+          "symbols": [
+            "CMIG3.SA"
+          ]
+        },
+        {
+          "bucket": "reject",
+          "count": 2,
+          "weight_pct": 52.8,
+          "return_contribution_pct": 386.62,
+          "symbols": [
+            "KLBN4.SA",
+            "AMBP3.SA"
+          ]
         }
       ]
     },

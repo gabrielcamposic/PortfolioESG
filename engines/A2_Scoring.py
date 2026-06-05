@@ -30,6 +30,10 @@ from shared_tools.shared_utils import (
     load_parameters_from_file,
 )
 from shared_tools.path_utils import resolve_paths_in_params
+from shared_tools.target_quality import (
+    build_related_target_context,
+    evaluate_target_quality,
+)
 
 # ----------------------------------------------------------- #
 #                        Helper Functions                     #
@@ -71,6 +75,54 @@ def log_performance_data(perf_data: Dict[str, Any], params: Dict[str, Any], logg
         logger.info(f"Successfully logged performance data to: {log_path}")
     except (IOError, OSError) as log_err:
         logger.error(f"Failed to log performance data to '{log_path}': {log_err}")
+
+
+def append_csv_with_schema_evolution(df: pd.DataFrame, path: str, logger: logging.Logger) -> None:
+    """Append to a historical CSV while preserving older rows across schema changes."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        df.to_csv(path, mode='w', header=True, index=False, quoting=csv.QUOTE_MINIMAL)
+        return
+
+    new_columns = list(df.columns)
+    with open(path, 'r', encoding='utf-8', newline='') as f:
+        rows = list(csv.reader(f))
+
+    if not rows:
+        df.to_csv(path, mode='w', header=True, index=False, quoting=csv.QUOTE_MINIMAL)
+        return
+
+    existing_header = rows[0]
+    if existing_header == new_columns:
+        df.to_csv(path, mode='a', header=False, index=False, quoting=csv.QUOTE_MINIMAL)
+        return
+
+    merged_header = list(existing_header)
+    for col in new_columns:
+        if col not in merged_header:
+            merged_header.append(col)
+
+    migrated_rows = []
+    for row in rows[1:]:
+        if len(row) == len(new_columns):
+            row_map = dict(zip(new_columns, row))
+        else:
+            row_map = dict(zip(existing_header, row[:len(existing_header)]))
+        migrated_rows.append([row_map.get(col, '') for col in merged_header])
+
+    new_df = df.reindex(columns=merged_header)
+    temp_path = f"{path}.tmp"
+    with open(temp_path, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+        writer.writerow(merged_header)
+        writer.writerows(migrated_rows)
+        writer.writerows(new_df.fillna('').astype(str).values.tolist())
+    os.replace(temp_path, path)
+    logger.info(
+        f"Migrated {os.path.basename(path)} schema from {len(existing_header)} to "
+        f"{len(merged_header)} columns before append"
+    )
 
 
 def load_input_stocks_with_sectors(params: Dict[str, Any], logger: logging.Logger) -> pd.DataFrame:
@@ -179,8 +231,9 @@ def load_financials_data(params: Dict[str, Any], logger: logging.Logger) -> pd.D
         # This is critical for BDRs (e.g. AURA33.SA) whose forwardEPS is reported in USD
         # by the underlying company — the Yahoo targetMeanPrice is already in BRL.
         cols = ['Stock', 'forwardPE', 'forwardEPS']
-        if 'targetMeanPrice' in latest_financials.columns:
-            cols.append('targetMeanPrice')
+        for optional_col in ['targetMeanPrice', 'averageVolume', 'LastUpdated']:
+            if optional_col in latest_financials.columns:
+                cols.append(optional_col)
         return latest_financials[cols]
     except FileNotFoundError:
         logger.warning(f"Financials data file not found at '{filepath}'. Scoring will proceed without P/E data.")
@@ -412,6 +465,11 @@ def main():
         "debug_mode": bool, "risk_free_rate": float, "dynamic_score_weighting": bool,
         "momentum_enabled": bool, "momentum_period_days": int, "sharpe_weight": float,
         "upside_weight": float, "momentum_weight": float,
+        "TARGET_EXTREME_UPSIDE_PCT": float, "TARGET_REJECT_UPSIDE_PCT": float,
+        "TARGET_LOW_PRICE": float, "TARGET_STALE_DAYS": int,
+        "TARGET_MAX_FALLBACK_QUALITY": float, "TARGET_LOW_LIQUIDITY_AVG_VOLUME": float,
+        "TARGET_CLASS_TARGET_TOLERANCE_PCT": float, "TARGET_CLASS_PRICE_RATIO": float,
+        "TARGET_DISTRESSED_RETURN_PCT": float,
     }
 
     # 2. --- Load Parameters ---
@@ -634,6 +692,32 @@ def main():
         scored_df['momentum_weight_used'] = weights.get('momentum', 0)
         scored_df['risk_profile_used'] = risk_profile_params.get('risk_profile', 'moderado')
         scored_df['market_regime'] = market_regime.get('regime', 'neutral')
+
+        quality_records = scored_df.to_dict('records')
+        related_target_context = build_related_target_context(quality_records, params)
+        target_quality = []
+        for row in quality_records:
+            row_for_quality = dict(row)
+            if pd.notna(row_for_quality.get('AnnualizedMeanReturn')):
+                row_for_quality['HistoricalReturnPct'] = float(row_for_quality['AnnualizedMeanReturn']) * 100
+            target_quality.append(
+                evaluate_target_quality(row_for_quality, params, related_target_context)
+            )
+
+        scored_df['TargetQualityScore'] = [
+            q['target_quality_score'] for q in target_quality
+        ]
+        scored_df['TargetQualityBucket'] = [
+            q['target_quality_bucket'] for q in target_quality
+        ]
+        scored_df['TargetQualityFlags'] = [
+            ';'.join(q['target_quality_flags']) for q in target_quality
+        ]
+        scored_df['TargetQualityRelatedTicker'] = [
+            (q.get('target_quality_related') or {}).get('matched_ticker')
+            for q in target_quality
+        ]
+
         scored_df.sort_values(by='CompositeScore', ascending=False, inplace=True)
         perf_data["stocks_successfully_scored"] = len(scored_df)
         perf_data["scoring_and_analysis_duration_s"] = time.time() - analysis_start_time
@@ -729,7 +813,9 @@ def main():
             'SharpeRatio_norm', 'PotentialUpside_pct_norm', 'Momentum_norm',
             'sharpe_weight_used', 'upside_weight_used', 'momentum_weight_used',
             'AnnualizedMeanReturn', 'AnnualizedStdDev', 'CurrentPrice', 'TargetPrice',
-            'TargetPriceSource', 'forwardPE', 'forwardEPS', 'SectorMedianPE'
+            'TargetPriceSource', 'TargetQualityScore', 'TargetQualityBucket',
+            'TargetQualityFlags', 'TargetQualityRelatedTicker',
+            'forwardPE', 'forwardEPS', 'SectorMedianPE'
         ]
         missing_columns = [col for col in required_columns if col not in filtered_df.columns]
         if missing_columns:
@@ -758,9 +844,7 @@ def main():
                 logger.error(f"Failed to create or save correlation matrix: {e}")
 
         if scored_stocks_file:
-            os.makedirs(os.path.dirname(scored_stocks_file), exist_ok=True)
-            file_exists = os.path.isfile(scored_stocks_file)
-            final_df_to_save.to_csv(scored_stocks_file, mode='a', header=not file_exists, index=False, quoting=csv.QUOTE_MINIMAL)
+            append_csv_with_schema_evolution(final_df_to_save, scored_stocks_file, logger)
             logger.info(f"Appended {len(final_df_to_save)} new records to {scored_stocks_file}")
 
         if sector_pe_file:

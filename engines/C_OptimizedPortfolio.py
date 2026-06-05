@@ -36,6 +36,10 @@ from shared_tools.shared_utils import (
     setup_logger,
     load_parameters_from_file,
 )
+from shared_tools.target_quality import (
+    build_related_target_context,
+    evaluate_target_quality,
+)
 
 # ----------------------------------------------------------- #
 #                        Configuration                        #
@@ -211,6 +215,15 @@ def _load_financials_db(logger: logging.Logger):
                     if pd.notna(row.get('Sector')):
                         _FINANCIALS_CACHE[stock]['sector'] = str(row.get('Sector'))
 
+                    if pd.notna(row.get('TargetQualityScore')):
+                        _FINANCIALS_CACHE[stock]['target_quality_score'] = float(row.get('TargetQualityScore'))
+                    if pd.notna(row.get('TargetQualityBucket')):
+                        _FINANCIALS_CACHE[stock]['target_quality_bucket'] = str(row.get('TargetQualityBucket'))
+                    if pd.notna(row.get('TargetQualityFlags')):
+                        _FINANCIALS_CACHE[stock]['target_quality_flags'] = str(row.get('TargetQualityFlags'))
+                    if pd.notna(row.get('TargetQualityRelatedTicker')):
+                        _FINANCIALS_CACHE[stock]['target_quality_related_ticker'] = str(row.get('TargetQualityRelatedTicker'))
+
                 logger.info(f"Filled {updated_count} tickers with target prices from scored_stocks.csv (fallback only)")
             except Exception as e:
                 logger.warning(f"Could not load scored_stocks.csv for target prices: {e}")
@@ -245,6 +258,15 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'OPTIMIZED_RESULTS_FILE': str,
         'OPTIMIZED_LATEST_JSON': str,
         'OPTIMIZED_LOG_FILE': str,
+        'TARGET_EXTREME_UPSIDE_PCT': float,
+        'TARGET_REJECT_UPSIDE_PCT': float,
+        'TARGET_LOW_PRICE': float,
+        'TARGET_STALE_DAYS': int,
+        'TARGET_MAX_FALLBACK_QUALITY': float,
+        'TARGET_LOW_LIQUIDITY_AVG_VOLUME': float,
+        'TARGET_CLASS_TARGET_TOLERANCE_PCT': float,
+        'TARGET_CLASS_PRICE_RATIO': float,
+        'TARGET_DISTRESSED_RETURN_PCT': float,
     }
 
     params = {}
@@ -275,6 +297,15 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'TRANSACTION_COST_FIXED_PCT': 0.1,
         'EXPECTED_RETURN_WINDOW_DAYS': 252,
         'NUM_CANDIDATE_PORTFOLIOS': 100,
+        'TARGET_EXTREME_UPSIDE_PCT': 150.0,
+        'TARGET_REJECT_UPSIDE_PCT': 300.0,
+        'TARGET_LOW_PRICE': 1.0,
+        'TARGET_STALE_DAYS': 45,
+        'TARGET_MAX_FALLBACK_QUALITY': 0.35,
+        'TARGET_LOW_LIQUIDITY_AVG_VOLUME': 100000.0,
+        'TARGET_CLASS_TARGET_TOLERANCE_PCT': 15.0,
+        'TARGET_CLASS_PRICE_RATIO': 3.0,
+        'TARGET_DISTRESSED_RETURN_PCT': -50.0,
     }
 
     for key, default in defaults.items():
@@ -540,6 +571,10 @@ def get_target_metadata(symbol: str, logger: logging.Logger) -> Dict[str, Any]:
         'sector': info.get('sector'),
         'average_volume': info.get('average_volume'),
         'last_updated': info.get('last_updated'),
+        'target_quality_score': info.get('target_quality_score'),
+        'target_quality_bucket': info.get('target_quality_bucket'),
+        'target_quality_flags': info.get('target_quality_flags'),
+        'target_quality_related_ticker': info.get('target_quality_related_ticker'),
     }
 
 
@@ -1080,10 +1115,35 @@ def _portfolio_weights(portfolio: Dict[str, Any]) -> Dict[str, float]:
     return {}
 
 
+def _build_target_quality_context(logger: logging.Logger, params: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Build related-ticker context for target quality checks."""
+    financials = _load_financials_db(logger)
+    records = []
+    for stock, info in financials.items():
+        records.append({
+            'Stock': stock,
+            'CurrentPrice': info.get('current_price'),
+            'TargetPrice': info.get('target_price'),
+            'TargetPriceSource': info.get('target_price_source'),
+        })
+    return build_related_target_context(records, params)
+
+
+def _quality_flags_from_meta(target_meta: Dict[str, Any]) -> List[str]:
+    flags = target_meta.get('target_quality_flags')
+    if isinstance(flags, list):
+        return [str(flag) for flag in flags if str(flag)]
+    if isinstance(flags, str) and flags.strip():
+        return [flag for flag in flags.split(';') if flag]
+    return []
+
+
 def _build_return_contributors(
     portfolio: Dict[str, Any],
     expected_return_pct: float,
     logger: logging.Logger,
+    params: Dict[str, Any],
+    related_target_context: Dict[str, Dict[str, Any]],
     allow_historical_fallback: bool = False,
 ) -> List[Dict[str, Any]]:
     """Explain each asset contribution to target-based expected return."""
@@ -1120,6 +1180,27 @@ def _build_return_contributors(
                 return_source = 'historical'
                 target_source = 'HistoricalReturnFallback'
 
+        quality_record = {
+            'Stock': stock,
+            'CurrentPrice': current,
+            'TargetPrice': target,
+            'TargetPriceSource': target_source,
+            'forwardPE': target_meta.get('forward_pe'),
+            'averageVolume': target_meta.get('average_volume'),
+            'LastUpdated': target_meta.get('last_updated'),
+        }
+        if raw_upside_pct is not None:
+            quality_record['raw_upside_pct'] = raw_upside_pct
+
+        quality = evaluate_target_quality(quality_record, params, related_target_context)
+        if target_meta.get('target_quality_score') is not None:
+            quality['target_quality_score'] = float(target_meta.get('target_quality_score'))
+        if target_meta.get('target_quality_bucket'):
+            quality['target_quality_bucket'] = str(target_meta.get('target_quality_bucket'))
+        meta_flags = _quality_flags_from_meta(target_meta)
+        if meta_flags:
+            quality['target_quality_flags'] = sorted(set(quality['target_quality_flags']) | set(meta_flags))
+
         contributors.append({
             'stock': stock,
             'weight': round(weight, 6),
@@ -1133,6 +1214,10 @@ def _build_return_contributors(
             'sector': target_meta.get('sector'),
             'forward_pe': _round_or_none(target_meta.get('forward_pe'), 4),
             'forward_eps': _round_or_none(target_meta.get('forward_eps'), 4),
+            'target_quality_score': _round_or_none(quality.get('target_quality_score'), 4),
+            'target_quality_bucket': quality.get('target_quality_bucket'),
+            'target_quality_flags': quality.get('target_quality_flags', []),
+            'target_quality_related': quality.get('target_quality_related'),
         })
 
     contributors.sort(
@@ -1213,6 +1298,41 @@ def _build_return_source_summary(contributors: List[Dict[str, Any]]) -> List[Dic
     return summary
 
 
+def _build_target_quality_summary(contributors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Aggregate target quality by bucket for a portfolio."""
+    by_bucket: Dict[str, Dict[str, Any]] = {}
+
+    for row in contributors:
+        bucket = row.get('target_quality_bucket') or 'unknown'
+        if bucket not in by_bucket:
+            by_bucket[bucket] = {
+                'bucket': bucket,
+                'count': 0,
+                'weight_pct': 0.0,
+                'return_contribution_pct': 0.0,
+                'symbols': [],
+            }
+
+        by_bucket[bucket]['count'] += 1
+        by_bucket[bucket]['weight_pct'] += row.get('weight_pct') or 0
+        by_bucket[bucket]['return_contribution_pct'] += row.get('return_contribution_pct') or 0
+        by_bucket[bucket]['symbols'].append(row.get('stock'))
+
+    order = {'high': 0, 'medium': 1, 'low': 2, 'reject': 3, 'unknown': 4}
+    summary = []
+    for item in by_bucket.values():
+        summary.append({
+            'bucket': item['bucket'],
+            'count': item['count'],
+            'weight_pct': round(item['weight_pct'], 2),
+            'return_contribution_pct': round(item['return_contribution_pct'], 2),
+            'symbols': item['symbols'],
+        })
+
+    summary.sort(key=lambda row: order.get(row.get('bucket'), 99))
+    return summary
+
+
 def _build_turnover_diagnostics(
     transactions: List[Dict[str, Any]],
     holdings: Dict[str, Any],
@@ -1240,9 +1360,10 @@ def build_baseline_diagnostics(
     optimal: Dict[str, Any],
     transactions: List[Dict[str, Any]],
     transaction_summary: Dict[str, Any],
+    params: Dict[str, Any],
     logger: logging.Logger,
 ) -> Dict[str, Any]:
-    """Build Phase 0 diagnostics without affecting the official decision."""
+    """Build baseline and target-quality diagnostics without changing decisions."""
     portfolios = {
         'holdings': (holdings, holdings.get('expected_return', 0), True),
         'ideal': (ideal, ideal.get('expected_return', 0), False),
@@ -1252,24 +1373,30 @@ def build_baseline_diagnostics(
     contributors: Dict[str, List[Dict[str, Any]]] = {}
     concentration: Dict[str, Dict[str, Any]] = {}
     source_summary: Dict[str, List[Dict[str, Any]]] = {}
+    quality_summary: Dict[str, List[Dict[str, Any]]] = {}
+    related_target_context = _build_target_quality_context(logger, params)
 
     for name, (portfolio, expected_return, allow_hist) in portfolios.items():
         rows = _build_return_contributors(
             portfolio,
             expected_return,
             logger,
+            params,
+            related_target_context,
             allow_historical_fallback=allow_hist,
         )
         contributors[name] = rows
         concentration[name] = _build_return_concentration(rows, expected_return)
         source_summary[name] = _build_return_source_summary(rows)
+        quality_summary[name] = _build_target_quality_summary(rows)
 
     return {
-        'phase': '0_baseline_diagnostics',
-        'description': 'Explains current target-based return without changing the official decision.',
+        'phase': '1_target_quality_diagnostics',
+        'description': 'Explains current target-based return and target quality without changing the official decision.',
         'return_concentration': concentration,
         'return_contributors': contributors,
         'return_source_summary': source_summary,
+        'target_quality_summary': quality_summary,
         'turnover': _build_turnover_diagnostics(transactions, holdings, transaction_summary),
     }
 
@@ -1473,6 +1600,7 @@ def generate_recommendation(
         optimal,
         transactions,
         transaction_summary,
+        params,
         logger,
     )
 
