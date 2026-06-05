@@ -130,11 +130,23 @@ def _load_financials_db(logger: logging.Logger):
             if not ticker:
                 continue
 
+            target_price = row.get('targetMeanPrice') or row.get('TargetMeanPrice') or row.get('TargetPrice')
+            target_source = None
+            if target_price is not None and pd.notna(target_price):
+                try:
+                    if float(target_price) > 0:
+                        target_source = 'YahooFinance'
+                except (TypeError, ValueError):
+                    target_source = None
+
             _FINANCIALS_CACHE[ticker] = {
                 'current_price': row.get('currentPrice') or row.get('CurrentPrice'),
-                'target_price': row.get('targetMeanPrice') or row.get('TargetMeanPrice') or row.get('TargetPrice'),
+                'target_price': target_price,
+                'target_price_source': target_source,
                 'forward_pe': row.get('forwardPE') or row.get('ForwardPE'),
                 'forward_eps': row.get('forwardEPS') or row.get('forwardEps') or row.get('ForwardEps'),
+                'average_volume': row.get('averageVolume') or row.get('AverageVolume'),
+                'last_updated': str(row.get(timestamp_col, '')) if timestamp_col in row else '',
             }
 
         logger.info(f"Loaded financials for {len(_FINANCIALS_CACHE)} tickers from FinancialsDB")
@@ -146,7 +158,7 @@ def _load_financials_db(logger: logging.Logger):
         # Previously, scored_stocks unconditionally overwrote FinancialsDB
         # targets, causing stale target prices from old scoring runs to
         # inflate the hold_12m metric.
-        scored_stocks_path = os.path.join(FINDB_PATH, '..', 'Results', 'scored_stocks.csv')
+        scored_stocks_path = os.path.join(ROOT, 'data', 'results', 'scored_stocks.csv')
         if os.path.exists(scored_stocks_path):
             try:
                 scored_df = pd.read_csv(scored_stocks_path)
@@ -162,6 +174,7 @@ def _load_financials_db(logger: logging.Logger):
 
                     current_price = row.get('CurrentPrice')
                     target_price = row.get('TargetPrice')
+                    target_source = row.get('TargetPriceSource')
 
                     if stock not in _FINANCIALS_CACHE:
                         _FINANCIALS_CACHE[stock] = {}
@@ -179,6 +192,10 @@ def _load_financials_db(logger: logging.Logger):
                         val = existing.get('target_price')
                         if val is None or pd.isna(val):
                             _FINANCIALS_CACHE[stock]['target_price'] = float(target_price)
+                            _FINANCIALS_CACHE[stock]['target_price_source'] = (
+                                str(target_source) if pd.notna(target_source) and str(target_source).strip()
+                                else 'scored_stocks'
+                            )
                             updated_count += 1
 
                     if pd.notna(row.get('forwardPE')) and row.get('forwardPE') > 0:
@@ -190,6 +207,9 @@ def _load_financials_db(logger: logging.Logger):
                         val = existing.get('forward_eps')
                         if val is None or pd.isna(val):
                             _FINANCIALS_CACHE[stock]['forward_eps'] = float(row.get('forwardEPS'))
+
+                    if pd.notna(row.get('Sector')):
+                        _FINANCIALS_CACHE[stock]['sector'] = str(row.get('Sector'))
 
                 logger.info(f"Filled {updated_count} tickers with target prices from scored_stocks.csv (fallback only)")
             except Exception as e:
@@ -492,6 +512,35 @@ def get_target_price(symbol: str, logger: logging.Logger) -> Optional[float]:
             return float(target)
 
     return None
+
+
+def get_target_metadata(symbol: str, logger: logging.Logger) -> Dict[str, Any]:
+    """Get target price metadata used for diagnostics only."""
+    symbol_clean = symbol.replace('.SA', '') + '.SA' if '.SA' not in symbol else symbol
+    financials = _load_financials_db(logger)
+    info = financials.get(symbol_clean, {})
+
+    target = info.get('target_price')
+    target_price = None
+    if target is not None and pd.notna(target):
+        try:
+            target_price = float(target)
+        except (TypeError, ValueError):
+            target_price = None
+
+    source = info.get('target_price_source')
+    if target_price is not None and target_price > 0 and not source:
+        source = 'Unknown'
+
+    return {
+        'target_price': target_price if target_price and target_price > 0 else None,
+        'target_source': source or 'None',
+        'forward_pe': info.get('forward_pe'),
+        'forward_eps': info.get('forward_eps'),
+        'sector': info.get('sector'),
+        'average_volume': info.get('average_volume'),
+        'last_updated': info.get('last_updated'),
+    }
 
 
 def get_historical_return(symbol: str, days: int, logger: logging.Logger) -> Optional[float]:
@@ -1005,6 +1054,226 @@ def _build_transaction_summary(transactions: List[Dict]) -> Dict[str, Any]:
     }
 
 
+def _round_or_none(value: Any, digits: int = 2) -> Optional[float]:
+    """Round finite numeric values for JSON diagnostics."""
+    if value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(numeric):
+        return None
+    return round(numeric, digits)
+
+
+def _portfolio_weights(portfolio: Dict[str, Any]) -> Dict[str, float]:
+    """Return portfolio weights as a normalized ticker -> float dict."""
+    weights = portfolio.get('weights', {}) or {}
+    if isinstance(weights, dict):
+        return {str(k): float(v or 0) for k, v in weights.items()}
+
+    stocks = portfolio.get('stocks', []) or []
+    if isinstance(weights, list) and len(stocks) == len(weights):
+        return {str(stock): float(weight or 0) for stock, weight in zip(stocks, weights)}
+
+    return {}
+
+
+def _build_return_contributors(
+    portfolio: Dict[str, Any],
+    expected_return_pct: float,
+    logger: logging.Logger,
+    allow_historical_fallback: bool = False,
+) -> List[Dict[str, Any]]:
+    """Explain each asset contribution to target-based expected return."""
+    contributors: List[Dict[str, Any]] = []
+    weights = _portfolio_weights(portfolio)
+    current_prices = portfolio.get('current_prices', {}) or {}
+    target_prices = portfolio.get('target_prices', {}) or {}
+    historical_returns = portfolio.get('historical_returns', {}) or {}
+
+    for stock, weight in weights.items():
+        current = current_prices.get(stock)
+        if current is None or not pd.notna(current):
+            current = get_current_price(stock, logger)
+
+        target_meta = get_target_metadata(stock, logger)
+        target = target_prices.get(stock)
+        if target is None or not pd.notna(target):
+            target = target_meta.get('target_price')
+
+        raw_upside_pct = None
+        contribution_pct = 0.0
+        return_source = 'none'
+        target_source = target_meta.get('target_source', 'None')
+
+        if current and target and current > 0 and target > 0:
+            raw_upside_pct = ((float(target) / float(current)) - 1) * 100
+            contribution_pct = weight * raw_upside_pct
+            return_source = 'target'
+        elif allow_historical_fallback and stock in historical_returns:
+            hist_return = historical_returns.get(stock)
+            if hist_return is not None and pd.notna(hist_return):
+                raw_upside_pct = float(hist_return) * 100
+                contribution_pct = weight * raw_upside_pct
+                return_source = 'historical'
+                target_source = 'HistoricalReturnFallback'
+
+        contributors.append({
+            'stock': stock,
+            'weight': round(weight, 6),
+            'weight_pct': round(weight * 100, 2),
+            'current_price': _round_or_none(current, 4),
+            'target_price': _round_or_none(target, 4),
+            'raw_upside_pct': _round_or_none(raw_upside_pct, 2),
+            'return_contribution_pct': _round_or_none(contribution_pct, 2),
+            'target_source': target_source,
+            'return_source': return_source,
+            'sector': target_meta.get('sector'),
+            'forward_pe': _round_or_none(target_meta.get('forward_pe'), 4),
+            'forward_eps': _round_or_none(target_meta.get('forward_eps'), 4),
+        })
+
+    contributors.sort(
+        key=lambda row: abs(row.get('return_contribution_pct') or 0),
+        reverse=True,
+    )
+
+    # Keep the exact portfolio expected return visible even when rounded
+    # contributors sum to a slightly different value.
+    if contributors:
+        contributors[0]['portfolio_expected_return_pct'] = round(expected_return_pct, 2)
+
+    return contributors
+
+
+def _build_return_concentration(
+    contributors: List[Dict[str, Any]],
+    expected_return_pct: float,
+) -> Dict[str, Any]:
+    """Measure how much of expected return is concentrated in top contributors."""
+    positive = [
+        row for row in contributors
+        if (row.get('return_contribution_pct') or 0) > 0
+    ]
+    ordered = positive or contributors
+    total = expected_return_pct if abs(expected_return_pct or 0) > 1e-9 else sum(
+        abs(row.get('return_contribution_pct') or 0) for row in ordered
+    )
+
+    def contribution_pp(n: int) -> float:
+        return round(sum((row.get('return_contribution_pct') or 0) for row in ordered[:n]), 2)
+
+    def share(n: int) -> Optional[float]:
+        if not total:
+            return None
+        return round((contribution_pp(n) / total) * 100, 2)
+
+    return {
+        'expected_return_pct': round(expected_return_pct or 0, 2),
+        'top1_contribution_pct': share(1),
+        'top2_contribution_pct': share(2),
+        'top5_contribution_pct': share(5),
+        'top1_contribution_pp': contribution_pp(1),
+        'top2_contribution_pp': contribution_pp(2),
+        'top5_contribution_pp': contribution_pp(5),
+        'top_symbols': [row.get('stock') for row in ordered[:5]],
+    }
+
+
+def _build_return_source_summary(contributors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Aggregate expected return contribution by target/return source."""
+    by_source: Dict[str, Dict[str, Any]] = {}
+
+    for row in contributors:
+        source = row.get('target_source') or row.get('return_source') or 'Unknown'
+        if source not in by_source:
+            by_source[source] = {
+                'source': source,
+                'count': 0,
+                'weight_pct': 0.0,
+                'return_contribution_pct': 0.0,
+            }
+
+        by_source[source]['count'] += 1
+        by_source[source]['weight_pct'] += row.get('weight_pct') or 0
+        by_source[source]['return_contribution_pct'] += row.get('return_contribution_pct') or 0
+
+    summary = []
+    for item in by_source.values():
+        summary.append({
+            'source': item['source'],
+            'count': item['count'],
+            'weight_pct': round(item['weight_pct'], 2),
+            'return_contribution_pct': round(item['return_contribution_pct'], 2),
+        })
+
+    summary.sort(key=lambda row: abs(row.get('return_contribution_pct') or 0), reverse=True)
+    return summary
+
+
+def _build_turnover_diagnostics(
+    transactions: List[Dict[str, Any]],
+    holdings: Dict[str, Any],
+    transaction_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Summarize the operational size of the proposed transition."""
+    portfolio_value = holdings.get('total_value', 0) or 0
+    total_trade_value = sum(abs(tx.get('value_change', 0) or 0) for tx in transactions)
+    total_trade_pct = (total_trade_value / portfolio_value * 100) if portfolio_value > 0 else 0
+
+    return {
+        'num_transactions': len(transactions),
+        'total_trade_value': round(total_trade_value, 2),
+        'total_trade_value_pct': round(total_trade_pct, 2),
+        'total_buy_value': transaction_summary.get('total_buy_value', 0),
+        'total_sell_value': transaction_summary.get('total_sell_value', 0),
+        'total_cost': transaction_summary.get('total_cost', 0),
+        'portfolio_value': round(portfolio_value, 2),
+    }
+
+
+def build_baseline_diagnostics(
+    holdings: Dict[str, Any],
+    ideal: Dict[str, Any],
+    optimal: Dict[str, Any],
+    transactions: List[Dict[str, Any]],
+    transaction_summary: Dict[str, Any],
+    logger: logging.Logger,
+) -> Dict[str, Any]:
+    """Build Phase 0 diagnostics without affecting the official decision."""
+    portfolios = {
+        'holdings': (holdings, holdings.get('expected_return', 0), True),
+        'ideal': (ideal, ideal.get('expected_return', 0), False),
+        'optimal': (optimal, optimal.get('expected_return', 0), False),
+    }
+
+    contributors: Dict[str, List[Dict[str, Any]]] = {}
+    concentration: Dict[str, Dict[str, Any]] = {}
+    source_summary: Dict[str, List[Dict[str, Any]]] = {}
+
+    for name, (portfolio, expected_return, allow_hist) in portfolios.items():
+        rows = _build_return_contributors(
+            portfolio,
+            expected_return,
+            logger,
+            allow_historical_fallback=allow_hist,
+        )
+        contributors[name] = rows
+        concentration[name] = _build_return_concentration(rows, expected_return)
+        source_summary[name] = _build_return_source_summary(rows)
+
+    return {
+        'phase': '0_baseline_diagnostics',
+        'description': 'Explains current target-based return without changing the official decision.',
+        'return_concentration': concentration,
+        'return_contributors': contributors,
+        'return_source_summary': source_summary,
+        'turnover': _build_turnover_diagnostics(transactions, holdings, transaction_summary),
+    }
+
+
 def discretize_to_integer_shares(
     portfolio_weights: Dict[str, float],
     total_value: float,
@@ -1197,6 +1466,15 @@ def generate_recommendation(
     _, transactions = calculate_transition_cost(
         holdings, optimal, transaction_cost_pct, logger
     )
+    transaction_summary = _build_transaction_summary(transactions)
+    diagnostics = build_baseline_diagnostics(
+        holdings,
+        ideal,
+        optimal,
+        transactions,
+        transaction_summary,
+        logger,
+    )
 
     # Determine decision
     if excess_return >= min_excess_threshold:
@@ -1259,7 +1537,8 @@ def generate_recommendation(
             },
         },
         'transactions': transactions,
-        'transaction_summary': _build_transaction_summary(transactions),
+        'transaction_summary': transaction_summary,
+        'diagnostics': diagnostics,
         'transaction_cost_pct_used': round(transaction_cost_pct, 4),
         'parameters': {
             'weight_expected_return': float(params.get('WEIGHT_EXPECTED_RETURN', 0.4)),
@@ -1320,6 +1599,23 @@ def save_recommendation(
             'transition_cost_pct': recommendation['comparison']['optimal']['transition_cost_pct'],
             'transaction_cost_pct_used': recommendation['transaction_cost_pct_used'],
             'num_transactions': len(recommendation['transactions']),
+            'diagnostic_holdings_top2_contribution_pct': (
+                recommendation.get('diagnostics', {})
+                .get('return_concentration', {})
+                .get('holdings', {})
+                .get('top2_contribution_pct')
+            ),
+            'diagnostic_optimal_top2_contribution_pct': (
+                recommendation.get('diagnostics', {})
+                .get('return_concentration', {})
+                .get('optimal', {})
+                .get('top2_contribution_pct')
+            ),
+            'diagnostic_total_trade_value_pct': (
+                recommendation.get('diagnostics', {})
+                .get('turnover', {})
+                .get('total_trade_value_pct')
+            ),
             'holdings_stocks': recommendation['comparison']['holdings']['stocks'],
             'ideal_stocks': recommendation['comparison']['ideal']['stocks'],
             'optimal_stocks': recommendation['comparison']['optimal']['stocks'],
@@ -1584,4 +1880,3 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
-

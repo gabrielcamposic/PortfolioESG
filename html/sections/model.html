@@ -79,6 +79,20 @@
   .risk-label { font-size: 9px; font-weight: var(--font-weight-emphasis); color: var(--color-label); text-transform: uppercase; margin-bottom: 2px; display: block; letter-spacing: 0.05em; }
   .risk-value { font-family: var(--font-sans); font-size: 13px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); }
 
+  /* ── Return Diagnostics ── */
+  .diag-block { margin: 14px 0 16px; padding-top: 14px; border-top: 1px solid var(--border-strong); }
+  .diag-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .diag-title { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); letter-spacing: 0.08em; }
+  .diag-chip { font-size: 10px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; white-space: nowrap; }
+  .diag-alert { margin-bottom: 10px; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(184, 109, 93, 0.35); background: rgba(184, 109, 93, 0.08); color: var(--text-primary); font-size: 11px; font-weight: var(--font-weight-emphasis); line-height: 1.35; }
+  .diag-table-wrap { overflow-x: auto; }
+  .diag-table { table-layout: fixed; min-width: 640px; }
+  .diag-table td { padding: 8px 10px; font-size: 11px; }
+  .diag-table td:first-child { font-size: 12px; }
+  .source-pill { display: inline-block; max-width: 145px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; padding: 3px 7px; border-radius: 6px; background: rgba(79, 140, 201, 0.10); color: var(--brand-blue); font-size: 9px; font-weight: var(--font-weight-emphasis); white-space: nowrap; }
+  .source-pill.fallback { background: rgba(184, 109, 93, 0.10); color: var(--color-negative); }
+  .source-pill.historical { background: hsla(210, 15%, 45%, 0.12); color: var(--text-muted); }
+
   /* ── Tables ── */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead tr.group-headers th { padding: 8px 10px; font-size: 8px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); letter-spacing: 1px; color: var(--color-label); }
@@ -256,11 +270,77 @@ function fmtNum(v, d = 0) {
   if (v == null || isNaN(v)) return '—';
   return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 }
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
 
 async function fetchJSON(file) {
   const r = await fetch(`${DATA_BASE}/${file}`);
   if (!r.ok) throw new Error(`${file}: ${r.status}`);
   return r.json();
+}
+
+function sourceClass(source) {
+  if (!source) return '';
+  if (source.includes('Fallback')) return 'fallback';
+  if (source.includes('Historical')) return 'historical';
+  return '';
+}
+
+function renderReturnDiagnostics(dashboard, recommendation) {
+  const diag = recommendation?.diagnostics || dashboard.model?.diagnostics || {};
+  const contributors = diag.return_contributors?.optimal || [];
+  if (!contributors.length) return '';
+
+  const optimalConc = diag.return_concentration?.optimal || {};
+  const holdConc = diag.return_concentration?.holdings || {};
+  const top2 = optimalConc.top2_contribution_pct;
+  const holdTop2 = holdConc.top2_contribution_pct;
+  const rows = contributors.slice(0, 5);
+  const alert = top2 != null && top2 > 50
+    ? `<div class="diag-alert">Top 2 ativos explicam ${fmtNum(top2, 1)}% do retorno esperado do modelo${holdTop2 != null ? `; na carteira atual, ${fmtNum(holdTop2, 1)}%` : ''}.</div>`
+    : '';
+
+  return `
+    <div class="diag-block">
+      <div class="diag-head">
+        <div class="diag-title">Origem do Retorno Esperado</div>
+        <div class="diag-chip">Top 5: ${fmtNum(optimalConc.top5_contribution_pct, 1)}%</div>
+      </div>
+      ${alert}
+      <div class="diag-table-wrap">
+        <table class="diag-table">
+          <thead>
+            <tr class="main-headers">
+              <th>Ativo</th>
+              <th class="right">Peso</th>
+              <th class="right">Preço</th>
+              <th class="right">Alvo</th>
+              <th class="right">Upside</th>
+              <th class="right">Contrib.</th>
+              <th>Fonte</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => {
+              const source = row.target_source || row.return_source || '—';
+              return `
+                <tr>
+                  <td>${esc(row.stock).replace('.SA', '')}</td>
+                  <td class="right">${fmtPct(row.weight_pct)}</td>
+                  <td class="right">${fmtBRL(row.current_price)}</td>
+                  <td class="right">${fmtBRL(row.target_price)}</td>
+                  <td class="right" style="color:${plColor((row.raw_upside_pct || 0) / 100)}">${fmtPct(row.raw_upside_pct)}</td>
+                  <td class="right" style="color:${plColor((row.return_contribution_pct || 0) / 100)}">${fmtPct(row.return_contribution_pct)}</td>
+                  <td><span class="source-pill ${sourceClass(source)}" title="${esc(source)}">${esc(source)}</span></td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function renderSummary(dashboard, recommendation) {
@@ -322,6 +402,7 @@ function renderSummary(dashboard, recommendation) {
       <span class="badge ${badgeCls}">${badgeText}</span>
     </div>
     ${returnComparisonHtml}
+    ${renderReturnDiagnostics(dashboard, recommendation)}
     ${riskRowHtml}
   `;
 }

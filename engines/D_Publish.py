@@ -1299,6 +1299,7 @@ def _build_model_section() -> dict:
     holdings = comparison.get("holdings", {})
     ideal = comparison.get("ideal", {})
     optimal = comparison.get("optimal", {})
+    diagnostics = optimized.get("diagnostics", {})
     momentum_val = bp.get("momentum_valuation", {})
 
     # Extract model portfolio composition
@@ -1388,6 +1389,12 @@ def _build_model_section() -> dict:
         },
         "composition": {
             "sector_exposure": _compute_sector_exposure(model_weights_dict),
+        },
+        "diagnostics": {
+            "phase": diagnostics.get("phase"),
+            "return_concentration": diagnostics.get("return_concentration", {}),
+            "return_source_summary": diagnostics.get("return_source_summary", {}),
+            "turnover": diagnostics.get("turnover", {}),
         },
     }
 
@@ -1931,6 +1938,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
 
 

@@ -85,7 +85,7 @@ Frontend:
 
 | Fase | Nome | Status | Resultado esperado |
 |---|---|---|---|
-| 0 | Baseline e diagnostico atual | Pendente | Explicar de onde vem o retorno esperado atual |
+| 0 | Baseline e diagnostico atual | Implementado em 2026-06-05 | Explicar de onde vem o retorno esperado atual |
 | 1 | Quality gate de targets | Pendente | Identificar targets confiaveis, suspeitos e rejeitados |
 | 2 | Retorno esperado com shrinkage | Pendente | Criar retorno ajustado sem substituir decisao oficial |
 | 3 | Regime de mercado com stress pos-pico | Pendente | Detectar drawdown recente e elevar cautela |
@@ -586,4 +586,5 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-05 | Fase 0 implementada: `optimized_recommendation.json` ganhou `diagnostics` com concentracao de retorno, top contribuintes, fonte do target e turnover; `dashboard_latest.json` publica resumo diagnostico; `model.html` exibe origem do retorno esperado e alerta de concentracao |
 | 2026-06-05 | Criacao do plano inicial de implementacao |
