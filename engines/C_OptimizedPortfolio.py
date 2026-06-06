@@ -298,6 +298,12 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT': float,
         'EXECUTION_MIN_TRADE_VALUE_BRL': float,
         'EXECUTION_MAX_ACTIONS': int,
+        'TURNOVER_PENALTY_LAMBDA': float,
+        'STABLE_TURNOVER_TARGET_PCT': float,
+        'STABLE_TURNOVER_EXCESS_PENALTY_LAMBDA': float,
+        'STABLE_UNCERTAINTY_PENALTY_LAMBDA': float,
+        'STABLE_CONCENTRATION_PENALTY_LAMBDA': float,
+        'STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA': float,
     }
 
     params = {}
@@ -366,6 +372,12 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT': 35.0,
         'EXECUTION_MIN_TRADE_VALUE_BRL': 25.0,
         'EXECUTION_MAX_ACTIONS': 6,
+        'TURNOVER_PENALTY_LAMBDA': 0.05,
+        'STABLE_TURNOVER_TARGET_PCT': 12.0,
+        'STABLE_TURNOVER_EXCESS_PENALTY_LAMBDA': 0.10,
+        'STABLE_UNCERTAINTY_PENALTY_LAMBDA': 0.03,
+        'STABLE_CONCENTRATION_PENALTY_LAMBDA': 0.02,
+        'STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA': 0.03,
     }
 
     for key, default in defaults.items():
@@ -1160,6 +1172,19 @@ def _round_or_none(value: Any, digits: int = 2) -> Optional[float]:
     if not math.isfinite(numeric):
         return None
     return round(numeric, digits)
+
+
+def _turnover_pct_from_transition_cost(
+    transition_cost_pct: float,
+    transaction_cost_pct: float,
+) -> float:
+    """Recover traded value as % of portfolio from transition cost diagnostics."""
+    try:
+        if transaction_cost_pct <= 0:
+            return 0.0
+        return (float(transition_cost_pct or 0) / float(transaction_cost_pct)) * 100
+    except (TypeError, ValueError, ZeroDivisionError):
+        return 0.0
 
 
 def _portfolio_weights(portfolio: Dict[str, Any]) -> Dict[str, float]:
@@ -2054,8 +2079,8 @@ def build_baseline_diagnostics(
         adjusted_returns[name] = _build_adjusted_return_summary(rows, expected_return)
 
     return {
-        'phase': '5_execution_states',
-        'description': 'Explains raw/adjusted return, market stress, shadow gate and executable state without changing the official decision.',
+        'phase': '6_turnover_penalty_optimization',
+        'description': 'Explains raw/adjusted return, market stress, shadow gate, executable state and stable turnover-aware optimization without changing the official decision.',
         'return_concentration': concentration,
         'return_contributors': contributors,
         'return_source_summary': source_summary,
@@ -2191,6 +2216,7 @@ def find_optimal_portfolio(
         candidate['sharpe_ratio'] = candidate_sharpe
         candidate['net_return'] = net_return
         candidate['transition_cost'] = cost
+        candidate['turnover_pct'] = _turnover_pct_from_transition_cost(cost, transaction_cost_pct)
         candidate['momentum'] = momentum
         candidate['score'] = score
 
@@ -2202,10 +2228,210 @@ def find_optimal_portfolio(
     return best_candidate
 
 
+def _stable_penalty_params(params: Dict[str, Any]) -> Dict[str, float]:
+    return {
+        'turnover_lambda': float(params.get('TURNOVER_PENALTY_LAMBDA', 0.05)),
+        'turnover_target_pct': float(params.get('STABLE_TURNOVER_TARGET_PCT', 12.0)),
+        'turnover_excess_lambda': float(params.get('STABLE_TURNOVER_EXCESS_PENALTY_LAMBDA', 0.10)),
+        'uncertainty_lambda': float(params.get('STABLE_UNCERTAINTY_PENALTY_LAMBDA', 0.03)),
+        'concentration_lambda': float(params.get('STABLE_CONCENTRATION_PENALTY_LAMBDA', 0.02)),
+        'suspicious_lambda': float(params.get('STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA', 0.03)),
+        'max_suspicious_pct': float(params.get('SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT', 35.0)),
+    }
+
+
+def _build_stable_frontier_row(
+    candidate: Dict[str, Any],
+    holdings_adjusted_return_pct: float,
+    contributors: List[Dict[str, Any]],
+    adjusted_summary: Dict[str, Any],
+    params: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Score one candidate using adjusted return and turnover-aware penalties."""
+    penalty_params = _stable_penalty_params(params)
+    quality_metrics = _build_shadow_quality_metrics(contributors, adjusted_summary)
+    concentration = _build_return_concentration(contributors, candidate.get('expected_return', 0))
+
+    adjusted_gross_return = adjusted_summary.get('adjusted_expected_return_pct') or 0.0
+    adjusted_net_return = adjusted_gross_return - (candidate.get('transition_cost') or 0.0)
+    adjusted_gain = adjusted_net_return - holdings_adjusted_return_pct
+    turnover_pct = candidate.get('turnover_pct') or 0.0
+    quality_score = quality_metrics.get('portfolio_target_quality_score')
+    uncertainty_pct = max(0.0, (1.0 - quality_score) * 100) if quality_score is not None else 0.0
+    top2_concentration = concentration.get('top2_contribution_pct') or 0.0
+    concentration_excess = max(0.0, top2_concentration - 50.0)
+    suspicious_share = quality_metrics.get('suspicious_return_contribution_share_pct') or 0.0
+    suspicious_excess = max(0.0, suspicious_share - penalty_params['max_suspicious_pct'])
+    turnover_excess = max(0.0, turnover_pct - penalty_params['turnover_target_pct'])
+
+    turnover_penalty = penalty_params['turnover_lambda'] * turnover_pct
+    turnover_excess_penalty = penalty_params['turnover_excess_lambda'] * turnover_excess
+    uncertainty_penalty = penalty_params['uncertainty_lambda'] * uncertainty_pct
+    concentration_penalty = penalty_params['concentration_lambda'] * concentration_excess
+    suspicious_penalty = penalty_params['suspicious_lambda'] * suspicious_excess
+    stable_score = (
+        adjusted_gain
+        - turnover_penalty
+        - turnover_excess_penalty
+        - uncertainty_penalty
+        - concentration_penalty
+        - suspicious_penalty
+    )
+
+    return {
+        'blend_ratio': round(candidate.get('blend_ratio', 0), 4),
+        'raw_net_return_pct': round(candidate.get('net_return', 0) or 0, 4),
+        'adjusted_net_return_pct': round(adjusted_net_return, 4),
+        'adjusted_gain_pct': round(adjusted_gain, 4),
+        'turnover_pct': round(turnover_pct, 4),
+        'target_quality_score': _round_or_none(quality_score, 4),
+        'low_reject_weight_pct': quality_metrics.get('low_reject_weight_pct'),
+        'suspicious_return_contribution_share_pct': _round_or_none(suspicious_share, 4),
+        'top2_return_concentration_pct': _round_or_none(top2_concentration, 4),
+        'stable_score': round(stable_score, 4),
+        'stable_score_components': {
+            'adjusted_gain_pct': round(adjusted_gain, 4),
+            'turnover_penalty_pct': round(turnover_penalty, 4),
+            'turnover_excess_penalty_pct': round(turnover_excess_penalty, 4),
+            'uncertainty_penalty_pct': round(uncertainty_penalty, 4),
+            'concentration_penalty_pct': round(concentration_penalty, 4),
+            'suspicious_return_penalty_pct': round(suspicious_penalty, 4),
+        },
+    }
+
+
+def _sample_stable_frontier(frontier: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Keep the frontier visible without bloating the dashboard."""
+    if not frontier:
+        return []
+
+    selected_indices = {0, len(frontier) - 1}
+    for pct in (0.25, 0.50, 0.75):
+        selected_indices.add(round((len(frontier) - 1) * pct))
+    best_idx = max(range(len(frontier)), key=lambda idx: frontier[idx].get('stable_score', -float('inf')))
+    selected_indices.add(best_idx)
+
+    return [frontier[idx] for idx in sorted(selected_indices)]
+
+
+def build_stable_optimization_shadow(
+    holdings: Dict[str, Any],
+    candidates: List[Dict[str, Any]],
+    transaction_cost_pct: float,
+    params: Dict[str, Any],
+    logger: logging.Logger,
+) -> Dict[str, Any]:
+    """Select a turnover-aware stable portfolio in shadow mode."""
+    related_target_context = _build_target_quality_context(logger, params)
+    holdings_contributors = _build_return_contributors(
+        holdings,
+        holdings.get('expected_return', 0),
+        logger,
+        params,
+        related_target_context,
+        allow_historical_fallback=True,
+    )
+    holdings_adjusted = _build_adjusted_return_summary(
+        holdings_contributors,
+        holdings.get('expected_return', 0),
+    )
+    holdings_adjusted_return = holdings_adjusted.get('adjusted_expected_return_pct') or 0.0
+
+    frontier: List[Dict[str, Any]] = []
+    by_blend: Dict[float, Dict[str, Any]] = {}
+    for candidate in candidates:
+        contributors = _build_return_contributors(
+            candidate,
+            candidate.get('expected_return', 0),
+            logger,
+            params,
+            related_target_context,
+            allow_historical_fallback=False,
+        )
+        adjusted_summary = _build_adjusted_return_summary(
+            contributors,
+            candidate.get('expected_return', 0),
+        )
+        row = _build_stable_frontier_row(
+            candidate,
+            holdings_adjusted_return,
+            contributors,
+            adjusted_summary,
+            params,
+        )
+        frontier.append(row)
+        by_blend[round(candidate.get('blend_ratio', 0), 4)] = candidate
+
+    if not frontier:
+        return {
+            'phase': '6_turnover_penalty_optimization',
+            'enabled': False,
+            'reason': 'no_candidates',
+        }
+
+    frontier.sort(key=lambda row: row.get('blend_ratio', 0))
+    selected_row = max(frontier, key=lambda row: row.get('stable_score', -float('inf')))
+    selected_candidate = by_blend.get(selected_row.get('blend_ratio'), {})
+    official_row = max(frontier, key=lambda row: row.get('blend_ratio', 0))
+    if candidates:
+        official_blend = round(max(candidates, key=lambda c: c.get('score', -float('inf'))).get('blend_ratio', 0), 4)
+        official_row = next(
+            (row for row in frontier if row.get('blend_ratio') == official_blend),
+            official_row,
+        )
+
+    _, stable_transactions = calculate_transition_cost(
+        holdings,
+        selected_candidate,
+        transaction_cost_pct,
+        logger,
+    )
+    stable_transaction_summary = _build_transaction_summary(stable_transactions)
+
+    turnover_saved = (official_row.get('turnover_pct') or 0) - (selected_row.get('turnover_pct') or 0)
+    adjusted_return_tradeoff = (
+        (official_row.get('adjusted_net_return_pct') or 0)
+        - (selected_row.get('adjusted_net_return_pct') or 0)
+    )
+    adjusted_return_delta = (
+        (selected_row.get('adjusted_net_return_pct') or 0)
+        - (official_row.get('adjusted_net_return_pct') or 0)
+    )
+
+    return {
+        'phase': '6_turnover_penalty_optimization',
+        'enabled': True,
+        'selected_blend_ratio': selected_row.get('blend_ratio'),
+        'selected_stable_score': selected_row.get('stable_score'),
+        'official_blend_ratio': official_row.get('blend_ratio'),
+        'official_stable_score': official_row.get('stable_score'),
+        'turnover_saved_pct': round(turnover_saved, 4),
+        'adjusted_return_tradeoff_pct': round(adjusted_return_tradeoff, 4),
+        'adjusted_return_delta_pct': round(adjusted_return_delta, 4),
+        'penalty_parameters': _stable_penalty_params(params),
+        'holdings_adjusted_return_pct': round(holdings_adjusted_return, 4),
+        'official_candidate': official_row,
+        'stable_candidate': selected_row,
+        'stable_portfolio': {
+            'stocks': selected_candidate.get('stocks', []),
+            'weights': selected_candidate.get('weights', {}),
+            'expected_return_pct': round(selected_candidate.get('expected_return', 0) or 0, 4),
+            'net_return_pct': round(selected_candidate.get('net_return', 0) or 0, 4),
+            'adjusted_net_return_pct': selected_row.get('adjusted_net_return_pct'),
+            'turnover_pct': selected_row.get('turnover_pct'),
+            'stable_score': selected_row.get('stable_score'),
+        },
+        'stable_transactions': stable_transactions,
+        'stable_transaction_summary': stable_transaction_summary,
+        'frontier': _sample_stable_frontier(frontier),
+    }
+
+
 def generate_recommendation(
     holdings: Dict[str, Any],
     ideal: Dict[str, Any],
     optimal: Dict[str, Any],
+    stable_optimization: Dict[str, Any],
     transaction_cost_pct: float,
     params: Dict,
     logger: logging.Logger
@@ -2371,7 +2597,7 @@ def generate_recommendation(
         'transaction_summary': transaction_summary,
         'diagnostics': diagnostics,
         'shadow': {
-            'phase': '5_execution_states',
+            'phase': '6_turnover_penalty_optimization',
             'official_decision': decision,
             'official_excess_return_pct': round(excess_return, 4),
             'holdings_adjusted_return_pct': round(holdings_adjusted_return, 4),
@@ -2390,6 +2616,7 @@ def generate_recommendation(
             'would_rebalance_on_adjusted_return': bool(adjusted_excess_return >= min_excess_threshold),
             **shadow_gate,
             'execution_plan': execution_plan,
+            'stable_optimization': stable_optimization,
         },
         'transaction_cost_pct_used': round(transaction_cost_pct, 4),
         'parameters': {
@@ -2420,6 +2647,16 @@ def generate_recommendation(
             'execution_monthly_turnover_budget_pct': float(params.get('EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT', 35.0)),
             'execution_min_trade_value_brl': float(params.get('EXECUTION_MIN_TRADE_VALUE_BRL', 25.0)),
             'execution_max_actions': int(params.get('EXECUTION_MAX_ACTIONS', 6)),
+            'turnover_penalty_lambda': float(params.get('TURNOVER_PENALTY_LAMBDA', 0.05)),
+            'stable_turnover_target_pct': float(params.get('STABLE_TURNOVER_TARGET_PCT', 12.0)),
+            'stable_turnover_excess_penalty_lambda': float(
+                params.get('STABLE_TURNOVER_EXCESS_PENALTY_LAMBDA', 0.10)
+            ),
+            'stable_uncertainty_penalty_lambda': float(params.get('STABLE_UNCERTAINTY_PENALTY_LAMBDA', 0.03)),
+            'stable_concentration_penalty_lambda': float(params.get('STABLE_CONCENTRATION_PENALTY_LAMBDA', 0.02)),
+            'stable_suspicious_return_penalty_lambda': float(
+                params.get('STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA', 0.03)
+            ),
         }
     }
 
@@ -2557,6 +2794,36 @@ def save_recommendation(
                 recommendation.get('shadow', {})
                 .get('execution_plan', {})
                 .get('num_executable_actions')
+            ),
+            'stable_selected_blend_ratio': (
+                recommendation.get('shadow', {})
+                .get('stable_optimization', {})
+                .get('selected_blend_ratio')
+            ),
+            'stable_official_blend_ratio': (
+                recommendation.get('shadow', {})
+                .get('stable_optimization', {})
+                .get('official_blend_ratio')
+            ),
+            'stable_turnover_saved_pct': (
+                recommendation.get('shadow', {})
+                .get('stable_optimization', {})
+                .get('turnover_saved_pct')
+            ),
+            'stable_adjusted_return_tradeoff_pct': (
+                recommendation.get('shadow', {})
+                .get('stable_optimization', {})
+                .get('adjusted_return_tradeoff_pct')
+            ),
+            'stable_adjusted_return_delta_pct': (
+                recommendation.get('shadow', {})
+                .get('stable_optimization', {})
+                .get('adjusted_return_delta_pct')
+            ),
+            'stable_selected_score': (
+                recommendation.get('shadow', {})
+                .get('stable_optimization', {})
+                .get('selected_stable_score')
             ),
             'holdings_stocks': recommendation['comparison']['holdings']['stocks'],
             'ideal_stocks': recommendation['comparison']['ideal']['stocks'],
@@ -2724,6 +2991,21 @@ def main():
     logger.info(f"Optimal portfolio (continuous): blend_ratio={optimal['blend_ratio']:.2f}, "
                f"score={optimal['score']:.4f}, net_return={optimal['net_return']:.2f}%")
 
+    stable_optimization = build_stable_optimization_shadow(
+        holdings,
+        candidates,
+        transaction_cost_pct,
+        params,
+        logger,
+    )
+    if stable_optimization.get('enabled'):
+        logger.info(
+            "Stable shadow portfolio: "
+            f"blend_ratio={stable_optimization.get('selected_blend_ratio'):.2f}, "
+            f"stable_score={stable_optimization.get('selected_stable_score'):.4f}, "
+            f"turnover_saved={stable_optimization.get('turnover_saved_pct'):.2f}%"
+        )
+
     # ── Discretize to integer shares (B3 constraint) ──────────────────
     # MVO optimises in continuous weight-space, but B3 only allows
     # integer shares.  Discretize the optimal portfolio and recalculate
@@ -2792,7 +3074,7 @@ def main():
 
     # Generate recommendation (uses discretized weights)
     recommendation = generate_recommendation(
-        holdings, ideal, optimal, transaction_cost_pct, params, logger
+        holdings, ideal, optimal, stable_optimization, transaction_cost_pct, params, logger
     )
 
     # Save results

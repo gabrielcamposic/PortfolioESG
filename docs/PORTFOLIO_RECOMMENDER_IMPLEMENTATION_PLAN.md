@@ -91,7 +91,7 @@ Frontend:
 | 3 | Regime de mercado com stress pos-pico | Implementado em 2026-06-05 | Detectar drawdown recente e elevar cautela |
 | 4 | Gate de rebalanceamento shadow | Implementado em 2026-06-05 | Comparar decisao oficial vs decisao alternativa |
 | 5 | Estados HOLD/WATCH/PARTIAL/REBALANCE | Implementado em 2026-06-06 | Reduzir binariedade da recomendacao |
-| 6 | Otimizacao com penalidade de turnover | Pendente | Preferir estabilidade quando ganho marginal e baixo |
+| 6 | Otimizacao com penalidade de turnover | Implementado em 2026-06-06 | Preferir estabilidade quando ganho marginal e baixo |
 | 7 | Backtest e calibracao | Pendente | Calibrar thresholds com historico |
 | 8 | Promocao para decisao oficial | Pendente | Substituir decisao oficial com seguranca |
 
@@ -516,6 +516,25 @@ Adicionar:
 - Limite de peso em ativos low/reject.
 - Comparacao entre portfolio ideal bruto e portfolio estavel.
 
+Implementacao atual:
+
+- `C_OptimizedPortfolio.py` calcula `shadow.stable_optimization` em paralelo ao otimo oficial.
+- A carteira estavel avalia todos os blends entre carteira atual e portfolio ideal usando retorno ajustado, turnover, excesso de turnover, incerteza de targets, concentracao de retorno e contribuicao suspeita.
+- A decisao oficial e o portfolio modelo oficial seguem intactos; a carteira estavel e diagnostica/shadow.
+- O historico JSONL registra blend estavel, blend oficial, turnover poupado, trade-off de retorno ajustado e score estavel.
+- `html/sections/model.html` mostra "Otimizacao Estavel" comparando otimo oficial vs carteira estavel.
+
+Parametros atuais:
+
+```text
+TURNOVER_PENALTY_LAMBDA = 0.05
+STABLE_TURNOVER_TARGET_PCT = 12
+STABLE_TURNOVER_EXCESS_PENALTY_LAMBDA = 0.10
+STABLE_UNCERTAINTY_PENALTY_LAMBDA = 0.03
+STABLE_CONCENTRATION_PENALTY_LAMBDA = 0.02
+STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA = 0.03
+```
+
 ### Dashboard
 
 Mostrar:
@@ -677,6 +696,11 @@ Lista inicial, sem compromisso de valores finais:
 | `EXECUTION_MIN_TRADE_VALUE_BRL` | Valor minimo por ordem executavel |
 | `EXECUTION_MAX_ACTIONS` | Numero maximo de acoes em execucao parcial |
 | `TURNOVER_PENALTY_LAMBDA` | Penalidade de turnover na otimizacao |
+| `STABLE_TURNOVER_TARGET_PCT` | Turnover alvo antes de penalidade adicional |
+| `STABLE_TURNOVER_EXCESS_PENALTY_LAMBDA` | Penalidade extra sobre turnover acima do alvo |
+| `STABLE_UNCERTAINTY_PENALTY_LAMBDA` | Penalidade por baixa qualidade media dos targets |
+| `STABLE_CONCENTRATION_PENALTY_LAMBDA` | Penalidade por concentracao do retorno esperado |
+| `STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA` | Penalidade por retorno vindo de targets low/reject |
 
 ## Registro De Decisoes
 
@@ -690,6 +714,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-06 | Fase 6 implementada: `shadow.stable_optimization` compara otimo oficial vs carteira estavel com penalidades de turnover, incerteza, concentracao e retorno suspeito; historico ganhou campos estaveis; `model.html` mostra "Otimizacao Estavel" |
 | 2026-06-06 | Fase 5 implementada: `shadow.execution_plan` com estado executavel, intensidade, bandas por ativo/setor, orcamento semanal/mensal, classificacao de acoes, historico resumido e painel "Plano Executavel" em `model.html` |
 | 2026-06-05 | Fase 4 implementada: gate shadow em `C_OptimizedPortfolio.py`, hurdle dinamico, vetos de persistencia/turnover/qualidade/retorno suspeito, historico shadow, publicacao em `dashboard_latest.json`, e painel "Gate Shadow" em `model.html` |
 | 2026-06-05 | Fase 3 implementada: helper `shared_tools/market_regime.py`, `diagnostics.market_regime` no otimizador, resumo de regime no shadow/historico, publicacao no dashboard, e card de regime em `risk.html` |

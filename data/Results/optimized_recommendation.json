@@ -1,6 +1,6 @@
 {
   "date": "2026-06-06",
-  "timestamp": "2026-06-06 07:02:28",
+  "timestamp": "2026-06-06 07:25:19",
   "decision": "REBALANCE",
   "reason": "Excess return (59.61%) exceeds threshold (0.5%)",
   "excess_return_pct": 59.6128,
@@ -72,24 +72,24 @@
     },
     "optimal": {
       "stocks": [
-        "KLBN4.SA",
+        "AMBP3.SA",
         "CURY3.SA",
-        "RADL3.SA",
         "CMIG3.SA",
         "BBSE3.SA",
+        "RADL3.SA",
         "PETR3.SA",
-        "SLCE3.SA",
-        "AMBP3.SA"
+        "KLBN4.SA",
+        "SLCE3.SA"
       ],
       "weights": {
-        "KLBN4.SA": 0.3914849954305411,
+        "AMBP3.SA": 0.13651119511362977,
         "CURY3.SA": 0.044147563480905296,
-        "RADL3.SA": 0.05144778063290616,
         "CMIG3.SA": 0.06773621010020629,
         "BBSE3.SA": 0.11691409458149529,
+        "RADL3.SA": 0.05144778063290616,
         "PETR3.SA": 0.08921847563718789,
-        "SLCE3.SA": 0.1025396850231281,
-        "AMBP3.SA": 0.13651119511362977
+        "KLBN4.SA": 0.3914849954305411,
+        "SLCE3.SA": 0.1025396850231281
       },
       "expected_return_pct": 403.93,
       "adjusted_expected_return_pct": 13.07,
@@ -98,14 +98,14 @@
       "blend_ratio": 1.0,
       "transition_cost_pct": 0.0178,
       "share_quantities": {
-        "KLBN4.SA": 243,
+        "AMBP3.SA": 1577,
         "CURY3.SA": 3,
-        "RADL3.SA": 6,
         "CMIG3.SA": 9,
         "BBSE3.SA": 7,
+        "RADL3.SA": 6,
         "PETR3.SA": 4,
-        "SLCE3.SA": 14,
-        "AMBP3.SA": 1577
+        "KLBN4.SA": 243,
+        "SLCE3.SA": 14
       },
       "total_discretized_value": 2079.39,
       "expected_return_continuous_pct": 393.8,
@@ -114,46 +114,46 @@
   },
   "transactions": [
     {
-      "symbol": "PETR4.SA",
+      "symbol": "WEGE3.SA",
       "action": "SELL",
-      "weight_change": -0.01937778331171731,
-      "value_change": 41.52000045776367,
-      "current_weight": 0.01937778331171731,
+      "weight_change": -0.05817535209110727,
+      "value_change": 124.64999771118164,
+      "current_weight": 0.05817535209110727,
       "target_weight": 0,
-      "cost": 0.0119,
-      "current_price": 41.52,
-      "shares": 1,
-      "avg_purchase_price": 63.66,
-      "target_price": 53.28,
-      "signed_value": 41.52
+      "cost": 0.0359,
+      "current_price": 41.55,
+      "shares": 3,
+      "avg_purchase_price": 43.8,
+      "target_price": 52.59,
+      "signed_value": 124.65
     },
     {
-      "symbol": "KLBN4.SA",
+      "symbol": "AMBP3.SA",
       "action": "BUY",
-      "weight_change": 0.044393066726784,
-      "value_change": 70.34999799728394,
-      "current_weight": 0.3470919287037571,
-      "target_weight": 0.3914849954305411,
-      "cost": 0.0202,
-      "current_price": 3.35,
-      "shares": 21,
-      "avg_purchase_price": 3.63,
-      "target_price": 24.75,
-      "signed_value": -70.35
+      "weight_change": 0.0377181004798422,
+      "value_change": 72.18000286817548,
+      "current_weight": 0.09879309463378758,
+      "target_weight": 0.13651119511362977,
+      "cost": 0.0208,
+      "current_price": 0.18,
+      "shares": 401,
+      "avg_purchase_price": 0.19,
+      "target_price": 1.98,
+      "signed_value": -72.18
     },
     {
-      "symbol": "RANI3.SA",
+      "symbol": "PSSA3.SA",
       "action": "SELL",
-      "weight_change": -0.09525543069048126,
-      "value_change": 204.09999752044678,
-      "current_weight": 0.09525543069048126,
+      "weight_change": -0.06747220671133523,
+      "value_change": 144.56999588012695,
+      "current_weight": 0.06747220671133523,
       "target_weight": 0,
-      "cost": 0.0587,
-      "current_price": 7.85,
-      "shares": 26,
-      "avg_purchase_price": 8.05,
-      "target_price": 12.25,
-      "signed_value": 204.1
+      "cost": 0.0416,
+      "current_price": 48.19,
+      "shares": 3,
+      "avg_purchase_price": 49.3,
+      "target_price": 55.82,
+      "signed_value": 144.57
     },
     {
       "symbol": "CURY3.SA",
@@ -170,32 +170,18 @@
       "signed_value": -91.8
     },
     {
-      "symbol": "RADL3.SA",
-      "action": "BUY",
-      "weight_change": 0.05144778063290616,
-      "value_change": 106.97999954223633,
-      "current_weight": 0,
-      "target_weight": 0.05144778063290616,
-      "cost": 0.0308,
-      "current_price": 17.83,
-      "shares": 6,
-      "avg_purchase_price": null,
-      "target_price": 26.92,
-      "signed_value": -106.98
-    },
-    {
-      "symbol": "WEGE3.SA",
+      "symbol": "PNVL3.SA",
       "action": "SELL",
-      "weight_change": -0.05817535209110727,
-      "value_change": 124.64999771118164,
-      "current_weight": 0.05817535209110727,
+      "weight_change": -0.041929189849890684,
+      "value_change": 89.83999633789062,
+      "current_weight": 0.041929189849890684,
       "target_weight": 0,
-      "cost": 0.0359,
-      "current_price": 41.55,
-      "shares": 3,
-      "avg_purchase_price": 43.8,
-      "target_price": 52.59,
-      "signed_value": 124.65
+      "cost": 0.0259,
+      "current_price": 11.23,
+      "shares": 8,
+      "avg_purchase_price": 11.59,
+      "target_price": 18.6,
+      "signed_value": 89.84
     },
     {
       "symbol": "CMIG3.SA",
@@ -226,18 +212,32 @@
       "signed_value": -104.19
     },
     {
-      "symbol": "ISAE4.SA",
+      "symbol": "RADL3.SA",
+      "action": "BUY",
+      "weight_change": 0.05144778063290616,
+      "value_change": 106.97999954223633,
+      "current_weight": 0,
+      "target_weight": 0.05144778063290616,
+      "cost": 0.0308,
+      "current_price": 17.83,
+      "shares": 6,
+      "avg_purchase_price": null,
+      "target_price": 26.92,
+      "signed_value": -106.98
+    },
+    {
+      "symbol": "PETR4.SA",
       "action": "SELL",
-      "weight_change": -0.012605826732037997,
-      "value_change": 27.010000228881836,
-      "current_weight": 0.012605826732037997,
+      "weight_change": -0.01937778331171731,
+      "value_change": 41.52000045776367,
+      "current_weight": 0.01937778331171731,
       "target_weight": 0,
-      "cost": 0.0078,
-      "current_price": 27.01,
+      "cost": 0.0119,
+      "current_price": 41.52,
       "shares": 1,
-      "avg_purchase_price": 31.23,
-      "target_price": 30.07,
-      "signed_value": 27.01
+      "avg_purchase_price": 63.66,
+      "target_price": 53.28,
+      "signed_value": 41.52
     },
     {
       "symbol": "PETR3.SA",
@@ -254,46 +254,46 @@
       "signed_value": -185.52
     },
     {
-      "symbol": "PNVL3.SA",
-      "action": "SELL",
-      "weight_change": -0.041929189849890684,
-      "value_change": 89.83999633789062,
-      "current_weight": 0.041929189849890684,
-      "target_weight": 0,
-      "cost": 0.0259,
-      "current_price": 11.23,
-      "shares": 8,
-      "avg_purchase_price": 11.59,
-      "target_price": 18.6,
-      "signed_value": 89.84
-    },
-    {
-      "symbol": "PSSA3.SA",
-      "action": "SELL",
-      "weight_change": -0.06747220671133523,
-      "value_change": 144.56999588012695,
-      "current_weight": 0.06747220671133523,
-      "target_weight": 0,
-      "cost": 0.0416,
-      "current_price": 48.19,
-      "shares": 3,
-      "avg_purchase_price": 49.3,
-      "target_price": 55.82,
-      "signed_value": 144.57
-    },
-    {
-      "symbol": "AMBP3.SA",
+      "symbol": "KLBN4.SA",
       "action": "BUY",
-      "weight_change": 0.0377181004798422,
-      "value_change": 72.18000286817548,
-      "current_weight": 0.09879309463378758,
-      "target_weight": 0.13651119511362977,
-      "cost": 0.0208,
-      "current_price": 0.18,
-      "shares": 401,
-      "avg_purchase_price": 0.19,
-      "target_price": 1.98,
-      "signed_value": -72.18
+      "weight_change": 0.044393066726784,
+      "value_change": 70.34999799728394,
+      "current_weight": 0.3470919287037571,
+      "target_weight": 0.3914849954305411,
+      "cost": 0.0202,
+      "current_price": 3.35,
+      "shares": 21,
+      "avg_purchase_price": 3.63,
+      "target_price": 24.75,
+      "signed_value": -70.35
+    },
+    {
+      "symbol": "ISAE4.SA",
+      "action": "SELL",
+      "weight_change": -0.012605826732037997,
+      "value_change": 27.010000228881836,
+      "current_weight": 0.012605826732037997,
+      "target_weight": 0,
+      "cost": 0.0078,
+      "current_price": 27.01,
+      "shares": 1,
+      "avg_purchase_price": 31.23,
+      "target_price": 30.07,
+      "signed_value": 27.01
+    },
+    {
+      "symbol": "RANI3.SA",
+      "action": "SELL",
+      "weight_change": -0.09525543069048126,
+      "value_change": 204.09999752044678,
+      "current_weight": 0.09525543069048126,
+      "target_weight": 0,
+      "cost": 0.0587,
+      "current_price": 7.85,
+      "shares": 26,
+      "avg_purchase_price": 8.05,
+      "target_price": 12.25,
+      "signed_value": 204.1
     }
   ],
   "transaction_summary": {
@@ -303,8 +303,8 @@
     "projected_balance": 62.89
   },
   "diagnostics": {
-    "phase": "5_execution_states",
-    "description": "Explains raw/adjusted return, market stress, shadow gate and executable state without changing the official decision.",
+    "phase": "6_turnover_penalty_optimization",
+    "description": "Explains raw/adjusted return, market stress, shadow gate, executable state and stable turnover-aware optimization without changing the official decision.",
     "return_concentration": {
       "holdings": {
         "expected_return_pct": 344.3,
@@ -1550,7 +1550,7 @@
     }
   },
   "shadow": {
-    "phase": "5_execution_states",
+    "phase": "6_turnover_penalty_optimization",
     "official_decision": "REBALANCE",
     "official_excess_return_pct": 59.6128,
     "holdings_adjusted_return_pct": 17.82,
@@ -1950,6 +1950,209 @@
           "outside_band": false
         }
       ]
+    },
+    "stable_optimization": {
+      "phase": "6_turnover_penalty_optimization",
+      "enabled": true,
+      "selected_blend_ratio": 0.0,
+      "selected_stable_score": -3.9994,
+      "official_blend_ratio": 1.0,
+      "official_stable_score": -16.3727,
+      "turnover_saved_pct": 61.1231,
+      "adjusted_return_tradeoff_pct": -4.1876,
+      "adjusted_return_delta_pct": 4.1876,
+      "penalty_parameters": {
+        "turnover_lambda": 0.05,
+        "turnover_target_pct": 12.0,
+        "turnover_excess_lambda": 0.1,
+        "uncertainty_lambda": 0.03,
+        "concentration_lambda": 0.02,
+        "suspicious_lambda": 0.03,
+        "max_suspicious_pct": 35.0
+      },
+      "holdings_adjusted_return_pct": 17.82,
+      "official_candidate": {
+        "blend_ratio": 1.0,
+        "raw_net_return_pct": 393.7793,
+        "adjusted_net_return_pct": 13.6324,
+        "adjusted_gain_pct": -4.1876,
+        "turnover_pct": 61.1231,
+        "target_quality_score": 0.5188,
+        "low_reject_weight_pct": 58.1,
+        "suspicious_return_contribution_share_pct": 97.12,
+        "top2_return_concentration_pct": 95.47,
+        "stable_score": -16.3727,
+        "stable_score_components": {
+          "adjusted_gain_pct": -4.1876,
+          "turnover_penalty_pct": 3.0562,
+          "turnover_excess_penalty_pct": 4.9123,
+          "uncertainty_penalty_pct": 1.4436,
+          "concentration_penalty_pct": 0.9094,
+          "suspicious_return_penalty_pct": 1.8636
+        }
+      },
+      "stable_candidate": {
+        "blend_ratio": 0.0,
+        "raw_net_return_pct": 344.3027,
+        "adjusted_net_return_pct": 17.82,
+        "adjusted_gain_pct": 0.0,
+        "turnover_pct": 0.0,
+        "target_quality_score": 0.5618,
+        "low_reject_weight_pct": 54.09,
+        "suspicious_return_contribution_share_pct": 95.76,
+        "top2_return_concentration_pct": 93.1,
+        "stable_score": -3.9994,
+        "stable_score_components": {
+          "adjusted_gain_pct": 0.0,
+          "turnover_penalty_pct": 0.0,
+          "turnover_excess_penalty_pct": 0.0,
+          "uncertainty_penalty_pct": 1.3146,
+          "concentration_penalty_pct": 0.862,
+          "suspicious_return_penalty_pct": 1.8228
+        }
+      },
+      "stable_portfolio": {
+        "stocks": [
+          "WEGE3.SA",
+          "AMBP3.SA",
+          "PSSA3.SA",
+          "PNVL3.SA",
+          "CMIG3.SA",
+          "BBSE3.SA",
+          "PETR4.SA",
+          "KLBN4.SA",
+          "SLCE3.SA",
+          "ISAE4.SA",
+          "RANI3.SA"
+        ],
+        "weights": {
+          "WEGE3.SA": 0.05817535209110727,
+          "AMBP3.SA": 0.09879309463378758,
+          "PSSA3.SA": 0.06747220671133523,
+          "PNVL3.SA": 0.041929189849890684,
+          "CMIG3.SA": 0.09495206828532728,
+          "BBSE3.SA": 0.06483529847068265,
+          "PETR4.SA": 0.01937778331171731,
+          "KLBN4.SA": 0.3470919287037571,
+          "SLCE3.SA": 0.0995118205198756,
+          "ISAE4.SA": 0.012605826732037997,
+          "RANI3.SA": 0.09525543069048126
+        },
+        "expected_return_pct": 344.3027,
+        "net_return_pct": 344.3027,
+        "adjusted_net_return_pct": 17.82,
+        "turnover_pct": 0.0,
+        "stable_score": -3.9994
+      },
+      "stable_transactions": [],
+      "stable_transaction_summary": {
+        "total_buy_value": 0.0,
+        "total_sell_value": 0.0,
+        "total_cost": 0.0,
+        "projected_balance": 0.0
+      },
+      "frontier": [
+        {
+          "blend_ratio": 0.0,
+          "raw_net_return_pct": 344.3027,
+          "adjusted_net_return_pct": 17.82,
+          "adjusted_gain_pct": 0.0,
+          "turnover_pct": 0.0,
+          "target_quality_score": 0.5618,
+          "low_reject_weight_pct": 54.09,
+          "suspicious_return_contribution_share_pct": 95.76,
+          "top2_return_concentration_pct": 93.1,
+          "stable_score": -3.9994,
+          "stable_score_components": {
+            "adjusted_gain_pct": 0.0,
+            "turnover_penalty_pct": 0.0,
+            "turnover_excess_penalty_pct": 0.0,
+            "uncertainty_penalty_pct": 1.3146,
+            "concentration_penalty_pct": 0.862,
+            "suspicious_return_penalty_pct": 1.8228
+          }
+        },
+        {
+          "blend_ratio": 0.25,
+          "raw_net_return_pct": 356.6709,
+          "adjusted_net_return_pct": 16.7547,
+          "adjusted_gain_pct": -1.0653,
+          "turnover_pct": 18.5069,
+          "target_quality_score": 0.551,
+          "low_reject_weight_pct": 55.09,
+          "suspicious_return_contribution_share_pct": 96.13,
+          "top2_return_concentration_pct": 93.75,
+          "stable_score": -6.6973,
+          "stable_score_components": {
+            "adjusted_gain_pct": -1.0653,
+            "turnover_penalty_pct": 0.9253,
+            "turnover_excess_penalty_pct": 0.6507,
+            "uncertainty_penalty_pct": 1.347,
+            "concentration_penalty_pct": 0.875,
+            "suspicious_return_penalty_pct": 1.8339
+          }
+        },
+        {
+          "blend_ratio": 0.5,
+          "raw_net_return_pct": 369.042,
+          "adjusted_net_return_pct": 15.7122,
+          "adjusted_gain_pct": -2.1078,
+          "turnover_pct": 27.204,
+          "target_quality_score": 0.5403,
+          "low_reject_weight_pct": 56.1,
+          "suspicious_return_contribution_share_pct": 96.48,
+          "top2_return_concentration_pct": 94.36,
+          "stable_score": -9.0991,
+          "stable_score_components": {
+            "adjusted_gain_pct": -2.1078,
+            "turnover_penalty_pct": 1.3602,
+            "turnover_excess_penalty_pct": 1.5204,
+            "uncertainty_penalty_pct": 1.3791,
+            "concentration_penalty_pct": 0.8872,
+            "suspicious_return_penalty_pct": 1.8444
+          }
+        },
+        {
+          "blend_ratio": 0.75,
+          "raw_net_return_pct": 381.4106,
+          "adjusted_net_return_pct": 14.6972,
+          "adjusted_gain_pct": -3.1228,
+          "turnover_pct": 44.4,
+          "target_quality_score": 0.5295,
+          "low_reject_weight_pct": 57.11,
+          "suspicious_return_contribution_share_pct": 96.81,
+          "top2_return_concentration_pct": 94.93,
+          "stable_score": -12.7472,
+          "stable_score_components": {
+            "adjusted_gain_pct": -3.1228,
+            "turnover_penalty_pct": 2.22,
+            "turnover_excess_penalty_pct": 3.24,
+            "uncertainty_penalty_pct": 1.4115,
+            "concentration_penalty_pct": 0.8986,
+            "suspicious_return_penalty_pct": 1.8543
+          }
+        },
+        {
+          "blend_ratio": 1.0,
+          "raw_net_return_pct": 393.7793,
+          "adjusted_net_return_pct": 13.6324,
+          "adjusted_gain_pct": -4.1876,
+          "turnover_pct": 61.1231,
+          "target_quality_score": 0.5188,
+          "low_reject_weight_pct": 58.1,
+          "suspicious_return_contribution_share_pct": 97.12,
+          "top2_return_concentration_pct": 95.47,
+          "stable_score": -16.3727,
+          "stable_score_components": {
+            "adjusted_gain_pct": -4.1876,
+            "turnover_penalty_pct": 3.0562,
+            "turnover_excess_penalty_pct": 4.9123,
+            "uncertainty_penalty_pct": 1.4436,
+            "concentration_penalty_pct": 0.9094,
+            "suspicious_return_penalty_pct": 1.8636
+          }
+        }
+      ]
     }
   },
   "transaction_cost_pct_used": 0.0288,
@@ -1974,6 +2177,12 @@
     "execution_weekly_turnover_budget_pct": 12.0,
     "execution_monthly_turnover_budget_pct": 35.0,
     "execution_min_trade_value_brl": 25.0,
-    "execution_max_actions": 6
+    "execution_max_actions": 6,
+    "turnover_penalty_lambda": 0.05,
+    "stable_turnover_target_pct": 12.0,
+    "stable_turnover_excess_penalty_lambda": 0.1,
+    "stable_uncertainty_penalty_lambda": 0.03,
+    "stable_concentration_penalty_lambda": 0.02,
+    "stable_suspicious_return_penalty_lambda": 0.03
   }
 }
