@@ -18,7 +18,7 @@ Usage:
 """
 
 # --- Script Version ---
-D_PUBLISH_VERSION = "3.3.0"  # Add enriched history JSON (Step 8)
+D_PUBLISH_VERSION = "3.4.0"  # Add model calibration diagnostics (Phase 7)
 
 import csv
 import json
@@ -91,6 +91,7 @@ DERIVED_DIR = RESULTS_DIR
 SCORED_TARGETS_JSON = DERIVED_DIR / "scored_targets.json"
 PIPELINE_LATEST_JSON = DERIVED_DIR / "pipeline_latest.json"
 DASHBOARD_LATEST_JSON = DERIVED_DIR / "dashboard_latest.json"
+MODEL_CALIBRATION_JSON = DERIVED_DIR / "model_calibration.json"
 
 # --- Progress files (written live by engines, canonical in data/) ---
 PROGRESS_DIR = SRC
@@ -1289,6 +1290,475 @@ def _compute_sector_exposure(weights_dict: Dict[str, float]) -> List[Dict[str, A
     return sector_list
 
 
+def _load_optimized_history_rows() -> List[Dict[str, Any]]:
+    """Load one optimized history row per date, keeping the latest run of each day."""
+    path = resolve_source(OPTIMIZED_HISTORY_JSONL)
+    if not path.exists():
+        return []
+
+    raw_rows: List[Dict[str, Any]] = []
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    raw_rows.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    except OSError as e:
+        logger.warning(f"  Could not read {path.name}: {e}")
+        return []
+
+    latest_by_date: Dict[str, Dict[str, Any]] = {}
+    for row in raw_rows:
+        dt = str(row.get("date") or "")[:10]
+        if not dt:
+            continue
+        current = latest_by_date.get(dt)
+        if current is None or str(row.get("timestamp") or "") >= str(current.get("timestamp") or ""):
+            latest_by_date[dt] = row
+
+    rows = list(latest_by_date.values())
+    rows.sort(key=lambda r: (str(r.get("date") or ""), str(r.get("timestamp") or "")))
+    for row in rows:
+        row["_raw_history_run_count"] = len(raw_rows)
+    return rows
+
+
+def _jaccard_pct(left: Any, right: Any) -> Optional[float]:
+    """Jaccard similarity in percent for two asset lists."""
+    if not isinstance(left, list) or not isinstance(right, list):
+        return None
+    a = set(left)
+    b = set(right)
+    if not a and not b:
+        return 100.0
+    if not a or not b:
+        return 0.0
+    return round((len(a & b) / len(a | b)) * 100, 4)
+
+
+def _max_drawdown_pct(returns: List[float]) -> float:
+    if not returns:
+        return 0.0
+    index = np.cumprod([1 + r for r in returns])
+    peak = np.maximum.accumulate(index)
+    dd = (index - peak) / peak
+    return round(float(dd.min() * 100), 4)
+
+
+def _load_realized_return_windows() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Load realized daily returns used to audit what happened after signals."""
+    path = resolve_source(PORTFOLIO_REAL_DAILY_CSV)
+    if not path.exists():
+        return [], {"available": False, "reason": "portfolio_real_daily_missing"}
+
+    try:
+        df = pd.read_csv(path)
+    except Exception as e:
+        logger.warning(f"  Could not read {path.name}: {e}")
+        return [], {"available": False, "reason": "portfolio_real_daily_unreadable"}
+
+    if df.empty or "date" not in df.columns:
+        return [], {"available": False, "reason": "portfolio_real_daily_empty"}
+
+    ret_col = "consolidated_return" if "consolidated_return" in df.columns else "portfolio_return"
+    rows: List[Dict[str, Any]] = []
+    for _, row in df.sort_values("date").iterrows():
+        dt = str(row.get("date") or "")[:10]
+        ret = safe_float(row.get(ret_col), None)
+        bench = safe_float(row.get("benchmark_return"), None)
+        if ret is not None and not math.isfinite(ret):
+            ret = None
+        if bench is not None and not math.isfinite(bench):
+            bench = None
+        if not dt or ret is None:
+            continue
+        rows.append({
+            "date": dt,
+            "date_dt": pd.to_datetime(dt, errors="coerce"),
+            "portfolio_return": ret,
+            "benchmark_return": bench,
+        })
+
+    if not rows:
+        return [], {"available": False, "reason": "no_valid_realized_returns"}
+
+    return rows, {
+        "available": True,
+        "source": path.name,
+        "return_column": ret_col,
+        "first_date": rows[0]["date"],
+        "last_date": rows[-1]["date"],
+        "trading_days": len(rows),
+    }
+
+
+def _forward_realized_metrics(
+    signal_date: str,
+    realized_rows: List[Dict[str, Any]],
+    window_days: int,
+) -> Optional[Dict[str, Any]]:
+    """Compute realized forward return after a signal date."""
+    if not signal_date or not realized_rows:
+        return None
+
+    signal_dt = pd.to_datetime(signal_date, errors="coerce")
+    if pd.isna(signal_dt):
+        return None
+
+    start_idx = None
+    for idx, row in enumerate(realized_rows):
+        if row["date_dt"] > signal_dt:
+            start_idx = idx
+            break
+    if start_idx is None:
+        return None
+
+    window = realized_rows[start_idx:start_idx + window_days]
+    if len(window) < window_days:
+        return None
+
+    port_returns = [float(row["portfolio_return"]) for row in window]
+    bench_returns = [
+        float(row["benchmark_return"])
+        for row in window
+        if row.get("benchmark_return") is not None
+    ]
+    port_total = float(np.prod([1 + r for r in port_returns]) - 1)
+    bench_total = (
+        float(np.prod([1 + r for r in bench_returns]) - 1)
+        if len(bench_returns) == len(window)
+        else None
+    )
+    alpha = port_total - bench_total if bench_total is not None else None
+    volatility = (
+        float(np.std(port_returns, ddof=1) * np.sqrt(252) * 100)
+        if len(port_returns) > 1
+        else None
+    )
+
+    return {
+        "window_days": window_days,
+        "start_date": window[0]["date"],
+        "end_date": window[-1]["date"],
+        "portfolio_return_pct": round(port_total * 100, 4),
+        "benchmark_return_pct": round(bench_total * 100, 4) if bench_total is not None else None,
+        "alpha_pct": round(alpha * 100, 4) if alpha is not None else None,
+        "volatility_annual_pct": round(volatility, 4) if volatility is not None else None,
+        "max_drawdown_pct": _max_drawdown_pct(port_returns),
+    }
+
+
+def _avg(values: List[Optional[float]], digits: int = 4) -> Optional[float]:
+    clean = []
+    for value in values:
+        if value is None:
+            continue
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(numeric):
+            clean.append(numeric)
+    if not clean:
+        return None
+    return round(float(sum(clean) / len(clean)), digits)
+
+
+def _pct(numerator: int, denominator: int) -> Optional[float]:
+    if denominator <= 0:
+        return None
+    return round((numerator / denominator) * 100, 2)
+
+
+def _history_row_turnover(row: Dict[str, Any]) -> float:
+    return safe_float(
+        row.get("shadow_turnover_pct"),
+        safe_float(row.get("diagnostic_total_trade_value_pct"), 0.0),
+    )
+
+
+def _version_signal(row: Dict[str, Any], version: str) -> Tuple[bool, bool, float, Optional[float]]:
+    """Return (available, trade_like_signal, turnover_pct, gain_pct) for one version."""
+    official_turnover = _history_row_turnover(row)
+    if version == "official_current":
+        available = row.get("decision") is not None
+        trade = row.get("decision") == "REBALANCE"
+        gain = safe_float(row.get("excess_return_pct"), None)
+        return available, trade, official_turnover if trade else 0.0, gain
+
+    if version == "adjusted_return":
+        gain = safe_float(row.get("shadow_expected_gain_pct"), None)
+        if gain is None:
+            return False, False, 0.0, None
+        trade = gain >= 0.5
+        return True, trade, official_turnover if trade else 0.0, gain
+
+    if version == "shadow_gate":
+        decision = row.get("shadow_decision")
+        if decision is None:
+            return False, False, 0.0, safe_float(row.get("shadow_expected_gain_pct"), None)
+        trade = decision in ("REBALANCE", "PARTIAL_REBALANCE")
+        if decision == "PARTIAL_REBALANCE":
+            turnover = min(official_turnover, safe_float(row.get("shadow_turnover_budget_pct"), official_turnover))
+        else:
+            turnover = official_turnover if trade else 0.0
+        return True, trade, turnover, safe_float(row.get("shadow_expected_gain_pct"), None)
+
+    if version == "execution_state":
+        state = row.get("execution_state")
+        if state is None:
+            return False, False, 0.0, safe_float(row.get("shadow_expected_gain_pct"), None)
+        trade = state in ("REBALANCE", "PARTIAL_REBALANCE")
+        turnover = safe_float(row.get("execution_trade_value_pct"), 0.0) if trade else 0.0
+        return True, trade, turnover, safe_float(row.get("shadow_expected_gain_pct"), None)
+
+    if version == "stable_optimization":
+        blend = safe_float(row.get("stable_selected_blend_ratio"), None)
+        if blend is None:
+            return False, False, 0.0, safe_float(row.get("stable_adjusted_return_delta_pct"), None)
+        trade = blend > 0.05
+        turnover = official_turnover * max(0.0, min(blend, 1.0)) if trade else 0.0
+        gain = safe_float(row.get("stable_adjusted_return_delta_pct"), None)
+        return True, trade, turnover, gain
+
+    return False, False, 0.0, None
+
+
+def _version_stability_pct(row: Dict[str, Any], version: str, trade: bool) -> Optional[float]:
+    model_stability = row.get("_optimal_asset_jaccard_pct")
+    if model_stability is None:
+        return None
+    if version == "stable_optimization":
+        blend = safe_float(row.get("stable_selected_blend_ratio"), 0.0)
+        return round(100.0 - (max(0.0, min(blend, 1.0)) * (100.0 - model_stability)), 4)
+    return model_stability if trade else 100.0
+
+
+def _summarize_calibration_version(
+    key: str,
+    label: str,
+    rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    available_rows: List[Dict[str, Any]] = []
+    trade_rows: List[Dict[str, Any]] = []
+    turnovers: List[float] = []
+    gains: List[Optional[float]] = []
+    stabilities: List[Optional[float]] = []
+    suspicious_trades = 0
+    false_positive_extreme_targets = 0
+    forward_5d: List[Dict[str, Any]] = []
+    forward_21d: List[Dict[str, Any]] = []
+    decision_counts: Dict[str, int] = {}
+    regime_groups: Dict[str, Dict[str, Any]] = {}
+
+    for row in rows:
+        available, trade, turnover, gain = _version_signal(row, key)
+        if not available:
+            continue
+        available_rows.append(row)
+        gains.append(gain)
+
+        if key == "official_current":
+            decision = row.get("decision")
+        elif key == "shadow_gate":
+            decision = row.get("shadow_decision")
+        elif key == "execution_state":
+            decision = row.get("execution_state")
+        elif key == "stable_optimization":
+            decision = "MOVE_TO_MODEL" if trade else "STAY_CURRENT"
+        else:
+            decision = "REBALANCE" if trade else "HOLD"
+        decision_counts[str(decision or "unknown")] = decision_counts.get(str(decision or "unknown"), 0) + 1
+
+        stabilities.append(_version_stability_pct(row, key, trade))
+
+        regime = str(row.get("diagnostic_market_regime_state") or "unknown")
+        regime_entry = regime_groups.setdefault(regime, {
+            "available_runs": 0,
+            "trade_signals": 0,
+            "forward_alpha_21d": [],
+        })
+        regime_entry["available_runs"] += 1
+
+        if not trade:
+            continue
+
+        trade_rows.append(row)
+        turnovers.append(turnover)
+        regime_entry["trade_signals"] += 1
+
+        suspicious_share = safe_float(row.get("shadow_suspicious_return_contribution_share_pct"), None)
+        suspicious_threshold = 35.0
+        is_suspicious = suspicious_share is not None and suspicious_share > suspicious_threshold
+        if is_suspicious:
+            suspicious_trades += 1
+
+        fwd5 = row.get("_forward_5d")
+        if fwd5:
+            forward_5d.append(fwd5)
+        fwd21 = row.get("_forward_21d")
+        if fwd21:
+            forward_21d.append(fwd21)
+            if fwd21.get("alpha_pct") is not None:
+                regime_entry["forward_alpha_21d"].append(fwd21.get("alpha_pct"))
+                if is_suspicious and fwd21.get("alpha_pct") <= 0:
+                    false_positive_extreme_targets += 1
+
+    def forward_summary(metrics: List[Dict[str, Any]]) -> Dict[str, Any]:
+        alpha_values = [m.get("alpha_pct") for m in metrics]
+        hit_count = len([a for a in alpha_values if a is not None and a > 0])
+        return {
+            "observations": len(metrics),
+            "avg_portfolio_return_pct": _avg([m.get("portfolio_return_pct") for m in metrics], 4),
+            "avg_benchmark_return_pct": _avg([m.get("benchmark_return_pct") for m in metrics], 4),
+            "avg_alpha_pct": _avg(alpha_values, 4),
+            "avg_volatility_annual_pct": _avg([m.get("volatility_annual_pct") for m in metrics], 4),
+            "avg_max_drawdown_pct": _avg([m.get("max_drawdown_pct") for m in metrics], 4),
+            "alpha_hit_rate_pct": _pct(hit_count, len([a for a in alpha_values if a is not None])),
+        }
+
+    performance_by_regime = []
+    for regime, item in sorted(regime_groups.items()):
+        performance_by_regime.append({
+            "regime": regime,
+            "available_runs": item["available_runs"],
+            "trade_signals": item["trade_signals"],
+            "trade_frequency_pct": _pct(item["trade_signals"], item["available_runs"]),
+            "avg_forward_alpha_21d_pct": _avg(item["forward_alpha_21d"], 4),
+        })
+
+    available_count = len(available_rows)
+    trade_count = len(trade_rows)
+    return {
+        "key": key,
+        "label": label,
+        "available_runs": available_count,
+        "coverage_pct": _pct(available_count, len(rows)),
+        "decision_counts": decision_counts,
+        "trade_signals": trade_count,
+        "trade_frequency_pct": _pct(trade_count, available_count),
+        "cumulative_turnover_pct": round(sum(turnovers), 4),
+        "avg_turnover_on_signal_pct": _avg(turnovers, 4),
+        "avg_expected_gain_pct": _avg(gains, 4),
+        "avg_asset_set_stability_pct": _avg(stabilities, 4),
+        "suspicious_trade_signals": suspicious_trades,
+        "suspicious_trade_rate_pct": _pct(suspicious_trades, trade_count),
+        "extreme_target_false_positive_count": false_positive_extreme_targets,
+        "forward_5d": forward_summary(forward_5d),
+        "forward_21d": forward_summary(forward_21d),
+        "performance_by_regime": performance_by_regime,
+    }
+
+
+def _build_model_calibration_section() -> Dict[str, Any]:
+    """Build Phase 7 calibration diagnostics from available historical runs."""
+    history = _load_optimized_history_rows()
+    realized_rows, realized_meta = _load_realized_return_windows()
+    optimized = read_json_safe(resolve_source(OPTIMIZED_RECOMMENDATION_JSON))
+
+    if not history:
+        return {
+            "phase": "7_backtest_calibration",
+            "status": "empty",
+            "history": {"total_runs": 0, "distinct_dates": 0},
+            "realized_return_source": realized_meta,
+            "version_comparison": [],
+            "notes": [{"code": "no_optimized_history", "message": "Sem histórico de recomendações para calibrar."}],
+        }
+
+    previous_optimal = None
+    for row in history:
+        row["_forward_5d"] = _forward_realized_metrics(str(row.get("date") or "")[:10], realized_rows, 5)
+        row["_forward_21d"] = _forward_realized_metrics(str(row.get("date") or "")[:10], realized_rows, 21)
+        row["_optimal_asset_jaccard_pct"] = _jaccard_pct(previous_optimal, row.get("optimal_stocks"))
+        if isinstance(row.get("optimal_stocks"), list):
+            previous_optimal = row.get("optimal_stocks")
+
+    versions = [
+        ("official_current", "Oficial atual"),
+        ("adjusted_return", "Retorno ajustado"),
+        ("shadow_gate", "Gate shadow"),
+        ("execution_state", "Plano executável"),
+        ("stable_optimization", "Otimização estável"),
+    ]
+    comparison = [
+        _summarize_calibration_version(key, label, history)
+        for key, label in versions
+    ]
+    by_key = {row["key"]: row for row in comparison}
+    official = by_key.get("official_current", {})
+
+    for row in comparison:
+        if row["key"] == "official_current":
+            row["turnover_reduction_vs_official_pct"] = 0.0
+            row["trade_frequency_delta_vs_official_pct"] = 0.0
+            continue
+        official_turnover = safe_float(official.get("cumulative_turnover_pct"), 0.0)
+        row["turnover_reduction_vs_official_pct"] = round(
+            official_turnover - safe_float(row.get("cumulative_turnover_pct"), 0.0),
+            4,
+        )
+        official_frequency = safe_float(official.get("trade_frequency_pct"), 0.0)
+        row["trade_frequency_delta_vs_official_pct"] = round(
+            safe_float(row.get("trade_frequency_pct"), 0.0) - official_frequency,
+            4,
+        )
+
+    forward_21d_rows = [row for row in history if row.get("_forward_21d")]
+    shadow_rows = [row for row in history if row.get("shadow_decision") is not None]
+    stable_rows = [row for row in history if row.get("stable_selected_blend_ratio") is not None]
+    notes = []
+    if len(shadow_rows) < len(history):
+        notes.append({
+            "code": "partial_shadow_history",
+            "message": "Campos shadow existem apenas nas rodadas após a fase 4.",
+        })
+    if len(stable_rows) < len(history):
+        notes.append({
+            "code": "partial_stable_history",
+            "message": "Otimização estável existe apenas nas rodadas após a fase 6.",
+        })
+    if len(forward_21d_rows) < len(history):
+        notes.append({
+            "code": "limited_forward_window",
+            "message": "Retorno realizado de 21 pregões só aparece para recomendações com pregões futuros suficientes.",
+        })
+
+    params = optimized.get("parameters", {}) if isinstance(optimized, dict) else {}
+    return {
+        "phase": "7_backtest_calibration",
+        "status": "diagnostic",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "history": {
+            "raw_runs": history[0].get("_raw_history_run_count", len(history)),
+            "distinct_dates": len(history),
+            "first_date": history[0].get("date"),
+            "last_date": history[-1].get("date"),
+            "shadow_available_dates": len(shadow_rows),
+            "stable_available_dates": len(stable_rows),
+            "forward_21d_available_dates": len(forward_21d_rows),
+            "dedupe_rule": "latest_run_per_date",
+        },
+        "realized_return_source": realized_meta,
+        "threshold_snapshot": {
+            "shadow_base_hurdle_pct": params.get("shadow_base_hurdle_pct"),
+            "shadow_turnover_budget_pct": params.get("shadow_turnover_budget_pct"),
+            "shadow_confidence_floor": params.get("shadow_confidence_floor"),
+            "shadow_max_suspicious_return_contribution_pct": params.get(
+                "shadow_max_suspicious_return_contribution_pct"
+            ),
+            "stable_turnover_target_pct": params.get("stable_turnover_target_pct"),
+            "turnover_penalty_lambda": params.get("turnover_penalty_lambda"),
+        },
+        "version_comparison": comparison,
+        "notes": notes,
+    }
+
+
 def _build_model_section() -> dict:
     """Build the 'model' section of dashboard_latest.json."""
     latest_summary = read_json_safe(resolve_source(LATEST_RUN_SUMMARY_JSON))
@@ -1301,6 +1771,7 @@ def _build_model_section() -> dict:
     optimal = comparison.get("optimal", {})
     diagnostics = optimized.get("diagnostics", {})
     shadow = optimized.get("shadow", {})
+    calibration = _build_model_calibration_section()
     momentum_val = bp.get("momentum_valuation", {})
 
     # Extract model portfolio composition
@@ -1407,6 +1878,7 @@ def _build_model_section() -> dict:
             "intensity": safe_float(optimal.get("blend_ratio"), 0.0) * 100,
         },
         "shadow": shadow,
+        "calibration": calibration,
         "valuation": {
             "portfolio_pe": momentum_val.get("portfolio_forward_pe"),
             "benchmark_pe": momentum_val.get("benchmark_forward_pe"),
@@ -1604,6 +2076,8 @@ def publish_dashboard_latest(real_metrics: dict, risk_windows: Optional[dict] = 
 
     write_json(DASHBOARD_LATEST_JSON, dashboard)
     ensure_symlink(DASHBOARD_LATEST_JSON, DST)
+    write_json(MODEL_CALIBRATION_JSON, dashboard.get("model", {}).get("calibration", {}))
+    ensure_symlink(MODEL_CALIBRATION_JSON, DST)
 
     # Symlink history CSVs for frontend access
     ensure_symlink(PORTFOLIO_RESULTS_CSV, DST, "mis_model_history.csv")

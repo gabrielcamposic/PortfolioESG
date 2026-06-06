@@ -92,7 +92,7 @@ Frontend:
 | 4 | Gate de rebalanceamento shadow | Implementado em 2026-06-05 | Comparar decisao oficial vs decisao alternativa |
 | 5 | Estados HOLD/WATCH/PARTIAL/REBALANCE | Implementado em 2026-06-06 | Reduzir binariedade da recomendacao |
 | 6 | Otimizacao com penalidade de turnover | Implementado em 2026-06-06 | Preferir estabilidade quando ganho marginal e baixo |
-| 7 | Backtest e calibracao | Pendente | Calibrar thresholds com historico |
+| 7 | Backtest e calibracao | Implementado em 2026-06-06 | Calibrar thresholds com historico |
 | 8 | Promocao para decisao oficial | Pendente | Substituir decisao oficial com seguranca |
 
 ## Fase 0: Baseline E Diagnostico Atual
@@ -575,6 +575,15 @@ Metricas:
 - Falsos positivos de targets extremos.
 - Performance por regime.
 
+Implementacao atual:
+
+- `D_Publish.py` cria `model.calibration` dentro de `dashboard_latest.json` e tambem publica `model_calibration.json`.
+- O historico de `optimized_portfolio_history.jsonl` e deduplicado por data, mantendo a ultima execucao de cada dia para evitar que rodadas de desenvolvimento distorcam frequencia de trade.
+- A comparacao cobre cinco versoes: oficial atual, retorno ajustado, gate shadow, plano executavel e otimizacao estavel.
+- O diagnostico calcula cobertura por versao, frequencia de trade, turnover acumulado, ganho medio, estabilidade do conjunto de ativos, sinais suspeitos e falsos positivos de targets extremos quando ha retorno realizado futuro.
+- Retorno realizado de 5 e 21 pregoes usa `portfolio_real_daily.csv`; quando nao ha pregoes futuros suficientes, a cobertura aparece explicitamente como limitada.
+- `html/sections/model.html` mostra o painel "Comparativo de Versoes" logo apos o gate shadow.
+
 ### Dashboard
 
 Adicionar uma visao "Comparativo de Versoes":
@@ -714,6 +723,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-06 | Fase 7 implementada: `D_Publish.py` publica `model.calibration`/`model_calibration.json` com comparativo historico de versoes, cobertura, trade frequency, turnover, retorno realizado futuro, estabilidade, falsos positivos e performance por regime; `model.html` mostra "Comparativo de Versoes" |
 | 2026-06-06 | Fase 6 implementada: `shadow.stable_optimization` compara otimo oficial vs carteira estavel com penalidades de turnover, incerteza, concentracao e retorno suspeito; historico ganhou campos estaveis; `model.html` mostra "Otimizacao Estavel" |
 | 2026-06-06 | Fase 5 implementada: `shadow.execution_plan` com estado executavel, intensidade, bandas por ativo/setor, orcamento semanal/mensal, classificacao de acoes, historico resumido e painel "Plano Executavel" em `model.html` |
 | 2026-06-05 | Fase 4 implementada: gate shadow em `C_OptimizedPortfolio.py`, hurdle dinamico, vetos de persistencia/turnover/qualidade/retorno suspeito, historico shadow, publicacao em `dashboard_latest.json`, e painel "Gate Shadow" em `model.html` |

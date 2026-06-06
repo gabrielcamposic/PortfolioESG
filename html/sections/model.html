@@ -107,6 +107,9 @@
   .execution-status.monitor, .execution-status.hold { color: var(--color-amber); border-color: rgba(199, 143, 64, 0.35); background: rgba(199, 143, 64, 0.10); }
   .execution-status.defer_budget, .execution-status.defer_max_actions { color: var(--color-negative); border-color: rgba(184, 109, 93, 0.35); background: rgba(184, 109, 93, 0.08); }
   .execution-status.ignore_band, .execution-status.ignore_small { color: var(--text-muted); border-color: var(--border); background: var(--bg-card); }
+  .calibration-panel { margin: 12px 0 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card-alt); padding: 12px; }
+  .calibration-notes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .calibration-note { border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg-card); border-radius: 6px; padding: 4px 7px; font-size: 10px; font-weight: var(--font-weight-emphasis); }
 
   /* ── Risk Row ── */
   .risk-section-label { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); margin-bottom: 8px; padding-top: 14px; border-top: 1px solid var(--border-strong); letter-spacing: 0.08em; }
@@ -615,6 +618,89 @@ function renderShadowGate(dashboard, recommendation) {
     </div>`;
 }
 
+function renderCalibrationComparison(dashboard) {
+  const calibration = dashboard.model?.calibration || {};
+  const versions = calibration.version_comparison || [];
+  if (!versions.length) return '';
+
+  const history = calibration.history || {};
+  const notes = calibration.notes || [];
+  const byKey = Object.fromEntries(versions.map(row => [row.key, row]));
+  const official = byKey.official_current || {};
+  const shadow = byKey.shadow_gate || {};
+  const stable = byKey.stable_optimization || {};
+
+  const metrics = [
+    { label: 'Datas', value: fmtNum(history.distinct_dates, 0) },
+    { label: 'Futuro 21d', value: fmtNum(history.forward_21d_available_dates, 0) },
+    { label: 'Turnover oficial', value: fmtPct(official.cumulative_turnover_pct) },
+    { label: 'Cobertura shadow', value: fmtPct(shadow.coverage_pct) },
+    { label: 'Cobertura estável', value: fmtPct(stable.coverage_pct) },
+    { label: 'Sinais suspeitos', value: `${fmtNum(official.suspicious_trade_signals, 0)} → ${fmtNum(shadow.suspicious_trade_signals, 0)}` },
+  ];
+
+  const rowHtml = versions.map(row => {
+    const fwd21 = row.forward_21d || {};
+    const obs = fwd21.observations != null ? `${fmtNum(fwd21.observations, 0)} obs.` : 'sem obs.';
+    return `
+      <tr>
+        <td>${esc(row.label)}</td>
+        <td class="right">${fmtPct(row.coverage_pct)}</td>
+        <td class="right">${fmtPct(row.trade_frequency_pct)}</td>
+        <td class="right">${fmtPct(row.cumulative_turnover_pct)}</td>
+        <td class="right" style="color:${plColor((row.avg_expected_gain_pct || 0) / 100)}">${fmtSignedPct(row.avg_expected_gain_pct)}</td>
+        <td class="right" title="${obs}">${fmtPct(fwd21.avg_portfolio_return_pct)}</td>
+        <td class="right" title="${obs}" style="color:${plColor((fwd21.avg_alpha_pct || 0) / 100)}">${fmtSignedPct(fwd21.avg_alpha_pct)}</td>
+        <td class="right">${fmtPct(fwd21.avg_volatility_annual_pct)}</td>
+        <td class="right">${fmtPct(fwd21.avg_max_drawdown_pct)}</td>
+        <td class="right">${fmtPct(row.avg_asset_set_stability_pct)}</td>
+      </tr>`;
+  }).join('');
+
+  const noteHtml = notes.length
+    ? `<div class="calibration-notes">${notes.map(note => `<span class="calibration-note" title="${esc(note.code || '')}">${esc(note.message || note.code)}</span>`).join('')}</div>`
+    : '';
+
+  return `
+    <div class="calibration-panel">
+      <div class="shadow-head">
+        <div>
+          <div class="shadow-title">Comparativo de Versões</div>
+          <div class="shadow-main">Backtest e calibração</div>
+          <div class="shadow-sub">Auditoria histórica de sinais; retorno real usa o portfólio observado nos pregões posteriores.</div>
+        </div>
+        <span class="shadow-badge watch">Shadow</span>
+      </div>
+      <div class="execution-strip">
+        ${metrics.map(metric => `
+          <div class="shadow-metric">
+            <span class="shadow-label">${metric.label}</span>
+            <span class="shadow-value">${metric.value}</span>
+          </div>`).join('')}
+      </div>
+      <div class="execution-table-wrap">
+        <table class="execution-table execution-table--wide">
+          <thead>
+            <tr class="main-headers">
+              <th>Versão</th>
+              <th class="right">Cobertura</th>
+              <th class="right">Trade</th>
+              <th class="right">Turnover acum.</th>
+              <th class="right">Ganho médio</th>
+              <th class="right">Ret. real 21d</th>
+              <th class="right">Alpha real 21d</th>
+              <th class="right">Vol. real 21d</th>
+              <th class="right">DD real 21d</th>
+              <th class="right">Estabilidade</th>
+            </tr>
+          </thead>
+          <tbody>${rowHtml}</tbody>
+        </table>
+      </div>
+      ${noteHtml}
+    </div>`;
+}
+
 function renderSummary(dashboard, recommendation) {
   const model = dashboard.model || {};
   const ret   = model.returns || {};
@@ -677,6 +763,7 @@ function renderSummary(dashboard, recommendation) {
     </div>
     ${returnComparisonHtml}
     ${renderShadowGate(dashboard, recommendation)}
+    ${renderCalibrationComparison(dashboard)}
     ${renderReturnDiagnostics(dashboard, recommendation)}
     ${riskRowHtml}
   `;
