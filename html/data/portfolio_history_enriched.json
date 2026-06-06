@@ -360,6 +360,41 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260606-081506",
+    "timestamp": "2026-06-06 08:39:23",
+    "n_assets": 8,
+    "stocks": [
+      "PETR3.SA",
+      "ISAE4.SA",
+      "KLBN4.SA",
+      "BBSE3.SA",
+      "SLCE3.SA",
+      "AMBP3.SA",
+      "PETR4.SA",
+      "CMIG3.SA"
+    ],
+    "weights": [
+      0.0443,
+      0.1245,
+      0.3375,
+      0.107,
+      0.097,
+      0.1106,
+      0.0615,
+      0.1176
+    ],
+    "sharpe_forward": 24.2341,
+    "ret_hist_12m": 3.27,
+    "vol_12m": 18.42,
+    "ret_proj_12m": 340.36,
+    "score": 1.7692,
+    "momentum": -0.0905,
+    "decision": "WATCH",
+    "transition_cost_pct": 0.0151,
+    "holdings_return_pct": 338.63,
+    "excess_return_pct": 11.7563
+  },
+  {
     "run_id": "20260603-114747",
     "timestamp": "2026-06-03 12:08:55",
     "n_assets": 8,

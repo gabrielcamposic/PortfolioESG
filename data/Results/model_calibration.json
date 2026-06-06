@@ -1,15 +1,15 @@
 {
   "phase": "7_backtest_calibration",
   "status": "diagnostic",
-  "generated_at": "2026-06-06T10:56:44.376782+00:00",
+  "generated_at": "2026-06-06T11:40:48.572942+00:00",
   "history": {
-    "raw_runs": 67,
+    "raw_runs": 68,
     "distinct_dates": 39,
     "first_date": "2026-03-29",
     "last_date": "2026-06-06",
     "shadow_available_dates": 2,
     "stable_available_dates": 1,
-    "forward_21d_available_dates": 23,
+    "forward_21d_available_dates": 24,
     "dedupe_rule": "latest_run_per_date"
   },
   "realized_return_source": {
@@ -17,8 +17,8 @@
     "source": "portfolio_real_daily.csv",
     "return_column": "consolidated_return",
     "first_date": "2025-10-20",
-    "last_date": "2026-06-03",
-    "trading_days": 134
+    "last_date": "2026-06-05",
+    "trading_days": 135
   },
   "threshold_snapshot": {
     "shadow_base_hurdle_pct": 0.5,
@@ -43,27 +43,27 @@
       "trade_frequency_pct": 58.97,
       "cumulative_turnover_pct": 61.85,
       "avg_turnover_on_signal_pct": 2.6891,
-      "avg_expected_gain_pct": 28.3815,
+      "avg_expected_gain_pct": 27.1544,
       "avg_asset_set_stability_pct": 75.7425,
       "suspicious_trade_signals": 1,
       "suspicious_trade_rate_pct": 4.35,
       "extreme_target_false_positive_count": 0,
       "forward_5d": {
-        "observations": 18,
-        "avg_portfolio_return_pct": -1.3734,
-        "avg_benchmark_return_pct": -1.9684,
-        "avg_alpha_pct": 0.595,
-        "avg_volatility_annual_pct": 8.4132,
-        "avg_max_drawdown_pct": -1.4553,
-        "alpha_hit_rate_pct": 66.67
+        "observations": 19,
+        "avg_portfolio_return_pct": -1.4216,
+        "avg_benchmark_return_pct": -2.0465,
+        "avg_alpha_pct": 0.6249,
+        "avg_volatility_annual_pct": 8.6078,
+        "avg_max_drawdown_pct": -1.4852,
+        "alpha_hit_rate_pct": 68.42
       },
       "forward_21d": {
-        "observations": 11,
-        "avg_portfolio_return_pct": -5.0566,
-        "avg_benchmark_return_pct": -8.0073,
-        "avg_alpha_pct": 2.9506,
-        "avg_volatility_annual_pct": 8.0323,
-        "avg_max_drawdown_pct": -5.1572,
+        "observations": 12,
+        "avg_portfolio_return_pct": -5.0433,
+        "avg_benchmark_return_pct": -8.169,
+        "avg_alpha_pct": 3.1257,
+        "avg_volatility_annual_pct": 8.0617,
+        "avg_max_drawdown_pct": -5.1149,
         "alpha_hit_rate_pct": 100.0
       },
       "performance_by_regime": [
@@ -79,7 +79,7 @@
           "available_runs": 37,
           "trade_signals": 22,
           "trade_frequency_pct": 59.46,
-          "avg_forward_alpha_21d_pct": 2.9506
+          "avg_forward_alpha_21d_pct": 3.1257
         }
       ],
       "turnover_reduction_vs_official_pct": 0.0,
@@ -97,7 +97,7 @@
       "trade_frequency_pct": 0.0,
       "cumulative_turnover_pct": 0,
       "avg_turnover_on_signal_pct": null,
-      "avg_expected_gain_pct": -4.7678,
+      "avg_expected_gain_pct": -5.5314,
       "avg_asset_set_stability_pct": 100.0,
       "suspicious_trade_signals": 0,
       "suspicious_trade_rate_pct": null,
@@ -144,7 +144,7 @@
       "trade_frequency_pct": 0.0,
       "cumulative_turnover_pct": 0,
       "avg_turnover_on_signal_pct": null,
-      "avg_expected_gain_pct": -4.7678,
+      "avg_expected_gain_pct": -5.5314,
       "avg_asset_set_stability_pct": 100.0,
       "suspicious_trade_signals": 0,
       "suspicious_trade_rate_pct": null,
@@ -191,7 +191,7 @@
       "trade_frequency_pct": 0.0,
       "cumulative_turnover_pct": 0,
       "avg_turnover_on_signal_pct": null,
-      "avg_expected_gain_pct": -4.7678,
+      "avg_expected_gain_pct": -6.2951,
       "avg_asset_set_stability_pct": 100.0,
       "suspicious_trade_signals": 0,
       "suspicious_trade_rate_pct": null,
@@ -238,7 +238,7 @@
       "trade_frequency_pct": 0.0,
       "cumulative_turnover_pct": 0,
       "avg_turnover_on_signal_pct": null,
-      "avg_expected_gain_pct": 4.1876,
+      "avg_expected_gain_pct": 6.1151,
       "avg_asset_set_stability_pct": 100.0,
       "suspicious_trade_signals": 0,
       "suspicious_trade_rate_pct": null,

@@ -1,30 +1,30 @@
 {
-  "generated_at": "2026-06-06T10:56:44.108960+00:00",
+  "generated_at": "2026-06-06T11:40:48.540745+00:00",
   "model": {
     "meta": {
-      "run_id": "20260603-114747",
-      "timestamp": "2026-06-03 12:08:55"
+      "run_id": "20260606-081506",
+      "timestamp": "2026-06-06 08:39:23"
     },
     "returns": {
-      "hold_12m": 344.3,
-      "gross_12m": 403.93,
-      "net_12m": 403.9122,
-      "hold_adjusted_12m": 17.82,
-      "gross_adjusted_12m": 13.07,
-      "net_adjusted_12m": 13.05,
-      "historical_annual": 2.72,
-      "excess_net_12m": 59.61219999999997,
-      "excess_adjusted_net_12m": -4.7678
+      "hold_12m": 338.63,
+      "gross_12m": 350.4,
+      "net_12m": 350.38489999999996,
+      "hold_adjusted_12m": 18.14,
+      "gross_adjusted_12m": 11.86,
+      "net_adjusted_12m": 11.84,
+      "historical_annual": 3.27,
+      "excess_net_12m": 11.754899999999964,
+      "excess_adjusted_net_12m": -6.2951
     },
     "risk": {
-      "volatility_annual": 20.34,
+      "volatility_annual": 18.42,
       "risk_free_annual": 14.75,
-      "sharpe": 24.5608,
+      "sharpe": 24.2341,
       "sharpe_source": "optimization",
-      "hhi": 0.2061,
-      "top5": 0.8288,
-      "liquidity_avg": 5814626.875921228,
-      "avg_internal_corr": 0.22947233945245554
+      "hhi": 0.1821,
+      "top5": 0.7972,
+      "liquidity_avg": 7579245.18040756,
+      "avg_internal_corr": 0.44717485290753506
     },
     "decision": {
       "verdict": "WATCH",
@@ -34,9 +34,9 @@
       "promoted_from": "shadow.execution_plan.decision_state",
       "transition_window_days": 60,
       "legacy_decision": "REBALANCE",
-      "legacy_reason": "Excess return (59.61%) exceeds threshold (0.5%)",
+      "legacy_reason": "Excess return (11.76%) exceeds threshold (0.5%)",
       "legacy_decision_engine_version": "v1_raw_excess_return",
-      "legacy_excess_return_pct": 59.6128,
+      "legacy_excess_return_pct": 11.7563,
       "threshold_pct": 0.5,
       "intensity": 0.0,
       "legacy_intensity": 100.0
@@ -45,15 +45,15 @@
       "phase": "8_official_decision_promotion",
       "official_decision": "WATCH",
       "legacy_decision": "REBALANCE",
-      "legacy_reason": "Excess return (59.61%) exceeds threshold (0.5%)",
+      "legacy_reason": "Excess return (11.76%) exceeds threshold (0.5%)",
       "legacy_decision_engine_version": "v1_raw_excess_return",
       "decision_engine_version": "v2_operational_shadow_conservative",
-      "official_excess_return_pct": 59.6128,
-      "holdings_adjusted_return_pct": 17.82,
-      "ideal_adjusted_return_pct": 13.65,
-      "optimal_adjusted_gross_return_pct": 13.07,
-      "optimal_adjusted_net_return_pct": 13.0522,
-      "adjusted_excess_return_pct": -4.7678,
+      "official_excess_return_pct": 11.7563,
+      "holdings_adjusted_return_pct": 18.14,
+      "ideal_adjusted_return_pct": 12.04,
+      "optimal_adjusted_gross_return_pct": 11.86,
+      "optimal_adjusted_net_return_pct": 11.8449,
+      "adjusted_excess_return_pct": -6.2951,
       "market_regime_state": "stress",
       "market_regime_triggers": [
         "benchmark_drawdown_3m",
@@ -70,11 +70,11 @@
       "shadow_decision": "WATCH",
       "shadow_decision_reason": "Há sinal oficial, mas o gate shadow recomenda observar antes de operar.",
       "shadow_trade_allowed": false,
-      "shadow_expected_gain_pct": -4.7678,
-      "shadow_hurdle_pct": 2.1678,
+      "shadow_expected_gain_pct": -6.2951,
+      "shadow_hurdle_pct": 2.1651,
       "shadow_hurdle_components": {
         "base_hurdle_pct": 0.5,
-        "transition_cost_pct": 0.0178,
+        "transition_cost_pct": 0.0151,
         "slippage_estimate_pct": 0.15,
         "tax_drag_estimate_pct": 0.0,
         "model_uncertainty_penalty_pct": 0.5,
@@ -84,8 +84,8 @@
         {
           "code": "adjusted_gain_below_hurdle",
           "message": "Ganho ajustado abaixo do hurdle dinâmico.",
-          "actual": -4.7678,
-          "threshold": 2.1678
+          "actual": -6.2951,
+          "threshold": 2.1651
         },
         {
           "code": "signal_not_persistent",
@@ -96,32 +96,32 @@
         {
           "code": "turnover_above_budget",
           "message": "Turnover necessário acima do orçamento shadow.",
-          "actual": 61.85,
+          "actual": 52.56,
           "threshold": 24.5
         },
         {
           "code": "target_quality_below_floor",
           "message": "Qualidade média dos targets do portfólio abaixo do piso.",
-          "actual": 0.5062,
+          "actual": 0.5327,
           "threshold": 0.6
         },
         {
           "code": "suspicious_return_contribution_high",
           "message": "Contribuição de targets low/reject acima do limite.",
-          "actual": 97.33,
+          "actual": 97.69,
           "threshold": 35.0
         }
       ],
       "shadow_signal_persistence_days": 0,
       "shadow_min_persistence_days": 2,
-      "shadow_turnover_pct": 61.85,
+      "shadow_turnover_pct": 52.56,
       "shadow_turnover_budget_pct": 24.5,
       "shadow_base_turnover_budget_pct": 35.0,
       "shadow_turnover_budget_multiplier": 0.7,
-      "portfolio_target_quality_score": 0.5062,
-      "low_reject_weight_pct": 59.57,
-      "suspicious_return_contribution_pct": 393.15,
-      "suspicious_return_contribution_share_pct": 97.33,
+      "portfolio_target_quality_score": 0.5327,
+      "low_reject_weight_pct": 57.69,
+      "suspicious_return_contribution_pct": 342.32,
+      "suspicious_return_contribution_share_pct": 97.69,
       "shadow_confidence_floor": 0.6,
       "shadow_max_suspicious_return_contribution_pct": 35.0,
       "execution_plan": {
@@ -140,17 +140,17 @@
         "today_turnover_budget_brl": 0.0,
         "min_trade_value_brl": 25.0,
         "max_actions": 6,
-        "theoretical_trade_value_brl": 1325.31,
-        "theoretical_trade_value_pct": 61.85,
+        "theoretical_trade_value_brl": 1125.11,
+        "theoretical_trade_value_pct": 52.56,
         "executable_trade_value_brl": 0.0,
         "executable_trade_value_pct": 0.0,
-        "deferred_trade_value_brl": 1325.31,
-        "deferred_trade_value_pct": 61.85,
+        "deferred_trade_value_brl": 1125.11,
+        "deferred_trade_value_pct": 52.56,
         "num_executable_actions": 0,
-        "num_deferred_actions": 11,
+        "num_deferred_actions": 9,
         "num_ignored_actions": 2,
-        "num_asset_band_breaches": 11,
-        "num_sector_band_breaches": 2,
+        "num_asset_band_breaches": 9,
+        "num_sector_band_breaches": 3,
         "why_not_rebalance_today": [
           "Ganho ajustado abaixo do hurdle dinâmico.",
           "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
@@ -159,6 +159,23 @@
           "Contribuição de targets low/reject acima do limite."
         ],
         "actions": [
+          {
+            "symbol": "ISAE4.SA",
+            "action": "BUY",
+            "status": "MONITOR",
+            "status_reason": "Observar sem enviar ordens hoje.",
+            "current_weight_pct": 1.26,
+            "target_weight_pct": 11.71,
+            "executable_weight_pct": 1.26,
+            "drift_pct": 10.45,
+            "outside_asset_band": true,
+            "recommended_value_brl": 215.6,
+            "recommended_value_pct": 10.07,
+            "executable_value_brl": 0.0,
+            "executable_value_pct": 0.0,
+            "recommended_shares": 8,
+            "executable_shares": 0
+          },
           {
             "symbol": "RANI3.SA",
             "action": "SELL",
@@ -177,34 +194,17 @@
             "executable_shares": 0
           },
           {
-            "symbol": "PETR3.SA",
-            "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 0,
-            "target_weight_pct": 8.92,
-            "executable_weight_pct": 0.0,
-            "drift_pct": 8.92,
-            "outside_asset_band": true,
-            "recommended_value_brl": 185.52,
-            "recommended_value_pct": 8.66,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
-            "recommended_shares": 4,
-            "executable_shares": 0
-          },
-          {
             "symbol": "PSSA3.SA",
             "action": "SELL",
             "status": "MONITOR",
             "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 6.75,
+            "current_weight_pct": 6.7,
             "target_weight_pct": 0,
-            "executable_weight_pct": 6.75,
-            "drift_pct": -6.75,
+            "executable_weight_pct": 6.7,
+            "drift_pct": -6.7,
             "outside_asset_band": true,
-            "recommended_value_brl": 144.57,
-            "recommended_value_pct": 6.75,
+            "recommended_value_brl": 143.43,
+            "recommended_value_pct": 6.7,
             "executable_value_brl": 0.0,
             "executable_value_pct": 0.0,
             "recommended_shares": 3,
@@ -215,71 +215,20 @@
             "action": "SELL",
             "status": "MONITOR",
             "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 5.82,
+            "current_weight_pct": 5.95,
             "target_weight_pct": 0,
-            "executable_weight_pct": 5.82,
-            "drift_pct": -5.82,
+            "executable_weight_pct": 5.95,
+            "drift_pct": -5.95,
             "outside_asset_band": true,
-            "recommended_value_brl": 124.65,
-            "recommended_value_pct": 5.82,
+            "recommended_value_brl": 127.38,
+            "recommended_value_pct": 5.95,
             "executable_value_brl": 0.0,
             "executable_value_pct": 0.0,
             "recommended_shares": 3,
             "executable_shares": 0
           },
           {
-            "symbol": "BBSE3.SA",
-            "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 6.48,
-            "target_weight_pct": 11.69,
-            "executable_weight_pct": 6.48,
-            "drift_pct": 5.21,
-            "outside_asset_band": true,
-            "recommended_value_brl": 104.19,
-            "recommended_value_pct": 4.86,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
-            "recommended_shares": 3,
-            "executable_shares": 0
-          },
-          {
-            "symbol": "RADL3.SA",
-            "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 0,
-            "target_weight_pct": 5.14,
-            "executable_weight_pct": 0.0,
-            "drift_pct": 5.14,
-            "outside_asset_band": true,
-            "recommended_value_brl": 106.98,
-            "recommended_value_pct": 4.99,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
-            "recommended_shares": 6,
-            "executable_shares": 0
-          },
-          {
-            "symbol": "KLBN4.SA",
-            "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 34.71,
-            "target_weight_pct": 39.15,
-            "executable_weight_pct": 34.71,
-            "drift_pct": 4.44,
-            "outside_asset_band": true,
-            "recommended_value_brl": 70.35,
-            "recommended_value_pct": 3.28,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
-            "recommended_shares": 21,
-            "executable_shares": 0
-          },
-          {
-            "symbol": "CURY3.SA",
+            "symbol": "PETR3.SA",
             "action": "BUY",
             "status": "MONITOR",
             "status_reason": "Observar sem enviar ordens hoje.",
@@ -288,11 +237,28 @@
             "executable_weight_pct": 0.0,
             "drift_pct": 4.41,
             "outside_asset_band": true,
-            "recommended_value_brl": 91.8,
-            "recommended_value_pct": 4.28,
+            "recommended_value_brl": 91.42,
+            "recommended_value_pct": 4.27,
             "executable_value_brl": 0.0,
             "executable_value_pct": 0.0,
-            "recommended_shares": 3,
+            "recommended_shares": 2,
+            "executable_shares": 0
+          },
+          {
+            "symbol": "PETR4.SA",
+            "action": "BUY",
+            "status": "MONITOR",
+            "status_reason": "Observar sem enviar ordens hoje.",
+            "current_weight_pct": 1.91,
+            "target_weight_pct": 5.92,
+            "executable_weight_pct": 1.91,
+            "drift_pct": 4.01,
+            "outside_asset_band": true,
+            "recommended_value_brl": 81.78,
+            "recommended_value_pct": 3.82,
+            "executable_value_brl": 0.0,
+            "executable_value_pct": 0.0,
+            "recommended_shares": 2,
             "executable_shares": 0
           },
           {
@@ -300,16 +266,33 @@
             "action": "SELL",
             "status": "MONITOR",
             "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 4.19,
+            "current_weight_pct": 3.96,
             "target_weight_pct": 0,
-            "executable_weight_pct": 4.19,
-            "drift_pct": -4.19,
+            "executable_weight_pct": 3.96,
+            "drift_pct": -3.96,
             "outside_asset_band": true,
-            "recommended_value_brl": 89.84,
-            "recommended_value_pct": 4.19,
+            "recommended_value_brl": 84.72,
+            "recommended_value_pct": 3.96,
             "executable_value_brl": 0.0,
             "executable_value_pct": 0.0,
             "recommended_shares": 8,
+            "executable_shares": 0
+          },
+          {
+            "symbol": "BBSE3.SA",
+            "action": "BUY",
+            "status": "MONITOR",
+            "status_reason": "Observar sem enviar ordens hoje.",
+            "current_weight_pct": 6.61,
+            "target_weight_pct": 10.25,
+            "executable_weight_pct": 6.61,
+            "drift_pct": 3.64,
+            "outside_asset_band": true,
+            "recommended_value_brl": 70.78,
+            "recommended_value_pct": 3.31,
+            "executable_value_brl": 0.0,
+            "executable_value_pct": 0.0,
+            "recommended_shares": 2,
             "executable_shares": 0
           },
           {
@@ -317,71 +300,61 @@
             "action": "BUY",
             "status": "MONITOR",
             "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 9.88,
-            "target_weight_pct": 13.65,
-            "executable_weight_pct": 9.88,
-            "drift_pct": 3.77,
+            "current_weight_pct": 9.34,
+            "target_weight_pct": 11.42,
+            "executable_weight_pct": 9.34,
+            "drift_pct": 2.09,
             "outside_asset_band": true,
-            "recommended_value_brl": 72.18,
-            "recommended_value_pct": 3.37,
+            "recommended_value_brl": 36.72,
+            "recommended_value_pct": 1.72,
             "executable_value_brl": 0.0,
             "executable_value_pct": 0.0,
-            "recommended_shares": 401,
+            "recommended_shares": 216,
             "executable_shares": 0
           },
           {
             "symbol": "CMIG3.SA",
-            "action": "SELL",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
-            "current_weight_pct": 9.5,
-            "target_weight_pct": 6.77,
-            "executable_weight_pct": 9.5,
-            "drift_pct": -2.72,
-            "outside_asset_band": true,
-            "recommended_value_brl": 62.6,
-            "recommended_value_pct": 2.92,
+            "action": "BUY",
+            "status": "IGNORE_BAND",
+            "status_reason": "Dentro da banda de tolerância por ativo.",
+            "current_weight_pct": 9.58,
+            "target_weight_pct": 11.43,
+            "executable_weight_pct": 9.58,
+            "drift_pct": 1.84,
+            "outside_asset_band": false,
+            "recommended_value_brl": 31.56,
+            "recommended_value_pct": 1.47,
             "executable_value_brl": 0.0,
             "executable_value_pct": 0.0,
-            "recommended_shares": 4,
+            "recommended_shares": 2,
             "executable_shares": 0
           },
           {
-            "symbol": "PETR4.SA",
+            "symbol": "KLBN4.SA",
             "action": "SELL",
             "status": "IGNORE_BAND",
             "status_reason": "Dentro da banda de tolerância por ativo.",
-            "current_weight_pct": 1.94,
-            "target_weight_pct": 0,
-            "executable_weight_pct": 1.94,
-            "drift_pct": -1.94,
+            "current_weight_pct": 35.47,
+            "target_weight_pct": 34.84,
+            "executable_weight_pct": 35.47,
+            "drift_pct": -0.63,
             "outside_asset_band": false,
-            "recommended_value_brl": 41.52,
-            "recommended_value_pct": 1.94,
+            "recommended_value_brl": 37.62,
+            "recommended_value_pct": 1.76,
             "executable_value_brl": 0.0,
             "executable_value_pct": 0.0,
-            "recommended_shares": 1,
-            "executable_shares": 0
-          },
-          {
-            "symbol": "ISAE4.SA",
-            "action": "SELL",
-            "status": "IGNORE_BAND",
-            "status_reason": "Dentro da banda de tolerância por ativo.",
-            "current_weight_pct": 1.26,
-            "target_weight_pct": 0,
-            "executable_weight_pct": 1.26,
-            "drift_pct": -1.26,
-            "outside_asset_band": false,
-            "recommended_value_brl": 27.01,
-            "recommended_value_pct": 1.26,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
-            "recommended_shares": 1,
+            "recommended_shares": 11,
             "executable_shares": 0
           }
         ],
         "sector_drift": [
+          {
+            "sector": "Utilities",
+            "current_weight_pct": 10.84,
+            "target_weight_pct": 23.14,
+            "drift_pct": 12.3,
+            "outside_band": true
+          },
           {
             "sector": "Consumer Cyclical",
             "current_weight_pct": 9.53,
@@ -391,58 +364,44 @@
           },
           {
             "sector": "Energy",
-            "current_weight_pct": 1.94,
-            "target_weight_pct": 8.92,
-            "drift_pct": 6.98,
+            "current_weight_pct": 1.91,
+            "target_weight_pct": 10.34,
+            "drift_pct": 8.43,
             "outside_band": true
           },
           {
-            "sector": "Basic Materials",
-            "current_weight_pct": 34.71,
-            "target_weight_pct": 39.15,
-            "drift_pct": 4.44,
-            "outside_band": false
-          },
-          {
-            "sector": "Real Estate",
-            "current_weight_pct": 0.0,
-            "target_weight_pct": 4.41,
-            "drift_pct": 4.41,
-            "outside_band": false
-          },
-          {
-            "sector": "Utilities",
-            "current_weight_pct": 10.76,
-            "target_weight_pct": 6.77,
-            "drift_pct": -3.98,
+            "sector": "Healthcare",
+            "current_weight_pct": 3.96,
+            "target_weight_pct": 0.0,
+            "drift_pct": -3.96,
             "outside_band": false
           },
           {
             "sector": "Industrials",
-            "current_weight_pct": 15.7,
-            "target_weight_pct": 13.65,
-            "drift_pct": -2.05,
+            "current_weight_pct": 15.29,
+            "target_weight_pct": 11.42,
+            "drift_pct": -3.86,
             "outside_band": false
           },
           {
             "sector": "Financial Services",
-            "current_weight_pct": 13.23,
-            "target_weight_pct": 11.69,
-            "drift_pct": -1.54,
+            "current_weight_pct": 13.31,
+            "target_weight_pct": 10.25,
+            "drift_pct": -3.06,
             "outside_band": false
           },
           {
-            "sector": "Healthcare",
-            "current_weight_pct": 4.19,
-            "target_weight_pct": 5.14,
-            "drift_pct": 0.95,
+            "sector": "Basic Materials",
+            "current_weight_pct": 35.47,
+            "target_weight_pct": 34.84,
+            "drift_pct": -0.63,
             "outside_band": false
           },
           {
             "sector": "Consumer Defensive",
-            "current_weight_pct": 9.95,
-            "target_weight_pct": 10.25,
-            "drift_pct": 0.3,
+            "current_weight_pct": 9.69,
+            "target_weight_pct": 10.01,
+            "drift_pct": 0.32,
             "outside_band": false
           }
         ]
@@ -451,12 +410,12 @@
         "phase": "6_turnover_penalty_optimization",
         "enabled": true,
         "selected_blend_ratio": 0.0,
-        "selected_stable_score": -3.9994,
+        "selected_stable_score": -3.9938,
         "official_blend_ratio": 1.0,
-        "official_stable_score": -16.3727,
-        "turnover_saved_pct": 61.1231,
-        "adjusted_return_tradeoff_pct": -4.1876,
-        "adjusted_return_delta_pct": 4.1876,
+        "official_stable_score": -16.9109,
+        "turnover_saved_pct": 52.399,
+        "adjusted_return_tradeoff_pct": -6.1151,
+        "adjusted_return_delta_pct": 6.1151,
         "penalty_parameters": {
           "turnover_lambda": 0.05,
           "turnover_target_pct": 12.0,
@@ -466,79 +425,79 @@
           "suspicious_lambda": 0.03,
           "max_suspicious_pct": 35.0
         },
-        "holdings_adjusted_return_pct": 17.82,
+        "holdings_adjusted_return_pct": 18.14,
         "official_candidate": {
           "blend_ratio": 1.0,
-          "raw_net_return_pct": 393.7793,
-          "adjusted_net_return_pct": 13.6324,
-          "adjusted_gain_pct": -4.1876,
-          "turnover_pct": 61.1231,
-          "target_quality_score": 0.5188,
-          "low_reject_weight_pct": 58.1,
-          "suspicious_return_contribution_share_pct": 97.12,
-          "top2_return_concentration_pct": 95.47,
-          "stable_score": -16.3727,
+          "raw_net_return_pct": 340.3429,
+          "adjusted_net_return_pct": 12.0249,
+          "adjusted_gain_pct": -6.1151,
+          "turnover_pct": 52.399,
+          "target_quality_score": 0.543,
+          "low_reject_weight_pct": 56.57,
+          "suspicious_return_contribution_share_pct": 97.6,
+          "top2_return_concentration_pct": 94.35,
+          "stable_score": -16.9109,
           "stable_score_components": {
-            "adjusted_gain_pct": -4.1876,
-            "turnover_penalty_pct": 3.0562,
-            "turnover_excess_penalty_pct": 4.9123,
-            "uncertainty_penalty_pct": 1.4436,
-            "concentration_penalty_pct": 0.9094,
-            "suspicious_return_penalty_pct": 1.8636
+            "adjusted_gain_pct": -6.1151,
+            "turnover_penalty_pct": 2.62,
+            "turnover_excess_penalty_pct": 4.0399,
+            "uncertainty_penalty_pct": 1.371,
+            "concentration_penalty_pct": 0.887,
+            "suspicious_return_penalty_pct": 1.878
           }
         },
         "stable_candidate": {
           "blend_ratio": 0.0,
-          "raw_net_return_pct": 344.3027,
-          "adjusted_net_return_pct": 17.82,
+          "raw_net_return_pct": 338.6319,
+          "adjusted_net_return_pct": 18.14,
           "adjusted_gain_pct": 0.0,
           "turnover_pct": 0.0,
-          "target_quality_score": 0.5618,
-          "low_reject_weight_pct": 54.09,
-          "suspicious_return_contribution_share_pct": 95.76,
-          "top2_return_concentration_pct": 93.1,
-          "stable_score": -3.9994,
+          "target_quality_score": 0.5606,
+          "low_reject_weight_pct": 54.39,
+          "suspicious_return_contribution_share_pct": 95.58,
+          "top2_return_concentration_pct": 92.91,
+          "stable_score": -3.9938,
           "stable_score_components": {
             "adjusted_gain_pct": 0.0,
             "turnover_penalty_pct": 0.0,
             "turnover_excess_penalty_pct": 0.0,
-            "uncertainty_penalty_pct": 1.3146,
-            "concentration_penalty_pct": 0.862,
-            "suspicious_return_penalty_pct": 1.8228
+            "uncertainty_penalty_pct": 1.3182,
+            "concentration_penalty_pct": 0.8582,
+            "suspicious_return_penalty_pct": 1.8174
           }
         },
         "stable_portfolio": {
           "stocks": [
-            "CMIG3.SA",
-            "RANI3.SA",
-            "SLCE3.SA",
             "PSSA3.SA",
+            "PNVL3.SA",
+            "SLCE3.SA",
+            "BBSE3.SA",
+            "WEGE3.SA",
             "PETR4.SA",
+            "RANI3.SA",
+            "CMIG3.SA",
             "KLBN4.SA",
             "AMBP3.SA",
-            "BBSE3.SA",
-            "PNVL3.SA",
-            "ISAE4.SA",
-            "WEGE3.SA"
+            "ISAE4.SA"
           ],
           "weights": {
-            "CMIG3.SA": 0.09495206828532728,
-            "RANI3.SA": 0.09525543069048126,
-            "SLCE3.SA": 0.0995118205198756,
-            "PSSA3.SA": 0.06747220671133523,
-            "PETR4.SA": 0.01937778331171731,
-            "KLBN4.SA": 0.3470919287037571,
-            "AMBP3.SA": 0.09879309463378758,
-            "BBSE3.SA": 0.06483529847068265,
-            "PNVL3.SA": 0.041929189849890684,
-            "ISAE4.SA": 0.012605826732037997,
-            "WEGE3.SA": 0.05817535209110727
+            "PSSA3.SA": 0.06700238842456088,
+            "PNVL3.SA": 0.039576394520456686,
+            "SLCE3.SA": 0.09685752778722882,
+            "BBSE3.SA": 0.0661288270888825,
+            "WEGE3.SA": 0.05950473268033929,
+            "PETR4.SA": 0.019101495803454955,
+            "RANI3.SA": 0.09534397907349786,
+            "CMIG3.SA": 0.09582980780880844,
+            "KLBN4.SA": 0.35467400865292,
+            "AMBP3.SA": 0.09339132155040031,
+            "ISAE4.SA": 0.012589516609450402
           },
-          "expected_return_pct": 344.3027,
-          "net_return_pct": 344.3027,
-          "adjusted_net_return_pct": 17.82,
+          "expected_return_pct": 338.6319,
+          "net_return_pct": 338.6319,
+          "adjusted_net_return_pct": 18.14,
           "turnover_pct": 0.0,
-          "stable_score": -3.9994
+          "stable_score": -3.9938
         },
         "stable_transactions": [],
         "stable_transaction_summary": {
@@ -550,102 +509,102 @@
         "frontier": [
           {
             "blend_ratio": 0.0,
-            "raw_net_return_pct": 344.3027,
-            "adjusted_net_return_pct": 17.82,
+            "raw_net_return_pct": 338.6319,
+            "adjusted_net_return_pct": 18.14,
             "adjusted_gain_pct": 0.0,
             "turnover_pct": 0.0,
-            "target_quality_score": 0.5618,
-            "low_reject_weight_pct": 54.09,
-            "suspicious_return_contribution_share_pct": 95.76,
-            "top2_return_concentration_pct": 93.1,
-            "stable_score": -3.9994,
+            "target_quality_score": 0.5606,
+            "low_reject_weight_pct": 54.39,
+            "suspicious_return_contribution_share_pct": 95.58,
+            "top2_return_concentration_pct": 92.91,
+            "stable_score": -3.9938,
             "stable_score_components": {
               "adjusted_gain_pct": 0.0,
               "turnover_penalty_pct": 0.0,
               "turnover_excess_penalty_pct": 0.0,
-              "uncertainty_penalty_pct": 1.3146,
-              "concentration_penalty_pct": 0.862,
-              "suspicious_return_penalty_pct": 1.8228
+              "uncertainty_penalty_pct": 1.3182,
+              "concentration_penalty_pct": 0.8582,
+              "suspicious_return_penalty_pct": 1.8174
             }
           },
           {
             "blend_ratio": 0.25,
-            "raw_net_return_pct": 356.6709,
-            "adjusted_net_return_pct": 16.7547,
-            "adjusted_gain_pct": -1.0653,
-            "turnover_pct": 18.5069,
-            "target_quality_score": 0.551,
-            "low_reject_weight_pct": 55.09,
-            "suspicious_return_contribution_share_pct": 96.13,
-            "top2_return_concentration_pct": 93.75,
-            "stable_score": -6.6973,
+            "raw_net_return_pct": 339.0585,
+            "adjusted_net_return_pct": 16.6151,
+            "adjusted_gain_pct": -1.5249,
+            "turnover_pct": 17.1087,
+            "target_quality_score": 0.5562,
+            "low_reject_weight_pct": 54.94,
+            "suspicious_return_contribution_share_pct": 96.08,
+            "top2_return_concentration_pct": 93.27,
+            "stable_score": -6.9204,
             "stable_score_components": {
-              "adjusted_gain_pct": -1.0653,
-              "turnover_penalty_pct": 0.9253,
-              "turnover_excess_penalty_pct": 0.6507,
-              "uncertainty_penalty_pct": 1.347,
-              "concentration_penalty_pct": 0.875,
-              "suspicious_return_penalty_pct": 1.8339
+              "adjusted_gain_pct": -1.5249,
+              "turnover_penalty_pct": 0.8554,
+              "turnover_excess_penalty_pct": 0.5109,
+              "uncertainty_penalty_pct": 1.3314,
+              "concentration_penalty_pct": 0.8654,
+              "suspicious_return_penalty_pct": 1.8324
             }
           },
           {
             "blend_ratio": 0.5,
-            "raw_net_return_pct": 369.042,
-            "adjusted_net_return_pct": 15.7122,
-            "adjusted_gain_pct": -2.1078,
-            "turnover_pct": 27.204,
-            "target_quality_score": 0.5403,
-            "low_reject_weight_pct": 56.1,
-            "suspicious_return_contribution_share_pct": 96.48,
-            "top2_return_concentration_pct": 94.36,
-            "stable_score": -9.0991,
+            "raw_net_return_pct": 339.488,
+            "adjusted_net_return_pct": 15.0831,
+            "adjusted_gain_pct": -3.0569,
+            "turnover_pct": 24.0911,
+            "target_quality_score": 0.5518,
+            "low_reject_weight_pct": 55.48,
+            "suspicious_return_contribution_share_pct": 96.59,
+            "top2_return_concentration_pct": 93.63,
+            "stable_score": -9.5355,
             "stable_score_components": {
-              "adjusted_gain_pct": -2.1078,
-              "turnover_penalty_pct": 1.3602,
-              "turnover_excess_penalty_pct": 1.5204,
-              "uncertainty_penalty_pct": 1.3791,
-              "concentration_penalty_pct": 0.8872,
-              "suspicious_return_penalty_pct": 1.8444
+              "adjusted_gain_pct": -3.0569,
+              "turnover_penalty_pct": 1.2046,
+              "turnover_excess_penalty_pct": 1.2091,
+              "uncertainty_penalty_pct": 1.3446,
+              "concentration_penalty_pct": 0.8726,
+              "suspicious_return_penalty_pct": 1.8477
             }
           },
           {
             "blend_ratio": 0.75,
-            "raw_net_return_pct": 381.4106,
-            "adjusted_net_return_pct": 14.6972,
-            "adjusted_gain_pct": -3.1228,
-            "turnover_pct": 44.4,
-            "target_quality_score": 0.5295,
-            "low_reject_weight_pct": 57.11,
-            "suspicious_return_contribution_share_pct": 96.81,
-            "top2_return_concentration_pct": 94.93,
-            "stable_score": -12.7472,
+            "raw_net_return_pct": 339.9162,
+            "adjusted_net_return_pct": 13.5697,
+            "adjusted_gain_pct": -4.5703,
+            "turnover_pct": 35.6608,
+            "target_quality_score": 0.5474,
+            "low_reject_weight_pct": 56.03,
+            "suspicious_return_contribution_share_pct": 97.1,
+            "top2_return_concentration_pct": 93.99,
+            "stable_score": -12.82,
             "stable_score_components": {
-              "adjusted_gain_pct": -3.1228,
-              "turnover_penalty_pct": 2.22,
-              "turnover_excess_penalty_pct": 3.24,
-              "uncertainty_penalty_pct": 1.4115,
-              "concentration_penalty_pct": 0.8986,
-              "suspicious_return_penalty_pct": 1.8543
+              "adjusted_gain_pct": -4.5703,
+              "turnover_penalty_pct": 1.783,
+              "turnover_excess_penalty_pct": 2.3661,
+              "uncertainty_penalty_pct": 1.3578,
+              "concentration_penalty_pct": 0.8798,
+              "suspicious_return_penalty_pct": 1.863
             }
           },
           {
             "blend_ratio": 1.0,
-            "raw_net_return_pct": 393.7793,
-            "adjusted_net_return_pct": 13.6324,
-            "adjusted_gain_pct": -4.1876,
-            "turnover_pct": 61.1231,
-            "target_quality_score": 0.5188,
-            "low_reject_weight_pct": 58.1,
-            "suspicious_return_contribution_share_pct": 97.12,
-            "top2_return_concentration_pct": 95.47,
-            "stable_score": -16.3727,
+            "raw_net_return_pct": 340.3429,
+            "adjusted_net_return_pct": 12.0249,
+            "adjusted_gain_pct": -6.1151,
+            "turnover_pct": 52.399,
+            "target_quality_score": 0.543,
+            "low_reject_weight_pct": 56.57,
+            "suspicious_return_contribution_share_pct": 97.6,
+            "top2_return_concentration_pct": 94.35,
+            "stable_score": -16.9109,
             "stable_score_components": {
-              "adjusted_gain_pct": -4.1876,
-              "turnover_penalty_pct": 3.0562,
-              "turnover_excess_penalty_pct": 4.9123,
-              "uncertainty_penalty_pct": 1.4436,
-              "concentration_penalty_pct": 0.9094,
-              "suspicious_return_penalty_pct": 1.8636
+              "adjusted_gain_pct": -6.1151,
+              "turnover_penalty_pct": 2.62,
+              "turnover_excess_penalty_pct": 4.0399,
+              "uncertainty_penalty_pct": 1.371,
+              "concentration_penalty_pct": 0.887,
+              "suspicious_return_penalty_pct": 1.878
             }
           }
         ]
@@ -654,15 +613,15 @@
     "calibration": {
       "phase": "7_backtest_calibration",
       "status": "diagnostic",
-      "generated_at": "2026-06-06T10:56:44.376782+00:00",
+      "generated_at": "2026-06-06T11:40:48.572942+00:00",
       "history": {
-        "raw_runs": 67,
+        "raw_runs": 68,
         "distinct_dates": 39,
         "first_date": "2026-03-29",
         "last_date": "2026-06-06",
         "shadow_available_dates": 2,
         "stable_available_dates": 1,
-        "forward_21d_available_dates": 23,
+        "forward_21d_available_dates": 24,
         "dedupe_rule": "latest_run_per_date"
       },
       "realized_return_source": {
@@ -670,8 +629,8 @@
         "source": "portfolio_real_daily.csv",
         "return_column": "consolidated_return",
         "first_date": "2025-10-20",
-        "last_date": "2026-06-03",
-        "trading_days": 134
+        "last_date": "2026-06-05",
+        "trading_days": 135
       },
       "threshold_snapshot": {
         "shadow_base_hurdle_pct": 0.5,
@@ -696,27 +655,27 @@
           "trade_frequency_pct": 58.97,
           "cumulative_turnover_pct": 61.85,
           "avg_turnover_on_signal_pct": 2.6891,
-          "avg_expected_gain_pct": 28.3815,
+          "avg_expected_gain_pct": 27.1544,
           "avg_asset_set_stability_pct": 75.7425,
           "suspicious_trade_signals": 1,
           "suspicious_trade_rate_pct": 4.35,
           "extreme_target_false_positive_count": 0,
           "forward_5d": {
-            "observations": 18,
-            "avg_portfolio_return_pct": -1.3734,
-            "avg_benchmark_return_pct": -1.9684,
-            "avg_alpha_pct": 0.595,
-            "avg_volatility_annual_pct": 8.4132,
-            "avg_max_drawdown_pct": -1.4553,
-            "alpha_hit_rate_pct": 66.67
+            "observations": 19,
+            "avg_portfolio_return_pct": -1.4216,
+            "avg_benchmark_return_pct": -2.0465,
+            "avg_alpha_pct": 0.6249,
+            "avg_volatility_annual_pct": 8.6078,
+            "avg_max_drawdown_pct": -1.4852,
+            "alpha_hit_rate_pct": 68.42
           },
           "forward_21d": {
-            "observations": 11,
-            "avg_portfolio_return_pct": -5.0566,
-            "avg_benchmark_return_pct": -8.0073,
-            "avg_alpha_pct": 2.9506,
-            "avg_volatility_annual_pct": 8.0323,
-            "avg_max_drawdown_pct": -5.1572,
+            "observations": 12,
+            "avg_portfolio_return_pct": -5.0433,
+            "avg_benchmark_return_pct": -8.169,
+            "avg_alpha_pct": 3.1257,
+            "avg_volatility_annual_pct": 8.0617,
+            "avg_max_drawdown_pct": -5.1149,
             "alpha_hit_rate_pct": 100.0
           },
           "performance_by_regime": [
@@ -732,7 +691,7 @@
               "available_runs": 37,
               "trade_signals": 22,
               "trade_frequency_pct": 59.46,
-              "avg_forward_alpha_21d_pct": 2.9506
+              "avg_forward_alpha_21d_pct": 3.1257
             }
           ],
           "turnover_reduction_vs_official_pct": 0.0,
@@ -750,7 +709,7 @@
           "trade_frequency_pct": 0.0,
           "cumulative_turnover_pct": 0,
           "avg_turnover_on_signal_pct": null,
-          "avg_expected_gain_pct": -4.7678,
+          "avg_expected_gain_pct": -5.5314,
           "avg_asset_set_stability_pct": 100.0,
           "suspicious_trade_signals": 0,
           "suspicious_trade_rate_pct": null,
@@ -797,7 +756,7 @@
           "trade_frequency_pct": 0.0,
           "cumulative_turnover_pct": 0,
           "avg_turnover_on_signal_pct": null,
-          "avg_expected_gain_pct": -4.7678,
+          "avg_expected_gain_pct": -5.5314,
           "avg_asset_set_stability_pct": 100.0,
           "suspicious_trade_signals": 0,
           "suspicious_trade_rate_pct": null,
@@ -844,7 +803,7 @@
           "trade_frequency_pct": 0.0,
           "cumulative_turnover_pct": 0,
           "avg_turnover_on_signal_pct": null,
-          "avg_expected_gain_pct": -4.7678,
+          "avg_expected_gain_pct": -6.2951,
           "avg_asset_set_stability_pct": 100.0,
           "suspicious_trade_signals": 0,
           "suspicious_trade_rate_pct": null,
@@ -891,7 +850,7 @@
           "trade_frequency_pct": 0.0,
           "cumulative_turnover_pct": 0,
           "avg_turnover_on_signal_pct": null,
-          "avg_expected_gain_pct": 4.1876,
+          "avg_expected_gain_pct": 6.1151,
           "avg_asset_set_stability_pct": 100.0,
           "suspicious_trade_signals": 0,
           "suspicious_trade_rate_pct": null,
@@ -943,44 +902,36 @@
       ]
     },
     "valuation": {
-      "portfolio_pe": 4.28,
-      "benchmark_pe": 9.27,
+      "portfolio_pe": 4.51,
+      "benchmark_pe": 9.22,
       "dividend_yield": null,
-      "momentum_signal": -0.0304
+      "momentum_signal": -0.0022
     },
     "composition": {
       "sector_exposure": [
         {
           "sector": "Basic Materials",
-          "pct": 0.3915
-        },
-        {
-          "sector": "Industrials",
-          "pct": 0.1365
-        },
-        {
-          "sector": "Financial Services",
-          "pct": 0.1169
-        },
-        {
-          "sector": "Consumer Defensive",
-          "pct": 0.1025
-        },
-        {
-          "sector": "Energy",
-          "pct": 0.0892
+          "pct": 0.3484
         },
         {
           "sector": "Utilities",
-          "pct": 0.0677
+          "pct": 0.2314
         },
         {
-          "sector": "Healthcare",
-          "pct": 0.0514
+          "sector": "Industrials",
+          "pct": 0.1142
         },
         {
-          "sector": "Real Estate",
-          "pct": 0.0441
+          "sector": "Energy",
+          "pct": 0.1034
+        },
+        {
+          "sector": "Financial Services",
+          "pct": 0.1025
+        },
+        {
+          "sector": "Consumer Defensive",
+          "pct": 0.1001
         }
       ]
     },
@@ -988,13 +939,13 @@
       "phase": "8_official_decision_promotion",
       "return_concentration": {
         "holdings": {
-          "expected_return_pct": 344.3,
-          "top1_contribution_pct": 64.41,
-          "top2_contribution_pct": 93.1,
-          "top5_contribution_pct": 98.12,
-          "top1_contribution_pp": 221.75,
-          "top2_contribution_pp": 320.54,
-          "top5_contribution_pp": 337.84,
+          "expected_return_pct": 338.63,
+          "top1_contribution_pct": 65.33,
+          "top2_contribution_pct": 92.91,
+          "top5_contribution_pct": 98.06,
+          "top1_contribution_pp": 221.23,
+          "top2_contribution_pp": 314.62,
+          "top5_contribution_pp": 332.06,
           "top_symbols": [
             "KLBN4.SA",
             "AMBP3.SA",
@@ -1004,35 +955,35 @@
           ]
         },
         "ideal": {
-          "expected_return_pct": 393.8,
-          "top1_contribution_pct": 61.81,
-          "top2_contribution_pct": 95.46,
-          "top5_contribution_pct": 98.57,
-          "top1_contribution_pp": 243.41,
-          "top2_contribution_pp": 375.91,
-          "top5_contribution_pp": 388.18,
-          "top_symbols": [
-            "KLBN4.SA",
-            "AMBP3.SA",
-            "CMIG3.SA",
-            "RADL3.SA",
-            "SLCE3.SA"
-          ]
-        },
-        "optimal": {
-          "expected_return_pct": 403.93,
-          "top1_contribution_pct": 61.92,
-          "top2_contribution_pct": 95.71,
-          "top5_contribution_pct": 98.69,
-          "top1_contribution_pp": 250.11,
-          "top2_contribution_pp": 386.62,
-          "top5_contribution_pp": 398.65,
+          "expected_return_pct": 340.36,
+          "top1_contribution_pct": 61.85,
+          "top2_contribution_pct": 94.35,
+          "top5_contribution_pct": 99.09,
+          "top1_contribution_pp": 210.52,
+          "top2_contribution_pp": 321.12,
+          "top5_contribution_pp": 337.27,
           "top_symbols": [
             "KLBN4.SA",
             "AMBP3.SA",
             "CMIG3.SA",
             "SLCE3.SA",
-            "RADL3.SA"
+            "PETR4.SA"
+          ]
+        },
+        "optimal": {
+          "expected_return_pct": 350.4,
+          "top1_contribution_pct": 62.02,
+          "top2_contribution_pct": 94.62,
+          "top5_contribution_pct": 99.15,
+          "top1_contribution_pp": 217.31,
+          "top2_contribution_pp": 331.56,
+          "top5_contribution_pp": 347.42,
+          "top_symbols": [
+            "KLBN4.SA",
+            "AMBP3.SA",
+            "CMIG3.SA",
+            "SLCE3.SA",
+            "PETR4.SA"
           ]
         }
       },
@@ -1041,42 +992,42 @@
           {
             "source": "YahooFinance",
             "count": 9,
-            "weight_pct": 80.63,
-            "return_contribution_pct": 236.36
+            "weight_pct": 81.08,
+            "return_contribution_pct": 236.21
           },
           {
             "source": "SectorPE_Fallback",
             "count": 2,
-            "weight_pct": 19.38,
-            "return_contribution_pct": 107.95
+            "weight_pct": 18.92,
+            "return_contribution_pct": 102.42
           }
         ],
         "ideal": [
           {
             "source": "YahooFinance",
             "count": 6,
-            "weight_pct": 79.99,
-            "return_contribution_pct": 254.78
+            "weight_pct": 77.18,
+            "return_contribution_pct": 218.68
           },
           {
             "source": "SectorPE_Fallback",
             "count": 2,
-            "weight_pct": 20.0,
-            "return_contribution_pct": 139.01
+            "weight_pct": 22.82,
+            "return_contribution_pct": 121.68
           }
         ],
         "optimal": [
           {
             "source": "YahooFinance",
             "count": 6,
-            "weight_pct": 79.56,
-            "return_contribution_pct": 260.89
+            "weight_pct": 77.14,
+            "return_contribution_pct": 225.4
           },
           {
             "source": "SectorPE_Fallback",
             "count": 2,
-            "weight_pct": 20.42,
-            "return_contribution_pct": 143.04
+            "weight_pct": 22.85,
+            "return_contribution_pct": 125.01
           }
         ]
       },
@@ -1085,8 +1036,8 @@
           {
             "bucket": "high",
             "count": 8,
-            "weight_pct": 45.92,
-            "return_contribution_pct": 14.61,
+            "weight_pct": 45.61,
+            "return_contribution_pct": 14.98,
             "symbols": [
               "RANI3.SA",
               "SLCE3.SA",
@@ -1101,8 +1052,8 @@
           {
             "bucket": "low",
             "count": 1,
-            "weight_pct": 9.5,
-            "return_contribution_pct": 9.16,
+            "weight_pct": 9.58,
+            "return_contribution_pct": 9.03,
             "symbols": [
               "CMIG3.SA"
             ]
@@ -1110,8 +1061,8 @@
           {
             "bucket": "reject",
             "count": 2,
-            "weight_pct": 44.59,
-            "return_contribution_pct": 320.54,
+            "weight_pct": 44.81,
+            "return_contribution_pct": 314.62,
             "symbols": [
               "KLBN4.SA",
               "AMBP3.SA"
@@ -1122,21 +1073,21 @@
           {
             "bucket": "high",
             "count": 5,
-            "weight_pct": 41.89,
-            "return_contribution_pct": 11.37,
+            "weight_pct": 43.43,
+            "return_contribution_pct": 8.16,
             "symbols": [
-              "RADL3.SA",
               "SLCE3.SA",
+              "PETR4.SA",
+              "ISAE4.SA",
               "PETR3.SA",
-              "CURY3.SA",
               "BBSE3.SA"
             ]
           },
           {
             "bucket": "low",
             "count": 1,
-            "weight_pct": 6.75,
-            "return_contribution_pct": 6.51,
+            "weight_pct": 11.76,
+            "return_contribution_pct": 11.08,
             "symbols": [
               "CMIG3.SA"
             ]
@@ -1144,8 +1095,8 @@
           {
             "bucket": "reject",
             "count": 2,
-            "weight_pct": 51.35,
-            "return_contribution_pct": 375.91,
+            "weight_pct": 44.81,
+            "return_contribution_pct": 321.12,
             "symbols": [
               "KLBN4.SA",
               "AMBP3.SA"
@@ -1156,21 +1107,21 @@
           {
             "bucket": "high",
             "count": 5,
-            "weight_pct": 40.41,
-            "return_contribution_pct": 10.78,
+            "weight_pct": 42.3,
+            "return_contribution_pct": 8.09,
             "symbols": [
               "SLCE3.SA",
-              "RADL3.SA",
+              "PETR4.SA",
+              "ISAE4.SA",
               "PETR3.SA",
-              "CURY3.SA",
               "BBSE3.SA"
             ]
           },
           {
             "bucket": "low",
             "count": 1,
-            "weight_pct": 6.77,
-            "return_contribution_pct": 6.53,
+            "weight_pct": 11.43,
+            "return_contribution_pct": 10.76,
             "symbols": [
               "CMIG3.SA"
             ]
@@ -1178,8 +1129,8 @@
           {
             "bucket": "reject",
             "count": 2,
-            "weight_pct": 52.8,
-            "return_contribution_pct": 386.62,
+            "weight_pct": 46.26,
+            "return_contribution_pct": 331.56,
             "symbols": [
               "KLBN4.SA",
               "AMBP3.SA"
@@ -1189,19 +1140,19 @@
       },
       "adjusted_returns": {
         "holdings": {
-          "raw_expected_return_pct": 344.3,
-          "raw_contributor_sum_pct": 344.31,
-          "adjusted_expected_return_pct": 17.82,
-          "adjusted_return_reduction_pct": 326.48,
-          "adjusted_return_reduction_pct_of_raw": 94.82,
+          "raw_expected_return_pct": 338.63,
+          "raw_contributor_sum_pct": 338.63,
+          "adjusted_expected_return_pct": 18.14,
+          "adjusted_return_reduction_pct": 320.49,
+          "adjusted_return_reduction_pct_of_raw": 94.64,
           "top_reductions": [
             {
               "stock": "KLBN4.SA",
-              "weight_pct": 34.71,
-              "raw_return_contribution_pct": 221.75,
+              "weight_pct": 35.47,
+              "raw_return_contribution_pct": 221.23,
               "adjusted_return_contribution_pct": 0.0,
-              "reduction_pct": 221.75,
-              "raw_expected_return_pct": 638.88,
+              "reduction_pct": 221.23,
+              "raw_expected_return_pct": 623.76,
               "adjusted_expected_return_pct": 0.0,
               "shrinkage_factor": 0.0,
               "target_quality_bucket": "reject",
@@ -1214,10 +1165,10 @@
             },
             {
               "stock": "AMBP3.SA",
-              "weight_pct": 9.88,
-              "raw_return_contribution_pct": 98.79,
+              "weight_pct": 9.34,
+              "raw_return_contribution_pct": 93.39,
               "adjusted_return_contribution_pct": 0.0,
-              "reduction_pct": 98.79,
+              "reduction_pct": 93.39,
               "raw_expected_return_pct": 1000.0,
               "adjusted_expected_return_pct": 0.0,
               "shrinkage_factor": 0.0,
@@ -1231,12 +1182,12 @@
             },
             {
               "stock": "CMIG3.SA",
-              "weight_pct": 9.5,
-              "raw_return_contribution_pct": 9.16,
-              "adjusted_return_contribution_pct": 3.21,
-              "reduction_pct": 5.95,
-              "raw_expected_return_pct": 96.45,
-              "adjusted_expected_return_pct": 33.76,
+              "weight_pct": 9.58,
+              "raw_return_contribution_pct": 9.03,
+              "adjusted_return_contribution_pct": 3.16,
+              "reduction_pct": 5.87,
+              "raw_expected_return_pct": 94.2,
+              "adjusted_expected_return_pct": 32.97,
               "shrinkage_factor": 0.35,
               "target_quality_bucket": "low",
               "target_quality_flags": [
@@ -1246,19 +1197,19 @@
           ]
         },
         "ideal": {
-          "raw_expected_return_pct": 393.8,
-          "raw_contributor_sum_pct": 393.79,
-          "adjusted_expected_return_pct": 13.65,
-          "adjusted_return_reduction_pct": 380.15,
-          "adjusted_return_reduction_pct_of_raw": 96.53,
+          "raw_expected_return_pct": 340.36,
+          "raw_contributor_sum_pct": 340.36,
+          "adjusted_expected_return_pct": 12.04,
+          "adjusted_return_reduction_pct": 328.32,
+          "adjusted_return_reduction_pct_of_raw": 96.46,
           "top_reductions": [
             {
               "stock": "KLBN4.SA",
-              "weight_pct": 38.1,
-              "raw_return_contribution_pct": 243.41,
+              "weight_pct": 33.75,
+              "raw_return_contribution_pct": 210.52,
               "adjusted_return_contribution_pct": 0.0,
-              "reduction_pct": 243.41,
-              "raw_expected_return_pct": 638.88,
+              "reduction_pct": 210.52,
+              "raw_expected_return_pct": 623.76,
               "adjusted_expected_return_pct": 0.0,
               "shrinkage_factor": 0.0,
               "target_quality_bucket": "reject",
@@ -1271,10 +1222,10 @@
             },
             {
               "stock": "AMBP3.SA",
-              "weight_pct": 13.25,
-              "raw_return_contribution_pct": 132.5,
+              "weight_pct": 11.06,
+              "raw_return_contribution_pct": 110.6,
               "adjusted_return_contribution_pct": 0.0,
-              "reduction_pct": 132.5,
+              "reduction_pct": 110.6,
               "raw_expected_return_pct": 1000.0,
               "adjusted_expected_return_pct": 0.0,
               "shrinkage_factor": 0.0,
@@ -1288,12 +1239,12 @@
             },
             {
               "stock": "CMIG3.SA",
-              "weight_pct": 6.75,
-              "raw_return_contribution_pct": 6.51,
-              "adjusted_return_contribution_pct": 2.28,
-              "reduction_pct": 4.23,
-              "raw_expected_return_pct": 96.45,
-              "adjusted_expected_return_pct": 33.76,
+              "weight_pct": 11.76,
+              "raw_return_contribution_pct": 11.08,
+              "adjusted_return_contribution_pct": 3.88,
+              "reduction_pct": 7.2,
+              "raw_expected_return_pct": 94.2,
+              "adjusted_expected_return_pct": 32.97,
               "shrinkage_factor": 0.35,
               "target_quality_bucket": "low",
               "target_quality_flags": [
@@ -1303,19 +1254,19 @@
           ]
         },
         "optimal": {
-          "raw_expected_return_pct": 403.93,
-          "raw_contributor_sum_pct": 403.93,
-          "adjusted_expected_return_pct": 13.07,
-          "adjusted_return_reduction_pct": 390.86,
-          "adjusted_return_reduction_pct_of_raw": 96.76,
+          "raw_expected_return_pct": 350.4,
+          "raw_contributor_sum_pct": 350.41,
+          "adjusted_expected_return_pct": 11.86,
+          "adjusted_return_reduction_pct": 338.54,
+          "adjusted_return_reduction_pct_of_raw": 96.62,
           "top_reductions": [
             {
               "stock": "KLBN4.SA",
-              "weight_pct": 39.15,
-              "raw_return_contribution_pct": 250.11,
+              "weight_pct": 34.84,
+              "raw_return_contribution_pct": 217.31,
               "adjusted_return_contribution_pct": 0.0,
-              "reduction_pct": 250.11,
-              "raw_expected_return_pct": 638.88,
+              "reduction_pct": 217.31,
+              "raw_expected_return_pct": 623.76,
               "adjusted_expected_return_pct": 0.0,
               "shrinkage_factor": 0.0,
               "target_quality_bucket": "reject",
@@ -1328,10 +1279,10 @@
             },
             {
               "stock": "AMBP3.SA",
-              "weight_pct": 13.65,
-              "raw_return_contribution_pct": 136.51,
+              "weight_pct": 11.42,
+              "raw_return_contribution_pct": 114.25,
               "adjusted_return_contribution_pct": 0.0,
-              "reduction_pct": 136.51,
+              "reduction_pct": 114.25,
               "raw_expected_return_pct": 1000.0,
               "adjusted_expected_return_pct": 0.0,
               "shrinkage_factor": 0.0,
@@ -1345,12 +1296,12 @@
             },
             {
               "stock": "CMIG3.SA",
-              "weight_pct": 6.77,
-              "raw_return_contribution_pct": 6.53,
-              "adjusted_return_contribution_pct": 2.29,
-              "reduction_pct": 4.25,
-              "raw_expected_return_pct": 96.45,
-              "adjusted_expected_return_pct": 33.76,
+              "weight_pct": 11.43,
+              "raw_return_contribution_pct": 10.76,
+              "adjusted_return_contribution_pct": 3.77,
+              "reduction_pct": 7.0,
+              "raw_expected_return_pct": 94.2,
+              "adjusted_expected_return_pct": 32.97,
               "shrinkage_factor": 0.35,
               "target_quality_bucket": "low",
               "target_quality_flags": [
@@ -1362,7 +1313,7 @@
       },
       "market_regime": {
         "state": "stress",
-        "as_of": "2026-06-03",
+        "as_of": "2026-06-05",
         "benchmark_ticker": "^BVSP",
         "benchmark_found": true,
         "triggers": [
@@ -1373,22 +1324,22 @@
           "high_cross_sectional_dispersion"
         ],
         "metrics": {
-          "benchmark_current": 171511.27,
+          "benchmark_current": 169019.0,
           "benchmark_peak_3m": 198657.0,
           "benchmark_peak_6m": 198657.0,
-          "benchmark_return_3m_pct": -6.33,
-          "benchmark_return_6m_pct": 8.17,
-          "benchmark_drawdown_3m_pct": -13.66,
-          "benchmark_drawdown_6m_pct": -13.66,
-          "benchmark_volatility_annual_pct": 19.54,
-          "benchmark_volatility_percentile": 51.82,
-          "universe_negative_return_3m_pct": 68.85,
-          "universe_negative_return_6m_pct": 60.99,
-          "universe_drawdown_gt_20_pct": 54.95,
-          "cross_sectional_dispersion_3m_pct": 45.31,
-          "sector_median_return_3m_pct": -11.12,
+          "benchmark_return_3m_pct": -8.82,
+          "benchmark_return_6m_pct": 6.78,
+          "benchmark_drawdown_3m_pct": -14.92,
+          "benchmark_drawdown_6m_pct": -14.92,
+          "benchmark_volatility_annual_pct": 19.53,
+          "benchmark_volatility_percentile": 51.8,
+          "universe_negative_return_3m_pct": 72.13,
+          "universe_negative_return_6m_pct": 63.74,
+          "universe_drawdown_gt_20_pct": 60.99,
+          "cross_sectional_dispersion_3m_pct": 46.62,
+          "sector_median_return_3m_pct": -14.2,
           "worst_sector_3m": "Healthcare",
-          "worst_sector_return_3m_pct": -16.61,
+          "worst_sector_return_3m_pct": -20.79,
           "universe_count": 184
         },
         "thresholds": {
@@ -1406,93 +1357,93 @@
         }
       },
       "turnover": {
-        "num_transactions": 13,
-        "total_trade_value": 1325.31,
-        "total_trade_value_pct": 61.85,
-        "total_buy_value": 631.02,
-        "total_sell_value": 694.29,
-        "total_cost": 0.38,
-        "portfolio_value": 2142.66
+        "num_transactions": 11,
+        "total_trade_value": 1125.11,
+        "total_trade_value_pct": 52.56,
+        "total_buy_value": 527.86,
+        "total_sell_value": 597.25,
+        "total_cost": 0.32,
+        "portfolio_value": 2140.67
       }
     }
   },
   "real": {
     "meta": {
       "history_start": "2025-10-17",
-      "history_end": "2026-06-03",
-      "trading_days": 126,
+      "history_end": "2026-06-05",
+      "trading_days": 128,
       "coverage_pct": 100.0,
       "annualize_safe": false,
       "source": "portfolio_history.csv + ledger.csv"
     },
     "snapshot": {
-      "total_market": 3388.01,
-      "equity_market": 2142.66,
+      "total_market": 3386.02,
+      "equity_market": 2140.67,
       "fund_market": 1166.39,
       "cash_market": 78.96,
       "total_invested": 2298.16,
-      "unrealized_pnl": -155.5,
-      "simple_roi_pct": -6.77,
+      "unrealized_pnl": -157.49,
+      "simple_roi_pct": -6.85,
       "n_positions": 11
     },
     "twr": {
-      "total_return": 0.2321,
-      "annual_return": 0.4806,
-      "volatility": 0.1889,
-      "sharpe": 1.75,
-      "sortino": 3.09,
+      "total_return": 0.2313,
+      "annual_return": 0.4747,
+      "volatility": 0.1882,
+      "sharpe": 1.73,
+      "sortino": 3.04,
       "max_drawdown": 0.1133,
-      "calmar": 4.24,
-      "pct_cdi": 262.7,
-      "risk_free_annual": 0.1496
+      "calmar": 4.19,
+      "pct_cdi": 260.9,
+      "risk_free_annual": 0.1492
     },
     "benchmark": {
       "ticker": "^BVSP",
-      "total_return": 0.1603,
-      "annual_return": 0.3227
+      "total_return": 0.1435,
+      "annual_return": 0.2844
     },
     "cdi": {
-      "total_return": 0.0883,
-      "annual_rate": 0.1496,
+      "total_return": 0.0887,
+      "annual_rate": 0.1492,
       "source": "LFTS11.SA",
-      "pct_of_cdi": 2.627
+      "pct_of_cdi": 2.609
     },
     "alpha": {
-      "total": 0.0717,
-      "annual": 0.1579
+      "total": 0.0879,
+      "annual": 0.1903
     },
     "relative": {
-      "beta": 0.68,
-      "beta_equity": 0.84,
-      "tracking_error": 0.1525,
-      "information_ratio": 1.04,
+      "beta": 0.67,
+      "beta_equity": 0.83,
+      "tracking_error": 0.153,
+      "information_ratio": 1.24,
       "correlation": 0.67
     },
     "structure": {
-      "hhi": 0.1727,
-      "top3": 0.5454,
-      "top5": 0.7356,
+      "hhi": 0.1767,
+      "top3": 0.5474,
+      "top5": 0.7361,
       "n_assets": 11,
       "sector_exposure": [
         {
           "sector": "Basic Materials",
-          "pct": 0.3471
+          "pct": 0.3547
         },
         {
           "sector": "Industrials",
-          "pct": 0.157
+          "pct": 0.1529
         },
         {
           "sector": "Financial Services",
-          "pct": 0.1323
+          "pct": 0.1331
         },
         {
           "sector": "Utilities",
-          "pct": 0.1076
+          "pct": 0.1084
         },
         {
           "sector": "Consumer Defensive",
-          "pct": 0.0995
+          "pct": 0.0969
         },
         {
           "sector": "Consumer Cyclical",
@@ -1500,105 +1451,105 @@
         },
         {
           "sector": "Healthcare",
-          "pct": 0.0419
+          "pct": 0.0396
         },
         {
           "sector": "Energy",
-          "pct": 0.0194
+          "pct": 0.0191
         }
       ]
     },
     "valuation": {
-      "portfolio_pe": 5.447328213790678
+      "portfolio_pe": 5.434690343517211
     },
     "risk": {
-      "liquidity_avg": 4785020.800603802,
-      "avg_internal_corr": 0.2547353237860717
+      "liquidity_avg": 4822160.45893122,
+      "avg_internal_corr": 0.3442524992956153
     },
     "risk_windows": {
       "All": {
-        "tracking_error": 0.1561,
-        "information_ratio": 1.17,
-        "hhi": 0.1727,
+        "tracking_error": 0.1566,
+        "information_ratio": 1.39,
+        "hhi": 0.1767,
         "n_assets": 11,
-        "trading_days": 121
+        "trading_days": 122
       },
       "YTD": {
-        "tracking_error": 0.1523,
-        "information_ratio": 2.59,
-        "hhi": 0.1727,
+        "tracking_error": 0.1528,
+        "information_ratio": 2.79,
+        "hhi": 0.1767,
         "n_assets": 11,
-        "trading_days": 105
+        "trading_days": 106
       },
       "3M": {
-        "tracking_error": 0.1373,
-        "information_ratio": 0.92,
-        "hhi": 0.1727,
+        "tracking_error": 0.1404,
+        "information_ratio": 1.34,
+        "hhi": 0.1767,
         "n_assets": 11,
-        "trading_days": 64
+        "trading_days": 63
       },
       "6M": {
-        "tracking_error": 0.1523,
-        "information_ratio": 2.59,
-        "hhi": 0.1727,
+        "tracking_error": 0.1528,
+        "information_ratio": 2.79,
+        "hhi": 0.1767,
         "n_assets": 11,
-        "trading_days": 105
+        "trading_days": 106
       },
       "12M": {
-        "tracking_error": 0.1561,
-        "information_ratio": 1.17,
-        "hhi": 0.1727,
+        "tracking_error": 0.1566,
+        "information_ratio": 1.39,
+        "hhi": 0.1767,
         "n_assets": 11,
-        "trading_days": 121
+        "trading_days": 122
       },
       "24M": {
-        "tracking_error": 0.1561,
-        "information_ratio": 1.17,
-        "hhi": 0.1727,
+        "tracking_error": 0.1566,
+        "information_ratio": 1.39,
+        "hhi": 0.1767,
         "n_assets": 11,
-        "trading_days": 121
+        "trading_days": 122
       }
     },
     "performance": {
       "YTD": {
-        "portfolio": 0.1956,
-        "equity_only": 0.2024,
-        "benchmark": 0.0645,
-        "cdi": 0.0593,
+        "portfolio": 0.1949,
+        "equity_only": 0.2012,
+        "benchmark": 0.049,
+        "cdi": 0.0596,
         "fund": 0.0561,
-        "pct_cdi": 330.0
+        "pct_cdi": 326.9
       },
       "3M": {
-        "portfolio": -0.0429,
-        "equity_only": -0.0539,
-        "benchmark": -0.094,
-        "cdi": 0.0354,
-        "fund": 0.0335,
-        "pct_cdi": -121.1
+        "portfolio": -0.0231,
+        "equity_only": -0.0316,
+        "benchmark": -0.0882,
+        "cdi": 0.0347,
+        "fund": 0.0324,
+        "pct_cdi": -66.6
       },
       "6M": {
-        "portfolio": 0.1956,
-        "equity_only": 0.2024,
-        "benchmark": 0.0647,
-        "cdi": 0.0703,
-        "fund": 0.0669,
-        "pct_cdi": 278.4
+        "portfolio": 0.1949,
+        "equity_only": 0.2012,
+        "benchmark": 0.0277,
+        "cdi": 0.0695,
+        "fund": 0.066,
+        "pct_cdi": 280.5
       },
       "12M": {
-        "portfolio": 0.2321,
-        "equity_only": 0.2251,
-        "benchmark": 0.196,
-        "cdi": 0.0883,
+        "portfolio": 0.2313,
+        "equity_only": 0.2239,
+        "benchmark": 0.1787,
+        "cdi": 0.0887,
         "fund": 0.084,
-        "pct_cdi": 262.7
+        "pct_cdi": 260.9
       },
       "24M": {
-        "portfolio": 0.2321,
-        "equity_only": 0.2251,
-        "benchmark": 0.196,
-        "cdi": 0.0883,
+        "portfolio": 0.2313,
+        "equity_only": 0.2239,
+        "benchmark": 0.1787,
+        "cdi": 0.0887,
         "fund": 0.084,
-        "pct_cdi": 262.7
+        "pct_cdi": 260.9
       }
     },
     "monthly_returns": {
@@ -1696,16 +1647,16 @@
           "mes": "2026-06",
           "valor_inicial": 2202.39,
           "fluxos": -52.33,
-          "valor_final": 2142.66,
-          "retorno_mes": -0.007964,
-          "retorno_cdi": 0.001821,
-          "retorno_acumulado": 0.225051,
-          "fator_acumulado": 1.225051,
-          "pregoes": 3
+          "valor_final": 2140.67,
+          "retorno_mes": -0.008886,
+          "retorno_cdi": 0.002146,
+          "retorno_acumulado": 0.223913,
+          "fator_acumulado": 1.223913,
+          "pregoes": 4
         }
       ],
-      "twr_total": 0.225051,
-      "cdi_total": 0.088327,
+      "twr_total": 0.223913,
+      "cdi_total": 0.08868,
       "periodo": {
         "inicio": "2025-10",
         "fim": "2026-06"
