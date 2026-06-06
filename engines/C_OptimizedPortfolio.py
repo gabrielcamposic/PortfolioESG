@@ -292,6 +292,12 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'SHADOW_CONFIDENCE_FLOOR': float,
         'SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT': float,
         'SHADOW_PARTIAL_REBALANCE_MIN_GAIN_PCT': float,
+        'EXECUTION_ASSET_TOLERANCE_BAND_PCT': float,
+        'EXECUTION_SECTOR_TOLERANCE_BAND_PCT': float,
+        'EXECUTION_WEEKLY_TURNOVER_BUDGET_PCT': float,
+        'EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT': float,
+        'EXECUTION_MIN_TRADE_VALUE_BRL': float,
+        'EXECUTION_MAX_ACTIONS': int,
     }
 
     params = {}
@@ -354,6 +360,12 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'SHADOW_CONFIDENCE_FLOOR': 0.60,
         'SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT': 35.0,
         'SHADOW_PARTIAL_REBALANCE_MIN_GAIN_PCT': 1.0,
+        'EXECUTION_ASSET_TOLERANCE_BAND_PCT': 2.0,
+        'EXECUTION_SECTOR_TOLERANCE_BAND_PCT': 5.0,
+        'EXECUTION_WEEKLY_TURNOVER_BUDGET_PCT': 12.0,
+        'EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT': 35.0,
+        'EXECUTION_MIN_TRADE_VALUE_BRL': 25.0,
+        'EXECUTION_MAX_ACTIONS': 6,
     }
 
     for key, default in defaults.items():
@@ -1699,6 +1711,253 @@ def _build_shadow_rebalance_gate(
     }
 
 
+def _execution_state_label(state: str) -> str:
+    labels = {
+        'HOLD': 'Manter',
+        'WATCH': 'Observar',
+        'PARTIAL_REBALANCE': 'Parcial',
+        'REBALANCE': 'Rebalancear',
+    }
+    return labels.get(state, state or '—')
+
+
+def _execution_today_action(state: str) -> str:
+    actions = {
+        'HOLD': 'Manter carteira atual.',
+        'WATCH': 'Observar sem enviar ordens hoje.',
+        'PARTIAL_REBALANCE': 'Executar ajuste parcial dentro do orçamento.',
+        'REBALANCE': 'Executar rebalanceamento dentro das bandas.',
+    }
+    return actions.get(state, 'Sem ação definida.')
+
+
+def _build_sector_execution_drift(
+    holdings: Dict[str, Any],
+    optimal: Dict[str, Any],
+    sector_band_pct: float,
+    logger: logging.Logger,
+) -> List[Dict[str, Any]]:
+    """Compare current vs target sector exposure for execution diagnostics."""
+    financials = _load_financials_db(logger)
+
+    def sector_for(symbol: str) -> str:
+        clean = symbol if symbol.endswith('.SA') else f'{symbol}.SA'
+        info = financials.get(clean, {})
+        return info.get('sector') or 'Unknown'
+
+    current_by_sector: Dict[str, float] = {}
+    target_by_sector: Dict[str, float] = {}
+
+    for symbol, weight in (holdings.get('weights', {}) or {}).items():
+        sector = sector_for(symbol)
+        current_by_sector[sector] = current_by_sector.get(sector, 0.0) + (weight or 0) * 100
+
+    for symbol, weight in (optimal.get('weights', {}) or {}).items():
+        sector = sector_for(symbol)
+        target_by_sector[sector] = target_by_sector.get(sector, 0.0) + (weight or 0) * 100
+
+    rows = []
+    for sector in sorted(set(current_by_sector) | set(target_by_sector)):
+        current_pct = current_by_sector.get(sector, 0.0)
+        target_pct = target_by_sector.get(sector, 0.0)
+        drift_pct = target_pct - current_pct
+        rows.append({
+            'sector': sector,
+            'current_weight_pct': round(current_pct, 2),
+            'target_weight_pct': round(target_pct, 2),
+            'drift_pct': round(drift_pct, 2),
+            'outside_band': abs(drift_pct) >= sector_band_pct,
+        })
+
+    rows.sort(key=lambda row: abs(row.get('drift_pct') or 0), reverse=True)
+    return rows
+
+
+def _build_shadow_execution_plan(
+    transactions: List[Dict[str, Any]],
+    holdings: Dict[str, Any],
+    optimal: Dict[str, Any],
+    shadow_gate: Dict[str, Any],
+    params: Dict[str, Any],
+    logger: logging.Logger,
+) -> Dict[str, Any]:
+    """Translate the shadow state into today's executable action plan."""
+    state = shadow_gate.get('shadow_decision') or 'HOLD'
+    portfolio_value = holdings.get('total_value', 0) or 0
+    asset_band_pct = float(params.get('EXECUTION_ASSET_TOLERANCE_BAND_PCT', 2.0))
+    sector_band_pct = float(params.get('EXECUTION_SECTOR_TOLERANCE_BAND_PCT', 5.0))
+    weekly_budget_pct = float(params.get('EXECUTION_WEEKLY_TURNOVER_BUDGET_PCT', 12.0))
+    monthly_budget_pct = float(params.get('EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT', 35.0))
+    min_trade_value = float(params.get('EXECUTION_MIN_TRADE_VALUE_BRL', 25.0))
+    max_actions = int(params.get('EXECUTION_MAX_ACTIONS', 6))
+    shadow_budget_pct = float(shadow_gate.get('shadow_turnover_budget_pct') or monthly_budget_pct)
+
+    theoretical_trade_value = sum(abs(tx.get('value_change', 0) or 0) for tx in transactions)
+    theoretical_trade_pct = (
+        theoretical_trade_value / portfolio_value * 100 if portfolio_value > 0 else 0
+    )
+
+    executable_states = {'PARTIAL_REBALANCE', 'REBALANCE'}
+    can_execute = state in executable_states
+    if state == 'REBALANCE':
+        today_budget_pct = min(shadow_budget_pct, monthly_budget_pct)
+    elif state == 'PARTIAL_REBALANCE':
+        today_budget_pct = min(shadow_budget_pct, weekly_budget_pct, monthly_budget_pct)
+    else:
+        today_budget_pct = 0.0
+
+    today_budget_value = portfolio_value * today_budget_pct / 100 if portfolio_value > 0 else 0
+    remaining_budget = today_budget_value
+    executed_actions = 0
+    executed_value_total = 0.0
+    action_rows = []
+
+    sorted_transactions = sorted(
+        transactions,
+        key=lambda tx: abs(tx.get('weight_change', 0) or 0),
+        reverse=True,
+    )
+
+    for tx in sorted_transactions:
+        current_weight_pct = (tx.get('current_weight') or 0) * 100
+        target_weight_pct = (tx.get('target_weight') or 0) * 100
+        drift_pct = target_weight_pct - current_weight_pct
+        planned_value = abs(tx.get('value_change', 0) or 0)
+        planned_value_pct = planned_value / portfolio_value * 100 if portfolio_value > 0 else 0
+        outside_asset_band = abs(drift_pct) >= asset_band_pct
+
+        executable_value = 0.0
+        executable_shares = 0
+        status = 'MONITOR' if state == 'WATCH' else 'HOLD'
+        status_reason = _execution_today_action(state)
+
+        if not outside_asset_band:
+            status = 'IGNORE_BAND'
+            status_reason = 'Dentro da banda de tolerância por ativo.'
+        elif planned_value < min_trade_value:
+            status = 'IGNORE_SMALL'
+            status_reason = 'Valor abaixo do mínimo operacional.'
+        elif can_execute:
+            if state == 'PARTIAL_REBALANCE' and executed_actions >= max_actions:
+                status = 'DEFER_MAX_ACTIONS'
+                status_reason = 'Acima do limite de ações executáveis hoje.'
+            elif remaining_budget <= 0:
+                status = 'DEFER_BUDGET'
+                status_reason = 'Fora do orçamento de turnover de hoje.'
+            else:
+                price = tx.get('current_price') or 0
+                planned_shares = int(tx.get('shares') or 0)
+                if state == 'REBALANCE':
+                    executable_shares = planned_shares
+                    executable_value = planned_value
+                elif price and planned_shares:
+                    executable_shares = min(planned_shares, int(math.floor(remaining_budget / price)))
+                    executable_value = executable_shares * price
+                else:
+                    executable_value = min(planned_value, remaining_budget)
+
+                if executable_value >= min_trade_value and (executable_shares > 0 or not tx.get('shares')):
+                    status = 'EXECUTE'
+                    status_reason = 'Dentro do gate e do orçamento de execução.'
+                    executed_actions += 1
+                    executed_value_total += executable_value
+                    remaining_budget -= executable_value
+                else:
+                    executable_value = 0.0
+                    executable_shares = 0
+                    status = 'DEFER_BUDGET'
+                    status_reason = 'Fora do orçamento de turnover de hoje.'
+
+        direction = 1 if tx.get('action') == 'BUY' else -1
+        executable_weight_delta_pct = (
+            executable_value / portfolio_value * 100 * direction if portfolio_value > 0 else 0
+        )
+        executable_weight_pct = current_weight_pct + executable_weight_delta_pct
+
+        action_rows.append({
+            'symbol': tx.get('symbol'),
+            'action': tx.get('action'),
+            'status': status,
+            'status_reason': status_reason,
+            'current_weight_pct': round(current_weight_pct, 2),
+            'target_weight_pct': round(target_weight_pct, 2),
+            'executable_weight_pct': round(executable_weight_pct, 2),
+            'drift_pct': round(drift_pct, 2),
+            'outside_asset_band': outside_asset_band,
+            'recommended_value_brl': round(planned_value, 2),
+            'recommended_value_pct': round(planned_value_pct, 2),
+            'executable_value_brl': round(executable_value, 2),
+            'executable_value_pct': round(
+                executable_value / portfolio_value * 100 if portfolio_value > 0 else 0,
+                2,
+            ),
+            'recommended_shares': tx.get('shares'),
+            'executable_shares': executable_shares,
+        })
+
+    deferred_value = max(theoretical_trade_value - executed_value_total, 0.0)
+    if state == 'REBALANCE':
+        intensity_pct = 100.0 if theoretical_trade_value > 0 else 0.0
+    elif state == 'PARTIAL_REBALANCE' and theoretical_trade_value > 0:
+        intensity_pct = min(100.0, executed_value_total / theoretical_trade_value * 100)
+    else:
+        intensity_pct = 0.0
+
+    veto_messages = [
+        veto.get('message') or veto.get('code')
+        for veto in shadow_gate.get('shadow_veto_reasons', [])
+    ]
+    if state != 'REBALANCE' and not veto_messages:
+        veto_messages = [shadow_gate.get('shadow_decision_reason') or _execution_today_action(state)]
+
+    sector_drift = _build_sector_execution_drift(holdings, optimal, sector_band_pct, logger)
+    outside_sector_count = sum(1 for row in sector_drift if row.get('outside_band'))
+
+    return {
+        'phase': '5_execution_states',
+        'decision_state': state,
+        'decision_state_label': _execution_state_label(state),
+        'today_action': _execution_today_action(state),
+        'execution_intensity_pct': round(intensity_pct, 2),
+        'can_execute_today': bool(can_execute and executed_value_total > 0),
+        'asset_tolerance_band_pct': round(asset_band_pct, 2),
+        'sector_tolerance_band_pct': round(sector_band_pct, 2),
+        'weekly_turnover_budget_pct': round(weekly_budget_pct, 2),
+        'monthly_turnover_budget_pct': round(monthly_budget_pct, 2),
+        'shadow_turnover_budget_pct': round(shadow_budget_pct, 2),
+        'today_turnover_budget_pct': round(today_budget_pct, 2),
+        'today_turnover_budget_brl': round(today_budget_value, 2),
+        'min_trade_value_brl': round(min_trade_value, 2),
+        'max_actions': max_actions,
+        'theoretical_trade_value_brl': round(theoretical_trade_value, 2),
+        'theoretical_trade_value_pct': round(theoretical_trade_pct, 2),
+        'executable_trade_value_brl': round(executed_value_total, 2),
+        'executable_trade_value_pct': round(
+            executed_value_total / portfolio_value * 100 if portfolio_value > 0 else 0,
+            2,
+        ),
+        'deferred_trade_value_brl': round(deferred_value, 2),
+        'deferred_trade_value_pct': round(
+            deferred_value / portfolio_value * 100 if portfolio_value > 0 else 0,
+            2,
+        ),
+        'num_executable_actions': sum(1 for row in action_rows if row.get('status') == 'EXECUTE'),
+        'num_deferred_actions': sum(
+            1 for row in action_rows
+            if row.get('status') in {'MONITOR', 'HOLD', 'DEFER_BUDGET', 'DEFER_MAX_ACTIONS'}
+        ),
+        'num_ignored_actions': sum(
+            1 for row in action_rows
+            if row.get('status') in {'IGNORE_BAND', 'IGNORE_SMALL'}
+        ),
+        'num_asset_band_breaches': sum(1 for row in action_rows if row.get('outside_asset_band')),
+        'num_sector_band_breaches': outside_sector_count,
+        'why_not_rebalance_today': veto_messages,
+        'actions': action_rows,
+        'sector_drift': sector_drift,
+    }
+
+
 def _build_target_quality_summary(contributors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Aggregate target quality by bucket for a portfolio."""
     by_bucket: Dict[str, Dict[str, Any]] = {}
@@ -1795,8 +2054,8 @@ def build_baseline_diagnostics(
         adjusted_returns[name] = _build_adjusted_return_summary(rows, expected_return)
 
     return {
-        'phase': '4_shadow_rebalance_gate',
-        'description': 'Explains raw/adjusted target return, market stress regime and shadow gate inputs without changing the official decision.',
+        'phase': '5_execution_states',
+        'description': 'Explains raw/adjusted return, market stress, shadow gate and executable state without changing the official decision.',
         'return_concentration': concentration,
         'return_contributors': contributors,
         'return_source_summary': source_summary,
@@ -2046,6 +2305,14 @@ def generate_recommendation(
         logger,
         generated_date,
     )
+    execution_plan = _build_shadow_execution_plan(
+        transactions,
+        holdings,
+        optimal,
+        shadow_gate,
+        params,
+        logger,
+    )
 
     recommendation = {
         'date': generated_date,
@@ -2104,7 +2371,7 @@ def generate_recommendation(
         'transaction_summary': transaction_summary,
         'diagnostics': diagnostics,
         'shadow': {
-            'phase': '4_shadow_rebalance_gate',
+            'phase': '5_execution_states',
             'official_decision': decision,
             'official_excess_return_pct': round(excess_return, 4),
             'holdings_adjusted_return_pct': round(holdings_adjusted_return, 4),
@@ -2122,6 +2389,7 @@ def generate_recommendation(
             'min_threshold_pct': min_excess_threshold,
             'would_rebalance_on_adjusted_return': bool(adjusted_excess_return >= min_excess_threshold),
             **shadow_gate,
+            'execution_plan': execution_plan,
         },
         'transaction_cost_pct_used': round(transaction_cost_pct, 4),
         'parameters': {
@@ -2146,6 +2414,12 @@ def generate_recommendation(
             'shadow_max_suspicious_return_contribution_pct': float(
                 params.get('SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT', 35.0)
             ),
+            'execution_asset_tolerance_band_pct': float(params.get('EXECUTION_ASSET_TOLERANCE_BAND_PCT', 2.0)),
+            'execution_sector_tolerance_band_pct': float(params.get('EXECUTION_SECTOR_TOLERANCE_BAND_PCT', 5.0)),
+            'execution_weekly_turnover_budget_pct': float(params.get('EXECUTION_WEEKLY_TURNOVER_BUDGET_PCT', 12.0)),
+            'execution_monthly_turnover_budget_pct': float(params.get('EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT', 35.0)),
+            'execution_min_trade_value_brl': float(params.get('EXECUTION_MIN_TRADE_VALUE_BRL', 25.0)),
+            'execution_max_actions': int(params.get('EXECUTION_MAX_ACTIONS', 6)),
         }
     }
 
@@ -2259,6 +2533,31 @@ def save_recommendation(
                 veto.get('code')
                 for veto in recommendation.get('shadow', {}).get('shadow_veto_reasons', [])
             ],
+            'execution_state': (
+                recommendation.get('shadow', {})
+                .get('execution_plan', {})
+                .get('decision_state')
+            ),
+            'execution_intensity_pct': (
+                recommendation.get('shadow', {})
+                .get('execution_plan', {})
+                .get('execution_intensity_pct')
+            ),
+            'execution_trade_value_pct': (
+                recommendation.get('shadow', {})
+                .get('execution_plan', {})
+                .get('executable_trade_value_pct')
+            ),
+            'execution_trade_value_brl': (
+                recommendation.get('shadow', {})
+                .get('execution_plan', {})
+                .get('executable_trade_value_brl')
+            ),
+            'execution_num_actions': (
+                recommendation.get('shadow', {})
+                .get('execution_plan', {})
+                .get('num_executable_actions')
+            ),
             'holdings_stocks': recommendation['comparison']['holdings']['stocks'],
             'ideal_stocks': recommendation['comparison']['ideal']['stocks'],
             'optimal_stocks': recommendation['comparison']['optimal']['stocks'],

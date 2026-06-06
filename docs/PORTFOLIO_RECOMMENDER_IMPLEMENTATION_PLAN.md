@@ -90,7 +90,7 @@ Frontend:
 | 2 | Retorno esperado com shrinkage | Implementado em 2026-06-05 | Criar retorno ajustado sem substituir decisao oficial |
 | 3 | Regime de mercado com stress pos-pico | Implementado em 2026-06-05 | Detectar drawdown recente e elevar cautela |
 | 4 | Gate de rebalanceamento shadow | Implementado em 2026-06-05 | Comparar decisao oficial vs decisao alternativa |
-| 5 | Estados HOLD/WATCH/PARTIAL/REBALANCE | Pendente | Reduzir binariedade da recomendacao |
+| 5 | Estados HOLD/WATCH/PARTIAL/REBALANCE | Implementado em 2026-06-06 | Reduzir binariedade da recomendacao |
 | 6 | Otimizacao com penalidade de turnover | Pendente | Preferir estabilidade quando ganho marginal e baixo |
 | 7 | Backtest e calibracao | Pendente | Calibrar thresholds com historico |
 | 8 | Promocao para decisao oficial | Pendente | Substituir decisao oficial com seguranca |
@@ -455,6 +455,27 @@ Adicionar:
 - Orcamento de turnover mensal/semanal.
 - Acao recomendada em reais e percentual.
 
+Implementacao atual:
+
+- `C_OptimizedPortfolio.py` cria `shadow.execution_plan` com estado executavel, acao de hoje, intensidade, orcamento, valor executavel e valor adiado.
+- O plano usa o `shadow_decision` da fase 4 como entrada, sem alterar `decision` oficial.
+- Transacoes passam a ser classificadas como `EXECUTE`, `MONITOR`, `HOLD`, `DEFER_BUDGET`, `DEFER_MAX_ACTIONS`, `IGNORE_BAND` ou `IGNORE_SMALL`.
+- O plano compara peso atual, peso-alvo teorico e peso executavel para cada ativo relevante.
+- O plano calcula drift setorial atual vs alvo e marca setores fora da banda configurada.
+- O historico JSONL registra estado executavel, intensidade, valor executavel e quantidade de acoes executaveis.
+- `html/sections/model.html` mostra "Plano Executavel" dentro do card do Gate Shadow.
+
+Parametros atuais:
+
+```text
+EXECUTION_ASSET_TOLERANCE_BAND_PCT = 2.0
+EXECUTION_SECTOR_TOLERANCE_BAND_PCT = 5.0
+EXECUTION_WEEKLY_TURNOVER_BUDGET_PCT = 12
+EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT = 35
+EXECUTION_MIN_TRADE_VALUE_BRL = 25
+EXECUTION_MAX_ACTIONS = 6
+```
+
 ### Dashboard
 
 Mostrar:
@@ -649,6 +670,12 @@ Lista inicial, sem compromisso de valores finais:
 | `SHADOW_CONFIDENCE_FLOOR` | Confianca minima do portfolio |
 | `SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT` | Limite de retorno vindo de targets suspeitos |
 | `SHADOW_PARTIAL_REBALANCE_MIN_GAIN_PCT` | Ganho minimo para considerar rebalanceamento parcial quando so o turnover veta |
+| `EXECUTION_ASSET_TOLERANCE_BAND_PCT` | Banda por ativo antes de transformar drift em acao |
+| `EXECUTION_SECTOR_TOLERANCE_BAND_PCT` | Banda por setor para diagnosticar drift setorial relevante |
+| `EXECUTION_WEEKLY_TURNOVER_BUDGET_PCT` | Orcamento semanal para execucao parcial |
+| `EXECUTION_MONTHLY_TURNOVER_BUDGET_PCT` | Orcamento mensal maximo para execucao |
+| `EXECUTION_MIN_TRADE_VALUE_BRL` | Valor minimo por ordem executavel |
+| `EXECUTION_MAX_ACTIONS` | Numero maximo de acoes em execucao parcial |
 | `TURNOVER_PENALTY_LAMBDA` | Penalidade de turnover na otimizacao |
 
 ## Registro De Decisoes
@@ -663,6 +690,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-06 | Fase 5 implementada: `shadow.execution_plan` com estado executavel, intensidade, bandas por ativo/setor, orcamento semanal/mensal, classificacao de acoes, historico resumido e painel "Plano Executavel" em `model.html` |
 | 2026-06-05 | Fase 4 implementada: gate shadow em `C_OptimizedPortfolio.py`, hurdle dinamico, vetos de persistencia/turnover/qualidade/retorno suspeito, historico shadow, publicacao em `dashboard_latest.json`, e painel "Gate Shadow" em `model.html` |
 | 2026-06-05 | Fase 3 implementada: helper `shared_tools/market_regime.py`, `diagnostics.market_regime` no otimizador, resumo de regime no shadow/historico, publicacao no dashboard, e card de regime em `risk.html` |
 | 2026-06-05 | Fase 2 implementada: retorno esperado ajustado por qualidade do target em modo shadow, novas colunas `Adjusted*`/`ShrinkageFactor` no scoring, `diagnostics.adjusted_returns` e `shadow` no otimizador, campos ajustados em `dashboard_latest.json`, e comparacao bruto vs ajustado no card de origem do retorno |

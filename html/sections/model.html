@@ -58,6 +58,8 @@
   }
   .badge.rebalance { background: var(--bg-negative); color: var(--color-negative); border: 1px solid var(--color-negative); }
   .badge.hold { background: var(--bg-positive); color: var(--color-positive); border: 1px solid var(--color-positive); }
+  .badge.watch { background: rgba(199, 143, 64, 0.12); color: var(--color-amber); border: 1px solid rgba(199, 143, 64, 0.35); }
+  .badge.partial_rebalance { background: rgba(79, 140, 201, 0.12); color: var(--brand-blue); border: 1px solid rgba(79, 140, 201, 0.35); }
 
 
   /* ── Return comparison ── */
@@ -93,6 +95,17 @@
   .shadow-value { display: block; font-size: 13px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); }
   .shadow-vetoes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .shadow-veto { border: 1px solid rgba(184, 109, 93, 0.35); color: var(--color-negative); background: rgba(184, 109, 93, 0.08); border-radius: 6px; padding: 4px 7px; font-size: 10px; font-weight: var(--font-weight-emphasis); }
+  .execution-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .execution-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .execution-table-wrap { overflow-x: auto; }
+  .execution-table { table-layout: fixed; min-width: 720px; }
+  .execution-table--wide { min-width: 980px; }
+  .execution-table td { padding: 7px 8px; font-size: 10.5px; }
+  .execution-status { display: inline-block; padding: 3px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card-alt); color: var(--text-muted); font-size: 9px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; white-space: nowrap; }
+  .execution-status.execute { color: var(--color-positive); border-color: rgba(46, 125, 50, 0.35); background: var(--bg-positive); }
+  .execution-status.monitor, .execution-status.hold { color: var(--color-amber); border-color: rgba(199, 143, 64, 0.35); background: rgba(199, 143, 64, 0.10); }
+  .execution-status.defer_budget, .execution-status.defer_max_actions { color: var(--color-negative); border-color: rgba(184, 109, 93, 0.35); background: rgba(184, 109, 93, 0.08); }
+  .execution-status.ignore_band, .execution-status.ignore_small { color: var(--text-muted); border-color: var(--border); background: var(--bg-card); }
 
   /* ── Risk Row ── */
   .risk-section-label { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); margin-bottom: 8px; padding-top: 14px; border-top: 1px solid var(--border-strong); letter-spacing: 0.08em; }
@@ -277,7 +290,7 @@
 </div>
 
 <div class="card">
-  <div class="card-header">Transações Recomendadas</div>
+  <div class="card-header">Plano de Execução</div>
   <div id="tx-table"><span class="loading">Carregando recomendações...</span></div>
 </div>
 
@@ -402,6 +415,81 @@ function shadowDecisionLabel(decision) {
   })[decision] || (decision || '—');
 }
 
+function executionStatusLabel(status) {
+  return ({
+    EXECUTE: 'Executar',
+    MONITOR: 'Observar',
+    HOLD: 'Manter',
+    DEFER_BUDGET: 'Adiar',
+    DEFER_MAX_ACTIONS: 'Adiar',
+    IGNORE_BAND: 'Banda',
+    IGNORE_SMALL: 'Mínimo',
+  })[status] || (status || '—');
+}
+
+function renderExecutionPlan(shadow) {
+  const plan = shadow.execution_plan || {};
+  if (!plan.decision_state) return '';
+
+  const actions = (plan.actions || [])
+    .filter(row => row.status === 'EXECUTE' || row.outside_asset_band)
+    .slice(0, 6);
+
+  const metrics = [
+    { label: 'Estado', value: plan.decision_state_label || shadowDecisionLabel(plan.decision_state) },
+    { label: 'Intensidade', value: fmtPct(plan.execution_intensity_pct) },
+    { label: 'Ação hoje', value: plan.today_action || '—' },
+    { label: 'Orçamento hoje', value: `${fmtPct(plan.today_turnover_budget_pct)} · ${fmtBRL(plan.today_turnover_budget_brl)}` },
+    { label: 'Executável', value: `${fmtPct(plan.executable_trade_value_pct)} · ${fmtBRL(plan.executable_trade_value_brl)}` },
+    { label: 'Adiado', value: `${fmtPct(plan.deferred_trade_value_pct)} · ${fmtBRL(plan.deferred_trade_value_brl)}` },
+  ];
+
+  const tableHtml = actions.length
+    ? `<div class="execution-table-wrap">
+        <table class="execution-table">
+          <thead>
+            <tr class="main-headers">
+              <th>Ativo</th>
+              <th class="right">Atual</th>
+              <th class="right">Alvo</th>
+              <th class="right">Executável</th>
+              <th class="right">Valor</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${actions.map(row => {
+              const statusClass = String(row.status || '').toLowerCase();
+              const value = row.executable_value_brl > 0 ? row.executable_value_brl : row.recommended_value_brl;
+              return `
+                <tr>
+                  <td>${esc(row.symbol || '').replace('.SA', '')}</td>
+                  <td class="right">${fmtPct(row.current_weight_pct)}</td>
+                  <td class="right">${fmtPct(row.target_weight_pct)}</td>
+                  <td class="right">${fmtPct(row.executable_weight_pct)}</td>
+                  <td class="right">${fmtBRL(value)}</td>
+                  <td><span class="execution-status ${statusClass}" title="${esc(row.status_reason || '')}">${esc(executionStatusLabel(row.status))}</span></td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`
+    : '';
+
+  return `
+    <div class="execution-block">
+      <div class="shadow-title">Plano Executável</div>
+      <div class="execution-strip">
+        ${metrics.map(metric => `
+          <div class="shadow-metric">
+            <span class="shadow-label">${metric.label}</span>
+            <span class="shadow-value">${metric.value}</span>
+          </div>`).join('')}
+      </div>
+      ${tableHtml}
+    </div>`;
+}
+
 function renderShadowGate(dashboard, recommendation) {
   const shadow = recommendation?.shadow || dashboard.model?.shadow || {};
   if (!shadow.shadow_decision) return '';
@@ -459,6 +547,7 @@ function renderShadowGate(dashboard, recommendation) {
           </div>`).join('')}
       </div>
       ${vetoHtml}
+      ${renderExecutionPlan(shadow)}
     </div>`;
 }
 
@@ -466,10 +555,12 @@ function renderSummary(dashboard, recommendation) {
   const model = dashboard.model || {};
   const ret   = model.returns || {};
   const risk  = model.risk    || {};
-  const decision  = recommendation?.decision || model.decision?.verdict || 'HOLD';
-  const isRebalance = decision === 'REBALANCE';
-  const badgeCls  = isRebalance ? 'rebalance' : 'hold';
-  const badgeText = isRebalance ? 'Rebalancear' : 'Manter';
+  const shadow = recommendation?.shadow || model.shadow || {};
+  const executionPlan = shadow.execution_plan || {};
+  const officialDecision = recommendation?.decision || model.decision?.verdict || 'HOLD';
+  const displayDecision = executionPlan.decision_state || shadow.shadow_decision || officialDecision;
+  const badgeCls = String(displayDecision).toLowerCase();
+  const badgeText = executionPlan.decision_state_label || shadowDecisionLabel(displayDecision);
 
   const txs          = recommendation?.transactions || [];
   const totalRebCost = txs.reduce((acc, tx) => acc + (tx.cost || 0), 0);
@@ -720,6 +811,78 @@ function renderAllocation(pipeline) {
 }
 
 function renderTransactions(recommendation) {
+  const plan = recommendation?.shadow?.execution_plan || {};
+  if (Array.isArray(plan.actions) && plan.actions.length) {
+    const statusRank = {
+      EXECUTE: 0,
+      MONITOR: 1,
+      HOLD: 1,
+      DEFER_BUDGET: 2,
+      DEFER_MAX_ACTIONS: 2,
+      IGNORE_BAND: 3,
+      IGNORE_SMALL: 3,
+    };
+    const actionLabel = action => ({
+      BUY: 'Comprar',
+      SELL: 'Vender',
+    })[action] || (action || '—');
+    const sorted = [...plan.actions].sort((a, b) => {
+      const rankA = statusRank[a.status] ?? 9;
+      const rankB = statusRank[b.status] ?? 9;
+      if (rankA !== rankB) return rankA - rankB;
+      return Math.abs(b.recommended_value_brl || 0) - Math.abs(a.recommended_value_brl || 0);
+    });
+
+    let html = `
+      <div class="corr-note" style="margin: 0 0 10px;">${esc(plan.today_action || '')}</div>
+      <table class="execution-table execution-table--wide">
+        <thead>
+          <tr class="main-headers">
+            <th>Ativo</th>
+            <th>Ação teórica</th>
+            <th>Status</th>
+            <th class="right">Atual</th>
+            <th class="right">Alvo</th>
+            <th class="right">Executável</th>
+            <th class="right">Qtd.</th>
+            <th class="right">Valor teórico</th>
+            <th class="right">Valor executável</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    for (const row of sorted) {
+      const statusClass = String(row.status || '').toLowerCase();
+      const qty = row.executable_shares > 0 ? row.executable_shares : null;
+      html += `
+        <tr>
+          <td>${esc(row.symbol || '').replace('.SA', '')}</td>
+          <td>${esc(actionLabel(row.action))}</td>
+          <td><span class="execution-status ${statusClass}" title="${esc(row.status_reason || '')}">${esc(executionStatusLabel(row.status))}</span></td>
+          <td class="right">${fmtPct(row.current_weight_pct)}</td>
+          <td class="right">${fmtPct(row.target_weight_pct)}</td>
+          <td class="right">${fmtPct(row.executable_weight_pct)}</td>
+          <td class="right">${qty != null ? fmtNum(qty) : '—'}</td>
+          <td class="right">${fmtBRL(row.recommended_value_brl)}</td>
+          <td class="right">${fmtBRL(row.executable_value_brl)}</td>
+        </tr>`;
+    }
+
+    html += `
+        <tr class="totals">
+          <td colspan="5">Resumo executável</td>
+          <td colspan="2" class="right" style="font-size:10px; color: var(--text-muted); text-transform: uppercase;">
+            Teórico ${fmtBRL(plan.theoretical_trade_value_brl)} · Executável ${fmtBRL(plan.executable_trade_value_brl)}
+          </td>
+          <td class="right">${fmtPct(plan.executable_trade_value_pct)}</td>
+          <td class="right">${fmtPct(plan.deferred_trade_value_pct)} adiado</td>
+        </tr>
+      </tbody></table>`;
+
+    document.getElementById('tx-table').innerHTML = html;
+    return;
+  }
+
   const txs = recommendation.transactions || [];
   if (!txs.length) {
     document.getElementById('tx-table').innerHTML = '<span class="loading">Nenhuma transação recomendada.</span>';

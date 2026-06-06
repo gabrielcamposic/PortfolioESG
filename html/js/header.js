@@ -48,6 +48,8 @@
     }
     .top-bar .decision-badge.rebalance { background: #B86D5D; color: #fff; }
     .top-bar .decision-badge.hold { background: #6F9341; color: #fff; }
+    .top-bar .decision-badge.watch { background: #C78F40; color: #fff; }
+    .top-bar .decision-badge.partial_rebalance { background: #4F8CC9; color: #fff; }
 
     /* Light Main Header */
     .header-bar {
@@ -178,7 +180,7 @@
           <span class="tb-value">—</span>
         </div>
         <div class="tb-item" id="tb-decision">
-          <span class="tb-label">Decisão</span>
+          <span class="tb-label">Ação</span>
           <span class="tb-value">—</span>
         </div>
         <div class="tb-item" id="tb-update">
@@ -216,6 +218,14 @@
     const months = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     return `${parseInt(m[3])} ${months[parseInt(m[2]) - 1]} ${m[1]}`;
   }
+  function decisionLabel(decision) {
+    return ({
+      HOLD: 'Manter',
+      WATCH: 'Observar',
+      PARTIAL_REBALANCE: 'Parcial',
+      REBALANCE: 'Rebalancear',
+    })[decision] || (decision || '—');
+  }
 
   /* ─── 4. Fetch & render data ─── */
   async function fetchJSON(file) {
@@ -243,6 +253,10 @@
       const alpha    = dashboard.real?.alpha || {};
       const mRet     = dashboard.model?.returns || {};
       const verdict  = dashboard.model?.decision?.verdict;
+      const shadow   = dashboard.model?.shadow || {};
+      const execPlan = shadow.execution_plan || {};
+      const actionState = execPlan.decision_state || shadow.shadow_decision || verdict;
+      const actionLabel = execPlan.decision_state_label || decisionLabel(actionState);
 
       // 1) Valor
       document.querySelector('#tb-value .tb-value').textContent = fmtBRL(market);
@@ -271,12 +285,12 @@
       // 6) Retorno esperado (Modelo)
       document.querySelector('#tb-exp .tb-value').textContent = (mRet.gross_12m || 0).toFixed(2) + '%';
 
-      // 7) Decisão
-      if (verdict) {
-        const decCls = verdict.toUpperCase() === 'REBALANCE' ? 'rebalance' : 'hold';
-        const decLabel = verdict.toUpperCase() === 'REBALANCE' ? 'Rebalancear' : 'Manter';
+      // 7) Executable action. Official decision remains available in model.html.
+      if (actionState) {
+        const decCls = String(actionState).toLowerCase();
+        const title = verdict && verdict !== actionState ? `Oficial: ${decisionLabel(verdict)}` : '';
         document.querySelector('#tb-decision .tb-value').innerHTML = 
-          `<span class="decision-badge ${decCls}">${decLabel}</span>`;
+          `<span class="decision-badge ${decCls}" title="${title}">${actionLabel}</span>`;
       }
 
       // 8) Última Atualização
