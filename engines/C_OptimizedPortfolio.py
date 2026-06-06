@@ -283,6 +283,15 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'REGIME_ASSET_DRAWDOWN_THRESHOLD_PCT': float,
         'REGIME_VOLATILITY_WATCH_PCT': float,
         'REGIME_DISPERSION_WATCH_PCT': float,
+        'SHADOW_BASE_HURDLE_PCT': float,
+        'SHADOW_SLIPPAGE_ESTIMATE_PCT': float,
+        'SHADOW_TAX_DRAG_ESTIMATE_PCT': float,
+        'SHADOW_MODEL_UNCERTAINTY_PENALTY_PCT': float,
+        'SHADOW_MIN_PERSISTENCE_DAYS': int,
+        'SHADOW_TURNOVER_BUDGET_PCT': float,
+        'SHADOW_CONFIDENCE_FLOOR': float,
+        'SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT': float,
+        'SHADOW_PARTIAL_REBALANCE_MIN_GAIN_PCT': float,
     }
 
     params = {}
@@ -336,6 +345,15 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'REGIME_ASSET_DRAWDOWN_THRESHOLD_PCT': 20.0,
         'REGIME_VOLATILITY_WATCH_PCT': 25.0,
         'REGIME_DISPERSION_WATCH_PCT': 35.0,
+        'SHADOW_BASE_HURDLE_PCT': 0.5,
+        'SHADOW_SLIPPAGE_ESTIMATE_PCT': 0.15,
+        'SHADOW_TAX_DRAG_ESTIMATE_PCT': 0.0,
+        'SHADOW_MODEL_UNCERTAINTY_PENALTY_PCT': 0.5,
+        'SHADOW_MIN_PERSISTENCE_DAYS': 2,
+        'SHADOW_TURNOVER_BUDGET_PCT': 35.0,
+        'SHADOW_CONFIDENCE_FLOOR': 0.60,
+        'SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT': 35.0,
+        'SHADOW_PARTIAL_REBALANCE_MIN_GAIN_PCT': 1.0,
     }
 
     for key, default in defaults.items():
@@ -1444,6 +1462,243 @@ def _build_adjusted_return_summary(
     }
 
 
+def _build_shadow_quality_metrics(
+    contributors: List[Dict[str, Any]],
+    adjusted_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Summarize portfolio-level target confidence for the shadow gate."""
+    total_weight = sum(row.get('weight_pct') or 0 for row in contributors)
+    weighted_quality = 0.0
+    low_reject_weight = 0.0
+    suspicious_contribution = 0.0
+
+    for row in contributors:
+        weight_pct = row.get('weight_pct') or 0
+        score = row.get('target_quality_score')
+        bucket = row.get('target_quality_bucket')
+        if score is not None:
+            weighted_quality += weight_pct * float(score)
+        if bucket in ('low', 'reject'):
+            low_reject_weight += weight_pct
+            suspicious_contribution += max(row.get('return_contribution_pct') or 0, 0)
+
+    raw_return = adjusted_summary.get('raw_expected_return_pct') or 0
+    suspicious_share = (
+        (suspicious_contribution / raw_return) * 100
+        if raw_return and raw_return > 0
+        else None
+    )
+
+    return {
+        'portfolio_target_quality_score': round(weighted_quality / total_weight, 4) if total_weight else None,
+        'low_reject_weight_pct': round(low_reject_weight, 2),
+        'suspicious_return_contribution_pct': round(suspicious_contribution, 2),
+        'suspicious_return_contribution_share_pct': (
+            round(suspicious_share, 2) if suspicious_share is not None else None
+        ),
+    }
+
+
+def _load_shadow_gate_history(params: Dict[str, Any], logger: logging.Logger) -> List[Dict[str, Any]]:
+    """Read prior shadow gate rows from optimized history, if present."""
+    history_path = os.path.expanduser(
+        params.get('OPTIMIZED_RESULTS_FILE', os.path.join(ROOT, 'data', 'results', 'optimized_portfolio_history.jsonl'))
+    )
+    if not os.path.exists(history_path):
+        return []
+
+    rows: List[Dict[str, Any]] = []
+    try:
+        with open(history_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                rows.append(row)
+    except Exception as e:
+        logger.debug(f"Could not read shadow gate history: {e}")
+        return []
+
+    return rows
+
+
+def _calculate_signal_persistence_days(
+    current_date: str,
+    current_signal_passes: bool,
+    params: Dict[str, Any],
+    logger: logging.Logger,
+) -> int:
+    """Count distinct recent run dates where the adjusted signal cleared the shadow hurdle."""
+    if not current_signal_passes:
+        return 0
+
+    passing_dates = {current_date}
+    seen_dates = {current_date}
+    for row in reversed(_load_shadow_gate_history(params, logger)):
+        row_date = str(row.get('date') or '')[:10]
+        if not row_date or row_date in seen_dates:
+            continue
+        seen_dates.add(row_date)
+
+        gain = _round_or_none(row.get('shadow_expected_gain_pct'), 4)
+        hurdle = _round_or_none(row.get('shadow_hurdle_pct'), 4)
+        if gain is None or hurdle is None or gain < hurdle:
+            break
+        passing_dates.add(row_date)
+
+    return len(passing_dates)
+
+
+def _shadow_veto(
+    code: str,
+    message: str,
+    actual: Optional[float] = None,
+    threshold: Optional[float] = None,
+) -> Dict[str, Any]:
+    return {
+        'code': code,
+        'message': message,
+        'actual': _round_or_none(actual, 4),
+        'threshold': _round_or_none(threshold, 4),
+    }
+
+
+def _build_shadow_rebalance_gate(
+    official_decision: str,
+    adjusted_gain_pct: float,
+    optimal_transition_cost_pct: float,
+    diagnostics: Dict[str, Any],
+    params: Dict[str, Any],
+    logger: logging.Logger,
+    current_date: str,
+) -> Dict[str, Any]:
+    """Build a stricter shadow decision about whether the trade is ready to execute."""
+    market_regime = diagnostics.get('market_regime', {}) or {}
+    market_impact = market_regime.get('impact', {}) or {}
+    turnover = diagnostics.get('turnover', {}) or {}
+    contributors = diagnostics.get('return_contributors', {}).get('optimal', []) or []
+    adjusted_summary = diagnostics.get('adjusted_returns', {}).get('optimal', {}) or {}
+
+    base_hurdle = float(params.get('SHADOW_BASE_HURDLE_PCT', params.get('MIN_EXCESS_RETURN_THRESHOLD', 0.5)))
+    slippage = float(params.get('SHADOW_SLIPPAGE_ESTIMATE_PCT', 0.15))
+    tax_drag = float(params.get('SHADOW_TAX_DRAG_ESTIMATE_PCT', 0.0))
+    uncertainty = float(params.get('SHADOW_MODEL_UNCERTAINTY_PENALTY_PCT', 0.5))
+    regime_addon = float(market_impact.get('suggested_hurdle_addon_pct') or 0.0)
+    dynamic_hurdle = base_hurdle + optimal_transition_cost_pct + slippage + tax_drag + uncertainty + regime_addon
+
+    turnover_budget = float(params.get('SHADOW_TURNOVER_BUDGET_PCT', 35.0))
+    turnover_multiplier = float(market_impact.get('suggested_turnover_budget_multiplier') or 1.0)
+    effective_turnover_budget = turnover_budget * turnover_multiplier
+    turnover_pct = float(turnover.get('total_trade_value_pct') or 0.0)
+
+    confidence_floor = float(params.get('SHADOW_CONFIDENCE_FLOOR', 0.60))
+    max_suspicious = float(params.get('SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT', 35.0))
+    min_persistence = int(params.get('SHADOW_MIN_PERSISTENCE_DAYS', 2))
+    partial_min_gain = float(params.get('SHADOW_PARTIAL_REBALANCE_MIN_GAIN_PCT', 1.0))
+
+    quality_metrics = _build_shadow_quality_metrics(contributors, adjusted_summary)
+    portfolio_quality = quality_metrics.get('portfolio_target_quality_score')
+    suspicious_share = quality_metrics.get('suspicious_return_contribution_share_pct')
+
+    gain_passes = adjusted_gain_pct >= dynamic_hurdle
+    signal_persistence_days = _calculate_signal_persistence_days(
+        current_date,
+        gain_passes,
+        params,
+        logger,
+    )
+
+    vetoes: List[Dict[str, Any]] = []
+    if not gain_passes:
+        vetoes.append(_shadow_veto(
+            'adjusted_gain_below_hurdle',
+            'Ganho ajustado abaixo do hurdle dinâmico.',
+            adjusted_gain_pct,
+            dynamic_hurdle,
+        ))
+    if signal_persistence_days < min_persistence:
+        vetoes.append(_shadow_veto(
+            'signal_not_persistent',
+            'Sinal ajustado ainda não persistiu pelo mínimo configurado.',
+            signal_persistence_days,
+            min_persistence,
+        ))
+    if turnover_pct > effective_turnover_budget:
+        vetoes.append(_shadow_veto(
+            'turnover_above_budget',
+            'Turnover necessário acima do orçamento shadow.',
+            turnover_pct,
+            effective_turnover_budget,
+        ))
+    if portfolio_quality is not None and portfolio_quality < confidence_floor:
+        vetoes.append(_shadow_veto(
+            'target_quality_below_floor',
+            'Qualidade média dos targets do portfólio abaixo do piso.',
+            portfolio_quality,
+            confidence_floor,
+        ))
+    if suspicious_share is not None and suspicious_share > max_suspicious:
+        vetoes.append(_shadow_veto(
+            'suspicious_return_contribution_high',
+            'Contribuição de targets low/reject acima do limite.',
+            suspicious_share,
+            max_suspicious,
+        ))
+
+    trade_allowed = len(vetoes) == 0
+    only_turnover_veto = (
+        len(vetoes) == 1
+        and vetoes[0].get('code') == 'turnover_above_budget'
+        and adjusted_gain_pct >= max(dynamic_hurdle, partial_min_gain)
+    )
+
+    if official_decision != 'REBALANCE' and not trade_allowed:
+        shadow_decision = 'HOLD'
+    elif trade_allowed:
+        shadow_decision = 'REBALANCE'
+    elif only_turnover_veto:
+        shadow_decision = 'PARTIAL_REBALANCE'
+    else:
+        shadow_decision = 'WATCH'
+
+    reason_by_decision = {
+        'REBALANCE': 'Gate shadow liberou a operação.',
+        'PARTIAL_REBALANCE': 'Ganho ajustado passa no gate, mas turnover sugere execução parcial.',
+        'WATCH': 'Há sinal oficial, mas o gate shadow recomenda observar antes de operar.',
+        'HOLD': 'Sem sinal ajustado suficiente para operar.',
+    }
+
+    return {
+        'shadow_decision': shadow_decision,
+        'shadow_decision_reason': reason_by_decision[shadow_decision],
+        'shadow_trade_allowed': bool(trade_allowed),
+        'shadow_expected_gain_pct': round(adjusted_gain_pct, 4),
+        'shadow_hurdle_pct': round(dynamic_hurdle, 4),
+        'shadow_hurdle_components': {
+            'base_hurdle_pct': round(base_hurdle, 4),
+            'transition_cost_pct': round(optimal_transition_cost_pct, 4),
+            'slippage_estimate_pct': round(slippage, 4),
+            'tax_drag_estimate_pct': round(tax_drag, 4),
+            'model_uncertainty_penalty_pct': round(uncertainty, 4),
+            'regime_stress_penalty_pct': round(regime_addon, 4),
+        },
+        'shadow_veto_reasons': vetoes,
+        'shadow_signal_persistence_days': signal_persistence_days,
+        'shadow_min_persistence_days': min_persistence,
+        'shadow_turnover_pct': round(turnover_pct, 4),
+        'shadow_turnover_budget_pct': round(effective_turnover_budget, 4),
+        'shadow_base_turnover_budget_pct': round(turnover_budget, 4),
+        'shadow_turnover_budget_multiplier': round(turnover_multiplier, 4),
+        **quality_metrics,
+        'shadow_confidence_floor': round(confidence_floor, 4),
+        'shadow_max_suspicious_return_contribution_pct': round(max_suspicious, 4),
+    }
+
+
 def _build_target_quality_summary(contributors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Aggregate target quality by bucket for a portfolio."""
     by_bucket: Dict[str, Dict[str, Any]] = {}
@@ -1540,8 +1795,8 @@ def build_baseline_diagnostics(
         adjusted_returns[name] = _build_adjusted_return_summary(rows, expected_return)
 
     return {
-        'phase': '3_market_regime_diagnostics',
-        'description': 'Explains raw/adjusted target return and market stress regime without changing the official decision.',
+        'phase': '4_shadow_rebalance_gate',
+        'description': 'Explains raw/adjusted target return, market stress regime and shadow gate inputs without changing the official decision.',
         'return_concentration': concentration,
         'return_contributors': contributors,
         'return_source_summary': source_summary,
@@ -1780,9 +2035,21 @@ def generate_recommendation(
         decision = 'HOLD'
         reason = f"Excess return ({excess_return:.2f}%) below threshold ({min_excess_threshold}%)"
 
+    generated_date = datetime.now().strftime('%Y-%m-%d')
+    generated_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    shadow_gate = _build_shadow_rebalance_gate(
+        decision,
+        adjusted_excess_return,
+        optimal.get('transition_cost', 0),
+        diagnostics,
+        params,
+        logger,
+        generated_date,
+    )
+
     recommendation = {
-        'date': datetime.now().strftime('%Y-%m-%d'),
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'date': generated_date,
+        'timestamp': generated_timestamp,
         'decision': decision,
         'reason': reason,
         'excess_return_pct': round(excess_return, 4),
@@ -1837,7 +2104,7 @@ def generate_recommendation(
         'transaction_summary': transaction_summary,
         'diagnostics': diagnostics,
         'shadow': {
-            'phase': '3_market_regime_diagnostics',
+            'phase': '4_shadow_rebalance_gate',
             'official_decision': decision,
             'official_excess_return_pct': round(excess_return, 4),
             'holdings_adjusted_return_pct': round(holdings_adjusted_return, 4),
@@ -1854,6 +2121,7 @@ def generate_recommendation(
             ),
             'min_threshold_pct': min_excess_threshold,
             'would_rebalance_on_adjusted_return': bool(adjusted_excess_return >= min_excess_threshold),
+            **shadow_gate,
         },
         'transaction_cost_pct_used': round(transaction_cost_pct, 4),
         'parameters': {
@@ -1865,6 +2133,18 @@ def generate_recommendation(
             'return_adjustment_reject_base_pct': float(params.get('RETURN_ADJUSTMENT_REJECT_BASE_PCT', 0.0)),
             'return_adjustment_uncertainty_penalty_pct': float(
                 params.get('RETURN_ADJUSTMENT_UNCERTAINTY_PENALTY_PCT', 0.0)
+            ),
+            'shadow_base_hurdle_pct': float(params.get('SHADOW_BASE_HURDLE_PCT', 0.5)),
+            'shadow_slippage_estimate_pct': float(params.get('SHADOW_SLIPPAGE_ESTIMATE_PCT', 0.15)),
+            'shadow_tax_drag_estimate_pct': float(params.get('SHADOW_TAX_DRAG_ESTIMATE_PCT', 0.0)),
+            'shadow_model_uncertainty_penalty_pct': float(
+                params.get('SHADOW_MODEL_UNCERTAINTY_PENALTY_PCT', 0.5)
+            ),
+            'shadow_min_persistence_days': int(params.get('SHADOW_MIN_PERSISTENCE_DAYS', 2)),
+            'shadow_turnover_budget_pct': float(params.get('SHADOW_TURNOVER_BUDGET_PCT', 35.0)),
+            'shadow_confidence_floor': float(params.get('SHADOW_CONFIDENCE_FLOOR', 0.60)),
+            'shadow_max_suspicious_return_contribution_pct': float(
+                params.get('SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT', 35.0)
             ),
         }
     }
@@ -1960,6 +2240,25 @@ def save_recommendation(
                 .get('metrics', {})
                 .get('universe_negative_return_3m_pct')
             ),
+            'shadow_decision': recommendation.get('shadow', {}).get('shadow_decision'),
+            'shadow_trade_allowed': recommendation.get('shadow', {}).get('shadow_trade_allowed'),
+            'shadow_expected_gain_pct': recommendation.get('shadow', {}).get('shadow_expected_gain_pct'),
+            'shadow_hurdle_pct': recommendation.get('shadow', {}).get('shadow_hurdle_pct'),
+            'shadow_signal_persistence_days': (
+                recommendation.get('shadow', {}).get('shadow_signal_persistence_days')
+            ),
+            'shadow_turnover_pct': recommendation.get('shadow', {}).get('shadow_turnover_pct'),
+            'shadow_turnover_budget_pct': recommendation.get('shadow', {}).get('shadow_turnover_budget_pct'),
+            'shadow_target_quality_score': (
+                recommendation.get('shadow', {}).get('portfolio_target_quality_score')
+            ),
+            'shadow_suspicious_return_contribution_share_pct': (
+                recommendation.get('shadow', {}).get('suspicious_return_contribution_share_pct')
+            ),
+            'shadow_veto_codes': [
+                veto.get('code')
+                for veto in recommendation.get('shadow', {}).get('shadow_veto_reasons', [])
+            ],
             'holdings_stocks': recommendation['comparison']['holdings']['stocks'],
             'ideal_stocks': recommendation['comparison']['ideal']['stocks'],
             'optimal_stocks': recommendation['comparison']['optimal']['stocks'],

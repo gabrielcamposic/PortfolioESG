@@ -72,6 +72,28 @@
   .rc-excess { font-family: var(--font-sans); font-weight: var(--font-weight-emphasis); font-size: 16px; }
   .rc-excess-label { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); letter-spacing: 0.08em; }
 
+  /* ── Shadow Gate ── */
+  .shadow-panel { margin: 12px 0 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card-alt); padding: 12px; }
+  .shadow-panel.watch { border-color: rgba(199, 143, 64, 0.35); background: rgba(199, 143, 64, 0.08); }
+  .shadow-panel.hold { border-color: rgba(46, 125, 50, 0.28); background: rgba(46, 125, 50, 0.07); }
+  .shadow-panel.rebalance { border-color: rgba(46, 125, 50, 0.35); background: var(--bg-positive); }
+  .shadow-panel.partial_rebalance { border-color: rgba(79, 140, 201, 0.35); background: rgba(79, 140, 201, 0.08); }
+  .shadow-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .shadow-title { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); letter-spacing: 0.08em; margin-bottom: 4px; }
+  .shadow-main { color: var(--text-primary); font-size: 15px; font-weight: var(--font-weight-emphasis); }
+  .shadow-sub { color: var(--text-secondary); font-size: 11px; line-height: 1.35; margin-top: 3px; }
+  .shadow-badge { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 10px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; white-space: nowrap; border: 1px solid var(--border); color: var(--text-muted); background: var(--bg-card); }
+  .shadow-badge.watch { color: var(--color-amber); border-color: rgba(199, 143, 64, 0.40); background: rgba(199, 143, 64, 0.12); }
+  .shadow-badge.hold { color: var(--color-positive); border-color: rgba(46, 125, 50, 0.35); background: var(--bg-positive); }
+  .shadow-badge.rebalance { color: var(--color-positive); border-color: rgba(46, 125, 50, 0.45); background: var(--bg-positive); }
+  .shadow-badge.partial_rebalance { color: var(--brand-blue); border-color: rgba(79, 140, 201, 0.40); background: rgba(79, 140, 201, 0.12); }
+  .shadow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+  .shadow-metric { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+  .shadow-label { display: block; font-size: 9px; font-weight: var(--font-weight-emphasis); color: var(--color-label); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .shadow-value { display: block; font-size: 13px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); }
+  .shadow-vetoes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .shadow-veto { border: 1px solid rgba(184, 109, 93, 0.35); color: var(--color-negative); background: rgba(184, 109, 93, 0.08); border-radius: 6px; padding: 4px 7px; font-size: 10px; font-weight: var(--font-weight-emphasis); }
+
   /* ── Risk Row ── */
   .risk-section-label { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); margin-bottom: 8px; padding-top: 14px; border-top: 1px solid var(--border-strong); letter-spacing: 0.08em; }
   .risk-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
@@ -371,6 +393,75 @@ function renderReturnDiagnostics(dashboard, recommendation) {
     </div>`;
 }
 
+function shadowDecisionLabel(decision) {
+  return ({
+    HOLD: 'Manter',
+    WATCH: 'Observar',
+    PARTIAL_REBALANCE: 'Parcial',
+    REBALANCE: 'Rebalancear',
+  })[decision] || (decision || '—');
+}
+
+function renderShadowGate(dashboard, recommendation) {
+  const shadow = recommendation?.shadow || dashboard.model?.shadow || {};
+  if (!shadow.shadow_decision) return '';
+
+  const decision = shadow.shadow_decision;
+  const cls = decision.toLowerCase();
+  const vetoes = shadow.shadow_veto_reasons || [];
+  const vetoHtml = vetoes.length
+    ? `<div class="shadow-vetoes">${vetoes.map(veto => `<span class="shadow-veto" title="${esc(veto.code || '')}">${esc(veto.message || veto.code)}</span>`).join('')}</div>`
+    : '';
+
+  const metrics = [
+    {
+      label: 'Ganho ajustado',
+      value: fmtPct(shadow.shadow_expected_gain_pct),
+      color: plColor((shadow.shadow_expected_gain_pct || 0) / 100),
+    },
+    {
+      label: 'Hurdle',
+      value: fmtPct(shadow.shadow_hurdle_pct),
+    },
+    {
+      label: 'Persistência',
+      value: `${fmtNum(shadow.shadow_signal_persistence_days, 0)}/${fmtNum(shadow.shadow_min_persistence_days, 0)} dias`,
+    },
+    {
+      label: 'Turnover',
+      value: `${fmtPct(shadow.shadow_turnover_pct)} / ${fmtPct(shadow.shadow_turnover_budget_pct)}`,
+    },
+    {
+      label: 'Qualidade',
+      value: fmtNum(shadow.portfolio_target_quality_score, 2),
+    },
+    {
+      label: 'Retorno suspeito',
+      value: `${fmtPct(shadow.suspicious_return_contribution_share_pct)} / ${fmtPct(shadow.shadow_max_suspicious_return_contribution_pct)}`,
+    },
+  ];
+
+  return `
+    <div class="shadow-panel ${cls}">
+      <div class="shadow-head">
+        <div>
+          <div class="shadow-title">Gate Shadow</div>
+          <div class="shadow-main">Oficial: ${esc(shadowDecisionLabel(shadow.official_decision))} · Shadow: ${esc(shadowDecisionLabel(decision))}</div>
+          <div class="shadow-sub">${esc(shadow.shadow_decision_reason || '')}</div>
+        </div>
+        <span class="shadow-badge ${cls}">${esc(shadowDecisionLabel(decision))}</span>
+      </div>
+      <div class="shadow-grid">
+        ${metrics.map(metric => `
+          <div class="shadow-metric">
+            <span class="shadow-label">${metric.label}</span>
+            <span class="shadow-value" ${metric.color ? `style="color:${metric.color}"` : ''}>${metric.value}</span>
+          </div>`).join('')}
+      </div>
+      ${vetoHtml}
+    </div>`;
+}
+
 function renderSummary(dashboard, recommendation) {
   const model = dashboard.model || {};
   const ret   = model.returns || {};
@@ -430,6 +521,7 @@ function renderSummary(dashboard, recommendation) {
       <span class="badge ${badgeCls}">${badgeText}</span>
     </div>
     ${returnComparisonHtml}
+    ${renderShadowGate(dashboard, recommendation)}
     ${renderReturnDiagnostics(dashboard, recommendation)}
     ${riskRowHtml}
   `;

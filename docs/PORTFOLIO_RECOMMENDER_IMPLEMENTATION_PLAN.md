@@ -89,7 +89,7 @@ Frontend:
 | 1 | Quality gate de targets | Implementado em 2026-06-05 | Identificar targets confiaveis, suspeitos e rejeitados |
 | 2 | Retorno esperado com shrinkage | Implementado em 2026-06-05 | Criar retorno ajustado sem substituir decisao oficial |
 | 3 | Regime de mercado com stress pos-pico | Implementado em 2026-06-05 | Detectar drawdown recente e elevar cautela |
-| 4 | Gate de rebalanceamento shadow | Pendente | Comparar decisao oficial vs decisao alternativa |
+| 4 | Gate de rebalanceamento shadow | Implementado em 2026-06-05 | Comparar decisao oficial vs decisao alternativa |
 | 5 | Estados HOLD/WATCH/PARTIAL/REBALANCE | Pendente | Reduzir binariedade da recomendacao |
 | 6 | Otimizacao com penalidade de turnover | Pendente | Preferir estabilidade quando ganho marginal e baixo |
 | 7 | Backtest e calibracao | Pendente | Calibrar thresholds com historico |
@@ -394,6 +394,30 @@ dynamic_hurdle =
   + regime_stress_penalty
 ```
 
+Implementacao atual:
+
+- `C_OptimizedPortfolio.py` calcula `shadow_decision` sem alterar `decision` oficial.
+- O gate usa ganho ajustado liquido, custo de transicao, estimativa de slippage, arrasto tributario, penalidade de incerteza, penalidade de regime, persistencia do sinal, budget de turnover e qualidade dos targets.
+- Em regime `stress`, o hurdle recebe addon e o budget efetivo de turnover e reduzido pelo multiplicador do regime.
+- `optimized_recommendation.json` salva `shadow_decision`, `shadow_trade_allowed`, `shadow_hurdle_pct`, `shadow_expected_gain_pct`, componentes do hurdle, vetos e metricas de qualidade/turnover.
+- `optimized_portfolio_history.jsonl` registra os principais campos shadow para medir persistencia e auditar a evolucao da decisao.
+- `D_Publish.py` publica o bloco `shadow` em `dashboard_latest.json`.
+- `html/sections/model.html` mostra o painel "Gate Shadow" com decisao oficial vs shadow, ganho ajustado vs hurdle, persistencia, turnover, qualidade e motivos de veto.
+
+Parametros atuais:
+
+```text
+SHADOW_BASE_HURDLE_PCT = 0.5
+SHADOW_SLIPPAGE_ESTIMATE_PCT = 0.15
+SHADOW_TAX_DRAG_ESTIMATE_PCT = 0
+SHADOW_MODEL_UNCERTAINTY_PENALTY_PCT = 0.5
+SHADOW_MIN_PERSISTENCE_DAYS = 2
+SHADOW_TURNOVER_BUDGET_PCT = 35
+SHADOW_CONFIDENCE_FLOOR = 0.60
+SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT = 35
+SHADOW_PARTIAL_REBALANCE_MIN_GAIN_PCT = 1.0
+```
+
 ### Dashboard
 
 Mostrar:
@@ -616,10 +640,15 @@ Lista inicial, sem compromisso de valores finais:
 | `REGIME_ASSET_DRAWDOWN_THRESHOLD_PCT` | Drawdown minimo por ativo para breadth de stress |
 | `REGIME_VOLATILITY_WATCH_PCT` | Volatilidade anualizada para alerta |
 | `REGIME_DISPERSION_WATCH_PCT` | Dispersao cross-sectional para alerta |
+| `SHADOW_BASE_HURDLE_PCT` | Hurdle minimo do gate shadow antes de custos e penalidades |
+| `SHADOW_SLIPPAGE_ESTIMATE_PCT` | Estimativa conservadora de slippage por rebalanceamento |
+| `SHADOW_TAX_DRAG_ESTIMATE_PCT` | Arrasto tributario estimado no hurdle dinamico |
+| `SHADOW_MODEL_UNCERTAINTY_PENALTY_PCT` | Penalidade fixa por incerteza do modelo |
 | `SHADOW_MIN_PERSISTENCE_DAYS` | Persistencia minima do sinal |
 | `SHADOW_TURNOVER_BUDGET_PCT` | Turnover maximo para trade |
 | `SHADOW_CONFIDENCE_FLOOR` | Confianca minima do portfolio |
-| `MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT` | Limite de retorno vindo de targets suspeitos |
+| `SHADOW_MAX_SUSPICIOUS_RETURN_CONTRIBUTION_PCT` | Limite de retorno vindo de targets suspeitos |
+| `SHADOW_PARTIAL_REBALANCE_MIN_GAIN_PCT` | Ganho minimo para considerar rebalanceamento parcial quando so o turnover veta |
 | `TURNOVER_PENALTY_LAMBDA` | Penalidade de turnover na otimizacao |
 
 ## Registro De Decisoes
@@ -634,6 +663,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-05 | Fase 4 implementada: gate shadow em `C_OptimizedPortfolio.py`, hurdle dinamico, vetos de persistencia/turnover/qualidade/retorno suspeito, historico shadow, publicacao em `dashboard_latest.json`, e painel "Gate Shadow" em `model.html` |
 | 2026-06-05 | Fase 3 implementada: helper `shared_tools/market_regime.py`, `diagnostics.market_regime` no otimizador, resumo de regime no shadow/historico, publicacao no dashboard, e card de regime em `risk.html` |
 | 2026-06-05 | Fase 2 implementada: retorno esperado ajustado por qualidade do target em modo shadow, novas colunas `Adjusted*`/`ShrinkageFactor` no scoring, `diagnostics.adjusted_returns` e `shadow` no otimizador, campos ajustados em `dashboard_latest.json`, e comparacao bruto vs ajustado no card de origem do retorno |
 | 2026-06-05 | Fase 1 implementada: helper compartilhado `shared_tools/target_quality.py`, novas colunas `TargetQuality*` em `scored_stocks.csv`, contributors com `target_quality_score/bucket/flags`, resumo por bucket em `dashboard_latest.json`, e coluna "Qualidade" no card de origem do retorno |

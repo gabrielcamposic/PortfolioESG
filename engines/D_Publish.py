@@ -1406,6 +1406,7 @@ def _build_model_section() -> dict:
             "threshold_pct": threshold,
             "intensity": safe_float(optimal.get("blend_ratio"), 0.0) * 100,
         },
+        "shadow": shadow,
         "valuation": {
             "portfolio_pe": momentum_val.get("portfolio_forward_pe"),
             "benchmark_pe": momentum_val.get("benchmark_forward_pe"),
