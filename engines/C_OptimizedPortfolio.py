@@ -15,7 +15,7 @@ Outputs:
 """
 
 # --- Script Version ---
-OPTIMIZED_PORTFOLIO_VERSION = "1.0.0"
+OPTIMIZED_PORTFOLIO_VERSION = "1.1.0"
 
 # ----------------------------------------------------------- #
 #                           Libraries                         #
@@ -2079,8 +2079,8 @@ def build_baseline_diagnostics(
         adjusted_returns[name] = _build_adjusted_return_summary(rows, expected_return)
 
     return {
-        'phase': '6_turnover_penalty_optimization',
-        'description': 'Explains raw/adjusted return, market stress, shadow gate, executable state and stable turnover-aware optimization without changing the official decision.',
+        'phase': '8_official_decision_promotion',
+        'description': 'Explains raw/adjusted return, market stress, legacy decision, promoted operational decision and stable turnover-aware optimization.',
         'return_concentration': concentration,
         'return_contributors': contributors,
         'return_source_summary': source_summary,
@@ -2509,21 +2509,21 @@ def generate_recommendation(
     market_regime = diagnostics.get('market_regime', {}) or {}
     market_regime_impact = market_regime.get('impact', {}) or {}
 
-    # Determine decision
+    # Legacy v1 decision: raw target-price excess return over current holdings.
     if excess_return >= min_excess_threshold:
-        decision = 'REBALANCE'
-        reason = f"Excess return ({excess_return:.2f}%) exceeds threshold ({min_excess_threshold}%)"
+        legacy_decision = 'REBALANCE'
+        legacy_reason = f"Excess return ({excess_return:.2f}%) exceeds threshold ({min_excess_threshold}%)"
     elif optimal.get('blend_ratio', 0) < 0.1:
-        decision = 'HOLD'
-        reason = f"Optimal portfolio is very close to current holdings"
+        legacy_decision = 'HOLD'
+        legacy_reason = f"Optimal portfolio is very close to current holdings"
     else:
-        decision = 'HOLD'
-        reason = f"Excess return ({excess_return:.2f}%) below threshold ({min_excess_threshold}%)"
+        legacy_decision = 'HOLD'
+        legacy_reason = f"Excess return ({excess_return:.2f}%) below threshold ({min_excess_threshold}%)"
 
     generated_date = datetime.now().strftime('%Y-%m-%d')
     generated_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     shadow_gate = _build_shadow_rebalance_gate(
-        decision,
+        legacy_decision,
         adjusted_excess_return,
         optimal.get('transition_cost', 0),
         diagnostics,
@@ -2539,12 +2539,32 @@ def generate_recommendation(
         params,
         logger,
     )
+    decision_engine_version = 'v2_operational_shadow_conservative'
+    legacy_decision_engine_version = 'v1_raw_excess_return'
+    decision = (
+        execution_plan.get('decision_state')
+        or shadow_gate.get('shadow_decision')
+        or legacy_decision
+    )
+    reason = (
+        execution_plan.get('today_action')
+        or shadow_gate.get('shadow_decision_reason')
+        or legacy_reason
+    )
 
     recommendation = {
         'date': generated_date,
         'timestamp': generated_timestamp,
         'decision': decision,
         'reason': reason,
+        'decision_engine_version': decision_engine_version,
+        'decision_engine_phase': '8_official_decision_promotion',
+        'decision_engine_promoted_from': 'shadow.execution_plan.decision_state',
+        'decision_transition_window_days': 60,
+        'legacy_decision': legacy_decision,
+        'legacy_reason': legacy_reason,
+        'legacy_decision_engine_version': legacy_decision_engine_version,
+        'legacy_excess_return_pct': round(excess_return, 4),
         'excess_return_pct': round(excess_return, 4),
         'min_threshold_pct': min_excess_threshold,
         'optimal_score': round(optimal.get('score', 0), 4),
@@ -2597,8 +2617,12 @@ def generate_recommendation(
         'transaction_summary': transaction_summary,
         'diagnostics': diagnostics,
         'shadow': {
-            'phase': '6_turnover_penalty_optimization',
+            'phase': '8_official_decision_promotion',
             'official_decision': decision,
+            'legacy_decision': legacy_decision,
+            'legacy_reason': legacy_reason,
+            'legacy_decision_engine_version': legacy_decision_engine_version,
+            'decision_engine_version': decision_engine_version,
             'official_excess_return_pct': round(excess_return, 4),
             'holdings_adjusted_return_pct': round(holdings_adjusted_return, 4),
             'ideal_adjusted_return_pct': round(ideal_adjusted_return, 4),
@@ -2660,7 +2684,10 @@ def generate_recommendation(
         }
     }
 
-    logger.info(f"Decision: {decision} - {reason}")
+    logger.info(
+        f"Decision: {decision} ({decision_engine_version}) - {reason}; "
+        f"legacy={legacy_decision}"
+    )
 
     return recommendation
 
@@ -2699,6 +2726,12 @@ def save_recommendation(
             'timestamp': recommendation['timestamp'],
             'decision': recommendation['decision'],
             'reason': recommendation['reason'],
+            'decision_engine_version': recommendation.get('decision_engine_version'),
+            'decision_engine_phase': recommendation.get('decision_engine_phase'),
+            'legacy_decision': recommendation.get('legacy_decision'),
+            'legacy_reason': recommendation.get('legacy_reason'),
+            'legacy_decision_engine_version': recommendation.get('legacy_decision_engine_version'),
+            'legacy_excess_return_pct': recommendation.get('legacy_excess_return_pct'),
             'excess_return_pct': recommendation['excess_return_pct'],
             'optimal_score': recommendation['optimal_score'],
             'holdings_score': recommendation['holdings_score'],

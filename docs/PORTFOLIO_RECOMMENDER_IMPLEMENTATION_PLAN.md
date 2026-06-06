@@ -93,7 +93,7 @@ Frontend:
 | 5 | Estados HOLD/WATCH/PARTIAL/REBALANCE | Implementado em 2026-06-06 | Reduzir binariedade da recomendacao |
 | 6 | Otimizacao com penalidade de turnover | Implementado em 2026-06-06 | Preferir estabilidade quando ganho marginal e baixo |
 | 7 | Backtest e calibracao | Implementado em 2026-06-06 | Calibrar thresholds com historico |
-| 8 | Promocao para decisao oficial | Pendente | Substituir decisao oficial com seguranca |
+| 8 | Promocao para decisao oficial | Implementado em 2026-06-06 | Substituir decisao oficial com seguranca |
 
 ## Fase 0: Baseline E Diagnostico Atual
 
@@ -612,6 +612,16 @@ Substituir a decisao oficial pela nova logica quando ela estiver validada.
 - Registrar `decision_engine_version`.
 - Manter campos raw e adjusted para auditabilidade.
 
+Implementacao atual:
+
+- `C_OptimizedPortfolio.py` promove `shadow.execution_plan.decision_state` para o campo top-level `decision`.
+- A logica antiga de excesso bruto segue preservada em `legacy_decision`, `legacy_reason`, `legacy_excess_return_pct` e `legacy_decision_engine_version`.
+- O novo motor registra `decision_engine_version = v2_operational_shadow_conservative`, `decision_engine_phase` e `decision_transition_window_days = 60`.
+- O bloco `shadow` tambem carrega decisao oficial promovida, decisao legada e versoes dos motores para auditoria.
+- `D_Publish.py` passa a publicar `model.decision.verdict` a partir da decisao promovida e inclui a comparacao legada no dashboard.
+- `html/sections/model.html` mostra "Motor de Decisao" com Oficial vs Legado, versao do motor e motivos do gate.
+- `html/js/header.js` usa a acao oficial promovida e mostra a decisao legada no tooltip quando divergir.
+
 ### Dashboard
 
 - Mostrar versao do motor de decisao.
@@ -723,6 +733,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-06 | Fase 8 implementada: decisao operacional promovida para `decision`, decisao bruta preservada como `legacy_decision`, `decision_engine_version` registrado, dashboard mostra Oficial vs Legado e header usa a nova acao oficial |
 | 2026-06-06 | Fase 7 implementada: `D_Publish.py` publica `model.calibration`/`model_calibration.json` com comparativo historico de versoes, cobertura, trade frequency, turnover, retorno realizado futuro, estabilidade, falsos positivos e performance por regime; `model.html` mostra "Comparativo de Versoes" |
 | 2026-06-06 | Fase 6 implementada: `shadow.stable_optimization` compara otimo oficial vs carteira estavel com penalidades de turnover, incerteza, concentracao e retorno suspeito; historico ganhou campos estaveis; `model.html` mostra "Otimizacao Estavel" |
 | 2026-06-06 | Fase 5 implementada: `shadow.execution_plan` com estado executavel, intensidade, bandas por ativo/setor, orcamento semanal/mensal, classificacao de acoes, historico resumido e painel "Plano Executavel" em `model.html` |

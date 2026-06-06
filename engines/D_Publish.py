@@ -18,7 +18,7 @@ Usage:
 """
 
 # --- Script Version ---
-D_PUBLISH_VERSION = "3.4.0"  # Add model calibration diagnostics (Phase 7)
+D_PUBLISH_VERSION = "3.5.0"  # Publish promoted decision and legacy comparison (Phase 8)
 
 import csv
 import json
@@ -1830,7 +1830,24 @@ def _build_model_section() -> dict:
         net_return_adjusted - expected_return_hold_adjusted,
     )
     threshold = safe_float(optimized.get("min_threshold_pct"), 0.5)
-    decision = "REBALANCE" if excess_return > threshold else "HOLD"
+    legacy_decision = optimized.get("legacy_decision") or (
+        "REBALANCE" if excess_return > threshold else "HOLD"
+    )
+    legacy_reason = optimized.get("legacy_reason")
+    decision = optimized.get("decision") or legacy_decision
+    decision_engine_version = optimized.get(
+        "decision_engine_version",
+        optimized.get("legacy_decision_engine_version", "v1_raw_excess_return"),
+    )
+    legacy_decision_engine_version = optimized.get(
+        "legacy_decision_engine_version",
+        "v1_raw_excess_return",
+    )
+    execution_plan = shadow.get("execution_plan", {}) if isinstance(shadow, dict) else {}
+    decision_intensity = safe_float(
+        execution_plan.get("execution_intensity_pct"),
+        safe_float(optimal.get("blend_ratio"), 0.0) * 100,
+    )
 
     net_return = float(net_return)
     excess_return = float(excess_return)
@@ -1874,8 +1891,21 @@ def _build_model_section() -> dict:
         },
         "decision": {
             "verdict": decision,
+            "reason": optimized.get("reason"),
+            "decision_engine_version": decision_engine_version,
+            "decision_engine_phase": optimized.get("decision_engine_phase"),
+            "promoted_from": optimized.get("decision_engine_promoted_from"),
+            "transition_window_days": optimized.get("decision_transition_window_days"),
+            "legacy_decision": legacy_decision,
+            "legacy_reason": legacy_reason,
+            "legacy_decision_engine_version": legacy_decision_engine_version,
+            "legacy_excess_return_pct": safe_float(
+                optimized.get("legacy_excess_return_pct"),
+                excess_return,
+            ),
             "threshold_pct": threshold,
-            "intensity": safe_float(optimal.get("blend_ratio"), 0.0) * 100,
+            "intensity": decision_intensity,
+            "legacy_intensity": safe_float(optimal.get("blend_ratio"), 0.0) * 100,
         },
         "shadow": shadow,
         "calibration": calibration,

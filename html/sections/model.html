@@ -424,6 +424,13 @@ function shadowDecisionLabel(decision) {
   })[decision] || (decision || '—');
 }
 
+function decisionEngineLabel(engine) {
+  return ({
+    v2_operational_shadow_conservative: 'Operacional conservador',
+    v1_raw_excess_return: 'Excesso bruto',
+  })[engine] || (engine || '—');
+}
+
 function executionStatusLabel(status) {
   return ({
     EXECUTE: 'Executar',
@@ -560,12 +567,24 @@ function renderShadowGate(dashboard, recommendation) {
   const shadow = recommendation?.shadow || dashboard.model?.shadow || {};
   if (!shadow.shadow_decision) return '';
 
+  const modelDecision = dashboard.model?.decision || {};
   const decision = shadow.shadow_decision;
-  const cls = decision.toLowerCase();
+  const officialDecision = recommendation?.decision || modelDecision.verdict || shadow.official_decision || decision;
+  const legacyDecision = recommendation?.legacy_decision || modelDecision.legacy_decision || shadow.legacy_decision;
+  const cls = String(officialDecision || decision).toLowerCase();
   const vetoes = shadow.shadow_veto_reasons || [];
   const vetoHtml = vetoes.length
     ? `<div class="shadow-vetoes">${vetoes.map(veto => `<span class="shadow-veto" title="${esc(veto.code || '')}">${esc(veto.message || veto.code)}</span>`).join('')}</div>`
     : '';
+  const engine = recommendation?.decision_engine_version || modelDecision.decision_engine_version || shadow.decision_engine_version;
+  const legacyEngine = recommendation?.legacy_decision_engine_version || modelDecision.legacy_decision_engine_version || shadow.legacy_decision_engine_version;
+  const transitionDays = recommendation?.decision_transition_window_days || modelDecision.transition_window_days;
+  const engineHtml = engine
+    ? `<div class="shadow-sub" title="${esc(engine)}${legacyEngine ? ` · legado ${esc(legacyEngine)}` : ''}">Motor: ${esc(decisionEngineLabel(engine))}${transitionDays ? ` · transição legada ${fmtNum(transitionDays, 0)}d` : ''}${legacyEngine ? ` · legado ${esc(decisionEngineLabel(legacyEngine))}` : ''}</div>`
+    : '';
+  const mainText = legacyDecision
+    ? `Oficial: ${shadowDecisionLabel(officialDecision)} · Legado: ${shadowDecisionLabel(legacyDecision)}`
+    : `Oficial: ${shadowDecisionLabel(officialDecision)} · Gate: ${shadowDecisionLabel(decision)}`;
 
   const metrics = [
     {
@@ -599,11 +618,12 @@ function renderShadowGate(dashboard, recommendation) {
     <div class="shadow-panel ${cls}">
       <div class="shadow-head">
         <div>
-          <div class="shadow-title">Gate Shadow</div>
-          <div class="shadow-main">Oficial: ${esc(shadowDecisionLabel(shadow.official_decision))} · Shadow: ${esc(shadowDecisionLabel(decision))}</div>
-          <div class="shadow-sub">${esc(shadow.shadow_decision_reason || '')}</div>
+          <div class="shadow-title">Motor de Decisão</div>
+          <div class="shadow-main">${esc(mainText)}</div>
+          <div class="shadow-sub">${esc(modelDecision.reason || recommendation?.reason || shadow.shadow_decision_reason || '')}</div>
+          ${engineHtml}
         </div>
-        <span class="shadow-badge ${cls}">${esc(shadowDecisionLabel(decision))}</span>
+        <span class="shadow-badge ${cls}">${esc(shadowDecisionLabel(officialDecision))}</span>
       </div>
       <div class="shadow-grid">
         ${metrics.map(metric => `

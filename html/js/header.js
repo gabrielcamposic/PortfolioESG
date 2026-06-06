@@ -253,6 +253,7 @@
       const alpha    = dashboard.real?.alpha || {};
       const mRet     = dashboard.model?.returns || {};
       const verdict  = dashboard.model?.decision?.verdict;
+      const legacyDecision = dashboard.model?.decision?.legacy_decision;
       const shadow   = dashboard.model?.shadow || {};
       const execPlan = shadow.execution_plan || {};
       const actionState = execPlan.decision_state || shadow.shadow_decision || verdict;
@@ -285,10 +286,12 @@
       // 6) Retorno esperado (Modelo)
       document.querySelector('#tb-exp .tb-value').textContent = (mRet.gross_12m || 0).toFixed(2) + '%';
 
-      // 7) Executable action. Official decision remains available in model.html.
+      // 7) Official action. Legacy raw decision remains available in model.html.
       if (actionState) {
         const decCls = String(actionState).toLowerCase();
-        const title = verdict && verdict !== actionState ? `Oficial: ${decisionLabel(verdict)}` : '';
+        const title = legacyDecision && legacyDecision !== actionState
+          ? `Legado: ${decisionLabel(legacyDecision)}`
+          : '';
         document.querySelector('#tb-decision .tb-value').innerHTML = 
           `<span class="decision-badge ${decCls}" title="${title}">${actionLabel}</span>`;
       }
