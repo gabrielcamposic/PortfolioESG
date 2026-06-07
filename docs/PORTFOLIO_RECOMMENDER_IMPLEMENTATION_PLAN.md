@@ -94,6 +94,8 @@ Frontend:
 | 6 | Otimizacao com penalidade de turnover | Implementado em 2026-06-06 | Preferir estabilidade quando ganho marginal e baixo |
 | 7 | Backtest e calibracao | Implementado em 2026-06-06 | Calibrar thresholds com historico |
 | 8 | Promocao para decisao oficial | Implementado em 2026-06-06 | Substituir decisao oficial com seguranca |
+| 9 | Duas carteiras recomendadas | Planejado | Escolher entre acida, ponderada ou manter atual |
+| 10 | Reestruturacao das paginas Modelo e Risco | Planejado | Criar cockpit comparativo para estudar carteiras, riscos e planos de execucao |
 
 ## Fase 0: Baseline E Diagnostico Atual
 
@@ -633,6 +635,205 @@ Implementacao atual:
 - Nova decisao oficial usa retorno ajustado, qualidade de target, regime e gate de rebalanceamento.
 - O usuario ainda consegue auditar como seria a decisao antiga.
 
+## Fase 9: Duas Carteiras Recomendadas
+
+### Objetivo
+
+Separar explicitamente duas recomendacoes de modelo:
+
+- **Carteira Acida**: radar agressivo de oportunidade, sensivel a volatilidade, targets brutos, momentum e distorcoes de preco. Pode conter sinais arriscados, mas deve ser rotulada como tal.
+- **Carteira Ponderada**: carteira investivel/oficial, usando retorno ajustado, qualidade de target, penalidade de turnover, regime de mercado, concentracao e plano de execucao.
+
+A carteira atual nao e uma recomendacao; ela e a referencia para comparar dois destinos possiveis:
+
+- Atual -> Carteira Acida.
+- Atual -> Carteira Ponderada.
+
+A decisao passa a ser escolher um destino (`MOVE_TO_ACID`, `MOVE_TO_BALANCED`) ou nao alterar nada (`STAY_CURRENT`).
+
+### Scripts
+
+- Manter a carteira atual somente como `comparison.current`, sem trata-la como recomendacao.
+- Renomear semanticamente o otimo bruto/agressivo do modelo para `recommendations.acid` ou `recommendations.aggressive`.
+- Promover a carteira estavel/operacional para `recommendations.balanced` ou `recommendations.operational`.
+- Calcular duas comparacoes completas:
+  - `comparisons.current_to_acid`.
+  - `comparisons.current_to_balanced`.
+- Fazer `decision`, `execution_plan` e ordens dependerem do destino escolhido, nao de uma carteira unica fixa.
+- Manter a carteira acida como radar agressivo, com contribuicoes de retorno, flags de qualidade e alertas de fragilidade.
+- Persistir as duas carteiras no `optimized_recommendation.json`:
+  - `comparison.current`
+  - `recommendations.acid`
+  - `recommendations.balanced`
+  - `comparisons.current_to_acid`
+  - `comparisons.current_to_balanced`
+  - `decision.destination = STAY_CURRENT | MOVE_TO_ACID | MOVE_TO_BALANCED`
+- Registrar historico separado para pesos, turnover e score das duas carteiras.
+
+### Dashboard
+
+- Substituir "Portfolio Modelo" generico por duas abas ou dois blocos:
+  - **Carteira Acida** como destino agressivo possivel.
+  - **Carteira Ponderada** como destino investivel possivel.
+- Mostrar a carteira atual apenas como base de comparacao.
+- Mostrar dois cards de transicao:
+  - Atual -> Acida: retorno esperado, risco, qualidade, turnover, custo e alertas.
+  - Atual -> Ponderada: retorno esperado, risco, qualidade, turnover, custo e alertas.
+- Mostrar a decisao final como uma escolha entre `Manter atual`, `Ir para acida` ou `Ir para ponderada`.
+- Exibir alertas diferentes:
+  - Para a acida: fragilidade de targets, retorno suspeito, concentracao e regime.
+  - Para a ponderada: turnover, distancia da carteira atual, acao executavel e custo.
+- Ajustar tabelas de alocacao, correlacao e plano de execucao para deixar claro qual carteira esta sendo usada.
+
+### Criterios De Aceite
+
+- A alocacao principal nao exibe ativos `reject`/`low` como recomendacao investivel sem forte justificativa.
+- O usuario consegue ver oportunidades agressivas sem confundi-las com ordens ou alocacao oficial.
+- A decisao oficial explicita o destino escolhido: manter atual, ir para acida ou ir para ponderada.
+- O plano de execucao usa somente o destino escolhido.
+- A carteira acida e a ponderada permanecem auditaveis e comparaveis entre si e contra a atual.
+- O dashboard deixa claro que existem duas recomendacoes de modelo e uma carteira atual de referencia.
+
+## Fase 10: Reestruturacao Das Paginas Modelo E Risco
+
+### Objetivo
+
+Transformar `model.html` e `risk.html` em paginas de estudo e decisao sobre carteiras, em vez de paginas acumulativas de diagnosticos tecnicos.
+
+A experiencia deve permitir responder rapidamente:
+
+- O que a Carteira Acida recomenda?
+- O que a Carteira Ponderada recomenda?
+- Como cada uma se compara com a carteira atual?
+- Como a Acida se compara com a Ponderada?
+- Quais trades implementam cada destino?
+- Qual risco, turnover, custo, concentracao e fragilidade cada destino adiciona?
+- Por que o sistema recomenda manter atual, mover para Acida ou mover para Ponderada?
+
+A carteira atual continua sendo somente a referencia real de partida. As recomendacoes de destino sao sempre Carteira Acida e Carteira Ponderada.
+
+### Dados E Contratos Necessarios
+
+Consolidar os dados publicados pela Fase 9 para que as paginas consumam uma estrutura orientada a decisao:
+
+- `comparison.current`: carteira atual como base comparativa.
+- `recommendations.acid`: carteira agressiva/de oportunidade.
+- `recommendations.balanced`: carteira investivel/operacional.
+- `comparisons.current_to_acid`: deltas, turnover, custos, compras/vendas e mudancas de risco para mover da atual para a Acida.
+- `comparisons.current_to_balanced`: deltas, turnover, custos, compras/vendas e mudancas de risco para mover da atual para a Ponderada.
+- `comparisons.acid_to_balanced`: diferencas entre os dois destinos recomendados.
+- `execution_plans.acid`: plano para implementar a Carteira Acida.
+- `execution_plans.balanced`: plano para implementar a Carteira Ponderada.
+- `risk_profiles.current`: perfil de risco da carteira atual.
+- `risk_profiles.acid`: perfil de risco da Carteira Acida.
+- `risk_profiles.balanced`: perfil de risco da Carteira Ponderada.
+- `decision.destination = STAY_CURRENT | MOVE_TO_ACID | MOVE_TO_BALANCED`.
+
+Blocos antigos de diagnostico devem ser mantidos apenas se forem uteis para auditoria, preferencialmente em paineis recolhidos ou abaixo da area principal.
+
+### `model.html`
+
+Reestruturar a pagina como cockpit comparativo de alocacao e execucao:
+
+- Primeiro viewport com resumo da decisao:
+  - carteira atual como ponto de partida;
+  - card da Carteira Acida;
+  - card da Carteira Ponderada;
+  - destino recomendado;
+  - motivo principal da decisao;
+  - turnover, custo estimado e acao executavel.
+- Tabela comparativa por ativo:
+  - peso atual;
+  - peso na Acida;
+  - peso na Ponderada;
+  - delta Atual -> Acida;
+  - delta Atual -> Ponderada;
+  - qualidade do target;
+  - fonte do target;
+  - flags relevantes.
+- Comparacao de portfolios:
+  - retorno esperado bruto;
+  - retorno esperado ajustado;
+  - retorno historico;
+  - volatilidade;
+  - concentracao;
+  - exposicao setorial;
+  - turnover necessario;
+  - custo estimado;
+  - score de confianca.
+- Plano de execucao sempre disponivel:
+  - aba ou painel para Atual -> Acida;
+  - aba ou painel para Atual -> Ponderada;
+  - ordem sugerida das operacoes;
+  - valores aproximados;
+  - acoes imediatas;
+  - acoes adiadas por banda, custo, liquidez ou regime.
+- Area de auditoria tecnica:
+  - contribuidores de retorno;
+  - target quality;
+  - origem do retorno;
+  - calibracao;
+  - fronteira estavel;
+  - logs do motor de decisao.
+
+Reduzir ou remover da area principal:
+
+- Uso generico de "Portfolio Modelo" sem especificar Acida ou Ponderada.
+- Blocos duplicados de gate, shadow, legado ou plano executavel quando a informacao ja existir por destino.
+- Diagnosticos que nao ajudem diretamente a decidir entre manter atual, mover para Acida ou mover para Ponderada.
+
+### `risk.html`
+
+Reestruturar a pagina como comparador de risco entre a carteira atual e os dois destinos:
+
+- Primeiro viewport com matriz de risco:
+  - Atual;
+  - Acida;
+  - Ponderada;
+  - deltas Atual -> Acida;
+  - deltas Atual -> Ponderada.
+- Metricas principais por carteira:
+  - volatilidade anualizada;
+  - drawdown;
+  - beta vs benchmark;
+  - tracking error;
+  - Sharpe;
+  - HHI/concentracao;
+  - peso top 5;
+  - concentracao setorial;
+  - liquidez;
+  - fragilidade de target.
+- Regime de mercado como contexto global:
+  - estado atual do regime;
+  - gatilhos ativos;
+  - impacto esperado sobre Acida e Ponderada;
+  - ajuste de hurdle, shrinkage e turnover budget.
+- Stress e cenarios:
+  - impacto estimado na carteira atual;
+  - impacto estimado na Acida;
+  - impacto estimado na Ponderada;
+  - ativos e setores que mais explicam a diferenca.
+- Alertas de risco por destino:
+  - concentracao;
+  - liquidez;
+  - target `low`/`reject`;
+  - drawdown recente;
+  - dispersao setorial;
+  - regime de stress.
+
+O objetivo de `risk.html` deixa de ser apenas explicar o ambiente de mercado e passa a ser explicar qual destino aumenta ou reduz risco em relacao a carteira atual.
+
+### Criterios De Aceite
+
+- `model.html` permite estudar Atual, Acida e Ponderada sem ambiguidade de nomes.
+- `risk.html` compara risco das mesmas tres carteiras usando os mesmos identificadores.
+- O usuario consegue comparar Atual -> Acida e Atual -> Ponderada sem procurar informacao em varias secoes.
+- O plano de execucao de cada destino esta visivel ou a um clique.
+- A decisao final explica claramente por que recomenda manter atual, mover para Acida ou mover para Ponderada.
+- Informacoes tecnicas continuam auditaveis, mas nao dominam o primeiro viewport.
+- Nenhuma tabela principal apresenta a carteira atual como recomendacao.
+- Nenhuma recomendacao investivel mistura ativos `reject`/`low` sem alerta explicito e justificativa.
+
 ## Sequencia Recomendada De Trabalho
 
 1. Implementar Fase 0 nos scripts.
@@ -646,6 +847,8 @@ Implementacao atual:
 9. Implementar Fase 3 e mostrar regime.
 10. Implementar Fase 4 e comparar decisao oficial vs shadow.
 11. Seguir para Fases 5 a 8 apenas depois que os sinais estiverem interpretaveis.
+12. Implementar Fase 9 para separar carteira acida de carteira ponderada.
+13. Implementar Fase 10 para reorganizar `model.html` e `risk.html` em torno da atual, da Acida e da Ponderada.
 
 ## Checklist Por Ciclo
 
@@ -725,6 +928,8 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Decisao | Motivo |
 |---|---|---|
+| 2026-06-07 | Reestruturar `model.html` e `risk.html` apos separar as carteiras | As paginas atuais acumulam diagnosticos e nao servem bem para estudar destinos e planos de execucao |
+| 2026-06-07 | Separar carteira acida e carteira ponderada | A decisao deve escolher entre dois destinos possiveis a partir da carteira atual: acida, ponderada ou nenhuma alteracao |
 | 2026-06-05 | Usar modo shadow em vez de pipeline duplicado | Permite evoluir sem quebrar a decisao oficial |
 | 2026-06-05 | Alternar scripts e dashboard por fase | Permite observar cada melhoria antes de seguir |
 | 2026-06-05 | Priorizar target quality antes de trocar otimizacao | Diagnostico mostrou retornos extremos concentrados em poucos targets |
@@ -733,6 +938,8 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-07 | Fase 10 planejada: reestruturar `model.html` e `risk.html` como cockpit comparativo de carteiras, riscos e planos de execucao por destino |
+| 2026-06-07 | Fase 9 planejada: comparar Atual -> Acida e Atual -> Ponderada, decidindo entre mover para acida, mover para ponderada ou manter atual |
 | 2026-06-06 | Fase 8 implementada: decisao operacional promovida para `decision`, decisao bruta preservada como `legacy_decision`, `decision_engine_version` registrado, dashboard mostra Oficial vs Legado e header usa a nova acao oficial |
 | 2026-06-06 | Fase 7 implementada: `D_Publish.py` publica `model.calibration`/`model_calibration.json` com comparativo historico de versoes, cobertura, trade frequency, turnover, retorno realizado futuro, estabilidade, falsos positivos e performance por regime; `model.html` mostra "Comparativo de Versoes" |
 | 2026-06-06 | Fase 6 implementada: `shadow.stable_optimization` compara otimo oficial vs carteira estavel com penalidades de turnover, incerteza, concentracao e retorno suspeito; historico ganhou campos estaveis; `model.html` mostra "Otimizacao Estavel" |
