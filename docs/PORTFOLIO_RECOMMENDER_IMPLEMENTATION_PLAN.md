@@ -4,6 +4,8 @@ Data inicial: 2026-06-05
 
 Documento vivo para guiar a evolucao incremental do modelo de recomendacao de portfolio. A proposta parte do diagnostico em `docs/PORTFOLIO_RECOMMENDER_BEHAVIOR_ANALYSIS.md` e deve ser atualizada a cada fase implementada.
 
+Mapa visual do pipeline: `docs/PIPELINE_VISUAL_MAP.md`.
+
 ## Objetivo
 
 Evoluir o modelo para continuar rodando diariamente, mas recomendar rebalanceamentos apenas quando houver evidencia robusta, persistente e operacionalmente justificavel. O foco e preservar capacidade de monitoramento rapido sem transformar ruido diario, targets anomalos ou stress de mercado em ordens frequentes de compra/venda.
