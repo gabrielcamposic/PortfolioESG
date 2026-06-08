@@ -1766,27 +1766,45 @@ def _build_model_section() -> dict:
 
     bp = latest_summary.get("best_portfolio_details", {})
     comparison = optimized.get("comparison", {})
-    holdings = comparison.get("holdings", {})
+    recommendations = optimized.get("recommendations", {})
+    destination_comparisons = optimized.get("comparisons", {})
+    execution_plans = optimized.get("execution_plans", {})
+    holdings = comparison.get("current", {}) or comparison.get("holdings", {})
     ideal = comparison.get("ideal", {})
     optimal = comparison.get("optimal", {})
+    acid = recommendations.get("acid", {}) or optimal
+    balanced = recommendations.get("balanced", {})
     diagnostics = optimized.get("diagnostics", {})
     shadow = optimized.get("shadow", {})
     calibration = _build_model_calibration_section()
     momentum_val = bp.get("momentum_valuation", {})
 
     # Extract model portfolio composition
-    model_weights_dict = optimal.get("weights", {}) or ideal.get("weights", {})
+    decision_destination = optimized.get("decision_destination") or optimized.get("destination")
+    if decision_destination == "MOVE_TO_BALANCED" and balanced.get("weights"):
+        selected_portfolio = balanced
+    elif decision_destination == "MOVE_TO_ACID" and acid.get("weights"):
+        selected_portfolio = acid
+    elif holdings.get("weights"):
+        selected_portfolio = holdings
+    else:
+        selected_portfolio = acid or optimal or ideal
+
+    model_weights_dict = selected_portfolio.get("weights", {}) or acid.get("weights", {}) or ideal.get("weights", {})
     model_stocks = list(model_weights_dict.keys())
+    for portfolio in (holdings, acid, balanced, selected_portfolio):
+        if isinstance(portfolio, dict) and portfolio.get("weights") and not portfolio.get("sector_exposure"):
+            portfolio["sector_exposure"] = _compute_sector_exposure(portfolio.get("weights", {}))
 
     # Returns
     expected_return_hold = safe_float(holdings.get("expected_return_pct"), 0.0)
-    expected_return_gross = safe_float(optimal.get("expected_return_pct", ideal.get("expected_return_pct", 0.0)), 0.0)
+    expected_return_gross = safe_float(acid.get("expected_return_pct", optimal.get("expected_return_pct", ideal.get("expected_return_pct", 0.0))), 0.0)
     expected_return_hold_adjusted = safe_float(
         holdings.get("adjusted_expected_return_pct"),
         safe_float(shadow.get("holdings_adjusted_return_pct"), expected_return_hold),
     )
     expected_return_gross_adjusted = safe_float(
-        optimal.get("adjusted_expected_return_pct"),
+        acid.get("adjusted_expected_return_pct", optimal.get("adjusted_expected_return_pct")),
         safe_float(shadow.get("optimal_adjusted_gross_return_pct"), expected_return_gross),
     )
     historical_return = safe_float(
@@ -1818,11 +1836,11 @@ def _build_model_section() -> dict:
     # NOTE: excess_return is excess over the *current portfolio*, NOT over
     # any external market index.  Do not label it "vs benchmark" in the UI.
     # ─────────────────────────────────────────────────────────────────────────
-    cost_pct = safe_float(optimal.get("transition_cost_pct"), 0.0)
+    cost_pct = safe_float(acid.get("transition_cost_pct", optimal.get("transition_cost_pct")), 0.0)
     net_return = expected_return_gross - cost_pct
     excess_return = net_return - expected_return_hold
     net_return_adjusted = safe_float(
-        optimal.get("adjusted_net_return_pct"),
+        acid.get("adjusted_net_return_pct", optimal.get("adjusted_net_return_pct")),
         expected_return_gross_adjusted - cost_pct,
     )
     excess_return_adjusted = safe_float(
@@ -1830,23 +1848,23 @@ def _build_model_section() -> dict:
         net_return_adjusted - expected_return_hold_adjusted,
     )
     threshold = safe_float(optimized.get("min_threshold_pct"), 0.5)
-    legacy_decision = optimized.get("legacy_decision") or (
+    acid_raw_decision = optimized.get("acid_raw_decision") or (
         "REBALANCE" if excess_return > threshold else "HOLD"
     )
-    legacy_reason = optimized.get("legacy_reason")
-    decision = optimized.get("decision") or legacy_decision
+    acid_raw_reason = optimized.get("acid_raw_reason")
+    decision = optimized.get("decision") or acid_raw_decision
     decision_engine_version = optimized.get(
         "decision_engine_version",
-        optimized.get("legacy_decision_engine_version", "v1_raw_excess_return"),
+        optimized.get("acid_raw_decision_engine_version", "v1_raw_excess_return"),
     )
-    legacy_decision_engine_version = optimized.get(
-        "legacy_decision_engine_version",
+    acid_raw_decision_engine_version = optimized.get(
+        "acid_raw_decision_engine_version",
         "v1_raw_excess_return",
     )
     execution_plan = shadow.get("execution_plan", {}) if isinstance(shadow, dict) else {}
     decision_intensity = safe_float(
         execution_plan.get("execution_intensity_pct"),
-        safe_float(optimal.get("blend_ratio"), 0.0) * 100,
+        safe_float(selected_portfolio.get("blend_ratio", acid.get("blend_ratio")), 0.0) * 100,
     )
 
     net_return = float(net_return)
@@ -1896,17 +1914,30 @@ def _build_model_section() -> dict:
             "decision_engine_phase": optimized.get("decision_engine_phase"),
             "promoted_from": optimized.get("decision_engine_promoted_from"),
             "transition_window_days": optimized.get("decision_transition_window_days"),
-            "legacy_decision": legacy_decision,
-            "legacy_reason": legacy_reason,
-            "legacy_decision_engine_version": legacy_decision_engine_version,
-            "legacy_excess_return_pct": safe_float(
-                optimized.get("legacy_excess_return_pct"),
+            "destination": decision_destination,
+            "destination_label": optimized.get("destination_label"),
+            "destination_reason": optimized.get("destination_reason"),
+            "acid_signal": optimized.get("decision_context", {}).get("acid_signal"),
+            "balanced_signal": optimized.get("decision_context", {}).get("balanced_signal"),
+            "acid_raw_decision": acid_raw_decision,
+            "acid_raw_reason": acid_raw_reason,
+            "acid_raw_decision_engine_version": acid_raw_decision_engine_version,
+            "acid_raw_excess_return_pct": safe_float(
+                optimized.get("acid_raw_excess_return_pct"),
                 excess_return,
             ),
             "threshold_pct": threshold,
             "intensity": decision_intensity,
-            "legacy_intensity": safe_float(optimal.get("blend_ratio"), 0.0) * 100,
+            "acid_intensity": safe_float(acid.get("blend_ratio", optimal.get("blend_ratio")), 0.0) * 100,
         },
+        "portfolios": {
+            "current": holdings,
+            "acid": acid,
+            "balanced": balanced,
+            "selected": selected_portfolio,
+        },
+        "comparisons": destination_comparisons,
+        "execution_plans": execution_plans,
         "shadow": shadow,
         "calibration": calibration,
         "valuation": {
@@ -2190,8 +2221,16 @@ def publish_correlation_heatmap(window_days: int = 252) -> None:
         logger.warning("  optimized_recommendation.json not found — skipping correlation")
         return
 
-    holdings_tickers = set(rec.get("comparison", {}).get("holdings", {}).get("weights", {}).keys())
-    model_tickers    = set(rec.get("comparison", {}).get("optimal",  {}).get("weights", {}).keys())
+    comparison = rec.get("comparison", {})
+    recommendations = rec.get("recommendations", {})
+    holdings_tickers = set(
+        (comparison.get("current") or comparison.get("holdings", {})).get("weights", {}).keys()
+    )
+    acid_tickers = set(
+        (recommendations.get("acid") or comparison.get("optimal", {})).get("weights", {}).keys()
+    )
+    balanced_tickers = set(recommendations.get("balanced", {}).get("weights", {}).keys())
+    model_tickers = acid_tickers | balanced_tickers
     all_tickers      = sorted(holdings_tickers | model_tickers)
 
     if not all_tickers:

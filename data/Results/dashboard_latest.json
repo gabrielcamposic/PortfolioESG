@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-06-06T11:40:48.540745+00:00",
+  "generated_at": "2026-06-07T19:46:16.366484+00:00",
   "model": {
     "meta": {
       "run_id": "20260606-081506",
       "timestamp": "2026-06-06 08:39:23"
     },
     "returns": {
-      "hold_12m": 338.63,
-      "gross_12m": 350.4,
-      "net_12m": 350.38489999999996,
+      "hold_12m": 338.6319,
+      "gross_12m": 350.4033,
+      "net_12m": 350.3882,
       "hold_adjusted_12m": 18.14,
       "gross_adjusted_12m": 11.86,
-      "net_adjusted_12m": 11.84,
+      "net_adjusted_12m": 11.8449,
       "historical_annual": 3.27,
-      "excess_net_12m": 11.754899999999964,
+      "excess_net_12m": 11.75630000000001,
       "excess_adjusted_net_12m": -6.2951
     },
     "risk": {
@@ -23,112 +23,1737 @@
       "sharpe_source": "optimization",
       "hhi": 0.1821,
       "top5": 0.7972,
-      "liquidity_avg": 7579245.18040756,
-      "avg_internal_corr": 0.44717485290753506
+      "liquidity_avg": 4822160.458931219,
+      "avg_internal_corr": 0.3442524992956153
     },
     "decision": {
-      "verdict": "WATCH",
-      "reason": "Observar sem enviar ordens hoje.",
-      "decision_engine_version": "v2_operational_shadow_conservative",
-      "decision_engine_phase": "8_official_decision_promotion",
-      "promoted_from": "shadow.execution_plan.decision_state",
+      "verdict": "HOLD",
+      "reason": "Carteira ponderada nao justifica alteracao; carteira acida permanece como radar agressivo.",
+      "decision_engine_version": "v3_dual_recommendation_destinations",
+      "decision_engine_phase": "9_dual_recommendation_destinations",
+      "promoted_from": "decision_context.destination",
       "transition_window_days": 60,
-      "legacy_decision": "REBALANCE",
-      "legacy_reason": "Excess return (11.76%) exceeds threshold (0.5%)",
-      "legacy_decision_engine_version": "v1_raw_excess_return",
-      "legacy_excess_return_pct": 11.7563,
+      "destination": "STAY_CURRENT",
+      "destination_label": "Manter atual",
+      "destination_reason": "Carteira ponderada nao justifica alteracao; carteira acida permanece como radar agressivo.",
+      "acid_signal": "MOVE_TO_ACID",
+      "balanced_signal": "STAY_CURRENT",
+      "acid_raw_decision": "REBALANCE",
+      "acid_raw_reason": "Excess return (11.76%) exceeds threshold (0.5%)",
+      "acid_raw_decision_engine_version": "v1_raw_excess_return",
+      "acid_raw_excess_return_pct": 11.7563,
       "threshold_pct": 0.5,
       "intensity": 0.0,
-      "legacy_intensity": 100.0
+      "acid_intensity": 100.0
     },
-    "shadow": {
-      "phase": "8_official_decision_promotion",
-      "official_decision": "WATCH",
-      "legacy_decision": "REBALANCE",
-      "legacy_reason": "Excess return (11.76%) exceeds threshold (0.5%)",
-      "legacy_decision_engine_version": "v1_raw_excess_return",
-      "decision_engine_version": "v2_operational_shadow_conservative",
-      "official_excess_return_pct": 11.7563,
-      "holdings_adjusted_return_pct": 18.14,
-      "ideal_adjusted_return_pct": 12.04,
-      "optimal_adjusted_gross_return_pct": 11.86,
-      "optimal_adjusted_net_return_pct": 11.8449,
-      "adjusted_excess_return_pct": -6.2951,
-      "market_regime_state": "stress",
-      "market_regime_triggers": [
-        "benchmark_drawdown_3m",
-        "benchmark_drawdown_6m",
-        "negative_breadth_3m",
-        "broad_asset_drawdown",
-        "high_cross_sectional_dispersion"
-      ],
-      "market_regime_hurdle_addon_pct": 1.0,
-      "market_regime_shrinkage_multiplier": 1.25,
-      "market_regime_turnover_budget_multiplier": 0.7,
-      "min_threshold_pct": 0.5,
-      "would_rebalance_on_adjusted_return": false,
-      "shadow_decision": "WATCH",
-      "shadow_decision_reason": "Há sinal oficial, mas o gate shadow recomenda observar antes de operar.",
-      "shadow_trade_allowed": false,
-      "shadow_expected_gain_pct": -6.2951,
-      "shadow_hurdle_pct": 2.1651,
-      "shadow_hurdle_components": {
-        "base_hurdle_pct": 0.5,
-        "transition_cost_pct": 0.0151,
-        "slippage_estimate_pct": 0.15,
-        "tax_drag_estimate_pct": 0.0,
-        "model_uncertainty_penalty_pct": 0.5,
-        "regime_stress_penalty_pct": 1.0
+    "portfolios": {
+      "current": {
+        "id": "current",
+        "label": "Carteira Atual",
+        "role": "reference_only",
+        "stocks": [
+          "KLBN4.SA",
+          "SLCE3.SA",
+          "AMBP3.SA",
+          "CMIG3.SA",
+          "RANI3.SA",
+          "PSSA3.SA",
+          "BBSE3.SA",
+          "WEGE3.SA",
+          "PNVL3.SA",
+          "PETR4.SA",
+          "ISAE4.SA"
+        ],
+        "weights": {
+          "KLBN4.SA": 0.3546740086529199,
+          "SLCE3.SA": 0.09685752778722881,
+          "AMBP3.SA": 0.0933913215504003,
+          "CMIG3.SA": 0.09582980780880843,
+          "RANI3.SA": 0.09534397907349784,
+          "PSSA3.SA": 0.06700238842456087,
+          "BBSE3.SA": 0.06612882708888249,
+          "WEGE3.SA": 0.05950473268033928,
+          "PNVL3.SA": 0.03957639452045668,
+          "PETR4.SA": 0.01910149580345495,
+          "ISAE4.SA": 0.0125895166094504
+        },
+        "expected_return_pct": 338.6319,
+        "adjusted_expected_return_pct": 18.14,
+        "total_value": 2140.67,
+        "total_invested": 2298.16,
+        "concentration": {
+          "num_positions": 11,
+          "hhi": 0.1767,
+          "top5_weight_pct": 73.61,
+          "max_weight_pct": 35.47
+        },
+        "sector_exposure": [
+          {
+            "sector": "Basic Materials",
+            "pct": 0.3547
+          },
+          {
+            "sector": "Industrials",
+            "pct": 0.1529
+          },
+          {
+            "sector": "Financial Services",
+            "pct": 0.1331
+          },
+          {
+            "sector": "Utilities",
+            "pct": 0.1084
+          },
+          {
+            "sector": "Consumer Defensive",
+            "pct": 0.0969
+          },
+          {
+            "sector": "Consumer Cyclical",
+            "pct": 0.0953
+          },
+          {
+            "sector": "Healthcare",
+            "pct": 0.0396
+          },
+          {
+            "sector": "Energy",
+            "pct": 0.0191
+          }
+        ]
       },
-      "shadow_veto_reasons": [
-        {
-          "code": "adjusted_gain_below_hurdle",
-          "message": "Ganho ajustado abaixo do hurdle dinâmico.",
-          "actual": -6.2951,
-          "threshold": 2.1651
+      "acid": {
+        "id": "acid",
+        "label": "Carteira Acida",
+        "role": "aggressive_opportunity_radar",
+        "stocks": [
+          "ISAE4.SA",
+          "SLCE3.SA",
+          "PETR3.SA",
+          "AMBP3.SA",
+          "KLBN4.SA",
+          "BBSE3.SA",
+          "CMIG3.SA",
+          "PETR4.SA"
+        ],
+        "weights": {
+          "ISAE4.SA": 0.11710150463703349,
+          "SLCE3.SA": 0.10010235403843605,
+          "PETR3.SA": 0.044136957478597846,
+          "AMBP3.SA": 0.11424819445188077,
+          "KLBN4.SA": 0.3483932684768173,
+          "BBSE3.SA": 0.1025163156539497,
+          "CMIG3.SA": 0.11427715891100688,
+          "PETR4.SA": 0.05922424635227793
         },
-        {
-          "code": "signal_not_persistent",
-          "message": "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
-          "actual": 0.0,
-          "threshold": 2.0
+        "share_quantities": {
+          "ISAE4.SA": 9,
+          "SLCE3.SA": 14,
+          "PETR3.SA": 2,
+          "AMBP3.SA": 1392,
+          "KLBN4.SA": 211,
+          "BBSE3.SA": 6,
+          "CMIG3.SA": 15,
+          "PETR4.SA": 3
         },
-        {
-          "code": "turnover_above_budget",
-          "message": "Turnover necessário acima do orçamento shadow.",
-          "actual": 52.56,
-          "threshold": 24.5
+        "expected_return_pct": 350.4033,
+        "net_return_pct": 350.3881,
+        "adjusted_expected_return_pct": 11.86,
+        "adjusted_net_return_pct": 11.8449,
+        "transition_cost_pct": 0.0151,
+        "transaction_summary": {
+          "total_buy_value": 527.86,
+          "total_sell_value": 597.25,
+          "total_cost": 0.32,
+          "projected_balance": 69.07
         },
-        {
-          "code": "target_quality_below_floor",
-          "message": "Qualidade média dos targets do portfólio abaixo do piso.",
-          "actual": 0.5327,
-          "threshold": 0.6
+        "target_quality_score": 0.5327,
+        "low_reject_weight_pct": 57.69,
+        "suspicious_return_contribution_pct": 342.32,
+        "suspicious_return_contribution_share_pct": 97.69,
+        "target_quality_summary": [
+          {
+            "bucket": "high",
+            "count": 5,
+            "weight_pct": 42.3,
+            "return_contribution_pct": 8.09,
+            "symbols": [
+              "SLCE3.SA",
+              "PETR4.SA",
+              "ISAE4.SA",
+              "PETR3.SA",
+              "BBSE3.SA"
+            ]
+          },
+          {
+            "bucket": "low",
+            "count": 1,
+            "weight_pct": 11.43,
+            "return_contribution_pct": 10.76,
+            "symbols": [
+              "CMIG3.SA"
+            ]
+          },
+          {
+            "bucket": "reject",
+            "count": 2,
+            "weight_pct": 46.26,
+            "return_contribution_pct": 331.56,
+            "symbols": [
+              "KLBN4.SA",
+              "AMBP3.SA"
+            ]
+          }
+        ],
+        "return_concentration": {
+          "expected_return_pct": 350.4,
+          "top1_contribution_pct": 62.02,
+          "top2_contribution_pct": 94.62,
+          "top5_contribution_pct": 99.15,
+          "top1_contribution_pp": 217.31,
+          "top2_contribution_pp": 331.56,
+          "top5_contribution_pp": 347.42,
+          "top_symbols": [
+            "KLBN4.SA",
+            "AMBP3.SA",
+            "CMIG3.SA",
+            "SLCE3.SA",
+            "PETR4.SA"
+          ]
         },
-        {
-          "code": "suspicious_return_contribution_high",
-          "message": "Contribuição de targets low/reject acima do limite.",
-          "actual": 97.69,
-          "threshold": 35.0
-        }
-      ],
-      "shadow_signal_persistence_days": 0,
-      "shadow_min_persistence_days": 2,
-      "shadow_turnover_pct": 52.56,
-      "shadow_turnover_budget_pct": 24.5,
-      "shadow_base_turnover_budget_pct": 35.0,
-      "shadow_turnover_budget_multiplier": 0.7,
-      "portfolio_target_quality_score": 0.5327,
-      "low_reject_weight_pct": 57.69,
-      "suspicious_return_contribution_pct": 342.32,
-      "suspicious_return_contribution_share_pct": 97.69,
-      "shadow_confidence_floor": 0.6,
-      "shadow_max_suspicious_return_contribution_pct": 35.0,
-      "execution_plan": {
-        "phase": "5_execution_states",
-        "decision_state": "WATCH",
-        "decision_state_label": "Observar",
-        "today_action": "Observar sem enviar ordens hoje.",
+        "concentration": {
+          "num_positions": 8,
+          "hhi": 0.1872,
+          "top5_weight_pct": 79.65,
+          "max_weight_pct": 34.84
+        },
+        "top_contributors": [
+          {
+            "stock": "KLBN4.SA",
+            "weight": 0.348393,
+            "weight_pct": 34.84,
+            "current_price": 3.42,
+            "target_price": 24.7525,
+            "raw_upside_pct": 623.76,
+            "return_contribution_pct": 217.31,
+            "raw_expected_return_pct": 623.76,
+            "capped_raw_return_pct": 150.0,
+            "adjusted_expected_return_pct": 0.0,
+            "adjusted_return_contribution_pct": 0.0,
+            "adjusted_return_delta_pct": 623.76,
+            "adjusted_return_reduction_contribution_pct": 217.31,
+            "shrinkage_factor": 0.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "reject_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Basic Materials",
+            "forward_pe": 1.6209,
+            "forward_eps": 2.11,
+            "target_quality_score": 0.2,
+            "target_quality_bucket": "reject",
+            "target_quality_flags": [
+              "corporate_action_check_required",
+              "extreme_upside",
+              "target_class_mismatch_suspected",
+              "unit_or_share_class_mismatch_suspected"
+            ],
+            "target_quality_related": {
+              "matched_ticker": "KLBN11.SA",
+              "target_delta_pct": 8.0,
+              "price_ratio": 4.99
+            },
+            "portfolio_expected_return_pct": 350.4
+          },
+          {
+            "stock": "AMBP3.SA",
+            "weight": 0.114248,
+            "weight_pct": 11.42,
+            "current_price": 0.17,
+            "target_price": 1.87,
+            "raw_upside_pct": 1000.0,
+            "return_contribution_pct": 114.25,
+            "raw_expected_return_pct": 1000.0,
+            "capped_raw_return_pct": 150.0,
+            "adjusted_expected_return_pct": 0.0,
+            "adjusted_return_contribution_pct": 0.0,
+            "adjusted_return_delta_pct": 1000.0,
+            "adjusted_return_reduction_contribution_pct": 114.25,
+            "shrinkage_factor": 0.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "reject_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "SectorPE_Fallback",
+            "return_source": "target",
+            "sector": "Industrials",
+            "forward_pe": 0.136,
+            "forward_eps": 1.25,
+            "target_quality_score": 0.0,
+            "target_quality_bucket": "reject",
+            "target_quality_flags": [
+              "distressed_price_action",
+              "extreme_upside",
+              "sector_pe_fallback",
+              "very_low_price"
+            ],
+            "target_quality_related": null
+          },
+          {
+            "stock": "CMIG3.SA",
+            "weight": 0.114277,
+            "weight_pct": 11.43,
+            "current_price": 15.78,
+            "target_price": 30.644,
+            "raw_upside_pct": 94.2,
+            "return_contribution_pct": 10.76,
+            "raw_expected_return_pct": 94.2,
+            "capped_raw_return_pct": 94.2,
+            "adjusted_expected_return_pct": 32.97,
+            "adjusted_return_contribution_pct": 3.77,
+            "adjusted_return_delta_pct": 61.23,
+            "adjusted_return_reduction_contribution_pct": 7.0,
+            "shrinkage_factor": 0.35,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "SectorPE_Fallback",
+            "return_source": "target",
+            "sector": "Utilities",
+            "forward_pe": 5.5368,
+            "forward_eps": 2.85,
+            "target_quality_score": 0.35,
+            "target_quality_bucket": "low",
+            "target_quality_flags": [
+              "sector_pe_fallback"
+            ],
+            "target_quality_related": null
+          },
+          {
+            "stock": "SLCE3.SA",
+            "weight": 0.100102,
+            "weight_pct": 10.01,
+            "current_price": 14.81,
+            "target_price": 19.5091,
+            "raw_upside_pct": 31.73,
+            "return_contribution_pct": 3.18,
+            "raw_expected_return_pct": 31.73,
+            "capped_raw_return_pct": 31.73,
+            "adjusted_expected_return_pct": 31.73,
+            "adjusted_return_contribution_pct": 3.18,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": -0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Consumer Defensive",
+            "forward_pe": 9.0886,
+            "forward_eps": 1.6295,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          },
+          {
+            "stock": "PETR4.SA",
+            "weight": 0.059224,
+            "weight_pct": 5.92,
+            "current_price": 40.89,
+            "target_price": 54.1167,
+            "raw_upside_pct": 32.35,
+            "return_contribution_pct": 1.92,
+            "raw_expected_return_pct": 32.35,
+            "capped_raw_return_pct": 32.35,
+            "adjusted_expected_return_pct": 32.35,
+            "adjusted_return_contribution_pct": 1.92,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": -0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Energy",
+            "forward_pe": 4.2325,
+            "forward_eps": 9.661,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          },
+          {
+            "stock": "ISAE4.SA",
+            "weight": 0.117102,
+            "weight_pct": 11.71,
+            "current_price": 26.95,
+            "target_price": 30.0736,
+            "raw_upside_pct": 11.59,
+            "return_contribution_pct": 1.36,
+            "raw_expected_return_pct": 11.59,
+            "capped_raw_return_pct": 11.59,
+            "adjusted_expected_return_pct": 11.59,
+            "adjusted_return_contribution_pct": 1.36,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": 0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Utilities",
+            "forward_pe": 9.3837,
+            "forward_eps": 2.872,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          },
+          {
+            "stock": "PETR3.SA",
+            "weight": 0.044137,
+            "weight_pct": 4.41,
+            "current_price": 45.71,
+            "target_price": 58.0,
+            "raw_upside_pct": 26.89,
+            "return_contribution_pct": 1.19,
+            "raw_expected_return_pct": 26.89,
+            "capped_raw_return_pct": 26.89,
+            "adjusted_expected_return_pct": 26.89,
+            "adjusted_return_contribution_pct": 1.19,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": -0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Energy",
+            "forward_pe": 3.0904,
+            "forward_eps": 14.791,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          },
+          {
+            "stock": "BBSE3.SA",
+            "weight": 0.102516,
+            "weight_pct": 10.25,
+            "current_price": 35.39,
+            "target_price": 36.9167,
+            "raw_upside_pct": 4.31,
+            "return_contribution_pct": 0.44,
+            "raw_expected_return_pct": 4.31,
+            "capped_raw_return_pct": 4.31,
+            "adjusted_expected_return_pct": 4.31,
+            "adjusted_return_contribution_pct": 0.44,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": 0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Financial Services",
+            "forward_pe": 7.9565,
+            "forward_eps": 4.4479,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          }
+        ],
+        "blend_ratio": 1.0,
+        "score": 1.7692,
+        "raw_signal": "REBALANCE",
+        "raw_reason": "Excess return (11.76%) exceeds threshold (0.5%)",
+        "operational_gate_decision": "WATCH",
+        "operational_gate_veto_reasons": [
+          {
+            "code": "adjusted_gain_below_hurdle",
+            "message": "Ganho ajustado abaixo do hurdle dinâmico.",
+            "actual": -6.2951,
+            "threshold": 2.1651
+          },
+          {
+            "code": "signal_not_persistent",
+            "message": "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+            "actual": 0.0,
+            "threshold": 2.0
+          },
+          {
+            "code": "turnover_above_budget",
+            "message": "Turnover necessário acima do orçamento shadow.",
+            "actual": 52.56,
+            "threshold": 24.5
+          },
+          {
+            "code": "target_quality_below_floor",
+            "message": "Qualidade média dos targets do portfólio abaixo do piso.",
+            "actual": 0.5327,
+            "threshold": 0.6
+          },
+          {
+            "code": "suspicious_return_contribution_high",
+            "message": "Contribuição de targets low/reject acima do limite.",
+            "actual": 97.69,
+            "threshold": 35.0
+          }
+        ],
+        "discretized": true,
+        "total_discretized_value": 2071.28,
+        "sector_exposure": [
+          {
+            "sector": "Basic Materials",
+            "pct": 0.3484
+          },
+          {
+            "sector": "Utilities",
+            "pct": 0.2314
+          },
+          {
+            "sector": "Industrials",
+            "pct": 0.1142
+          },
+          {
+            "sector": "Energy",
+            "pct": 0.1034
+          },
+          {
+            "sector": "Financial Services",
+            "pct": 0.1025
+          },
+          {
+            "sector": "Consumer Defensive",
+            "pct": 0.1001
+          }
+        ]
+      },
+      "balanced": {
+        "id": "balanced",
+        "label": "Carteira Ponderada",
+        "role": "official_investable_destination",
+        "stocks": [
+          "PSSA3.SA",
+          "ISAE4.SA",
+          "SLCE3.SA",
+          "AMBP3.SA",
+          "KLBN4.SA",
+          "BBSE3.SA",
+          "RANI3.SA",
+          "CMIG3.SA",
+          "WEGE3.SA",
+          "PNVL3.SA",
+          "PETR4.SA"
+        ],
+        "weights": {
+          "PSSA3.SA": 0.06700238842456087,
+          "ISAE4.SA": 0.0125895166094504,
+          "SLCE3.SA": 0.09685752778722881,
+          "AMBP3.SA": 0.0933913215504003,
+          "KLBN4.SA": 0.3546740086529199,
+          "BBSE3.SA": 0.06612882708888249,
+          "RANI3.SA": 0.09534397907349784,
+          "CMIG3.SA": 0.09582980780880843,
+          "WEGE3.SA": 0.05950473268033928,
+          "PNVL3.SA": 0.03957639452045668,
+          "PETR4.SA": 0.01910149580345495
+        },
+        "share_quantities": {},
+        "expected_return_pct": 338.6319,
+        "net_return_pct": 338.6319,
+        "adjusted_expected_return_pct": 18.14,
+        "adjusted_net_return_pct": 18.14,
+        "transition_cost_pct": 0.0,
+        "transaction_summary": {
+          "total_buy_value": 0.0,
+          "total_sell_value": 0.0,
+          "total_cost": 0.0,
+          "projected_balance": 0.0
+        },
+        "target_quality_score": 0.5606,
+        "low_reject_weight_pct": 54.39,
+        "suspicious_return_contribution_pct": 323.65,
+        "suspicious_return_contribution_share_pct": 95.58,
+        "target_quality_summary": [
+          {
+            "bucket": "high",
+            "count": 8,
+            "weight_pct": 45.61,
+            "return_contribution_pct": 14.98,
+            "symbols": [
+              "RANI3.SA",
+              "SLCE3.SA",
+              "PNVL3.SA",
+              "WEGE3.SA",
+              "PSSA3.SA",
+              "PETR4.SA",
+              "BBSE3.SA",
+              "ISAE4.SA"
+            ]
+          },
+          {
+            "bucket": "low",
+            "count": 1,
+            "weight_pct": 9.58,
+            "return_contribution_pct": 9.03,
+            "symbols": [
+              "CMIG3.SA"
+            ]
+          },
+          {
+            "bucket": "reject",
+            "count": 2,
+            "weight_pct": 44.81,
+            "return_contribution_pct": 314.62,
+            "symbols": [
+              "KLBN4.SA",
+              "AMBP3.SA"
+            ]
+          }
+        ],
+        "return_concentration": {
+          "expected_return_pct": 338.63,
+          "top1_contribution_pct": 65.33,
+          "top2_contribution_pct": 92.91,
+          "top5_contribution_pct": 98.06,
+          "top1_contribution_pp": 221.23,
+          "top2_contribution_pp": 314.62,
+          "top5_contribution_pp": 332.06,
+          "top_symbols": [
+            "KLBN4.SA",
+            "AMBP3.SA",
+            "CMIG3.SA",
+            "RANI3.SA",
+            "SLCE3.SA"
+          ]
+        },
+        "concentration": {
+          "num_positions": 11,
+          "hhi": 0.1767,
+          "top5_weight_pct": 73.61,
+          "max_weight_pct": 35.47
+        },
+        "top_contributors": [
+          {
+            "stock": "KLBN4.SA",
+            "weight": 0.354674,
+            "weight_pct": 35.47,
+            "current_price": 3.42,
+            "target_price": 24.7525,
+            "raw_upside_pct": 623.76,
+            "return_contribution_pct": 221.23,
+            "raw_expected_return_pct": 623.76,
+            "capped_raw_return_pct": 150.0,
+            "adjusted_expected_return_pct": 0.0,
+            "adjusted_return_contribution_pct": 0.0,
+            "adjusted_return_delta_pct": 623.76,
+            "adjusted_return_reduction_contribution_pct": 221.23,
+            "shrinkage_factor": 0.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "reject_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Basic Materials",
+            "forward_pe": 1.6209,
+            "forward_eps": 2.11,
+            "target_quality_score": 0.2,
+            "target_quality_bucket": "reject",
+            "target_quality_flags": [
+              "corporate_action_check_required",
+              "extreme_upside",
+              "target_class_mismatch_suspected",
+              "unit_or_share_class_mismatch_suspected"
+            ],
+            "target_quality_related": {
+              "matched_ticker": "KLBN11.SA",
+              "target_delta_pct": 8.0,
+              "price_ratio": 4.99
+            },
+            "portfolio_expected_return_pct": 0
+          },
+          {
+            "stock": "AMBP3.SA",
+            "weight": 0.093391,
+            "weight_pct": 9.34,
+            "current_price": 0.17,
+            "target_price": 1.87,
+            "raw_upside_pct": 1000.0,
+            "return_contribution_pct": 93.39,
+            "raw_expected_return_pct": 1000.0,
+            "capped_raw_return_pct": 150.0,
+            "adjusted_expected_return_pct": 0.0,
+            "adjusted_return_contribution_pct": 0.0,
+            "adjusted_return_delta_pct": 1000.0,
+            "adjusted_return_reduction_contribution_pct": 93.39,
+            "shrinkage_factor": 0.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "reject_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "SectorPE_Fallback",
+            "return_source": "target",
+            "sector": "Industrials",
+            "forward_pe": 0.136,
+            "forward_eps": 1.25,
+            "target_quality_score": 0.0,
+            "target_quality_bucket": "reject",
+            "target_quality_flags": [
+              "distressed_price_action",
+              "extreme_upside",
+              "sector_pe_fallback",
+              "very_low_price"
+            ],
+            "target_quality_related": null
+          },
+          {
+            "stock": "CMIG3.SA",
+            "weight": 0.09583,
+            "weight_pct": 9.58,
+            "current_price": 15.78,
+            "target_price": 30.644,
+            "raw_upside_pct": 94.2,
+            "return_contribution_pct": 9.03,
+            "raw_expected_return_pct": 94.2,
+            "capped_raw_return_pct": 94.2,
+            "adjusted_expected_return_pct": 32.97,
+            "adjusted_return_contribution_pct": 3.16,
+            "adjusted_return_delta_pct": 61.23,
+            "adjusted_return_reduction_contribution_pct": 5.87,
+            "shrinkage_factor": 0.35,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "SectorPE_Fallback",
+            "return_source": "target",
+            "sector": "Utilities",
+            "forward_pe": 5.5368,
+            "forward_eps": 2.85,
+            "target_quality_score": 0.35,
+            "target_quality_bucket": "low",
+            "target_quality_flags": [
+              "sector_pe_fallback"
+            ],
+            "target_quality_related": null
+          },
+          {
+            "stock": "RANI3.SA",
+            "weight": 0.095344,
+            "weight_pct": 9.53,
+            "current_price": 7.85,
+            "target_price": 12.25,
+            "raw_upside_pct": 56.05,
+            "return_contribution_pct": 5.34,
+            "raw_expected_return_pct": 56.05,
+            "capped_raw_return_pct": 56.05,
+            "adjusted_expected_return_pct": 56.05,
+            "adjusted_return_contribution_pct": 5.34,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": -0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Consumer Cyclical",
+            "forward_pe": 5.5282,
+            "forward_eps": 1.42,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          },
+          {
+            "stock": "SLCE3.SA",
+            "weight": 0.096858,
+            "weight_pct": 9.69,
+            "current_price": 14.81,
+            "target_price": 19.5091,
+            "raw_upside_pct": 31.73,
+            "return_contribution_pct": 3.07,
+            "raw_expected_return_pct": 31.73,
+            "capped_raw_return_pct": 31.73,
+            "adjusted_expected_return_pct": 31.73,
+            "adjusted_return_contribution_pct": 3.07,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": -0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Consumer Defensive",
+            "forward_pe": 9.0886,
+            "forward_eps": 1.6295,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          },
+          {
+            "stock": "PNVL3.SA",
+            "weight": 0.039576,
+            "weight_pct": 3.96,
+            "current_price": 10.59,
+            "target_price": 18.6,
+            "raw_upside_pct": 75.64,
+            "return_contribution_pct": 2.99,
+            "raw_expected_return_pct": 75.64,
+            "capped_raw_return_pct": 75.64,
+            "adjusted_expected_return_pct": 75.64,
+            "adjusted_return_contribution_pct": 2.99,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": -0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Healthcare",
+            "forward_pe": 7.5106,
+            "forward_eps": 1.41,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          },
+          {
+            "stock": "WEGE3.SA",
+            "weight": 0.059505,
+            "weight_pct": 5.95,
+            "current_price": 42.46,
+            "target_price": 52.46,
+            "raw_upside_pct": 23.55,
+            "return_contribution_pct": 1.4,
+            "raw_expected_return_pct": 23.55,
+            "capped_raw_return_pct": 23.55,
+            "adjusted_expected_return_pct": 23.55,
+            "adjusted_return_contribution_pct": 1.4,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": -0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Industrials",
+            "forward_pe": 23.0628,
+            "forward_eps": 1.8411,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          },
+          {
+            "stock": "PSSA3.SA",
+            "weight": 0.067002,
+            "weight_pct": 6.7,
+            "current_price": 47.81,
+            "target_price": 55.8182,
+            "raw_upside_pct": 16.75,
+            "return_contribution_pct": 1.12,
+            "raw_expected_return_pct": 16.75,
+            "capped_raw_return_pct": 16.75,
+            "adjusted_expected_return_pct": 16.75,
+            "adjusted_return_contribution_pct": 1.12,
+            "adjusted_return_delta_pct": 0.0,
+            "adjusted_return_reduction_contribution_pct": 0.0,
+            "shrinkage_factor": 1.0,
+            "base_return_pct": 0.0,
+            "base_return_source": "configured_base",
+            "uncertainty_penalty_pct": 0.0,
+            "target_source": "YahooFinance",
+            "return_source": "target",
+            "sector": "Financial Services",
+            "forward_pe": 7.6775,
+            "forward_eps": 6.2272,
+            "target_quality_score": 1.0,
+            "target_quality_bucket": "high",
+            "target_quality_flags": [],
+            "target_quality_related": null
+          }
+        ],
+        "blend_ratio": 0.0,
+        "stable_score": -3.9938,
+        "stable_enabled": true,
+        "turnover_saved_pct": 52.399,
+        "adjusted_return_tradeoff_pct": -6.1151,
+        "sector_exposure": [
+          {
+            "sector": "Basic Materials",
+            "pct": 0.3547
+          },
+          {
+            "sector": "Industrials",
+            "pct": 0.1529
+          },
+          {
+            "sector": "Financial Services",
+            "pct": 0.1331
+          },
+          {
+            "sector": "Utilities",
+            "pct": 0.1084
+          },
+          {
+            "sector": "Consumer Defensive",
+            "pct": 0.0969
+          },
+          {
+            "sector": "Consumer Cyclical",
+            "pct": 0.0953
+          },
+          {
+            "sector": "Healthcare",
+            "pct": 0.0396
+          },
+          {
+            "sector": "Energy",
+            "pct": 0.0191
+          }
+        ]
+      },
+      "selected": {
+        "id": "current",
+        "label": "Carteira Atual",
+        "role": "reference_only",
+        "stocks": [
+          "KLBN4.SA",
+          "SLCE3.SA",
+          "AMBP3.SA",
+          "CMIG3.SA",
+          "RANI3.SA",
+          "PSSA3.SA",
+          "BBSE3.SA",
+          "WEGE3.SA",
+          "PNVL3.SA",
+          "PETR4.SA",
+          "ISAE4.SA"
+        ],
+        "weights": {
+          "KLBN4.SA": 0.3546740086529199,
+          "SLCE3.SA": 0.09685752778722881,
+          "AMBP3.SA": 0.0933913215504003,
+          "CMIG3.SA": 0.09582980780880843,
+          "RANI3.SA": 0.09534397907349784,
+          "PSSA3.SA": 0.06700238842456087,
+          "BBSE3.SA": 0.06612882708888249,
+          "WEGE3.SA": 0.05950473268033928,
+          "PNVL3.SA": 0.03957639452045668,
+          "PETR4.SA": 0.01910149580345495,
+          "ISAE4.SA": 0.0125895166094504
+        },
+        "expected_return_pct": 338.6319,
+        "adjusted_expected_return_pct": 18.14,
+        "total_value": 2140.67,
+        "total_invested": 2298.16,
+        "concentration": {
+          "num_positions": 11,
+          "hhi": 0.1767,
+          "top5_weight_pct": 73.61,
+          "max_weight_pct": 35.47
+        },
+        "sector_exposure": [
+          {
+            "sector": "Basic Materials",
+            "pct": 0.3547
+          },
+          {
+            "sector": "Industrials",
+            "pct": 0.1529
+          },
+          {
+            "sector": "Financial Services",
+            "pct": 0.1331
+          },
+          {
+            "sector": "Utilities",
+            "pct": 0.1084
+          },
+          {
+            "sector": "Consumer Defensive",
+            "pct": 0.0969
+          },
+          {
+            "sector": "Consumer Cyclical",
+            "pct": 0.0953
+          },
+          {
+            "sector": "Healthcare",
+            "pct": 0.0396
+          },
+          {
+            "sector": "Energy",
+            "pct": 0.0191
+          }
+        ]
+      }
+    },
+    "comparisons": {
+      "current_to_acid": {
+        "id": "current_to_acid",
+        "label": "Atual -> Carteira Acida",
+        "from": "current",
+        "to": "acid",
+        "destination": "MOVE_TO_ACID",
+        "destination_label": "Carteira Acida",
+        "decision_state": "REBALANCE",
+        "decision_state_label": "Rebalancear",
+        "today_action": "Executar rebalanceamento dentro das bandas.",
+        "raw_net_delta_pct": 11.7562,
+        "adjusted_net_delta_pct": -6.2951,
+        "turnover_pct": 52.5588,
+        "total_trade_value_brl": 1125.11,
+        "total_cost_brl": 0.32,
+        "total_buy_value_brl": 527.86,
+        "total_sell_value_brl": 597.25,
+        "projected_balance_brl": 69.07,
+        "num_transactions": 11,
+        "num_buy_transactions": 6,
+        "num_sell_transactions": 5,
+        "target_quality_score": 0.5327,
+        "low_reject_weight_pct": 57.69,
+        "suspicious_return_contribution_share_pct": 97.69,
+        "target_hhi": 0.1872,
+        "target_top5_weight_pct": 79.65,
+        "execution_plan": {
+          "phase": "9_acid_execution_plan",
+          "decision_state": "REBALANCE",
+          "decision_state_label": "Rebalancear",
+          "today_action": "Executar rebalanceamento dentro das bandas.",
+          "execution_intensity_pct": 100.0,
+          "can_execute_today": true,
+          "asset_tolerance_band_pct": 2.0,
+          "sector_tolerance_band_pct": 5.0,
+          "weekly_turnover_budget_pct": 12.0,
+          "monthly_turnover_budget_pct": 35.0,
+          "shadow_turnover_budget_pct": 100.0,
+          "today_turnover_budget_pct": 35.0,
+          "today_turnover_budget_brl": 749.23,
+          "min_trade_value_brl": 25.0,
+          "max_actions": 6,
+          "theoretical_trade_value_brl": 1125.11,
+          "theoretical_trade_value_pct": 52.56,
+          "executable_trade_value_brl": 781.93,
+          "executable_trade_value_pct": 36.53,
+          "deferred_trade_value_brl": 343.18,
+          "deferred_trade_value_pct": 16.03,
+          "num_executable_actions": 5,
+          "num_deferred_actions": 4,
+          "num_ignored_actions": 2,
+          "num_asset_band_breaches": 9,
+          "num_sector_band_breaches": 3,
+          "why_not_rebalance_today": [],
+          "actions": [
+            {
+              "symbol": "ISAE4.SA",
+              "action": "BUY",
+              "status": "EXECUTE",
+              "status_reason": "Dentro do gate e do orçamento de execução.",
+              "current_weight_pct": 1.26,
+              "target_weight_pct": 11.71,
+              "executable_weight_pct": 11.33,
+              "drift_pct": 10.45,
+              "outside_asset_band": true,
+              "recommended_value_brl": 215.6,
+              "recommended_value_pct": 10.07,
+              "executable_value_brl": 215.6,
+              "executable_value_pct": 10.07,
+              "recommended_shares": 8,
+              "executable_shares": 8
+            },
+            {
+              "symbol": "RANI3.SA",
+              "action": "SELL",
+              "status": "EXECUTE",
+              "status_reason": "Dentro do gate e do orçamento de execução.",
+              "current_weight_pct": 9.53,
+              "target_weight_pct": 0,
+              "executable_weight_pct": 0.0,
+              "drift_pct": -9.53,
+              "outside_asset_band": true,
+              "recommended_value_brl": 204.1,
+              "recommended_value_pct": 9.53,
+              "executable_value_brl": 204.1,
+              "executable_value_pct": 9.53,
+              "recommended_shares": 26,
+              "executable_shares": 26
+            },
+            {
+              "symbol": "PSSA3.SA",
+              "action": "SELL",
+              "status": "EXECUTE",
+              "status_reason": "Dentro do gate e do orçamento de execução.",
+              "current_weight_pct": 6.7,
+              "target_weight_pct": 0,
+              "executable_weight_pct": 0.0,
+              "drift_pct": -6.7,
+              "outside_asset_band": true,
+              "recommended_value_brl": 143.43,
+              "recommended_value_pct": 6.7,
+              "executable_value_brl": 143.43,
+              "executable_value_pct": 6.7,
+              "recommended_shares": 3,
+              "executable_shares": 3
+            },
+            {
+              "symbol": "WEGE3.SA",
+              "action": "SELL",
+              "status": "EXECUTE",
+              "status_reason": "Dentro do gate e do orçamento de execução.",
+              "current_weight_pct": 5.95,
+              "target_weight_pct": 0,
+              "executable_weight_pct": 0.0,
+              "drift_pct": -5.95,
+              "outside_asset_band": true,
+              "recommended_value_brl": 127.38,
+              "recommended_value_pct": 5.95,
+              "executable_value_brl": 127.38,
+              "executable_value_pct": 5.95,
+              "recommended_shares": 3,
+              "executable_shares": 3
+            },
+            {
+              "symbol": "PETR3.SA",
+              "action": "BUY",
+              "status": "EXECUTE",
+              "status_reason": "Dentro do gate e do orçamento de execução.",
+              "current_weight_pct": 0,
+              "target_weight_pct": 4.41,
+              "executable_weight_pct": 4.27,
+              "drift_pct": 4.41,
+              "outside_asset_band": true,
+              "recommended_value_brl": 91.42,
+              "recommended_value_pct": 4.27,
+              "executable_value_brl": 91.42,
+              "executable_value_pct": 4.27,
+              "recommended_shares": 2,
+              "executable_shares": 2
+            },
+            {
+              "symbol": "PETR4.SA",
+              "action": "BUY",
+              "status": "DEFER_BUDGET",
+              "status_reason": "Fora do orçamento de turnover de hoje.",
+              "current_weight_pct": 1.91,
+              "target_weight_pct": 5.92,
+              "executable_weight_pct": 1.91,
+              "drift_pct": 4.01,
+              "outside_asset_band": true,
+              "recommended_value_brl": 81.78,
+              "recommended_value_pct": 3.82,
+              "executable_value_brl": 0.0,
+              "executable_value_pct": 0.0,
+              "recommended_shares": 2,
+              "executable_shares": 0
+            },
+            {
+              "symbol": "PNVL3.SA",
+              "action": "SELL",
+              "status": "DEFER_BUDGET",
+              "status_reason": "Fora do orçamento de turnover de hoje.",
+              "current_weight_pct": 3.96,
+              "target_weight_pct": 0,
+              "executable_weight_pct": 3.96,
+              "drift_pct": -3.96,
+              "outside_asset_band": true,
+              "recommended_value_brl": 84.72,
+              "recommended_value_pct": 3.96,
+              "executable_value_brl": 0.0,
+              "executable_value_pct": 0.0,
+              "recommended_shares": 8,
+              "executable_shares": 0
+            },
+            {
+              "symbol": "BBSE3.SA",
+              "action": "BUY",
+              "status": "DEFER_BUDGET",
+              "status_reason": "Fora do orçamento de turnover de hoje.",
+              "current_weight_pct": 6.61,
+              "target_weight_pct": 10.25,
+              "executable_weight_pct": 6.61,
+              "drift_pct": 3.64,
+              "outside_asset_band": true,
+              "recommended_value_brl": 70.78,
+              "recommended_value_pct": 3.31,
+              "executable_value_brl": 0.0,
+              "executable_value_pct": 0.0,
+              "recommended_shares": 2,
+              "executable_shares": 0
+            },
+            {
+              "symbol": "AMBP3.SA",
+              "action": "BUY",
+              "status": "DEFER_BUDGET",
+              "status_reason": "Fora do orçamento de turnover de hoje.",
+              "current_weight_pct": 9.34,
+              "target_weight_pct": 11.42,
+              "executable_weight_pct": 9.34,
+              "drift_pct": 2.09,
+              "outside_asset_band": true,
+              "recommended_value_brl": 36.72,
+              "recommended_value_pct": 1.72,
+              "executable_value_brl": 0.0,
+              "executable_value_pct": 0.0,
+              "recommended_shares": 216,
+              "executable_shares": 0
+            },
+            {
+              "symbol": "CMIG3.SA",
+              "action": "BUY",
+              "status": "IGNORE_BAND",
+              "status_reason": "Dentro da banda de tolerância por ativo.",
+              "current_weight_pct": 9.58,
+              "target_weight_pct": 11.43,
+              "executable_weight_pct": 9.58,
+              "drift_pct": 1.84,
+              "outside_asset_band": false,
+              "recommended_value_brl": 31.56,
+              "recommended_value_pct": 1.47,
+              "executable_value_brl": 0.0,
+              "executable_value_pct": 0.0,
+              "recommended_shares": 2,
+              "executable_shares": 0
+            },
+            {
+              "symbol": "KLBN4.SA",
+              "action": "SELL",
+              "status": "IGNORE_BAND",
+              "status_reason": "Dentro da banda de tolerância por ativo.",
+              "current_weight_pct": 35.47,
+              "target_weight_pct": 34.84,
+              "executable_weight_pct": 35.47,
+              "drift_pct": -0.63,
+              "outside_asset_band": false,
+              "recommended_value_brl": 37.62,
+              "recommended_value_pct": 1.76,
+              "executable_value_brl": 0.0,
+              "executable_value_pct": 0.0,
+              "recommended_shares": 11,
+              "executable_shares": 0
+            }
+          ],
+          "sector_drift": [
+            {
+              "sector": "Utilities",
+              "current_weight_pct": 10.84,
+              "target_weight_pct": 23.14,
+              "drift_pct": 12.3,
+              "outside_band": true
+            },
+            {
+              "sector": "Consumer Cyclical",
+              "current_weight_pct": 9.53,
+              "target_weight_pct": 0.0,
+              "drift_pct": -9.53,
+              "outside_band": true
+            },
+            {
+              "sector": "Energy",
+              "current_weight_pct": 1.91,
+              "target_weight_pct": 10.34,
+              "drift_pct": 8.43,
+              "outside_band": true
+            },
+            {
+              "sector": "Healthcare",
+              "current_weight_pct": 3.96,
+              "target_weight_pct": 0.0,
+              "drift_pct": -3.96,
+              "outside_band": false
+            },
+            {
+              "sector": "Industrials",
+              "current_weight_pct": 15.29,
+              "target_weight_pct": 11.42,
+              "drift_pct": -3.86,
+              "outside_band": false
+            },
+            {
+              "sector": "Financial Services",
+              "current_weight_pct": 13.31,
+              "target_weight_pct": 10.25,
+              "drift_pct": -3.06,
+              "outside_band": false
+            },
+            {
+              "sector": "Basic Materials",
+              "current_weight_pct": 35.47,
+              "target_weight_pct": 34.84,
+              "drift_pct": -0.63,
+              "outside_band": false
+            },
+            {
+              "sector": "Consumer Defensive",
+              "current_weight_pct": 9.69,
+              "target_weight_pct": 10.01,
+              "drift_pct": 0.32,
+              "outside_band": false
+            }
+          ],
+          "portfolio_id": "acid",
+          "destination": "MOVE_TO_ACID",
+          "policy": "aggressive_raw_signal",
+          "operational_gate_decision": "WATCH",
+          "operational_gate_veto_reasons": [
+            {
+              "code": "adjusted_gain_below_hurdle",
+              "message": "Ganho ajustado abaixo do hurdle dinâmico.",
+              "actual": -6.2951,
+              "threshold": 2.1651
+            },
+            {
+              "code": "signal_not_persistent",
+              "message": "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+              "actual": 0.0,
+              "threshold": 2.0
+            },
+            {
+              "code": "turnover_above_budget",
+              "message": "Turnover necessário acima do orçamento shadow.",
+              "actual": 52.56,
+              "threshold": 24.5
+            },
+            {
+              "code": "target_quality_below_floor",
+              "message": "Qualidade média dos targets do portfólio abaixo do piso.",
+              "actual": 0.5327,
+              "threshold": 0.6
+            },
+            {
+              "code": "suspicious_return_contribution_high",
+              "message": "Contribuição de targets low/reject acima do limite.",
+              "actual": 97.69,
+              "threshold": 35.0
+            }
+          ]
+        },
+        "transaction_summary": {
+          "total_buy_value": 527.86,
+          "total_sell_value": 597.25,
+          "total_cost": 0.32,
+          "projected_balance": 69.07
+        },
+        "transactions": [
+          {
+            "symbol": "PSSA3.SA",
+            "action": "SELL",
+            "weight_change": -0.06700238842456087,
+            "value_change": 143.43000411987305,
+            "current_weight": 0.06700238842456087,
+            "target_weight": 0,
+            "cost": 0.0413,
+            "current_price": 47.81,
+            "shares": 3,
+            "avg_purchase_price": 49.3,
+            "target_price": 55.82,
+            "signed_value": 143.43
+          },
+          {
+            "symbol": "ISAE4.SA",
+            "action": "BUY",
+            "weight_change": 0.10451198802758309,
+            "value_change": 215.60000610351562,
+            "current_weight": 0.0125895166094504,
+            "target_weight": 0.11710150463703349,
+            "cost": 0.062,
+            "current_price": 26.95,
+            "shares": 8,
+            "avg_purchase_price": 31.23,
+            "target_price": 30.07,
+            "signed_value": -215.6
+          },
+          {
+            "symbol": "PETR3.SA",
+            "action": "BUY",
+            "weight_change": 0.044136957478597846,
+            "value_change": 91.41999816894531,
+            "current_weight": 0,
+            "target_weight": 0.044136957478597846,
+            "cost": 0.0263,
+            "current_price": 45.71,
+            "shares": 2,
+            "avg_purchase_price": null,
+            "target_price": 58.0,
+            "signed_value": -91.42
+          },
+          {
+            "symbol": "AMBP3.SA",
+            "action": "BUY",
+            "weight_change": 0.020856872901480472,
+            "value_change": 36.720000386238084,
+            "current_weight": 0.0933913215504003,
+            "target_weight": 0.11424819445188077,
+            "cost": 0.0106,
+            "current_price": 0.17,
+            "shares": 216,
+            "avg_purchase_price": 0.19,
+            "target_price": 1.87,
+            "signed_value": -36.72
+          },
+          {
+            "symbol": "KLBN4.SA",
+            "action": "SELL",
+            "weight_change": -0.006280740176102639,
+            "value_change": 37.6200008392334,
+            "current_weight": 0.3546740086529199,
+            "target_weight": 0.3483932684768173,
+            "cost": 0.0108,
+            "current_price": 3.42,
+            "shares": 11,
+            "avg_purchase_price": 3.63,
+            "target_price": 24.75,
+            "signed_value": 37.62
+          },
+          {
+            "symbol": "BBSE3.SA",
+            "action": "BUY",
+            "weight_change": 0.03638748856506721,
+            "value_change": 70.77999877929688,
+            "current_weight": 0.06612882708888249,
+            "target_weight": 0.1025163156539497,
+            "cost": 0.0204,
+            "current_price": 35.39,
+            "shares": 2,
+            "avg_purchase_price": 35.26,
+            "target_price": 36.92,
+            "signed_value": -70.78
+          },
+          {
+            "symbol": "RANI3.SA",
+            "action": "SELL",
+            "weight_change": -0.09534397907349784,
+            "value_change": 204.09999752044678,
+            "current_weight": 0.09534397907349784,
+            "target_weight": 0,
+            "cost": 0.0587,
+            "current_price": 7.85,
+            "shares": 26,
+            "avg_purchase_price": 8.05,
+            "target_price": 12.25,
+            "signed_value": 204.1
+          },
+          {
+            "symbol": "CMIG3.SA",
+            "action": "BUY",
+            "weight_change": 0.01844735110219846,
+            "value_change": 31.559999465942383,
+            "current_weight": 0.09582980780880843,
+            "target_weight": 0.11427715891100688,
+            "cost": 0.0091,
+            "current_price": 15.78,
+            "shares": 2,
+            "avg_purchase_price": 16.6,
+            "target_price": 30.64,
+            "signed_value": -31.56
+          },
+          {
+            "symbol": "WEGE3.SA",
+            "action": "SELL",
+            "weight_change": -0.05950473268033928,
+            "value_change": 127.37999725341797,
+            "current_weight": 0.05950473268033928,
+            "target_weight": 0,
+            "cost": 0.0367,
+            "current_price": 42.46,
+            "shares": 3,
+            "avg_purchase_price": 43.8,
+            "target_price": 52.46,
+            "signed_value": 127.38
+          },
+          {
+            "symbol": "PNVL3.SA",
+            "action": "SELL",
+            "weight_change": -0.03957639452045668,
+            "value_change": 84.72000122070312,
+            "current_weight": 0.03957639452045668,
+            "target_weight": 0,
+            "cost": 0.0244,
+            "current_price": 10.59,
+            "shares": 8,
+            "avg_purchase_price": 11.59,
+            "target_price": 18.6,
+            "signed_value": 84.72
+          },
+          {
+            "symbol": "PETR4.SA",
+            "action": "BUY",
+            "weight_change": 0.04012275054882298,
+            "value_change": 81.77999877929688,
+            "current_weight": 0.01910149580345495,
+            "target_weight": 0.05922424635227793,
+            "cost": 0.0235,
+            "current_price": 40.89,
+            "shares": 2,
+            "avg_purchase_price": 63.66,
+            "target_price": 54.12,
+            "signed_value": -81.78
+          }
+        ],
+        "top_trades": [
+          {
+            "symbol": "ISAE4.SA",
+            "action": "BUY",
+            "weight_change": 0.10451198802758309,
+            "value_change": 215.60000610351562,
+            "current_weight": 0.0125895166094504,
+            "target_weight": 0.11710150463703349,
+            "cost": 0.062,
+            "current_price": 26.95,
+            "shares": 8,
+            "avg_purchase_price": 31.23,
+            "target_price": 30.07,
+            "signed_value": -215.6
+          },
+          {
+            "symbol": "RANI3.SA",
+            "action": "SELL",
+            "weight_change": -0.09534397907349784,
+            "value_change": 204.09999752044678,
+            "current_weight": 0.09534397907349784,
+            "target_weight": 0,
+            "cost": 0.0587,
+            "current_price": 7.85,
+            "shares": 26,
+            "avg_purchase_price": 8.05,
+            "target_price": 12.25,
+            "signed_value": 204.1
+          },
+          {
+            "symbol": "PSSA3.SA",
+            "action": "SELL",
+            "weight_change": -0.06700238842456087,
+            "value_change": 143.43000411987305,
+            "current_weight": 0.06700238842456087,
+            "target_weight": 0,
+            "cost": 0.0413,
+            "current_price": 47.81,
+            "shares": 3,
+            "avg_purchase_price": 49.3,
+            "target_price": 55.82,
+            "signed_value": 143.43
+          },
+          {
+            "symbol": "WEGE3.SA",
+            "action": "SELL",
+            "weight_change": -0.05950473268033928,
+            "value_change": 127.37999725341797,
+            "current_weight": 0.05950473268033928,
+            "target_weight": 0,
+            "cost": 0.0367,
+            "current_price": 42.46,
+            "shares": 3,
+            "avg_purchase_price": 43.8,
+            "target_price": 52.46,
+            "signed_value": 127.38
+          },
+          {
+            "symbol": "PETR3.SA",
+            "action": "BUY",
+            "weight_change": 0.044136957478597846,
+            "value_change": 91.41999816894531,
+            "current_weight": 0,
+            "target_weight": 0.044136957478597846,
+            "cost": 0.0263,
+            "current_price": 45.71,
+            "shares": 2,
+            "avg_purchase_price": null,
+            "target_price": 58.0,
+            "signed_value": -91.42
+          },
+          {
+            "symbol": "PNVL3.SA",
+            "action": "SELL",
+            "weight_change": -0.03957639452045668,
+            "value_change": 84.72000122070312,
+            "current_weight": 0.03957639452045668,
+            "target_weight": 0,
+            "cost": 0.0244,
+            "current_price": 10.59,
+            "shares": 8,
+            "avg_purchase_price": 11.59,
+            "target_price": 18.6,
+            "signed_value": 84.72
+          },
+          {
+            "symbol": "PETR4.SA",
+            "action": "BUY",
+            "weight_change": 0.04012275054882298,
+            "value_change": 81.77999877929688,
+            "current_weight": 0.01910149580345495,
+            "target_weight": 0.05922424635227793,
+            "cost": 0.0235,
+            "current_price": 40.89,
+            "shares": 2,
+            "avg_purchase_price": 63.66,
+            "target_price": 54.12,
+            "signed_value": -81.78
+          },
+          {
+            "symbol": "BBSE3.SA",
+            "action": "BUY",
+            "weight_change": 0.03638748856506721,
+            "value_change": 70.77999877929688,
+            "current_weight": 0.06612882708888249,
+            "target_weight": 0.1025163156539497,
+            "cost": 0.0204,
+            "current_price": 35.39,
+            "shares": 2,
+            "avg_purchase_price": 35.26,
+            "target_price": 36.92,
+            "signed_value": -70.78
+          }
+        ]
+      },
+      "current_to_balanced": {
+        "id": "current_to_balanced",
+        "label": "Atual -> Carteira Ponderada",
+        "from": "current",
+        "to": "balanced",
+        "destination": "MOVE_TO_BALANCED",
+        "destination_label": "Carteira Ponderada",
+        "decision_state": "HOLD",
+        "decision_state_label": "Manter",
+        "today_action": "Manter carteira atual.",
+        "raw_net_delta_pct": 0.0,
+        "adjusted_net_delta_pct": 0.0,
+        "turnover_pct": 0.0,
+        "total_trade_value_brl": 0,
+        "total_cost_brl": 0.0,
+        "total_buy_value_brl": 0.0,
+        "total_sell_value_brl": 0.0,
+        "projected_balance_brl": 0.0,
+        "num_transactions": 0,
+        "num_buy_transactions": 0,
+        "num_sell_transactions": 0,
+        "target_quality_score": 0.5606,
+        "low_reject_weight_pct": 54.39,
+        "suspicious_return_contribution_share_pct": 95.58,
+        "target_hhi": 0.1767,
+        "target_top5_weight_pct": 73.61,
+        "execution_plan": {
+          "phase": "9_balanced_execution_plan",
+          "decision_state": "HOLD",
+          "decision_state_label": "Manter",
+          "today_action": "Manter carteira atual.",
+          "execution_intensity_pct": 0.0,
+          "can_execute_today": false,
+          "asset_tolerance_band_pct": 2.0,
+          "sector_tolerance_band_pct": 5.0,
+          "weekly_turnover_budget_pct": 12.0,
+          "monthly_turnover_budget_pct": 35.0,
+          "shadow_turnover_budget_pct": 24.5,
+          "today_turnover_budget_pct": 0.0,
+          "today_turnover_budget_brl": 0.0,
+          "min_trade_value_brl": 25.0,
+          "max_actions": 6,
+          "theoretical_trade_value_brl": 0,
+          "theoretical_trade_value_pct": 0.0,
+          "executable_trade_value_brl": 0.0,
+          "executable_trade_value_pct": 0.0,
+          "deferred_trade_value_brl": 0.0,
+          "deferred_trade_value_pct": 0.0,
+          "num_executable_actions": 0,
+          "num_deferred_actions": 0,
+          "num_ignored_actions": 0,
+          "num_asset_band_breaches": 0,
+          "num_sector_band_breaches": 0,
+          "why_not_rebalance_today": [
+            "Ganho ajustado abaixo do hurdle dinâmico.",
+            "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+            "Qualidade média dos targets do portfólio abaixo do piso.",
+            "Contribuição de targets low/reject acima do limite."
+          ],
+          "actions": [],
+          "sector_drift": [
+            {
+              "sector": "Basic Materials",
+              "current_weight_pct": 35.47,
+              "target_weight_pct": 35.47,
+              "drift_pct": 0.0,
+              "outside_band": false
+            },
+            {
+              "sector": "Consumer Cyclical",
+              "current_weight_pct": 9.53,
+              "target_weight_pct": 9.53,
+              "drift_pct": 0.0,
+              "outside_band": false
+            },
+            {
+              "sector": "Consumer Defensive",
+              "current_weight_pct": 9.69,
+              "target_weight_pct": 9.69,
+              "drift_pct": 0.0,
+              "outside_band": false
+            },
+            {
+              "sector": "Energy",
+              "current_weight_pct": 1.91,
+              "target_weight_pct": 1.91,
+              "drift_pct": 0.0,
+              "outside_band": false
+            },
+            {
+              "sector": "Financial Services",
+              "current_weight_pct": 13.31,
+              "target_weight_pct": 13.31,
+              "drift_pct": 0.0,
+              "outside_band": false
+            },
+            {
+              "sector": "Healthcare",
+              "current_weight_pct": 3.96,
+              "target_weight_pct": 3.96,
+              "drift_pct": 0.0,
+              "outside_band": false
+            },
+            {
+              "sector": "Industrials",
+              "current_weight_pct": 15.29,
+              "target_weight_pct": 15.29,
+              "drift_pct": 0.0,
+              "outside_band": false
+            },
+            {
+              "sector": "Utilities",
+              "current_weight_pct": 10.84,
+              "target_weight_pct": 10.84,
+              "drift_pct": 0.0,
+              "outside_band": false
+            }
+          ],
+          "portfolio_id": "balanced",
+          "destination": "MOVE_TO_BALANCED",
+          "policy": "operational_balanced_signal"
+        },
+        "transaction_summary": {
+          "total_buy_value": 0.0,
+          "total_sell_value": 0.0,
+          "total_cost": 0.0,
+          "projected_balance": 0.0
+        },
+        "transactions": [],
+        "top_trades": []
+      }
+    },
+    "execution_plans": {
+      "selected": {
+        "phase": "9_balanced_execution_plan",
+        "decision_state": "HOLD",
+        "decision_state_label": "Manter",
+        "today_action": "Carteira ponderada nao justifica alteracao; carteira acida permanece como radar agressivo.",
         "execution_intensity_pct": 0.0,
         "can_execute_today": false,
         "asset_tolerance_band_pct": 2.0,
@@ -140,115 +1765,207 @@
         "today_turnover_budget_brl": 0.0,
         "min_trade_value_brl": 25.0,
         "max_actions": 6,
-        "theoretical_trade_value_brl": 1125.11,
-        "theoretical_trade_value_pct": 52.56,
+        "theoretical_trade_value_brl": 0,
+        "theoretical_trade_value_pct": 0.0,
         "executable_trade_value_brl": 0.0,
         "executable_trade_value_pct": 0.0,
-        "deferred_trade_value_brl": 1125.11,
-        "deferred_trade_value_pct": 52.56,
+        "deferred_trade_value_brl": 0.0,
+        "deferred_trade_value_pct": 0.0,
         "num_executable_actions": 0,
-        "num_deferred_actions": 9,
-        "num_ignored_actions": 2,
-        "num_asset_band_breaches": 9,
-        "num_sector_band_breaches": 3,
+        "num_deferred_actions": 0,
+        "num_ignored_actions": 0,
+        "num_asset_band_breaches": 0,
+        "num_sector_band_breaches": 0,
         "why_not_rebalance_today": [
           "Ganho ajustado abaixo do hurdle dinâmico.",
           "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
-          "Turnover necessário acima do orçamento shadow.",
           "Qualidade média dos targets do portfólio abaixo do piso.",
           "Contribuição de targets low/reject acima do limite."
         ],
+        "actions": [],
+        "sector_drift": [
+          {
+            "sector": "Basic Materials",
+            "current_weight_pct": 35.47,
+            "target_weight_pct": 35.47,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Consumer Cyclical",
+            "current_weight_pct": 9.53,
+            "target_weight_pct": 9.53,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Consumer Defensive",
+            "current_weight_pct": 9.69,
+            "target_weight_pct": 9.69,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Energy",
+            "current_weight_pct": 1.91,
+            "target_weight_pct": 1.91,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Financial Services",
+            "current_weight_pct": 13.31,
+            "target_weight_pct": 13.31,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Healthcare",
+            "current_weight_pct": 3.96,
+            "target_weight_pct": 3.96,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Industrials",
+            "current_weight_pct": 15.29,
+            "target_weight_pct": 15.29,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Utilities",
+            "current_weight_pct": 10.84,
+            "target_weight_pct": 10.84,
+            "drift_pct": 0.0,
+            "outside_band": false
+          }
+        ],
+        "portfolio_id": "balanced",
+        "destination": "MOVE_TO_BALANCED",
+        "policy": "operational_balanced_signal",
+        "selected_destination": "STAY_CURRENT",
+        "selected_destination_label": "Manter atual"
+      },
+      "acid": {
+        "phase": "9_acid_execution_plan",
+        "decision_state": "REBALANCE",
+        "decision_state_label": "Rebalancear",
+        "today_action": "Executar rebalanceamento dentro das bandas.",
+        "execution_intensity_pct": 100.0,
+        "can_execute_today": true,
+        "asset_tolerance_band_pct": 2.0,
+        "sector_tolerance_band_pct": 5.0,
+        "weekly_turnover_budget_pct": 12.0,
+        "monthly_turnover_budget_pct": 35.0,
+        "shadow_turnover_budget_pct": 100.0,
+        "today_turnover_budget_pct": 35.0,
+        "today_turnover_budget_brl": 749.23,
+        "min_trade_value_brl": 25.0,
+        "max_actions": 6,
+        "theoretical_trade_value_brl": 1125.11,
+        "theoretical_trade_value_pct": 52.56,
+        "executable_trade_value_brl": 781.93,
+        "executable_trade_value_pct": 36.53,
+        "deferred_trade_value_brl": 343.18,
+        "deferred_trade_value_pct": 16.03,
+        "num_executable_actions": 5,
+        "num_deferred_actions": 4,
+        "num_ignored_actions": 2,
+        "num_asset_band_breaches": 9,
+        "num_sector_band_breaches": 3,
+        "why_not_rebalance_today": [],
         "actions": [
           {
             "symbol": "ISAE4.SA",
             "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "EXECUTE",
+            "status_reason": "Dentro do gate e do orçamento de execução.",
             "current_weight_pct": 1.26,
             "target_weight_pct": 11.71,
-            "executable_weight_pct": 1.26,
+            "executable_weight_pct": 11.33,
             "drift_pct": 10.45,
             "outside_asset_band": true,
             "recommended_value_brl": 215.6,
             "recommended_value_pct": 10.07,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
+            "executable_value_brl": 215.6,
+            "executable_value_pct": 10.07,
             "recommended_shares": 8,
-            "executable_shares": 0
+            "executable_shares": 8
           },
           {
             "symbol": "RANI3.SA",
             "action": "SELL",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "EXECUTE",
+            "status_reason": "Dentro do gate e do orçamento de execução.",
             "current_weight_pct": 9.53,
             "target_weight_pct": 0,
-            "executable_weight_pct": 9.53,
+            "executable_weight_pct": 0.0,
             "drift_pct": -9.53,
             "outside_asset_band": true,
             "recommended_value_brl": 204.1,
             "recommended_value_pct": 9.53,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
+            "executable_value_brl": 204.1,
+            "executable_value_pct": 9.53,
             "recommended_shares": 26,
-            "executable_shares": 0
+            "executable_shares": 26
           },
           {
             "symbol": "PSSA3.SA",
             "action": "SELL",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "EXECUTE",
+            "status_reason": "Dentro do gate e do orçamento de execução.",
             "current_weight_pct": 6.7,
             "target_weight_pct": 0,
-            "executable_weight_pct": 6.7,
+            "executable_weight_pct": 0.0,
             "drift_pct": -6.7,
             "outside_asset_band": true,
             "recommended_value_brl": 143.43,
             "recommended_value_pct": 6.7,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
+            "executable_value_brl": 143.43,
+            "executable_value_pct": 6.7,
             "recommended_shares": 3,
-            "executable_shares": 0
+            "executable_shares": 3
           },
           {
             "symbol": "WEGE3.SA",
             "action": "SELL",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "EXECUTE",
+            "status_reason": "Dentro do gate e do orçamento de execução.",
             "current_weight_pct": 5.95,
             "target_weight_pct": 0,
-            "executable_weight_pct": 5.95,
+            "executable_weight_pct": 0.0,
             "drift_pct": -5.95,
             "outside_asset_band": true,
             "recommended_value_brl": 127.38,
             "recommended_value_pct": 5.95,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
+            "executable_value_brl": 127.38,
+            "executable_value_pct": 5.95,
             "recommended_shares": 3,
-            "executable_shares": 0
+            "executable_shares": 3
           },
           {
             "symbol": "PETR3.SA",
             "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "EXECUTE",
+            "status_reason": "Dentro do gate e do orçamento de execução.",
             "current_weight_pct": 0,
             "target_weight_pct": 4.41,
-            "executable_weight_pct": 0.0,
+            "executable_weight_pct": 4.27,
             "drift_pct": 4.41,
             "outside_asset_band": true,
             "recommended_value_brl": 91.42,
             "recommended_value_pct": 4.27,
-            "executable_value_brl": 0.0,
-            "executable_value_pct": 0.0,
+            "executable_value_brl": 91.42,
+            "executable_value_pct": 4.27,
             "recommended_shares": 2,
-            "executable_shares": 0
+            "executable_shares": 2
           },
           {
             "symbol": "PETR4.SA",
             "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "DEFER_BUDGET",
+            "status_reason": "Fora do orçamento de turnover de hoje.",
             "current_weight_pct": 1.91,
             "target_weight_pct": 5.92,
             "executable_weight_pct": 1.91,
@@ -264,8 +1981,8 @@
           {
             "symbol": "PNVL3.SA",
             "action": "SELL",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "DEFER_BUDGET",
+            "status_reason": "Fora do orçamento de turnover de hoje.",
             "current_weight_pct": 3.96,
             "target_weight_pct": 0,
             "executable_weight_pct": 3.96,
@@ -281,8 +1998,8 @@
           {
             "symbol": "BBSE3.SA",
             "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "DEFER_BUDGET",
+            "status_reason": "Fora do orçamento de turnover de hoje.",
             "current_weight_pct": 6.61,
             "target_weight_pct": 10.25,
             "executable_weight_pct": 6.61,
@@ -298,8 +2015,8 @@
           {
             "symbol": "AMBP3.SA",
             "action": "BUY",
-            "status": "MONITOR",
-            "status_reason": "Observar sem enviar ordens hoje.",
+            "status": "DEFER_BUDGET",
+            "status_reason": "Fora do orçamento de turnover de hoje.",
             "current_weight_pct": 9.34,
             "target_weight_pct": 11.42,
             "executable_weight_pct": 9.34,
@@ -404,7 +2121,455 @@
             "drift_pct": 0.32,
             "outside_band": false
           }
+        ],
+        "portfolio_id": "acid",
+        "destination": "MOVE_TO_ACID",
+        "policy": "aggressive_raw_signal",
+        "operational_gate_decision": "WATCH",
+        "operational_gate_veto_reasons": [
+          {
+            "code": "adjusted_gain_below_hurdle",
+            "message": "Ganho ajustado abaixo do hurdle dinâmico.",
+            "actual": -6.2951,
+            "threshold": 2.1651
+          },
+          {
+            "code": "signal_not_persistent",
+            "message": "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+            "actual": 0.0,
+            "threshold": 2.0
+          },
+          {
+            "code": "turnover_above_budget",
+            "message": "Turnover necessário acima do orçamento shadow.",
+            "actual": 52.56,
+            "threshold": 24.5
+          },
+          {
+            "code": "target_quality_below_floor",
+            "message": "Qualidade média dos targets do portfólio abaixo do piso.",
+            "actual": 0.5327,
+            "threshold": 0.6
+          },
+          {
+            "code": "suspicious_return_contribution_high",
+            "message": "Contribuição de targets low/reject acima do limite.",
+            "actual": 97.69,
+            "threshold": 35.0
+          }
         ]
+      },
+      "balanced": {
+        "phase": "9_balanced_execution_plan",
+        "decision_state": "HOLD",
+        "decision_state_label": "Manter",
+        "today_action": "Manter carteira atual.",
+        "execution_intensity_pct": 0.0,
+        "can_execute_today": false,
+        "asset_tolerance_band_pct": 2.0,
+        "sector_tolerance_band_pct": 5.0,
+        "weekly_turnover_budget_pct": 12.0,
+        "monthly_turnover_budget_pct": 35.0,
+        "shadow_turnover_budget_pct": 24.5,
+        "today_turnover_budget_pct": 0.0,
+        "today_turnover_budget_brl": 0.0,
+        "min_trade_value_brl": 25.0,
+        "max_actions": 6,
+        "theoretical_trade_value_brl": 0,
+        "theoretical_trade_value_pct": 0.0,
+        "executable_trade_value_brl": 0.0,
+        "executable_trade_value_pct": 0.0,
+        "deferred_trade_value_brl": 0.0,
+        "deferred_trade_value_pct": 0.0,
+        "num_executable_actions": 0,
+        "num_deferred_actions": 0,
+        "num_ignored_actions": 0,
+        "num_asset_band_breaches": 0,
+        "num_sector_band_breaches": 0,
+        "why_not_rebalance_today": [
+          "Ganho ajustado abaixo do hurdle dinâmico.",
+          "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+          "Qualidade média dos targets do portfólio abaixo do piso.",
+          "Contribuição de targets low/reject acima do limite."
+        ],
+        "actions": [],
+        "sector_drift": [
+          {
+            "sector": "Basic Materials",
+            "current_weight_pct": 35.47,
+            "target_weight_pct": 35.47,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Consumer Cyclical",
+            "current_weight_pct": 9.53,
+            "target_weight_pct": 9.53,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Consumer Defensive",
+            "current_weight_pct": 9.69,
+            "target_weight_pct": 9.69,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Energy",
+            "current_weight_pct": 1.91,
+            "target_weight_pct": 1.91,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Financial Services",
+            "current_weight_pct": 13.31,
+            "target_weight_pct": 13.31,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Healthcare",
+            "current_weight_pct": 3.96,
+            "target_weight_pct": 3.96,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Industrials",
+            "current_weight_pct": 15.29,
+            "target_weight_pct": 15.29,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Utilities",
+            "current_weight_pct": 10.84,
+            "target_weight_pct": 10.84,
+            "drift_pct": 0.0,
+            "outside_band": false
+          }
+        ],
+        "portfolio_id": "balanced",
+        "destination": "MOVE_TO_BALANCED",
+        "policy": "operational_balanced_signal"
+      }
+    },
+    "shadow": {
+      "phase": "9_dual_recommendation_destinations",
+      "official_decision": "HOLD",
+      "destination": "STAY_CURRENT",
+      "destination_label": "Manter atual",
+      "acid_signal": "MOVE_TO_ACID",
+      "balanced_signal": "STAY_CURRENT",
+      "acid_raw_decision": "REBALANCE",
+      "acid_raw_reason": "Excess return (11.76%) exceeds threshold (0.5%)",
+      "acid_raw_decision_engine_version": "v1_raw_excess_return",
+      "decision_engine_version": "v3_dual_recommendation_destinations",
+      "official_excess_return_pct": 11.7563,
+      "holdings_adjusted_return_pct": 18.14,
+      "ideal_adjusted_return_pct": 12.04,
+      "optimal_adjusted_gross_return_pct": 11.86,
+      "optimal_adjusted_net_return_pct": 11.8449,
+      "adjusted_excess_return_pct": -6.2951,
+      "market_regime_state": "stress",
+      "market_regime_triggers": [
+        "benchmark_drawdown_3m",
+        "benchmark_drawdown_6m",
+        "negative_breadth_3m",
+        "broad_asset_drawdown",
+        "high_cross_sectional_dispersion"
+      ],
+      "market_regime_hurdle_addon_pct": 1.0,
+      "market_regime_shrinkage_multiplier": 1.25,
+      "market_regime_turnover_budget_multiplier": 0.7,
+      "min_threshold_pct": 0.5,
+      "would_rebalance_on_adjusted_return": false,
+      "shadow_decision": "HOLD",
+      "shadow_decision_reason": "Sem sinal ajustado suficiente para operar.",
+      "shadow_trade_allowed": false,
+      "shadow_expected_gain_pct": 0.0,
+      "shadow_hurdle_pct": 2.15,
+      "shadow_hurdle_components": {
+        "base_hurdle_pct": 0.5,
+        "transition_cost_pct": 0.0,
+        "slippage_estimate_pct": 0.15,
+        "tax_drag_estimate_pct": 0.0,
+        "model_uncertainty_penalty_pct": 0.5,
+        "regime_stress_penalty_pct": 1.0
+      },
+      "shadow_veto_reasons": [
+        {
+          "code": "adjusted_gain_below_hurdle",
+          "message": "Ganho ajustado abaixo do hurdle dinâmico.",
+          "actual": 0.0,
+          "threshold": 2.15
+        },
+        {
+          "code": "signal_not_persistent",
+          "message": "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+          "actual": 0.0,
+          "threshold": 2.0
+        },
+        {
+          "code": "target_quality_below_floor",
+          "message": "Qualidade média dos targets do portfólio abaixo do piso.",
+          "actual": 0.5606,
+          "threshold": 0.6
+        },
+        {
+          "code": "suspicious_return_contribution_high",
+          "message": "Contribuição de targets low/reject acima do limite.",
+          "actual": 95.58,
+          "threshold": 35.0
+        }
+      ],
+      "shadow_signal_persistence_days": 0,
+      "shadow_min_persistence_days": 2,
+      "shadow_turnover_pct": 0.0,
+      "shadow_turnover_budget_pct": 24.5,
+      "shadow_base_turnover_budget_pct": 35.0,
+      "shadow_turnover_budget_multiplier": 0.7,
+      "portfolio_target_quality_score": 0.5606,
+      "low_reject_weight_pct": 54.39,
+      "suspicious_return_contribution_pct": 323.65,
+      "suspicious_return_contribution_share_pct": 95.58,
+      "shadow_confidence_floor": 0.6,
+      "shadow_max_suspicious_return_contribution_pct": 35.0,
+      "execution_plan": {
+        "phase": "9_balanced_execution_plan",
+        "decision_state": "HOLD",
+        "decision_state_label": "Manter",
+        "today_action": "Carteira ponderada nao justifica alteracao; carteira acida permanece como radar agressivo.",
+        "execution_intensity_pct": 0.0,
+        "can_execute_today": false,
+        "asset_tolerance_band_pct": 2.0,
+        "sector_tolerance_band_pct": 5.0,
+        "weekly_turnover_budget_pct": 12.0,
+        "monthly_turnover_budget_pct": 35.0,
+        "shadow_turnover_budget_pct": 24.5,
+        "today_turnover_budget_pct": 0.0,
+        "today_turnover_budget_brl": 0.0,
+        "min_trade_value_brl": 25.0,
+        "max_actions": 6,
+        "theoretical_trade_value_brl": 0,
+        "theoretical_trade_value_pct": 0.0,
+        "executable_trade_value_brl": 0.0,
+        "executable_trade_value_pct": 0.0,
+        "deferred_trade_value_brl": 0.0,
+        "deferred_trade_value_pct": 0.0,
+        "num_executable_actions": 0,
+        "num_deferred_actions": 0,
+        "num_ignored_actions": 0,
+        "num_asset_band_breaches": 0,
+        "num_sector_band_breaches": 0,
+        "why_not_rebalance_today": [
+          "Ganho ajustado abaixo do hurdle dinâmico.",
+          "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+          "Qualidade média dos targets do portfólio abaixo do piso.",
+          "Contribuição de targets low/reject acima do limite."
+        ],
+        "actions": [],
+        "sector_drift": [
+          {
+            "sector": "Basic Materials",
+            "current_weight_pct": 35.47,
+            "target_weight_pct": 35.47,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Consumer Cyclical",
+            "current_weight_pct": 9.53,
+            "target_weight_pct": 9.53,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Consumer Defensive",
+            "current_weight_pct": 9.69,
+            "target_weight_pct": 9.69,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Energy",
+            "current_weight_pct": 1.91,
+            "target_weight_pct": 1.91,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Financial Services",
+            "current_weight_pct": 13.31,
+            "target_weight_pct": 13.31,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Healthcare",
+            "current_weight_pct": 3.96,
+            "target_weight_pct": 3.96,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Industrials",
+            "current_weight_pct": 15.29,
+            "target_weight_pct": 15.29,
+            "drift_pct": 0.0,
+            "outside_band": false
+          },
+          {
+            "sector": "Utilities",
+            "current_weight_pct": 10.84,
+            "target_weight_pct": 10.84,
+            "drift_pct": 0.0,
+            "outside_band": false
+          }
+        ],
+        "portfolio_id": "balanced",
+        "destination": "MOVE_TO_BALANCED",
+        "policy": "operational_balanced_signal",
+        "selected_destination": "STAY_CURRENT",
+        "selected_destination_label": "Manter atual"
+      },
+      "acid_aggressive_gate": {
+        "shadow_decision": "REBALANCE",
+        "shadow_decision_reason": "Carteira acida libera o sinal bruto agressivo.",
+        "shadow_trade_allowed": true,
+        "shadow_expected_gain_pct": 11.7563,
+        "shadow_hurdle_pct": 0.5,
+        "shadow_hurdle_components": {
+          "raw_excess_threshold_pct": 0.5,
+          "operational_vetoes_applied": false
+        },
+        "shadow_veto_reasons": [],
+        "shadow_signal_persistence_days": 1,
+        "shadow_min_persistence_days": 1,
+        "shadow_turnover_pct": 52.56,
+        "shadow_turnover_budget_pct": 100.0,
+        "shadow_base_turnover_budget_pct": 100.0,
+        "shadow_turnover_budget_multiplier": 1.0,
+        "portfolio_target_quality_score": 0.5327,
+        "low_reject_weight_pct": 57.69,
+        "suspicious_return_contribution_pct": 342.32,
+        "suspicious_return_contribution_share_pct": 97.69,
+        "shadow_confidence_floor": 0.0,
+        "shadow_max_suspicious_return_contribution_pct": 100.0
+      },
+      "acid_operational_gate": {
+        "shadow_decision": "WATCH",
+        "shadow_decision_reason": "Há sinal oficial, mas o gate shadow recomenda observar antes de operar.",
+        "shadow_trade_allowed": false,
+        "shadow_expected_gain_pct": -6.2951,
+        "shadow_hurdle_pct": 2.1651,
+        "shadow_hurdle_components": {
+          "base_hurdle_pct": 0.5,
+          "transition_cost_pct": 0.0151,
+          "slippage_estimate_pct": 0.15,
+          "tax_drag_estimate_pct": 0.0,
+          "model_uncertainty_penalty_pct": 0.5,
+          "regime_stress_penalty_pct": 1.0
+        },
+        "shadow_veto_reasons": [
+          {
+            "code": "adjusted_gain_below_hurdle",
+            "message": "Ganho ajustado abaixo do hurdle dinâmico.",
+            "actual": -6.2951,
+            "threshold": 2.1651
+          },
+          {
+            "code": "signal_not_persistent",
+            "message": "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+            "actual": 0.0,
+            "threshold": 2.0
+          },
+          {
+            "code": "turnover_above_budget",
+            "message": "Turnover necessário acima do orçamento shadow.",
+            "actual": 52.56,
+            "threshold": 24.5
+          },
+          {
+            "code": "target_quality_below_floor",
+            "message": "Qualidade média dos targets do portfólio abaixo do piso.",
+            "actual": 0.5327,
+            "threshold": 0.6
+          },
+          {
+            "code": "suspicious_return_contribution_high",
+            "message": "Contribuição de targets low/reject acima do limite.",
+            "actual": 97.69,
+            "threshold": 35.0
+          }
+        ],
+        "shadow_signal_persistence_days": 0,
+        "shadow_min_persistence_days": 2,
+        "shadow_turnover_pct": 52.56,
+        "shadow_turnover_budget_pct": 24.5,
+        "shadow_base_turnover_budget_pct": 35.0,
+        "shadow_turnover_budget_multiplier": 0.7,
+        "portfolio_target_quality_score": 0.5327,
+        "low_reject_weight_pct": 57.69,
+        "suspicious_return_contribution_pct": 342.32,
+        "suspicious_return_contribution_share_pct": 97.69,
+        "shadow_confidence_floor": 0.6,
+        "shadow_max_suspicious_return_contribution_pct": 35.0
+      },
+      "balanced_gate": {
+        "shadow_decision": "HOLD",
+        "shadow_decision_reason": "Sem sinal ajustado suficiente para operar.",
+        "shadow_trade_allowed": false,
+        "shadow_expected_gain_pct": 0.0,
+        "shadow_hurdle_pct": 2.15,
+        "shadow_hurdle_components": {
+          "base_hurdle_pct": 0.5,
+          "transition_cost_pct": 0.0,
+          "slippage_estimate_pct": 0.15,
+          "tax_drag_estimate_pct": 0.0,
+          "model_uncertainty_penalty_pct": 0.5,
+          "regime_stress_penalty_pct": 1.0
+        },
+        "shadow_veto_reasons": [
+          {
+            "code": "adjusted_gain_below_hurdle",
+            "message": "Ganho ajustado abaixo do hurdle dinâmico.",
+            "actual": 0.0,
+            "threshold": 2.15
+          },
+          {
+            "code": "signal_not_persistent",
+            "message": "Sinal ajustado ainda não persistiu pelo mínimo configurado.",
+            "actual": 0.0,
+            "threshold": 2.0
+          },
+          {
+            "code": "target_quality_below_floor",
+            "message": "Qualidade média dos targets do portfólio abaixo do piso.",
+            "actual": 0.5606,
+            "threshold": 0.6
+          },
+          {
+            "code": "suspicious_return_contribution_high",
+            "message": "Contribuição de targets low/reject acima do limite.",
+            "actual": 95.58,
+            "threshold": 35.0
+          }
+        ],
+        "shadow_signal_persistence_days": 0,
+        "shadow_min_persistence_days": 2,
+        "shadow_turnover_pct": 0.0,
+        "shadow_turnover_budget_pct": 24.5,
+        "shadow_base_turnover_budget_pct": 35.0,
+        "shadow_turnover_budget_multiplier": 0.7,
+        "portfolio_target_quality_score": 0.5606,
+        "low_reject_weight_pct": 54.39,
+        "suspicious_return_contribution_pct": 323.65,
+        "suspicious_return_contribution_share_pct": 95.58,
+        "shadow_confidence_floor": 0.6,
+        "shadow_max_suspicious_return_contribution_pct": 35.0
       },
       "stable_optimization": {
         "phase": "6_turnover_penalty_optimization",
@@ -469,29 +2634,29 @@
         "stable_portfolio": {
           "stocks": [
             "PSSA3.SA",
-            "PNVL3.SA",
+            "ISAE4.SA",
             "SLCE3.SA",
+            "AMBP3.SA",
+            "KLBN4.SA",
             "BBSE3.SA",
-            "WEGE3.SA",
-            "PETR4.SA",
             "RANI3.SA",
             "CMIG3.SA",
-            "KLBN4.SA",
-            "AMBP3.SA",
-            "ISAE4.SA"
+            "WEGE3.SA",
+            "PNVL3.SA",
+            "PETR4.SA"
           ],
           "weights": {
-            "PSSA3.SA": 0.06700238842456088,
-            "PNVL3.SA": 0.039576394520456686,
-            "SLCE3.SA": 0.09685752778722882,
-            "BBSE3.SA": 0.0661288270888825,
-            "WEGE3.SA": 0.05950473268033929,
-            "PETR4.SA": 0.019101495803454955,
-            "RANI3.SA": 0.09534397907349786,
-            "CMIG3.SA": 0.09582980780880844,
-            "KLBN4.SA": 0.35467400865292,
-            "AMBP3.SA": 0.09339132155040031,
-            "ISAE4.SA": 0.012589516609450402
+            "PSSA3.SA": 0.06700238842456087,
+            "ISAE4.SA": 0.0125895166094504,
+            "SLCE3.SA": 0.09685752778722881,
+            "AMBP3.SA": 0.0933913215504003,
+            "KLBN4.SA": 0.3546740086529199,
+            "BBSE3.SA": 0.06612882708888249,
+            "RANI3.SA": 0.09534397907349784,
+            "CMIG3.SA": 0.09582980780880843,
+            "WEGE3.SA": 0.05950473268033928,
+            "PNVL3.SA": 0.03957639452045668,
+            "PETR4.SA": 0.01910149580345495
           },
           "expected_return_pct": 338.6319,
           "net_return_pct": 338.6319,
@@ -549,19 +2714,19 @@
           },
           {
             "blend_ratio": 0.5,
-            "raw_net_return_pct": 339.488,
-            "adjusted_net_return_pct": 15.0831,
-            "adjusted_gain_pct": -3.0569,
-            "turnover_pct": 24.0911,
+            "raw_net_return_pct": 339.4883,
+            "adjusted_net_return_pct": 15.0833,
+            "adjusted_gain_pct": -3.0567,
+            "turnover_pct": 23.2296,
             "target_quality_score": 0.5518,
             "low_reject_weight_pct": 55.48,
             "suspicious_return_contribution_share_pct": 96.59,
             "top2_return_concentration_pct": 93.63,
-            "stable_score": -9.5355,
+            "stable_score": -9.406,
             "stable_score_components": {
-              "adjusted_gain_pct": -3.0569,
-              "turnover_penalty_pct": 1.2046,
-              "turnover_excess_penalty_pct": 1.2091,
+              "adjusted_gain_pct": -3.0567,
+              "turnover_penalty_pct": 1.1615,
+              "turnover_excess_penalty_pct": 1.123,
               "uncertainty_penalty_pct": 1.3446,
               "concentration_penalty_pct": 0.8726,
               "suspicious_return_penalty_pct": 1.8477
@@ -613,14 +2778,14 @@
     "calibration": {
       "phase": "7_backtest_calibration",
       "status": "diagnostic",
-      "generated_at": "2026-06-06T11:40:48.572942+00:00",
+      "generated_at": "2026-06-07T19:46:18.233953+00:00",
       "history": {
-        "raw_runs": 68,
-        "distinct_dates": 39,
+        "raw_runs": 69,
+        "distinct_dates": 40,
         "first_date": "2026-03-29",
-        "last_date": "2026-06-06",
-        "shadow_available_dates": 2,
-        "stable_available_dates": 1,
+        "last_date": "2026-06-07",
+        "shadow_available_dates": 3,
+        "stable_available_dates": 2,
         "forward_21d_available_dates": 24,
         "dedupe_rule": "latest_run_per_date"
       },
@@ -644,19 +2809,19 @@
         {
           "key": "official_current",
           "label": "Oficial atual",
-          "available_runs": 39,
+          "available_runs": 40,
           "coverage_pct": 100.0,
           "decision_counts": {
-            "HOLD": 15,
+            "HOLD": 16,
             "REBALANCE": 23,
             "WATCH": 1
           },
           "trade_signals": 23,
-          "trade_frequency_pct": 58.97,
+          "trade_frequency_pct": 57.5,
           "cumulative_turnover_pct": 61.85,
           "avg_turnover_on_signal_pct": 2.6891,
-          "avg_expected_gain_pct": 27.1544,
-          "avg_asset_set_stability_pct": 75.7425,
+          "avg_expected_gain_pct": 26.7694,
+          "avg_asset_set_stability_pct": 76.3645,
           "suspicious_trade_signals": 1,
           "suspicious_trade_rate_pct": 4.35,
           "extreme_target_false_positive_count": 0,
@@ -681,9 +2846,9 @@
           "performance_by_regime": [
             {
               "regime": "stress",
-              "available_runs": 2,
+              "available_runs": 3,
               "trade_signals": 1,
-              "trade_frequency_pct": 50.0,
+              "trade_frequency_pct": 33.33,
               "avg_forward_alpha_21d_pct": null
             },
             {
@@ -700,16 +2865,16 @@
         {
           "key": "adjusted_return",
           "label": "Retorno ajustado",
-          "available_runs": 2,
-          "coverage_pct": 5.13,
+          "available_runs": 3,
+          "coverage_pct": 7.5,
           "decision_counts": {
-            "HOLD": 2
+            "HOLD": 3
           },
           "trade_signals": 0,
           "trade_frequency_pct": 0.0,
           "cumulative_turnover_pct": 0,
           "avg_turnover_on_signal_pct": null,
-          "avg_expected_gain_pct": -5.5314,
+          "avg_expected_gain_pct": -3.6876,
           "avg_asset_set_stability_pct": 100.0,
           "suspicious_trade_signals": 0,
           "suspicious_trade_rate_pct": null,
@@ -735,28 +2900,77 @@
           "performance_by_regime": [
             {
               "regime": "stress",
-              "available_runs": 2,
+              "available_runs": 3,
               "trade_signals": 0,
               "trade_frequency_pct": 0.0,
               "avg_forward_alpha_21d_pct": null
             }
           ],
           "turnover_reduction_vs_official_pct": 61.85,
-          "trade_frequency_delta_vs_official_pct": -58.97
+          "trade_frequency_delta_vs_official_pct": -57.5
         },
         {
           "key": "shadow_gate",
           "label": "Gate shadow",
-          "available_runs": 2,
-          "coverage_pct": 5.13,
+          "available_runs": 3,
+          "coverage_pct": 7.5,
           "decision_counts": {
-            "WATCH": 2
+            "WATCH": 2,
+            "HOLD": 1
           },
           "trade_signals": 0,
           "trade_frequency_pct": 0.0,
           "cumulative_turnover_pct": 0,
           "avg_turnover_on_signal_pct": null,
-          "avg_expected_gain_pct": -5.5314,
+          "avg_expected_gain_pct": -3.6876,
+          "avg_asset_set_stability_pct": 100.0,
+          "suspicious_trade_signals": 0,
+          "suspicious_trade_rate_pct": null,
+          "extreme_target_false_positive_count": 0,
+          "forward_5d": {
+            "observations": 0,
+            "avg_portfolio_return_pct": null,
+            "avg_benchmark_return_pct": null,
+            "avg_alpha_pct": null,
+            "avg_volatility_annual_pct": null,
+            "avg_max_drawdown_pct": null,
+            "alpha_hit_rate_pct": null
+          },
+          "forward_21d": {
+            "observations": 0,
+            "avg_portfolio_return_pct": null,
+            "avg_benchmark_return_pct": null,
+            "avg_alpha_pct": null,
+            "avg_volatility_annual_pct": null,
+            "avg_max_drawdown_pct": null,
+            "alpha_hit_rate_pct": null
+          },
+          "performance_by_regime": [
+            {
+              "regime": "stress",
+              "available_runs": 3,
+              "trade_signals": 0,
+              "trade_frequency_pct": 0.0,
+              "avg_forward_alpha_21d_pct": null
+            }
+          ],
+          "turnover_reduction_vs_official_pct": 61.85,
+          "trade_frequency_delta_vs_official_pct": -57.5
+        },
+        {
+          "key": "execution_state",
+          "label": "Plano executável",
+          "available_runs": 2,
+          "coverage_pct": 5.0,
+          "decision_counts": {
+            "WATCH": 1,
+            "HOLD": 1
+          },
+          "trade_signals": 0,
+          "trade_frequency_pct": 0.0,
+          "cumulative_turnover_pct": 0,
+          "avg_turnover_on_signal_pct": null,
+          "avg_expected_gain_pct": -3.1475,
           "avg_asset_set_stability_pct": 100.0,
           "suspicious_trade_signals": 0,
           "suspicious_trade_rate_pct": null,
@@ -789,62 +3003,15 @@
             }
           ],
           "turnover_reduction_vs_official_pct": 61.85,
-          "trade_frequency_delta_vs_official_pct": -58.97
-        },
-        {
-          "key": "execution_state",
-          "label": "Plano executável",
-          "available_runs": 1,
-          "coverage_pct": 2.56,
-          "decision_counts": {
-            "WATCH": 1
-          },
-          "trade_signals": 0,
-          "trade_frequency_pct": 0.0,
-          "cumulative_turnover_pct": 0,
-          "avg_turnover_on_signal_pct": null,
-          "avg_expected_gain_pct": -6.2951,
-          "avg_asset_set_stability_pct": 100.0,
-          "suspicious_trade_signals": 0,
-          "suspicious_trade_rate_pct": null,
-          "extreme_target_false_positive_count": 0,
-          "forward_5d": {
-            "observations": 0,
-            "avg_portfolio_return_pct": null,
-            "avg_benchmark_return_pct": null,
-            "avg_alpha_pct": null,
-            "avg_volatility_annual_pct": null,
-            "avg_max_drawdown_pct": null,
-            "alpha_hit_rate_pct": null
-          },
-          "forward_21d": {
-            "observations": 0,
-            "avg_portfolio_return_pct": null,
-            "avg_benchmark_return_pct": null,
-            "avg_alpha_pct": null,
-            "avg_volatility_annual_pct": null,
-            "avg_max_drawdown_pct": null,
-            "alpha_hit_rate_pct": null
-          },
-          "performance_by_regime": [
-            {
-              "regime": "stress",
-              "available_runs": 1,
-              "trade_signals": 0,
-              "trade_frequency_pct": 0.0,
-              "avg_forward_alpha_21d_pct": null
-            }
-          ],
-          "turnover_reduction_vs_official_pct": 61.85,
-          "trade_frequency_delta_vs_official_pct": -58.97
+          "trade_frequency_delta_vs_official_pct": -57.5
         },
         {
           "key": "stable_optimization",
           "label": "Otimização estável",
-          "available_runs": 1,
-          "coverage_pct": 2.56,
+          "available_runs": 2,
+          "coverage_pct": 5.0,
           "decision_counts": {
-            "STAY_CURRENT": 1
+            "STAY_CURRENT": 2
           },
           "trade_signals": 0,
           "trade_frequency_pct": 0.0,
@@ -876,14 +3043,14 @@
           "performance_by_regime": [
             {
               "regime": "stress",
-              "available_runs": 1,
+              "available_runs": 2,
               "trade_signals": 0,
               "trade_frequency_pct": 0.0,
               "avg_forward_alpha_21d_pct": null
             }
           ],
           "turnover_reduction_vs_official_pct": 61.85,
-          "trade_frequency_delta_vs_official_pct": -58.97
+          "trade_frequency_delta_vs_official_pct": -57.5
         }
       ],
       "notes": [
@@ -911,32 +3078,40 @@
       "sector_exposure": [
         {
           "sector": "Basic Materials",
-          "pct": 0.3484
-        },
-        {
-          "sector": "Utilities",
-          "pct": 0.2314
+          "pct": 0.3547
         },
         {
           "sector": "Industrials",
-          "pct": 0.1142
-        },
-        {
-          "sector": "Energy",
-          "pct": 0.1034
+          "pct": 0.1529
         },
         {
           "sector": "Financial Services",
-          "pct": 0.1025
+          "pct": 0.1331
+        },
+        {
+          "sector": "Utilities",
+          "pct": 0.1084
         },
         {
           "sector": "Consumer Defensive",
-          "pct": 0.1001
+          "pct": 0.0969
+        },
+        {
+          "sector": "Consumer Cyclical",
+          "pct": 0.0953
+        },
+        {
+          "sector": "Healthcare",
+          "pct": 0.0396
+        },
+        {
+          "sector": "Energy",
+          "pct": 0.0191
         }
       ]
     },
     "diagnostics": {
-      "phase": "8_official_decision_promotion",
+      "phase": "9_dual_recommendation_destinations",
       "return_concentration": {
         "holdings": {
           "expected_return_pct": 338.63,

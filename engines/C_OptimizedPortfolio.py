@@ -2091,6 +2091,242 @@ def build_baseline_diagnostics(
     }
 
 
+def _portfolio_concentration_summary(weights: Dict[str, float]) -> Dict[str, Any]:
+    """Summarize concentration using portfolio weights."""
+    clean_weights = [float(weight or 0) for weight in (weights or {}).values() if float(weight or 0) > 0]
+    clean_weights.sort(reverse=True)
+    return {
+        'num_positions': len(clean_weights),
+        'hhi': round(sum(weight ** 2 for weight in clean_weights), 4),
+        'top5_weight_pct': round(sum(clean_weights[:5]) * 100, 2),
+        'max_weight_pct': round(clean_weights[0] * 100, 2) if clean_weights else 0.0,
+    }
+
+
+def _portfolio_return_value(portfolio: Dict[str, Any], *keys: str, default: float = 0.0) -> float:
+    for key in keys:
+        value = portfolio.get(key)
+        if value is not None:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                continue
+    return default
+
+
+def _build_recommendation_portfolio_payload(
+    portfolio_id: str,
+    label: str,
+    role: str,
+    portfolio: Dict[str, Any],
+    contributors: List[Dict[str, Any]],
+    adjusted_summary: Dict[str, Any],
+    transition_cost_pct: float,
+    transaction_summary: Dict[str, Any],
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Create a frontend-friendly portfolio payload for Phase 9."""
+    weights = portfolio.get('weights', {}) or {}
+    raw_return = _portfolio_return_value(portfolio, 'expected_return_pct', 'expected_return')
+    net_return = _portfolio_return_value(
+        portfolio,
+        'net_return_pct',
+        'net_return',
+        default=raw_return - transition_cost_pct,
+    )
+    adjusted_gross = adjusted_summary.get('adjusted_expected_return_pct')
+    if adjusted_gross is None:
+        adjusted_gross = _portfolio_return_value(portfolio, 'adjusted_expected_return_pct', default=raw_return)
+    adjusted_net = _portfolio_return_value(
+        portfolio,
+        'adjusted_net_return_pct',
+        default=float(adjusted_gross or 0) - transition_cost_pct,
+    )
+    quality_metrics = _build_shadow_quality_metrics(contributors, adjusted_summary)
+
+    payload = {
+        'id': portfolio_id,
+        'label': label,
+        'role': role,
+        'stocks': portfolio.get('stocks', list(weights.keys())),
+        'weights': weights,
+        'share_quantities': portfolio.get('share_quantities', {}),
+        'expected_return_pct': round(raw_return, 4),
+        'net_return_pct': round(net_return, 4),
+        'adjusted_expected_return_pct': _round_or_none(adjusted_gross, 4),
+        'adjusted_net_return_pct': round(adjusted_net, 4),
+        'transition_cost_pct': round(transition_cost_pct, 4),
+        'transaction_summary': transaction_summary,
+        'target_quality_score': quality_metrics.get('portfolio_target_quality_score'),
+        'low_reject_weight_pct': quality_metrics.get('low_reject_weight_pct'),
+        'suspicious_return_contribution_pct': quality_metrics.get('suspicious_return_contribution_pct'),
+        'suspicious_return_contribution_share_pct': (
+            quality_metrics.get('suspicious_return_contribution_share_pct')
+        ),
+        'target_quality_summary': _build_target_quality_summary(contributors),
+        'return_concentration': _build_return_concentration(contributors, raw_return),
+        'concentration': _portfolio_concentration_summary(weights),
+        'top_contributors': contributors[:8],
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def _trade_value_pct(
+    transactions: List[Dict[str, Any]],
+    portfolio_value: float,
+) -> float:
+    if portfolio_value <= 0:
+        return 0.0
+    return sum(abs(tx.get('value_change', 0) or 0) for tx in transactions) / portfolio_value * 100
+
+
+def _build_destination_comparison(
+    comparison_id: str,
+    label: str,
+    destination: str,
+    current_payload: Dict[str, Any],
+    target_payload: Dict[str, Any],
+    transactions: List[Dict[str, Any]],
+    transaction_summary: Dict[str, Any],
+    execution_plan: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Compare the current portfolio with one recommended destination."""
+    portfolio_value = current_payload.get('total_value') or 0.0
+    total_trade_value = sum(abs(tx.get('value_change', 0) or 0) for tx in transactions)
+    sorted_trades = sorted(
+        transactions,
+        key=lambda tx: abs(tx.get('value_change', 0) or 0),
+        reverse=True,
+    )
+
+    return {
+        'id': comparison_id,
+        'label': label,
+        'from': 'current',
+        'to': target_payload.get('id'),
+        'destination': destination,
+        'destination_label': target_payload.get('label'),
+        'decision_state': execution_plan.get('decision_state'),
+        'decision_state_label': execution_plan.get('decision_state_label'),
+        'today_action': execution_plan.get('today_action'),
+        'raw_net_delta_pct': round(
+            (target_payload.get('net_return_pct') or 0)
+            - (current_payload.get('expected_return_pct') or 0),
+            4,
+        ),
+        'adjusted_net_delta_pct': round(
+            (target_payload.get('adjusted_net_return_pct') or 0)
+            - (current_payload.get('adjusted_expected_return_pct') or 0),
+            4,
+        ),
+        'turnover_pct': round(_trade_value_pct(transactions, portfolio_value), 4),
+        'total_trade_value_brl': round(total_trade_value, 2),
+        'total_cost_brl': transaction_summary.get('total_cost', 0),
+        'total_buy_value_brl': transaction_summary.get('total_buy_value', 0),
+        'total_sell_value_brl': transaction_summary.get('total_sell_value', 0),
+        'projected_balance_brl': transaction_summary.get('projected_balance', 0),
+        'num_transactions': len(transactions),
+        'num_buy_transactions': sum(1 for tx in transactions if tx.get('action') == 'BUY'),
+        'num_sell_transactions': sum(1 for tx in transactions if tx.get('action') == 'SELL'),
+        'target_quality_score': target_payload.get('target_quality_score'),
+        'low_reject_weight_pct': target_payload.get('low_reject_weight_pct'),
+        'suspicious_return_contribution_share_pct': (
+            target_payload.get('suspicious_return_contribution_share_pct')
+        ),
+        'target_hhi': target_payload.get('concentration', {}).get('hhi'),
+        'target_top5_weight_pct': target_payload.get('concentration', {}).get('top5_weight_pct'),
+        'execution_plan': execution_plan,
+        'transaction_summary': transaction_summary,
+        'transactions': transactions,
+        'top_trades': sorted_trades[:8],
+    }
+
+
+def _build_aggressive_acid_gate(
+    raw_decision: str,
+    raw_excess_return_pct: float,
+    min_threshold_pct: float,
+    diagnostics: Dict[str, Any],
+    params: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Build a raw/aggressive gate for the Acid portfolio without operational vetoes."""
+    turnover = diagnostics.get('turnover', {}) or {}
+    contributors = diagnostics.get('return_contributors', {}).get('optimal', []) or []
+    adjusted_summary = diagnostics.get('adjusted_returns', {}).get('optimal', {}) or {}
+    quality_metrics = _build_shadow_quality_metrics(contributors, adjusted_summary)
+
+    state = 'REBALANCE' if raw_decision == 'REBALANCE' else 'HOLD'
+    vetoes: List[Dict[str, Any]] = []
+    if state != 'REBALANCE':
+        vetoes.append(_shadow_veto(
+            'raw_gain_below_threshold',
+            'Ganho bruto abaixo do minimo agressivo configurado.',
+            raw_excess_return_pct,
+            min_threshold_pct,
+        ))
+
+    return {
+        'shadow_decision': state,
+        'shadow_decision_reason': (
+            'Carteira acida libera o sinal bruto agressivo.'
+            if state == 'REBALANCE'
+            else 'Carteira acida nao superou o gatilho bruto agressivo.'
+        ),
+        'shadow_trade_allowed': state == 'REBALANCE',
+        'shadow_expected_gain_pct': round(raw_excess_return_pct, 4),
+        'shadow_hurdle_pct': round(min_threshold_pct, 4),
+        'shadow_hurdle_components': {
+            'raw_excess_threshold_pct': round(min_threshold_pct, 4),
+            'operational_vetoes_applied': False,
+        },
+        'shadow_veto_reasons': vetoes,
+        'shadow_signal_persistence_days': 1 if state == 'REBALANCE' else 0,
+        'shadow_min_persistence_days': 1,
+        'shadow_turnover_pct': turnover.get('total_trade_value_pct', 0),
+        'shadow_turnover_budget_pct': 100.0,
+        'shadow_base_turnover_budget_pct': 100.0,
+        'shadow_turnover_budget_multiplier': 1.0,
+        **quality_metrics,
+        'shadow_confidence_floor': 0.0,
+        'shadow_max_suspicious_return_contribution_pct': 100.0,
+    }
+
+
+def _destination_signal_from_plan(
+    plan: Dict[str, Any],
+    move_destination: str,
+) -> str:
+    state = plan.get('decision_state')
+    theoretical_trade_pct = plan.get('theoretical_trade_value_pct') or 0
+    if state in {'REBALANCE', 'PARTIAL_REBALANCE'} and theoretical_trade_pct > 0:
+        return move_destination
+    return 'STAY_CURRENT'
+
+
+def _destination_label(destination: str) -> str:
+    return {
+        'STAY_CURRENT': 'Manter atual',
+        'MOVE_TO_ACID': 'Ir para Carteira Acida',
+        'MOVE_TO_BALANCED': 'Ir para Carteira Ponderada',
+    }.get(destination, destination or 'Manter atual')
+
+
+def _destination_reason(
+    destination: str,
+    balanced_plan: Dict[str, Any],
+    acid_signal: str,
+) -> str:
+    if destination == 'MOVE_TO_BALANCED':
+        return balanced_plan.get('today_action') or 'Carteira ponderada passou no gate operacional.'
+    if destination == 'MOVE_TO_ACID':
+        return 'Carteira acida passou no gatilho agressivo.'
+    if acid_signal == 'MOVE_TO_ACID':
+        return 'Carteira ponderada nao justifica alteracao; carteira acida permanece como radar agressivo.'
+    return balanced_plan.get('today_action') or 'Nenhum destino justifica alteracao agora.'
+
+
 def discretize_to_integer_shares(
     portfolio_weights: Dict[str, float],
     total_value: float,
@@ -2509,21 +2745,22 @@ def generate_recommendation(
     market_regime = diagnostics.get('market_regime', {}) or {}
     market_regime_impact = market_regime.get('impact', {}) or {}
 
-    # Legacy v1 decision: raw target-price excess return over current holdings.
+    # Acid portfolio: raw/aggressive target-price signal over current holdings.
     if excess_return >= min_excess_threshold:
-        legacy_decision = 'REBALANCE'
-        legacy_reason = f"Excess return ({excess_return:.2f}%) exceeds threshold ({min_excess_threshold}%)"
+        acid_raw_decision = 'REBALANCE'
+        acid_raw_reason = f"Excess return ({excess_return:.2f}%) exceeds threshold ({min_excess_threshold}%)"
     elif optimal.get('blend_ratio', 0) < 0.1:
-        legacy_decision = 'HOLD'
-        legacy_reason = f"Optimal portfolio is very close to current holdings"
+        acid_raw_decision = 'HOLD'
+        acid_raw_reason = "Acid portfolio is very close to current holdings"
     else:
-        legacy_decision = 'HOLD'
-        legacy_reason = f"Excess return ({excess_return:.2f}%) below threshold ({min_excess_threshold}%)"
+        acid_raw_decision = 'HOLD'
+        acid_raw_reason = f"Excess return ({excess_return:.2f}%) below threshold ({min_excess_threshold}%)"
 
     generated_date = datetime.now().strftime('%Y-%m-%d')
     generated_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    shadow_gate = _build_shadow_rebalance_gate(
-        legacy_decision,
+
+    acid_operational_gate = _build_shadow_rebalance_gate(
+        acid_raw_decision,
         adjusted_excess_return,
         optimal.get('transition_cost', 0),
         diagnostics,
@@ -2531,25 +2768,213 @@ def generate_recommendation(
         logger,
         generated_date,
     )
-    execution_plan = _build_shadow_execution_plan(
+    acid_aggressive_gate = _build_aggressive_acid_gate(
+        acid_raw_decision,
+        excess_return,
+        min_excess_threshold,
+        diagnostics,
+        params,
+    )
+    acid_execution_plan = _build_shadow_execution_plan(
         transactions,
         holdings,
         optimal,
-        shadow_gate,
+        acid_aggressive_gate,
         params,
         logger,
     )
-    decision_engine_version = 'v2_operational_shadow_conservative'
-    legacy_decision_engine_version = 'v1_raw_excess_return'
-    decision = (
-        execution_plan.get('decision_state')
-        or shadow_gate.get('shadow_decision')
-        or legacy_decision
+    acid_execution_plan.update({
+        'phase': '9_acid_execution_plan',
+        'portfolio_id': 'acid',
+        'destination': 'MOVE_TO_ACID',
+        'policy': 'aggressive_raw_signal',
+        'operational_gate_decision': acid_operational_gate.get('shadow_decision'),
+        'operational_gate_veto_reasons': acid_operational_gate.get('shadow_veto_reasons', []),
+    })
+
+    balanced_portfolio = (
+        stable_optimization.get('stable_portfolio', {})
+        if stable_optimization.get('enabled')
+        else {}
     )
-    reason = (
-        execution_plan.get('today_action')
-        or shadow_gate.get('shadow_decision_reason')
-        or legacy_reason
+    if not balanced_portfolio:
+        balanced_portfolio = {
+            'stocks': holdings.get('stocks', []),
+            'weights': holdings.get('weights', {}),
+            'expected_return_pct': holdings_return,
+            'net_return_pct': holdings_return,
+            'adjusted_net_return_pct': holdings_adjusted_return,
+            'turnover_pct': 0.0,
+            'stable_score': None,
+        }
+
+    balanced_transactions = stable_optimization.get('stable_transactions', [])
+    if not isinstance(balanced_transactions, list):
+        balanced_transactions = []
+    balanced_transaction_summary = stable_optimization.get('stable_transaction_summary', {})
+    if not balanced_transaction_summary:
+        _, balanced_transactions = calculate_transition_cost(
+            holdings,
+            balanced_portfolio,
+            transaction_cost_pct,
+            logger,
+        )
+        balanced_transaction_summary = _build_transaction_summary(balanced_transactions)
+
+    balanced_transition_cost_pct = _trade_value_pct(
+        balanced_transactions,
+        holdings.get('total_value', 0) or 0,
+    ) * transaction_cost_pct / 100
+    balanced_diagnostics = build_baseline_diagnostics(
+        holdings,
+        ideal,
+        balanced_portfolio,
+        balanced_transactions,
+        balanced_transaction_summary,
+        params,
+        logger,
+    )
+    balanced_diagnostics['phase'] = '9_balanced_recommendation'
+    balanced_adjusted_summary = balanced_diagnostics.get('adjusted_returns', {}).get('optimal', {}) or {}
+    balanced_adjusted_gross_return = balanced_adjusted_summary.get(
+        'adjusted_expected_return_pct',
+        balanced_portfolio.get('adjusted_expected_return_pct', balanced_portfolio.get('expected_return_pct', 0)),
+    )
+    balanced_adjusted_net_return = balanced_portfolio.get(
+        'adjusted_net_return_pct',
+        balanced_adjusted_gross_return - balanced_transition_cost_pct,
+    )
+    balanced_raw_net_return = _portfolio_return_value(
+        balanced_portfolio,
+        'net_return_pct',
+        'net_return',
+        default=_portfolio_return_value(balanced_portfolio, 'expected_return_pct', 'expected_return') - balanced_transition_cost_pct,
+    )
+    balanced_raw_excess_return = balanced_raw_net_return - holdings_return
+    balanced_adjusted_excess_return = balanced_adjusted_net_return - holdings_adjusted_return
+    balanced_raw_decision = 'REBALANCE' if balanced_raw_excess_return >= min_excess_threshold else 'HOLD'
+    balanced_gate = _build_shadow_rebalance_gate(
+        balanced_raw_decision,
+        balanced_adjusted_excess_return,
+        balanced_transition_cost_pct,
+        balanced_diagnostics,
+        params,
+        logger,
+        generated_date,
+    )
+    balanced_execution_plan = _build_shadow_execution_plan(
+        balanced_transactions,
+        holdings,
+        balanced_portfolio,
+        balanced_gate,
+        params,
+        logger,
+    )
+    balanced_execution_plan.update({
+        'phase': '9_balanced_execution_plan',
+        'portfolio_id': 'balanced',
+        'destination': 'MOVE_TO_BALANCED',
+        'policy': 'operational_balanced_signal',
+    })
+
+    current_payload = {
+        'id': 'current',
+        'label': 'Carteira Atual',
+        'role': 'reference_only',
+        'stocks': holdings.get('stocks', []),
+        'weights': holdings.get('weights', {}),
+        'expected_return_pct': round(holdings_return, 4),
+        'adjusted_expected_return_pct': round(holdings_adjusted_return, 4),
+        'total_value': round(holdings.get('total_value', 0), 2),
+        'total_invested': round(holdings.get('total_invested', 0), 2),
+        'concentration': _portfolio_concentration_summary(holdings.get('weights', {})),
+    }
+    acid_payload = _build_recommendation_portfolio_payload(
+        'acid',
+        'Carteira Acida',
+        'aggressive_opportunity_radar',
+        optimal,
+        diagnostics.get('return_contributors', {}).get('optimal', []) or [],
+        diagnostics.get('adjusted_returns', {}).get('optimal', {}) or {},
+        optimal.get('transition_cost', 0),
+        transaction_summary,
+        {
+            'blend_ratio': round(optimal.get('blend_ratio', 0), 4),
+            'score': round(optimal.get('score', 0), 4),
+            'raw_signal': acid_raw_decision,
+            'raw_reason': acid_raw_reason,
+            'operational_gate_decision': acid_operational_gate.get('shadow_decision'),
+            'operational_gate_veto_reasons': acid_operational_gate.get('shadow_veto_reasons', []),
+            'discretized': optimal.get('discretized', False),
+            'total_discretized_value': round(optimal.get('total_discretized', 0), 2),
+        },
+    )
+    balanced_payload = _build_recommendation_portfolio_payload(
+        'balanced',
+        'Carteira Ponderada',
+        'official_investable_destination',
+        balanced_portfolio,
+        balanced_diagnostics.get('return_contributors', {}).get('optimal', []) or [],
+        balanced_adjusted_summary,
+        balanced_transition_cost_pct,
+        balanced_transaction_summary,
+        {
+            'blend_ratio': stable_optimization.get('selected_blend_ratio'),
+            'stable_score': stable_optimization.get('selected_stable_score'),
+            'stable_enabled': bool(stable_optimization.get('enabled')),
+            'turnover_saved_pct': stable_optimization.get('turnover_saved_pct'),
+            'adjusted_return_tradeoff_pct': stable_optimization.get('adjusted_return_tradeoff_pct'),
+        },
+    )
+
+    acid_signal = _destination_signal_from_plan(acid_execution_plan, 'MOVE_TO_ACID')
+    balanced_signal = _destination_signal_from_plan(balanced_execution_plan, 'MOVE_TO_BALANCED')
+    destination = balanced_signal if balanced_signal == 'MOVE_TO_BALANCED' else 'STAY_CURRENT'
+    selected_plan = balanced_execution_plan if destination == 'MOVE_TO_BALANCED' else {
+        **balanced_execution_plan,
+        'decision_state': balanced_execution_plan.get('decision_state') or 'HOLD',
+        'decision_state_label': balanced_execution_plan.get('decision_state_label') or 'Manter',
+        'today_action': _destination_reason('STAY_CURRENT', balanced_execution_plan, acid_signal),
+        'can_execute_today': False,
+        'executable_trade_value_brl': 0.0,
+        'executable_trade_value_pct': 0.0,
+        'num_executable_actions': 0,
+    }
+    selected_plan.update({
+        'selected_destination': destination,
+        'selected_destination_label': _destination_label(destination),
+    })
+    selected_gate = balanced_gate
+    selected_transactions = balanced_transactions if destination == 'MOVE_TO_BALANCED' else []
+    selected_transaction_summary = (
+        balanced_transaction_summary
+        if destination == 'MOVE_TO_BALANCED'
+        else _build_transaction_summary([])
+    )
+    decision_engine_version = 'v3_dual_recommendation_destinations'
+    acid_raw_decision_engine_version = 'v1_raw_excess_return'
+    decision = selected_plan.get('decision_state') or 'HOLD'
+    reason = _destination_reason(destination, balanced_execution_plan, acid_signal)
+
+    current_to_acid = _build_destination_comparison(
+        'current_to_acid',
+        'Atual -> Carteira Acida',
+        'MOVE_TO_ACID',
+        current_payload,
+        acid_payload,
+        transactions,
+        transaction_summary,
+        acid_execution_plan,
+    )
+    current_to_balanced = _build_destination_comparison(
+        'current_to_balanced',
+        'Atual -> Carteira Ponderada',
+        'MOVE_TO_BALANCED',
+        current_payload,
+        balanced_payload,
+        balanced_transactions,
+        balanced_transaction_summary,
+        balanced_execution_plan,
     )
 
     recommendation = {
@@ -2558,13 +2983,17 @@ def generate_recommendation(
         'decision': decision,
         'reason': reason,
         'decision_engine_version': decision_engine_version,
-        'decision_engine_phase': '8_official_decision_promotion',
-        'decision_engine_promoted_from': 'shadow.execution_plan.decision_state',
+        'decision_engine_phase': '9_dual_recommendation_destinations',
+        'decision_engine_promoted_from': 'decision_context.destination',
         'decision_transition_window_days': 60,
-        'legacy_decision': legacy_decision,
-        'legacy_reason': legacy_reason,
-        'legacy_decision_engine_version': legacy_decision_engine_version,
-        'legacy_excess_return_pct': round(excess_return, 4),
+        'decision_destination': destination,
+        'destination': destination,
+        'destination_label': _destination_label(destination),
+        'destination_reason': reason,
+        'acid_raw_decision': acid_raw_decision,
+        'acid_raw_reason': acid_raw_reason,
+        'acid_raw_decision_engine_version': acid_raw_decision_engine_version,
+        'acid_raw_excess_return_pct': round(excess_return, 4),
         'excess_return_pct': round(excess_return, 4),
         'min_threshold_pct': min_excess_threshold,
         'optimal_score': round(optimal.get('score', 0), 4),
@@ -2579,6 +3008,7 @@ def generate_recommendation(
         'ideal_momentum': round(calculate_portfolio_momentum(ideal, logger), 4),
         'comparison': {
             'window_days': int(params.get('EXPECTED_RETURN_WINDOW_DAYS', 252)),
+            'current': current_payload,
             'holdings': {
                 'stocks': holdings.get('stocks', []),
                 'weights': holdings.get('weights', {}),
@@ -2613,15 +3043,54 @@ def generate_recommendation(
                 'discretized': optimal.get('discretized', False),
             },
         },
-        'transactions': transactions,
-        'transaction_summary': transaction_summary,
-        'diagnostics': diagnostics,
+        'recommendations': {
+            'acid': acid_payload,
+            'balanced': balanced_payload,
+        },
+        'comparisons': {
+            'current_to_acid': current_to_acid,
+            'current_to_balanced': current_to_balanced,
+        },
+        'execution_plans': {
+            'selected': selected_plan,
+            'acid': acid_execution_plan,
+            'balanced': balanced_execution_plan,
+        },
+        'decision_context': {
+            'destination': destination,
+            'destination_label': _destination_label(destination),
+            'reason': reason,
+            'policy': 'balanced_operational_official_with_acid_radar',
+            'current': 'reference_only',
+            'acid_signal': acid_signal,
+            'acid_signal_state': acid_execution_plan.get('decision_state'),
+            'acid_raw_decision': acid_raw_decision,
+            'balanced_signal': balanced_signal,
+            'balanced_signal_state': balanced_execution_plan.get('decision_state'),
+            'selected_execution_plan': 'balanced' if destination == 'MOVE_TO_BALANCED' else 'stay_current',
+        },
+        'transactions': selected_transactions,
+        'transaction_summary': selected_transaction_summary,
+        'diagnostics': {
+            **diagnostics,
+            'phase': '9_dual_recommendation_destinations',
+            'description': (
+                'Compares current portfolio against Acid and Balanced recommended destinations. '
+                'Current is reference-only; Acid is aggressive radar; Balanced is official investable destination.'
+            ),
+            'balanced': balanced_diagnostics,
+            'destination': destination,
+        },
         'shadow': {
-            'phase': '8_official_decision_promotion',
+            'phase': '9_dual_recommendation_destinations',
             'official_decision': decision,
-            'legacy_decision': legacy_decision,
-            'legacy_reason': legacy_reason,
-            'legacy_decision_engine_version': legacy_decision_engine_version,
+            'destination': destination,
+            'destination_label': _destination_label(destination),
+            'acid_signal': acid_signal,
+            'balanced_signal': balanced_signal,
+            'acid_raw_decision': acid_raw_decision,
+            'acid_raw_reason': acid_raw_reason,
+            'acid_raw_decision_engine_version': acid_raw_decision_engine_version,
             'decision_engine_version': decision_engine_version,
             'official_excess_return_pct': round(excess_return, 4),
             'holdings_adjusted_return_pct': round(holdings_adjusted_return, 4),
@@ -2638,8 +3107,11 @@ def generate_recommendation(
             ),
             'min_threshold_pct': min_excess_threshold,
             'would_rebalance_on_adjusted_return': bool(adjusted_excess_return >= min_excess_threshold),
-            **shadow_gate,
-            'execution_plan': execution_plan,
+            **selected_gate,
+            'execution_plan': selected_plan,
+            'acid_aggressive_gate': acid_aggressive_gate,
+            'acid_operational_gate': acid_operational_gate,
+            'balanced_gate': balanced_gate,
             'stable_optimization': stable_optimization,
         },
         'transaction_cost_pct_used': round(transaction_cost_pct, 4),
@@ -2686,7 +3158,7 @@ def generate_recommendation(
 
     logger.info(
         f"Decision: {decision} ({decision_engine_version}) - {reason}; "
-        f"legacy={legacy_decision}"
+        f"destination={destination}; acid_signal={acid_signal}; balanced_signal={balanced_signal}"
     )
 
     return recommendation
@@ -2728,10 +3200,13 @@ def save_recommendation(
             'reason': recommendation['reason'],
             'decision_engine_version': recommendation.get('decision_engine_version'),
             'decision_engine_phase': recommendation.get('decision_engine_phase'),
-            'legacy_decision': recommendation.get('legacy_decision'),
-            'legacy_reason': recommendation.get('legacy_reason'),
-            'legacy_decision_engine_version': recommendation.get('legacy_decision_engine_version'),
-            'legacy_excess_return_pct': recommendation.get('legacy_excess_return_pct'),
+            'decision_destination': recommendation.get('decision_destination'),
+            'acid_signal': recommendation.get('decision_context', {}).get('acid_signal'),
+            'balanced_signal': recommendation.get('decision_context', {}).get('balanced_signal'),
+            'acid_raw_decision': recommendation.get('acid_raw_decision'),
+            'acid_raw_reason': recommendation.get('acid_raw_reason'),
+            'acid_raw_decision_engine_version': recommendation.get('acid_raw_decision_engine_version'),
+            'acid_raw_excess_return_pct': recommendation.get('acid_raw_excess_return_pct'),
             'excess_return_pct': recommendation['excess_return_pct'],
             'optimal_score': recommendation['optimal_score'],
             'holdings_score': recommendation['holdings_score'],
@@ -2745,6 +3220,30 @@ def save_recommendation(
             'transition_cost_pct': recommendation['comparison']['optimal']['transition_cost_pct'],
             'transaction_cost_pct_used': recommendation['transaction_cost_pct_used'],
             'num_transactions': len(recommendation['transactions']),
+            'acid_expected_return_pct': (
+                recommendation.get('recommendations', {}).get('acid', {}).get('expected_return_pct')
+            ),
+            'acid_adjusted_net_return_pct': (
+                recommendation.get('recommendations', {}).get('acid', {}).get('adjusted_net_return_pct')
+            ),
+            'acid_turnover_pct': (
+                recommendation.get('comparisons', {}).get('current_to_acid', {}).get('turnover_pct')
+            ),
+            'acid_target_quality_score': (
+                recommendation.get('recommendations', {}).get('acid', {}).get('target_quality_score')
+            ),
+            'balanced_expected_return_pct': (
+                recommendation.get('recommendations', {}).get('balanced', {}).get('expected_return_pct')
+            ),
+            'balanced_adjusted_net_return_pct': (
+                recommendation.get('recommendations', {}).get('balanced', {}).get('adjusted_net_return_pct')
+            ),
+            'balanced_turnover_pct': (
+                recommendation.get('comparisons', {}).get('current_to_balanced', {}).get('turnover_pct')
+            ),
+            'balanced_target_quality_score': (
+                recommendation.get('recommendations', {}).get('balanced', {}).get('target_quality_score')
+            ),
             'diagnostic_holdings_top2_contribution_pct': (
                 recommendation.get('diagnostics', {})
                 .get('return_concentration', {})
@@ -2861,6 +3360,8 @@ def save_recommendation(
             'holdings_stocks': recommendation['comparison']['holdings']['stocks'],
             'ideal_stocks': recommendation['comparison']['ideal']['stocks'],
             'optimal_stocks': recommendation['comparison']['optimal']['stocks'],
+            'acid_stocks': recommendation.get('recommendations', {}).get('acid', {}).get('stocks', []),
+            'balanced_stocks': recommendation.get('recommendations', {}).get('balanced', {}).get('stocks', []),
         }
 
         with open(jsonl_path, 'a', encoding='utf-8') as f:

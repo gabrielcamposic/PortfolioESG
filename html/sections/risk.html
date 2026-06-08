@@ -136,6 +136,20 @@
   .regime-metric-value { color: var(--text-primary); font-size: 14px; font-weight: var(--font-weight-emphasis); }
   .regime-impact { margin-top: 10px; color: var(--text-secondary); font-size: 11px; font-weight: 600; line-height: 1.35; }
 
+  /* ── Portfolio Risk Comparator ── */
+  .risk-cockpit { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .risk-portfolio-card { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card-alt); padding: 13px; }
+  .risk-portfolio-card.acid { border-color: rgba(199, 143, 64, 0.38); background: rgba(199, 143, 64, 0.08); }
+  .risk-portfolio-card.balanced { border-color: rgba(79, 140, 201, 0.35); background: rgba(79, 140, 201, 0.07); }
+  .risk-portfolio-name { font-size: 9px; color: var(--color-label); font-weight: var(--font-weight-emphasis); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .risk-portfolio-value { font-size: 22px; line-height: 1; font-weight: var(--font-weight-light); color: var(--text-primary); margin-bottom: 6px; }
+  .risk-portfolio-sub { font-size: 11px; line-height: 1.35; color: var(--text-secondary); font-weight: 600; }
+  .risk-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .risk-mini { border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); padding: 6px; }
+  .risk-mini span { display: block; font-size: 8px; color: var(--color-label); font-weight: var(--font-weight-emphasis); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+  .risk-mini strong { display: block; font-size: 11px; color: var(--text-primary); }
+  .risk-note { margin-top: 10px; color: var(--text-muted); font-size: 10px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; letter-spacing: 0.05em; }
+
   /* ── Duo Charts Layout ── */
   .charts-row {
     display: grid;
@@ -143,9 +157,10 @@
     gap: 20px;
     margin-bottom: 24px;
   }
+  .charts-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   @media (max-width: 800px) {
-    .charts-row { grid-template-columns: 1fr; }
+    .charts-row, .charts-row.three, .risk-cockpit { grid-template-columns: 1fr; }
     .bar-chart-wrapper { height: 240px; }
   }
 </style>
@@ -160,6 +175,11 @@
   <div id="market-regime-panel"><span class="loading">Carregando...</span></div>
 </div>
 
+<div class="table-card">
+  <div class="table-title">Comparador de Risco por Carteira</div>
+  <div id="portfolio-risk-cockpit"><span class="loading">Carregando...</span></div>
+</div>
+
 <div class="table-card" style="background: transparent; border: none; padding: 0;">
   <div class="table-title" style="padding-left: 5px;">Raio-X de Estresse Histórico (Carteira Real)</div>
   <div class="cards-row" id="cards-stress">
@@ -169,12 +189,12 @@
 
 <!-- Comparativo Atual vs Modelo -->
 <div class="table-card">
-  <div class="table-title">Comparativo de Risco (Carteira Atual vs. Modelo Proposto)</div>
+  <div class="table-title">Matriz de Risco e Transição</div>
   <div id="compare-table-container"><span class="loading">Carregando...</span></div>
 </div>
 
 <!-- Dual Concentration bar charts (Setores) -->
-<div class="charts-row">
+<div class="charts-row three">
   <div class="chart-card">
     <div class="chart-title">Alocação por Setor (Carteira Atual)</div>
     <div class="bar-chart-wrapper">
@@ -182,15 +202,21 @@
     </div>
   </div>
   <div class="chart-card">
-    <div class="chart-title">Alocação por Setor (Modelo Proposto)</div>
+    <div class="chart-title">Alocação por Setor (Carteira Ácida)</div>
     <div class="bar-chart-wrapper">
-      <canvas id="model-sector-concentration-chart"></canvas>
+      <canvas id="acid-sector-concentration-chart"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Alocação por Setor (Carteira Ponderada)</div>
+    <div class="bar-chart-wrapper">
+      <canvas id="balanced-sector-concentration-chart"></canvas>
     </div>
   </div>
 </div>
 
 <!-- Dual Concentration bar charts (Ativos) -->
-<div class="charts-row">
+<div class="charts-row three">
   <div class="chart-card">
     <div class="chart-title">Alocação por Ativo (Carteira Atual)</div>
     <div class="bar-chart-wrapper">
@@ -198,9 +224,15 @@
     </div>
   </div>
   <div class="chart-card">
-    <div class="chart-title">Alocação por Ativo (Modelo Proposto)</div>
+    <div class="chart-title">Alocação por Ativo (Carteira Ácida)</div>
     <div class="bar-chart-wrapper">
-      <canvas id="model-concentration-chart"></canvas>
+      <canvas id="acid-concentration-chart"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Alocação por Ativo (Carteira Ponderada)</div>
+    <div class="bar-chart-wrapper">
+      <canvas id="balanced-concentration-chart"></canvas>
     </div>
   </div>
 </div>
@@ -233,9 +265,29 @@ function fmtPctPoint(v, d = 1) {
   if (v == null || isNaN(v)) return '—';
   return `${Number(v).toFixed(d)}%`;
 }
+function fmtSignedPctPoint(v, d = 2) {
+  if (v == null || isNaN(v)) return '—';
+  const value = Number(v);
+  return `${value > 0 ? '+' : ''}${value.toFixed(d)}%`;
+}
 function fmtIndexLevel(v) {
   if (v == null || isNaN(v)) return '—';
   return Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+function signalLabel(signal) {
+  return ({
+    STAY_CURRENT: 'Manter atual',
+    MOVE_TO_ACID: 'Mover para Ácida',
+    MOVE_TO_BALANCED: 'Mover para Ponderada',
+  })[signal] || (signal || '—');
+}
+function mini(label, value) {
+  return `<div class="risk-mini"><span>${label}</span><strong>${value}</strong></div>`;
 }
 function regimeLabel(state) {
   return ({
@@ -339,32 +391,55 @@ async function render() {
       </div>`;
 
 
-    // ── Comparison Table (Actual vs Model) ──
-    const t_vol_real = dashboard.real.twr?.volatility ? fmtPct(dashboard.real.twr.volatility) : '—';
-    const t_vol_mod  = dashboard.model.risk?.volatility_annual ? fmtPct(dashboard.model.risk.volatility_annual / 100) : '—';
-    const t_shp_real = dashboard.real.twr?.sharpe ? fmtNum(dashboard.real.twr.sharpe) : '—';
-    const t_shp_mod  = dashboard.model.risk?.sharpe ? fmtNum(dashboard.model.risk.sharpe) : '—';
-    const t_hhi_real = dashboard.real.structure?.hhi ? fmtHHI(dashboard.real.structure.hhi) : '—';
-    const t_hhi_mod  = dashboard.model.risk?.hhi ? fmtHHI(dashboard.model.risk.hhi) : '—';
+    // ── Portfolio Risk Matrix (Current / Acid / Balanced) ──
+    const current = recommendation?.comparison?.current || recommendation?.comparison?.holdings || dashboard.model?.portfolios?.current || {};
+    const acid = recommendation?.recommendations?.acid || dashboard.model?.portfolios?.acid || {};
+    const balanced = recommendation?.recommendations?.balanced || dashboard.model?.portfolios?.balanced || {};
+    const currentToAcid = recommendation?.comparisons?.current_to_acid || dashboard.model?.comparisons?.current_to_acid || {};
+    const currentToBalanced = recommendation?.comparisons?.current_to_balanced || dashboard.model?.comparisons?.current_to_balanced || {};
+    const context = recommendation?.decision_context || {};
 
-    const t_pe_real  = dashboard.real.valuation?.portfolio_pe ? fmtNum(dashboard.real.valuation.portfolio_pe) : '—';
-    const t_pe_mod   = dashboard.model.valuation?.portfolio_pe ? fmtNum(dashboard.model.valuation.portfolio_pe) : '—';
-    const t_liq_real = dashboard.real.risk?.liquidity_avg ? fmtLargeNum(dashboard.real.risk.liquidity_avg) : '—';
-    const t_liq_mod  = dashboard.model.risk?.liquidity_avg ? fmtLargeNum(dashboard.model.risk.liquidity_avg) : '—';
-    const t_cor_real = dashboard.real.risk?.avg_internal_corr ? fmtNum(dashboard.real.risk.avg_internal_corr, 4) : '—';
-    const t_cor_mod  = dashboard.model.risk?.avg_internal_corr ? fmtNum(dashboard.model.risk.avg_internal_corr, 4) : '—';
+    const riskCard = (kind, title, portfolio, transition, sub, mainValue) => `
+      <div class="risk-portfolio-card ${kind}">
+        <div class="risk-portfolio-name">${title}</div>
+        <div class="risk-portfolio-value" style="color:${plColor((mainValue || 0) / 100)}">${fmtPctPoint(mainValue, 2)}</div>
+        <div class="risk-portfolio-sub">${esc(sub)}</div>
+        <div class="risk-mini-grid">
+          ${mini('Turnover', fmtPctPoint(transition?.turnover_pct || 0, 2))}
+          ${mini('HHI', fmtHHI(portfolio?.concentration?.hhi))}
+          ${mini('Top 5', fmtPctPoint(portfolio?.concentration?.top5_weight_pct, 2))}
+          ${mini('Low/Reject', fmtPctPoint(portfolio?.low_reject_weight_pct, 2))}
+        </div>
+      </div>`;
+
+    document.getElementById('portfolio-risk-cockpit').innerHTML = `
+      <div class="risk-cockpit">
+        ${riskCard('', 'Carteira Atual', current, { turnover_pct: 0 }, 'referência real; não é recomendação', current.adjusted_expected_return_pct)}
+        ${riskCard('acid', 'Carteira Ácida', acid, currentToAcid, `sinal: ${signalLabel(context.acid_signal)}`, acid.adjusted_net_return_pct)}
+        ${riskCard('balanced', 'Carteira Ponderada', balanced, currentToBalanced, `sinal: ${signalLabel(context.balanced_signal)}`, balanced.adjusted_net_return_pct)}
+      </div>
+      <div class="risk-note">Destino oficial: ${esc(signalLabel(context.destination || recommendation?.decision_destination || dashboard.model?.decision?.destination))}</div>`;
+
+    const realVol = dashboard.real.twr?.volatility ? fmtPct(dashboard.real.twr.volatility) : '—';
+    const realSharpe = dashboard.real.twr?.sharpe ? fmtNum(dashboard.real.twr.sharpe) : '—';
+    const realBeta = dashboard.real.relative?.beta ? fmtNum(dashboard.real.relative.beta) : '—';
 
     let compareHtml = `<table class="risk-table">
       <thead>
-        <tr><th>Indicador</th><th>Carteira Atual</th><th>Modelo Proposto</th></tr>
+        <tr><th>Indicador</th><th>Carteira Atual</th><th>Carteira Ácida</th><th>Carteira Ponderada</th></tr>
       </thead>
       <tbody>
-        <tr><td>Volatilidade Anualizada</td><td>${t_vol_real}</td><td>${t_vol_mod}</td></tr>
-        <tr><td>Índice Sharpe</td><td>${t_shp_real}</td><td>${t_shp_mod}</td></tr>
-        <tr><td>Concentração (HHI)</td><td>${t_hhi_real}</td><td>${t_hhi_mod}</td></tr>
-        <tr><td>Liquidez Média (Vol. R$)</td><td>${t_liq_real}</td><td>${t_liq_mod}</td></tr>
-        <tr><td>Correlação Interna Média</td><td>${t_cor_real}</td><td>${t_cor_mod}</td></tr>
-        <tr style="border-bottom:none"><td>P/E Médio Ponderado</td><td>${t_pe_real}</td><td>${t_pe_mod}</td></tr>
+        <tr><td>Papel</td><td>Referência</td><td>Radar agressivo</td><td>Destino operacional</td></tr>
+        <tr><td>Sinal</td><td>—</td><td>${esc(signalLabel(context.acid_signal))}</td><td>${esc(signalLabel(context.balanced_signal))}</td></tr>
+        <tr><td>Retorno ajustado</td><td>${fmtPctPoint(current.adjusted_expected_return_pct, 2)}</td><td>${fmtPctPoint(acid.adjusted_net_return_pct, 2)}</td><td>${fmtPctPoint(balanced.adjusted_net_return_pct, 2)}</td></tr>
+        <tr><td>Delta ajustado vs atual</td><td>—</td><td>${fmtSignedPctPoint(currentToAcid.adjusted_net_delta_pct, 2)}</td><td>${fmtSignedPctPoint(currentToBalanced.adjusted_net_delta_pct, 2)}</td></tr>
+        <tr><td>Retorno bruto</td><td>${fmtPctPoint(current.expected_return_pct, 2)}</td><td>${fmtPctPoint(acid.net_return_pct, 2)}</td><td>${fmtPctPoint(balanced.net_return_pct, 2)}</td></tr>
+        <tr><td>Turnover necessário</td><td>0.00%</td><td>${fmtPctPoint(currentToAcid.turnover_pct, 2)}</td><td>${fmtPctPoint(currentToBalanced.turnover_pct, 2)}</td></tr>
+        <tr><td>Concentração (HHI)</td><td>${fmtHHI(current.concentration?.hhi)}</td><td>${fmtHHI(acid.concentration?.hhi)}</td><td>${fmtHHI(balanced.concentration?.hhi)}</td></tr>
+        <tr><td>Top 5 posições</td><td>${fmtPctPoint(current.concentration?.top5_weight_pct, 2)}</td><td>${fmtPctPoint(acid.concentration?.top5_weight_pct, 2)}</td><td>${fmtPctPoint(balanced.concentration?.top5_weight_pct, 2)}</td></tr>
+        <tr><td>Qualidade de target</td><td>—</td><td>${fmtNum(acid.target_quality_score, 2)}</td><td>${fmtNum(balanced.target_quality_score, 2)}</td></tr>
+        <tr><td>Peso low/reject</td><td>—</td><td>${fmtPctPoint(acid.low_reject_weight_pct, 2)}</td><td>${fmtPctPoint(balanced.low_reject_weight_pct, 2)}</td></tr>
+        <tr><td>Risco histórico da atual</td><td>Vol ${realVol} · Sharpe ${realSharpe} · Beta ${realBeta}</td><td colspan="2">Risco prospectivo detalhado será calibrado na próxima evolução de risk profiles.</td></tr>
       </tbody>
     </table>`;
     document.getElementById('compare-table-container').innerHTML = compareHtml;
@@ -458,23 +533,34 @@ async function render() {
       createChart('sector-concentration-chart', realSectors);
     }
  
-    // Model Position Chart
-    const modelWeights = recommendation?.comparison?.optimal?.weights || recommendation?.comparison?.ideal?.weights;
-    if (modelWeights) {
-      const modelItems = Object.entries(modelWeights)
+    // Acid and Balanced Position Charts
+    function weightsToItems(weights) {
+      return Object.entries(weights || {})
         .map(([sym, w]) => ({ symbol: sym.replace('.SA', ''), weight: w }))
         .filter(p => p.weight > 0)
         .sort((a, b) => b.weight - a.weight);
-        
-      const modelHoldings = modelItems.map(i => i.symbol);
-      createChart('model-concentration-chart', modelItems, true, modelHoldings);
     }
-    
-    // Model Sector Chart
-    const modelSectorsData = dashboard.model?.composition?.sector_exposure;
-    if (modelSectorsData && modelSectorsData.length > 0) {
-      const modelSectors = modelSectorsData.map(s => ({symbol: s.sector, weight: s.pct}));
-      createChart('model-sector-concentration-chart', modelSectors);
+
+    const acidItems = weightsToItems(acid.weights);
+    if (acidItems.length) {
+      createChart('acid-concentration-chart', acidItems, true, acidItems.map(i => i.symbol));
+    }
+
+    const balancedItems = weightsToItems(balanced.weights);
+    if (balancedItems.length) {
+      createChart('balanced-concentration-chart', balancedItems, true, balancedItems.map(i => i.symbol));
+    }
+
+    const acidSectorsData = acid.sector_exposure || dashboard.model?.portfolios?.acid?.sector_exposure || [];
+    if (acidSectorsData.length > 0) {
+      const acidSectors = acidSectorsData.map(s => ({symbol: s.sector, weight: s.pct}));
+      createChart('acid-sector-concentration-chart', acidSectors);
+    }
+
+    const balancedSectorsData = balanced.sector_exposure || dashboard.model?.portfolios?.balanced?.sector_exposure || [];
+    if (balancedSectorsData.length > 0) {
+      const balancedSectors = balancedSectorsData.map(s => ({symbol: s.sector, weight: s.pct}));
+      createChart('balanced-sector-concentration-chart', balancedSectors);
     }
 
   } catch (err) {

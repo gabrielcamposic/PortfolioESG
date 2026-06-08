@@ -94,8 +94,8 @@ Frontend:
 | 6 | Otimizacao com penalidade de turnover | Implementado em 2026-06-06 | Preferir estabilidade quando ganho marginal e baixo |
 | 7 | Backtest e calibracao | Implementado em 2026-06-06 | Calibrar thresholds com historico |
 | 8 | Promocao para decisao oficial | Implementado em 2026-06-06 | Substituir decisao oficial com seguranca |
-| 9 | Duas carteiras recomendadas | Planejado | Escolher entre acida, ponderada ou manter atual |
-| 10 | Reestruturacao das paginas Modelo e Risco | Planejado | Criar cockpit comparativo para estudar carteiras, riscos e planos de execucao |
+| 9 | Duas carteiras recomendadas | Implementado em 2026-06-07 | Escolher entre acida, ponderada ou manter atual |
+| 10 | Reestruturacao das paginas Modelo e Risco | Implementado em 2026-06-07 | Criar cockpit comparativo para estudar carteiras, riscos e planos de execucao |
 
 ## Fase 0: Baseline E Diagnostico Atual
 
@@ -847,8 +847,8 @@ O objetivo de `risk.html` deixa de ser apenas explicar o ambiente de mercado e p
 9. Implementar Fase 3 e mostrar regime.
 10. Implementar Fase 4 e comparar decisao oficial vs shadow.
 11. Seguir para Fases 5 a 8 apenas depois que os sinais estiverem interpretaveis.
-12. Implementar Fase 9 para separar carteira acida de carteira ponderada.
-13. Implementar Fase 10 para reorganizar `model.html` e `risk.html` em torno da atual, da Acida e da Ponderada.
+12. Fase 9 implementada: carteira atual como referencia, carteira acida como radar agressivo e carteira ponderada como destino operacional.
+13. Fase 10 implementada: `model.html` e `risk.html` reorganizados em torno da Atual, da Acida e da Ponderada.
 
 ## Checklist Por Ciclo
 
@@ -938,6 +938,8 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-07 | Fase 10 implementada: `model.html` prioriza decisao, comparacao e planos por destino, movendo backtest/origem do retorno/gate para auditoria; `risk.html` compara Atual, Acida e Ponderada com matriz de risco, concentracao e charts por carteira; header mostra retorno ajustado do destino oficial |
+| 2026-06-07 | Fase 9 implementada: `optimized_recommendation.json` ganhou `comparison.current`, `recommendations.acid`, `recommendations.balanced`, `comparisons.current_to_acid`, `comparisons.current_to_balanced`, `execution_plans.*` e `decision_destination`; `model.html` compara Atual, Acida e Ponderada e mostra planos por destino |
 | 2026-06-07 | Fase 10 planejada: reestruturar `model.html` e `risk.html` como cockpit comparativo de carteiras, riscos e planos de execucao por destino |
 | 2026-06-07 | Fase 9 planejada: comparar Atual -> Acida e Atual -> Ponderada, decidindo entre mover para acida, mover para ponderada ou manter atual |
 | 2026-06-06 | Fase 8 implementada: decisao operacional promovida para `decision`, decisao bruta preservada como `legacy_decision`, `decision_engine_version` registrado, dashboard mostra Oficial vs Legado e header usa a nova acao oficial |

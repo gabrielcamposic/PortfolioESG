@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>03 — Portfólio Modelo</title>
+<title>03 — Carteiras do Modelo</title>
 <link rel="stylesheet" href="../css/base.css">
 <script src="../js/header.js" data-page="model"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -110,6 +110,33 @@
   .calibration-panel { margin: 12px 0 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-card-alt); padding: 12px; }
   .calibration-notes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .calibration-note { border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg-card); border-radius: 6px; padding: 4px 7px; font-size: 10px; font-weight: var(--font-weight-emphasis); }
+
+  /* ── Phase 9 portfolio cockpit ── */
+  .portfolio-cockpit { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .portfolio-card { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card-alt); padding: 12px; min-height: 126px; }
+  .portfolio-card.acid { border-color: rgba(199, 143, 64, 0.40); background: rgba(199, 143, 64, 0.08); }
+  .portfolio-card.balanced { border-color: rgba(79, 140, 201, 0.38); background: rgba(79, 140, 201, 0.07); }
+  .portfolio-card.decision { border-color: rgba(46, 125, 50, 0.32); background: var(--bg-positive); }
+  .portfolio-name { font-size: 9px; font-weight: var(--font-weight-emphasis); color: var(--color-label); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  .portfolio-main { font-size: 20px; line-height: 1; font-weight: var(--font-weight-light); color: var(--text-primary); margin-bottom: 6px; }
+  .portfolio-sub { font-size: 11px; line-height: 1.35; color: var(--text-secondary); font-weight: var(--font-weight-emphasis); }
+  .portfolio-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .portfolio-mini { border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); padding: 6px; }
+  .portfolio-mini span { display: block; font-size: 8px; color: var(--color-label); font-weight: var(--font-weight-emphasis); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+  .portfolio-mini strong { display: block; font-size: 11px; color: var(--text-primary); }
+  .destination-strip { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+  .destination-chip { border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; background: var(--bg-card-alt); color: var(--text-secondary); font-size: 10px; font-weight: var(--font-weight-emphasis); }
+  .destination-chip.active { border-color: rgba(46, 125, 50, 0.42); background: var(--bg-positive); color: var(--color-positive); }
+  .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .plan-card { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card-alt); padding: 12px; }
+  .plan-card.acid { border-color: rgba(199, 143, 64, 0.35); background: rgba(199, 143, 64, 0.06); }
+  .plan-card.balanced { border-color: rgba(79, 140, 201, 0.35); background: rgba(79, 140, 201, 0.06); }
+  .allocation-compare { table-layout: fixed; min-width: 920px; }
+  .allocation-compare td { padding: 8px 9px; font-size: 11px; }
+  .audit-details { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card-alt); margin-top: 10px; overflow: hidden; }
+  .audit-details summary { cursor: pointer; padding: 10px 12px; font-size: 10px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); letter-spacing: 0.08em; text-transform: uppercase; }
+  .audit-body { padding: 0 12px 12px; }
+  .official-note { border: 1px solid rgba(46, 125, 50, 0.35); background: var(--bg-positive); color: var(--text-primary); border-radius: 8px; padding: 9px 11px; font-size: 11px; font-weight: var(--font-weight-emphasis); line-height: 1.35; margin-bottom: 12px; }
 
   /* ── Risk Row ── */
   .risk-section-label { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); margin-bottom: 8px; padding-top: 14px; border-top: 1px solid var(--border-strong); letter-spacing: 0.08em; }
@@ -266,14 +293,19 @@
   
   @media (max-width: 1024px) {
     .cards-grid { grid-template-columns: 1fr; }
+    .portfolio-cockpit { grid-template-columns: 1fr 1fr; }
+    .plan-grid { grid-template-columns: 1fr; }
     .return-comparison { grid-template-columns: 1fr; }
     .rc-middle { flex-direction: row; justify-content: space-between; padding: 8px; border-radius: 8px; background: var(--bg-card-alt); }
+  }
+  @media (max-width: 640px) {
+    .portfolio-cockpit { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<div class="section-title">Portfólio Modelo (Forward)</div>
+<div class="section-title">Carteiras do Modelo</div>
 
 <div class="cards-grid">
   <div class="card" id="summary-card"><span class="loading">Carregando modelo...</span></div>
@@ -284,18 +316,23 @@
 </div>
 
 <div class="card">
-  <div class="card-header">Alocação do Modelo</div>
+  <div class="card-header">Comparação de Carteiras</div>
   <div id="allocation-table"><span class="loading">Carregando alocação...</span></div>
 </div>
 
 <div class="card">
-  <div class="card-header">Correlação — Carteira Atual vs. Modelo</div>
+  <div class="card-header">Correlação — Carteira Atual vs. Carteiras do Modelo</div>
   <div id="corr-heatmap"><span class="loading">Carregando correlações...</span></div>
 </div>
 
 <div class="card">
-  <div class="card-header">Plano de Execução</div>
+  <div class="card-header">Planos de Execução</div>
   <div id="tx-table"><span class="loading">Carregando recomendações...</span></div>
+</div>
+
+<div class="card">
+  <div class="card-header">Auditoria Técnica</div>
+  <div id="audit-card"><span class="loading">Carregando auditoria...</span></div>
 </div>
 
 <script type="module">
@@ -341,6 +378,34 @@ function sourceClass(source) {
 function qualityClass(bucket) {
   return ['high', 'medium', 'low', 'reject'].includes(bucket) ? bucket : '';
 }
+function destinationLabel(destination) {
+  return ({
+    STAY_CURRENT: 'Manter atual',
+    MOVE_TO_ACID: 'Ir para Ácida',
+    MOVE_TO_BALANCED: 'Ir para Ponderada',
+  })[destination] || (destination || '—');
+}
+function signalLabel(signal) {
+  return ({
+    STAY_CURRENT: 'Manter atual',
+    MOVE_TO_ACID: 'Mover para Ácida',
+    MOVE_TO_BALANCED: 'Mover para Ponderada',
+  })[signal] || (signal || '—');
+}
+function asWeightPct(weights, symbol) {
+  return ((weights || {})[symbol] || 0) * 100;
+}
+function contributorMap(portfolio) {
+  const rows = portfolio?.top_contributors || [];
+  return Object.fromEntries(rows.map(row => [row.stock, row]));
+}
+function portfolioMetric(portfolio, key) {
+  const value = portfolio?.[key];
+  return value == null || isNaN(value) ? null : Number(value);
+}
+function renderMini(label, value) {
+  return `<div class="portfolio-mini"><span>${label}</span><strong>${value}</strong></div>`;
+}
 
 function renderReturnDiagnostics(dashboard, recommendation) {
   const diag = recommendation?.diagnostics || dashboard.model?.diagnostics || {};
@@ -358,13 +423,13 @@ function renderReturnDiagnostics(dashboard, recommendation) {
   const holdTop2 = holdConc.top2_contribution_pct;
   const rows = contributors.slice(0, 5);
   const alert = top2 != null && top2 > 50
-    ? `<div class="diag-alert">Top 2 ativos explicam ${fmtNum(top2, 1)}% do retorno esperado do modelo${holdTop2 != null ? `; na carteira atual, ${fmtNum(holdTop2, 1)}%` : ''}.</div>`
+    ? `<div class="diag-alert">Top 2 ativos explicam ${fmtNum(top2, 1)}% do retorno esperado da Carteira Ácida${holdTop2 != null ? `; na carteira atual, ${fmtNum(holdTop2, 1)}%` : ''}.</div>`
     : '';
 
   return `
     <div class="diag-block">
       <div class="diag-head">
-        <div class="diag-title">Origem do Retorno Esperado</div>
+        <div class="diag-title">Origem do Retorno Esperado — Carteira Ácida</div>
         <div class="diag-chips">
           <div class="diag-chip">Bruto: ${fmtPct(adjustedSummary.raw_expected_return_pct ?? optimalConc.expected_return_pct)}</div>
           <div class="diag-chip">Ajustado: ${fmtPct(adjustedSummary.adjusted_expected_return_pct)}</div>
@@ -426,6 +491,7 @@ function shadowDecisionLabel(decision) {
 
 function decisionEngineLabel(engine) {
   return ({
+    v3_dual_recommendation_destinations: 'Duas carteiras',
     v2_operational_shadow_conservative: 'Operacional conservador',
     v1_raw_excess_return: 'Excesso bruto',
   })[engine] || (engine || '—');
@@ -570,20 +636,20 @@ function renderShadowGate(dashboard, recommendation) {
   const modelDecision = dashboard.model?.decision || {};
   const decision = shadow.shadow_decision;
   const officialDecision = recommendation?.decision || modelDecision.verdict || shadow.official_decision || decision;
-  const legacyDecision = recommendation?.legacy_decision || modelDecision.legacy_decision || shadow.legacy_decision;
+  const legacyDecision = recommendation?.acid_raw_decision || modelDecision.acid_raw_decision || shadow.acid_raw_decision;
   const cls = String(officialDecision || decision).toLowerCase();
   const vetoes = shadow.shadow_veto_reasons || [];
   const vetoHtml = vetoes.length
     ? `<div class="shadow-vetoes">${vetoes.map(veto => `<span class="shadow-veto" title="${esc(veto.code || '')}">${esc(veto.message || veto.code)}</span>`).join('')}</div>`
     : '';
   const engine = recommendation?.decision_engine_version || modelDecision.decision_engine_version || shadow.decision_engine_version;
-  const legacyEngine = recommendation?.legacy_decision_engine_version || modelDecision.legacy_decision_engine_version || shadow.legacy_decision_engine_version;
+  const legacyEngine = recommendation?.acid_raw_decision_engine_version || modelDecision.acid_raw_decision_engine_version || shadow.acid_raw_decision_engine_version;
   const transitionDays = recommendation?.decision_transition_window_days || modelDecision.transition_window_days;
   const engineHtml = engine
-    ? `<div class="shadow-sub" title="${esc(engine)}${legacyEngine ? ` · legado ${esc(legacyEngine)}` : ''}">Motor: ${esc(decisionEngineLabel(engine))}${transitionDays ? ` · transição legada ${fmtNum(transitionDays, 0)}d` : ''}${legacyEngine ? ` · legado ${esc(decisionEngineLabel(legacyEngine))}` : ''}</div>`
+    ? `<div class="shadow-sub" title="${esc(engine)}${legacyEngine ? ` · sinal ácido ${esc(legacyEngine)}` : ''}">Motor: ${esc(decisionEngineLabel(engine))}${transitionDays ? ` · janela de auditoria ${fmtNum(transitionDays, 0)}d` : ''}${legacyEngine ? ` · ácido ${esc(decisionEngineLabel(legacyEngine))}` : ''}</div>`
     : '';
   const mainText = legacyDecision
-    ? `Oficial: ${shadowDecisionLabel(officialDecision)} · Legado: ${shadowDecisionLabel(legacyDecision)}`
+    ? `Oficial: ${shadowDecisionLabel(officialDecision)} · Ácida: ${shadowDecisionLabel(legacyDecision)}`
     : `Oficial: ${shadowDecisionLabel(officialDecision)} · Gate: ${shadowDecisionLabel(decision)}`;
 
   const metrics = [
@@ -723,6 +789,99 @@ function renderCalibrationComparison(dashboard) {
 
 function renderSummary(dashboard, recommendation) {
   const model = dashboard.model || {};
+  const hasDual = recommendation?.recommendations?.acid && recommendation?.recommendations?.balanced;
+  if (hasDual) {
+    const current = recommendation.comparison?.current || recommendation.comparison?.holdings || {};
+    const acid = recommendation.recommendations.acid || {};
+    const balanced = recommendation.recommendations.balanced || {};
+    const comparisons = recommendation.comparisons || {};
+    const currentToAcid = comparisons.current_to_acid || {};
+    const currentToBalanced = comparisons.current_to_balanced || {};
+    const context = recommendation.decision_context || {};
+    const destination = recommendation.decision_destination || context.destination || model.decision?.destination || 'STAY_CURRENT';
+    const decisionState = recommendation.decision || model.decision?.verdict || 'HOLD';
+    const badgeCls = String(decisionState).toLowerCase();
+    const reason = recommendation.destination_reason || recommendation.reason || context.reason || '';
+
+    const card = (kind, title, portfolio, comparison, mainKey, subText) => `
+      <div class="portfolio-card ${kind}">
+        <div class="portfolio-name">${title}</div>
+        <div class="portfolio-main" style="color:${plColor((portfolioMetric(portfolio, mainKey) || 0) / 100)}">${fmtPct(portfolioMetric(portfolio, mainKey))}</div>
+        <div class="portfolio-sub">${subText}</div>
+        <div class="portfolio-metrics">
+          ${renderMini('Bruto', fmtPct(portfolioMetric(portfolio, 'net_return_pct') ?? portfolioMetric(portfolio, 'expected_return_pct')))}
+          ${renderMini('Turnover', fmtPct(comparison?.turnover_pct))}
+          ${renderMini('Qualidade', fmtNum(portfolio.target_quality_score, 2))}
+          ${renderMini('Low/Reject', fmtPct(portfolio.low_reject_weight_pct))}
+        </div>
+      </div>`;
+
+    const decisionHtml = `
+      <div class="portfolio-card decision">
+        <div class="portfolio-name">Decisão oficial</div>
+        <div class="portfolio-main">${esc(destinationLabel(destination))}</div>
+        <div class="portfolio-sub">${esc(reason)}</div>
+        <div class="portfolio-metrics">
+          ${renderMini('Ácida', signalLabel(context.acid_signal))}
+          ${renderMini('Ponderada', signalLabel(context.balanced_signal))}
+          ${renderMini('Ações hoje', fmtNum(recommendation.execution_plans?.selected?.num_executable_actions, 0))}
+          ${renderMini('Executável', fmtBRL(recommendation.execution_plans?.selected?.executable_trade_value_brl))}
+        </div>
+      </div>`;
+
+    const cockpitHtml = `
+      <div class="official-note">A recomendação oficial usa a Carteira Ponderada como destino investível. A Carteira Ácida é um radar agressivo: aparece para estudo, mas não vira ordem sem você escolher esse destino.</div>
+      <div class="portfolio-cockpit">
+        <div class="portfolio-card">
+          <div class="portfolio-name">Carteira Atual</div>
+          <div class="portfolio-main" style="color:${plColor((current.adjusted_expected_return_pct || 0) / 100)}">${fmtPct(current.adjusted_expected_return_pct)}</div>
+          <div class="portfolio-sub">referência real de partida; não é recomendação</div>
+          <div class="portfolio-metrics">
+            ${renderMini('Bruto', fmtPct(current.expected_return_pct))}
+            ${renderMini('Valor', fmtBRL(current.total_value))}
+            ${renderMini('HHI', fmtNum(current.concentration?.hhi, 4))}
+            ${renderMini('Top 5', fmtPct(current.concentration?.top5_weight_pct))}
+          </div>
+        </div>
+        ${card('acid', 'Carteira Ácida', acid, currentToAcid, 'adjusted_net_return_pct', 'radar agressivo; sensível a targets e distorções')}
+        ${card('balanced', 'Carteira Ponderada', balanced, currentToBalanced, 'adjusted_net_return_pct', 'destino investível e operacional')}
+        ${decisionHtml}
+      </div>
+      <div class="destination-strip">
+        <span class="destination-chip ${destination === 'STAY_CURRENT' ? 'active' : ''}">Manter atual</span>
+        <span class="destination-chip ${destination === 'MOVE_TO_ACID' ? 'active' : ''}">Ir para Ácida</span>
+        <span class="destination-chip ${destination === 'MOVE_TO_BALANCED' ? 'active' : ''}">Ir para Ponderada</span>
+      </div>`;
+
+    const riskItems = [
+      { label: 'Ácida Δ ajustado', value: fmtSignedPct(currentToAcid.adjusted_net_delta_pct) },
+      { label: 'Ponderada Δ ajustado', value: fmtSignedPct(currentToBalanced.adjusted_net_delta_pct) },
+      { label: 'Ácida turnover', value: fmtPct(currentToAcid.turnover_pct) },
+      { label: 'Ponderada turnover', value: fmtPct(currentToBalanced.turnover_pct) },
+      { label: 'Ácida HHI', value: fmtNum(acid.concentration?.hhi, 4) },
+      { label: 'Ponderada HHI', value: fmtNum(balanced.concentration?.hhi, 4) },
+    ];
+
+    const riskRowHtml = `
+      <div class="risk-section-label">Comparação operacional</div>
+      <div class="risk-row">
+        ${riskItems.map(r => `
+          <div class="risk-item">
+            <span class="risk-label">${r.label}</span>
+            <span class="risk-value">${r.value}</span>
+          </div>`).join('')}
+      </div>`;
+
+    document.getElementById('summary-card').innerHTML = `
+      <div class="card-header">Estudo de Carteiras
+        <span class="badge ${badgeCls}">${esc(destinationLabel(destination))}</span>
+      </div>
+      ${cockpitHtml}
+      ${riskRowHtml}
+    `;
+    return;
+  }
+
   const ret   = model.returns || {};
   const risk  = model.risk    || {};
   const shadow = recommendation?.shadow || model.shadow || {};
@@ -753,7 +912,7 @@ function renderSummary(dashboard, recommendation) {
         <div class="rc-excess-label">excesso</div>
       </div>
       <div class="rc-box rc-box--model">
-        <div class="rc-label">Portfólio Modelo</div>
+        <div class="rc-label">Destino do Modelo</div>
         <div class="rc-value" style="color: ${plColor(ret.net_12m / 100)}">${fmtPct(ret.net_12m)}</div>
         <div class="rc-sub">${costSub}</div>
       </div>
@@ -768,7 +927,7 @@ function renderSummary(dashboard, recommendation) {
   ];
 
   const riskRowHtml = `
-    <div class="risk-section-label">Perfil de risco — Portfólio Modelo</div>
+    <div class="risk-section-label">Perfil de risco — Destino do Modelo</div>
     <div class="risk-row">
       ${riskItems.map(r => `
         <div class="risk-item">
@@ -894,10 +1053,117 @@ function renderSectors(dashboard) {
   });
 }
 
-function renderAllocation(pipeline) {
+function renderAudit(dashboard, recommendation) {
+  const el = document.getElementById('audit-card');
+  if (!el) return;
+
+  const calibration = renderCalibrationComparison(dashboard);
+  const diagnostics = renderReturnDiagnostics(dashboard, recommendation);
+  const shadow = recommendation?.shadow || dashboard.model?.shadow || {};
+  const gate = renderShadowGate(dashboard, recommendation);
+
+  el.innerHTML = `
+    <details class="audit-details">
+      <summary>Backtest e calibração</summary>
+      <div class="audit-body">${calibration || '<span class="loading">Sem dados de calibração.</span>'}</div>
+    </details>
+    <details class="audit-details">
+      <summary>Origem do retorno da Carteira Ácida</summary>
+      <div class="audit-body">${diagnostics || '<span class="loading">Sem diagnóstico de retorno.</span>'}</div>
+    </details>
+    <details class="audit-details">
+      <summary>Gate operacional e fronteira estável</summary>
+      <div class="audit-body">${gate || '<span class="loading">Sem dados do gate operacional.</span>'}</div>
+    </details>
+    <div class="corr-note">Motor: ${esc(recommendation?.decision_engine_version || dashboard.model?.decision?.decision_engine_version || shadow.decision_engine_version || '—')} · destino: ${esc(destinationLabel(recommendation?.decision_destination || dashboard.model?.decision?.destination || 'STAY_CURRENT'))}</div>
+  `;
+}
+
+function renderAllocation(recommendation, pipeline) {
+  const current = recommendation?.comparison?.current || recommendation?.comparison?.holdings;
+  const acid = recommendation?.recommendations?.acid;
+  const balanced = recommendation?.recommendations?.balanced;
+  const el = document.getElementById('allocation-table');
+
+  if (current && acid && balanced) {
+    const currentWeights = current.weights || {};
+    const acidWeights = acid.weights || {};
+    const balancedWeights = balanced.weights || {};
+    const acidContrib = contributorMap(acid);
+    const balancedContrib = contributorMap(balanced);
+    const symbols = Array.from(new Set([
+      ...Object.keys(currentWeights),
+      ...Object.keys(acidWeights),
+      ...Object.keys(balancedWeights),
+    ])).sort((a, b) => {
+      const maxA = Math.max(asWeightPct(currentWeights, a), asWeightPct(acidWeights, a), asWeightPct(balancedWeights, a));
+      const maxB = Math.max(asWeightPct(currentWeights, b), asWeightPct(acidWeights, b), asWeightPct(balancedWeights, b));
+      return maxB - maxA;
+    });
+
+    let html = `
+      <div class="table-wrapper">
+        <table class="allocation-compare">
+          <thead>
+            <tr class="group-headers">
+              <th colspan="2">Referência</th>
+              <th colspan="4" class="group-fwd">Destinos Recomendados</th>
+              <th colspan="2" class="group-bwd">Qualidade</th>
+            </tr>
+            <tr class="main-headers">
+              <th>Ativo</th>
+              <th class="right">Atual</th>
+              <th class="right sep-fwd">Ácida</th>
+              <th class="right">Δ Ácida</th>
+              <th class="right sep-fwd">Ponderada</th>
+              <th class="right">Δ Ponderada</th>
+              <th class="sep-bwd">Ácida</th>
+              <th>Ponderada</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+    for (const symbol of symbols) {
+      const currentPct = asWeightPct(currentWeights, symbol);
+      const acidPct = asWeightPct(acidWeights, symbol);
+      const balancedPct = asWeightPct(balancedWeights, symbol);
+      const acidDelta = acidPct - currentPct;
+      const balancedDelta = balancedPct - currentPct;
+      const acidQ = acidContrib[symbol] || {};
+      const balancedQ = balancedContrib[symbol] || {};
+      const acidBucket = acidQ.target_quality_bucket || '—';
+      const balancedBucket = balancedQ.target_quality_bucket || '—';
+
+      html += `
+        <tr>
+          <td>${esc(symbol).replace('.SA', '')}</td>
+          <td class="right">${fmtPct(currentPct)}</td>
+          <td class="right sep-fwd">${fmtPct(acidPct)}</td>
+          <td class="right" style="color:${plColor(acidDelta / 100)}">${fmtSignedPct(acidDelta)}</td>
+          <td class="right sep-fwd">${fmtPct(balancedPct)}</td>
+          <td class="right" style="color:${plColor(balancedDelta / 100)}">${fmtSignedPct(balancedDelta)}</td>
+          <td class="sep-bwd"><span class="quality-badge ${qualityClass(acidBucket)}">${esc(acidBucket)} ${acidQ.target_quality_score != null ? fmtNum(acidQ.target_quality_score, 2) : ''}</span></td>
+          <td><span class="quality-badge ${qualityClass(balancedBucket)}">${esc(balancedBucket)} ${balancedQ.target_quality_score != null ? fmtNum(balancedQ.target_quality_score, 2) : ''}</span></td>
+        </tr>`;
+    }
+
+    html += `
+          <tr class="totals">
+            <td>Total</td>
+            <td class="right">${fmtPct(Object.values(currentWeights).reduce((s, v) => s + (v || 0), 0) * 100)}</td>
+            <td class="right sep-fwd">${fmtPct(Object.values(acidWeights).reduce((s, v) => s + (v || 0), 0) * 100)}</td>
+            <td></td>
+            <td class="right sep-fwd">${fmtPct(Object.values(balancedWeights).reduce((s, v) => s + (v || 0), 0) * 100)}</td>
+            <td colspan="3"></td>
+          </tr>
+        </tbody></table>
+      </div>`;
+    el.innerHTML = html;
+    return;
+  }
+
   const rows = pipeline.rows || [];
   const totals = pipeline.totals || {};
-  const el = document.getElementById('allocation-table');
   if (!rows.length) {
     el.innerHTML = '<span class="loading">Sem dados de alocação.</span>';
     return;
@@ -982,6 +1248,98 @@ function renderAllocation(pipeline) {
 }
 
 function renderTransactions(recommendation) {
+  const plans = recommendation?.execution_plans || {};
+  const comparisons = recommendation?.comparisons || {};
+  if (plans.acid || plans.balanced) {
+    const statusRank = {
+      EXECUTE: 0,
+      MONITOR: 1,
+      HOLD: 1,
+      DEFER_BUDGET: 2,
+      DEFER_MAX_ACTIONS: 2,
+      IGNORE_BAND: 3,
+      IGNORE_SMALL: 3,
+    };
+    const actionLabel = action => ({
+      BUY: 'Comprar',
+      SELL: 'Vender',
+    })[action] || (action || '—');
+    const renderPlanCard = (kind, title, comparison, plan) => {
+      const selectedDestination = recommendation?.decision_destination || recommendation?.decision_context?.destination || 'STAY_CURRENT';
+      const isOfficial = selectedDestination === comparison?.destination;
+      const isStayCurrent = selectedDestination === 'STAY_CURRENT';
+      const planContext = isOfficial
+        ? 'Plano oficial'
+        : (isStayCurrent ? 'Simulação se você escolher este destino' : 'Plano alternativo');
+      const actions = [...(plan?.actions || [])].sort((a, b) => {
+        const rankA = statusRank[a.status] ?? 9;
+        const rankB = statusRank[b.status] ?? 9;
+        if (rankA !== rankB) return rankA - rankB;
+        return Math.abs(b.recommended_value_brl || 0) - Math.abs(a.recommended_value_brl || 0);
+      });
+      const rows = actions.length
+        ? actions.map(row => {
+            const statusClass = String(row.status || '').toLowerCase();
+            const qty = row.executable_shares > 0 ? row.executable_shares : row.recommended_shares;
+            return `
+              <tr>
+                <td>${esc(row.symbol || '').replace('.SA', '')}</td>
+                <td>${esc(actionLabel(row.action))}</td>
+                <td><span class="execution-status ${statusClass}" title="${esc(row.status_reason || '')}">${esc(executionStatusLabel(row.status))}</span></td>
+                <td class="right">${fmtPct(row.current_weight_pct)}</td>
+                <td class="right">${fmtPct(row.target_weight_pct)}</td>
+                <td class="right">${qty != null ? fmtNum(qty) : '—'}</td>
+                <td class="right">${fmtBRL(row.recommended_value_brl)}</td>
+                <td class="right">${fmtBRL(row.executable_value_brl)}</td>
+              </tr>`;
+          }).join('')
+        : `<tr><td colspan="8">Nenhuma operação necessária para este destino.</td></tr>`;
+
+      return `
+        <div class="plan-card ${kind}">
+          <div class="shadow-head">
+            <div>
+              <div class="shadow-title">${title}</div>
+              <div class="shadow-main">${esc(plan?.decision_state_label || shadowDecisionLabel(plan?.decision_state))}</div>
+              <div class="shadow-sub">${esc(planContext)} · ${esc(plan?.today_action || '')}</div>
+            </div>
+            <span class="shadow-badge ${isOfficial ? String(plan?.decision_state || '').toLowerCase() : 'watch'}">${esc(isOfficial ? 'Oficial' : 'Simulação')}</span>
+          </div>
+          <div class="execution-strip">
+            ${renderMini('Turnover', fmtPct(comparison?.turnover_pct))}
+            ${renderMini('Custo', fmtBRL(comparison?.total_cost_brl))}
+            ${renderMini('Executável', fmtBRL(plan?.executable_trade_value_brl))}
+            ${renderMini('Adiado', fmtBRL(plan?.deferred_trade_value_brl))}
+          </div>
+          <div class="execution-table-wrap">
+            <table class="execution-table execution-table--wide">
+              <thead>
+                <tr class="main-headers">
+                  <th>Ativo</th>
+                  <th>Ação</th>
+                  <th>Status</th>
+                  <th class="right">Atual</th>
+                  <th class="right">Alvo</th>
+                  <th class="right">Qtd.</th>
+                  <th class="right">Valor teórico</th>
+                  <th class="right">Valor executável</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    };
+
+    document.getElementById('tx-table').innerHTML = `
+      <div class="official-note">Como o destino oficial atual é ${esc(destinationLabel(recommendation?.decision_destination || recommendation?.decision_context?.destination || 'STAY_CURRENT'))}, os planos abaixo servem para estudar cenários. Só o destino oficial deve ser tratado como plano de operação.</div>
+      <div class="plan-grid">
+        ${renderPlanCard('acid', 'Simulação Atual → Carteira Ácida', comparisons.current_to_acid || {}, plans.acid || {})}
+        ${renderPlanCard('balanced', 'Plano Atual → Carteira Ponderada', comparisons.current_to_balanced || {}, plans.balanced || {})}
+      </div>`;
+    return;
+  }
+
   const plan = recommendation?.shadow?.execution_plan || {};
   if (Array.isArray(plan.actions) && plan.actions.length) {
     const statusRank = {
@@ -1149,8 +1507,9 @@ async function render() {
     ]);
     renderSummary(dashboard, recommendation);
     renderSectors(dashboard);
-    renderAllocation(pipeline);
+    renderAllocation(recommendation, pipeline);
     renderTransactions(recommendation);
+    renderAudit(dashboard, recommendation);
   } catch (err) {
     console.error('Model page error:', err);
     document.getElementById('summary-card').innerHTML = `<span class="loading" style="color:var(--brand-red)">Erro: ${err.message}</span>`;

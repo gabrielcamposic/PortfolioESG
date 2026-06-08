@@ -176,7 +176,7 @@
           <span class="tb-value">—</span>
         </div>
         <div class="tb-item" id="tb-exp">
-          <span class="tb-label">Exp. 12M Modelo</span>
+          <span class="tb-label">Ret. Ajust. Destino</span>
           <span class="tb-value">—</span>
         </div>
         <div class="tb-item" id="tb-decision">
@@ -253,11 +253,14 @@
       const alpha    = dashboard.real?.alpha || {};
       const mRet     = dashboard.model?.returns || {};
       const verdict  = dashboard.model?.decision?.verdict;
-      const legacyDecision = dashboard.model?.decision?.legacy_decision;
+      const destinationLabel = dashboard.model?.decision?.destination_label;
+      const acidSignal = dashboard.model?.decision?.acid_signal;
+      const balancedSignal = dashboard.model?.decision?.balanced_signal;
+      const selectedPortfolio = dashboard.model?.portfolios?.selected || {};
       const shadow   = dashboard.model?.shadow || {};
       const execPlan = shadow.execution_plan || {};
       const actionState = execPlan.decision_state || shadow.shadow_decision || verdict;
-      const actionLabel = execPlan.decision_state_label || decisionLabel(actionState);
+      const actionLabel = destinationLabel || execPlan.decision_state_label || decisionLabel(actionState);
 
       // 1) Valor
       document.querySelector('#tb-value .tb-value').textContent = fmtBRL(market);
@@ -283,14 +286,20 @@
       const betaVal = dashboard.real?.relative?.beta || 0;
       document.querySelector('#tb-beta .tb-value').textContent = betaVal.toFixed(2);
 
-      // 6) Retorno esperado (Modelo)
-      document.querySelector('#tb-exp .tb-value').textContent = (mRet.gross_12m || 0).toFixed(2) + '%';
+      // 6) Retorno ajustado do destino oficial
+      const selectedAdjusted = selectedPortfolio.adjusted_net_return_pct
+        ?? selectedPortfolio.adjusted_expected_return_pct
+        ?? mRet.net_adjusted_12m
+        ?? mRet.gross_adjusted_12m
+        ?? mRet.gross_12m
+        ?? 0;
+      document.querySelector('#tb-exp .tb-value').textContent = Number(selectedAdjusted).toFixed(2) + '%';
 
-      // 7) Official action. Legacy raw decision remains available in model.html.
+      // 7) Official action.
       if (actionState) {
         const decCls = String(actionState).toLowerCase();
-        const title = legacyDecision && legacyDecision !== actionState
-          ? `Legado: ${decisionLabel(legacyDecision)}`
+        const title = acidSignal || balancedSignal
+          ? `Acida: ${acidSignal || '—'} · Ponderada: ${balancedSignal || '—'}`
           : '';
         document.querySelector('#tb-decision .tb-value').innerHTML = 
           `<span class="decision-badge ${decCls}" title="${title}">${actionLabel}</span>`;
