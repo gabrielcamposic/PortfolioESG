@@ -96,6 +96,7 @@ Frontend:
 | 8 | Promocao para decisao oficial | Implementado em 2026-06-06 | Substituir decisao oficial com seguranca |
 | 9 | Duas carteiras recomendadas | Implementado em 2026-06-07 | Escolher entre acida, ponderada ou manter atual |
 | 10 | Reestruturacao das paginas Modelo e Risco | Implementado em 2026-06-07 | Criar cockpit comparativo para estudar carteiras, riscos e planos de execucao |
+| 11 | Gerador independente da Carteira Ponderada | Planejado | Construir carteira-alvo ponderada propria, sem ancora na carteira atual |
 
 ## Fase 0: Baseline E Diagnostico Atual
 
@@ -834,6 +835,199 @@ O objetivo de `risk.html` deixa de ser apenas explicar o ambiente de mercado e p
 - Nenhuma tabela principal apresenta a carteira atual como recomendacao.
 - Nenhuma recomendacao investivel mistura ativos `reject`/`low` sem alerta explicito e justificativa.
 
+## Fase 11: Gerador Independente Da Carteira Ponderada
+
+### Objetivo
+
+Criar uma Carteira Ponderada como carteira-alvo propria, investivel e conservadora, em vez de usar a carteira atual como ponto escolhido por penalidade de turnover.
+
+A Carteira Atual continua sendo somente a referencia real de partida. Ela pode ser igual ao destino de execucao quando a decisao for `STAY_CURRENT`, mas nao deve ser a base conceitual da construcao da Carteira Ponderada.
+
+A separacao passa a ser:
+
+- **Carteira Atual**: fotografia real, nunca otimizada.
+- **Carteira Acida**: radar agressivo de oportunidade, orientado a sinais brutos e distorcoes.
+- **Carteira Ponderada**: carteira-alvo investivel, construida por regras proprias de qualidade, risco e diversificacao.
+- **Execucao**: compara Atual -> Ponderada e decide se opera agora, parcialmente, observa ou mantem.
+
+### Principios De Desenho
+
+- A Carteira Ponderada deve poder ser diferente da Atual mesmo quando a decisao operacional for `HOLD`.
+- `HOLD` passa a significar "nao executar agora", nao "a carteira ponderada e a carteira atual".
+- Turnover nao deve entrar como penalidade principal na construcao da Carteira Ponderada; turnover entra depois, na decisao de execucao.
+- Targets `reject` devem ser excluidos da Carteira Ponderada, salvo excecao explicita e auditavel.
+- Targets `low` devem ter limite agregado baixo e alerta visivel.
+- O modelo deve reduzir retorno projetado suspeito antes da otimizacao, nao apenas vetar execucao depois.
+
+### Universo Elegivel
+
+Antes de otimizar a Carteira Ponderada, criar um filtro de elegibilidade:
+
+- Excluir targets `reject`.
+- Limitar ou penalizar targets `low`.
+- Aplicar filtro de liquidez minima negociada para excluir ativos pouco negociados.
+- Exigir historico minimo de preco, retorno e volatilidade.
+- Excluir ativos com target extremo, desatualizado ou inconsistente com fundamentos.
+- Manter filtros ESG e de qualidade ja existentes.
+- Registrar ativos excluidos e motivo de exclusao.
+
+Filtro de liquidez minima negociada significa exigir liquidez acima de um piso, por exemplo:
+
+- `average_daily_traded_value_21d_brl >= MIN_BALANCED_ADTV_BRL`.
+- `target_position_value_brl <= MAX_POSITION_TO_ADTV_RATIO * average_daily_traded_value_21d_brl`.
+
+O objetivo e reduzir risco operacional e de preco, evitando ativos de baixa negociacao, spread alto ou saida dificil em stress.
+
+### Retorno Esperado Da Ponderada
+
+A Ponderada nao deve usar upside bruto de target como motor principal.
+
+Criar uma estimativa combinada:
+
+- retorno ajustado por qualidade do target;
+- retorno historico/realizado;
+- momentum com peso moderado;
+- valuation com peso moderado;
+- dividend yield, quando aplicavel;
+- penalidade de incerteza;
+- penalidade de regime de mercado.
+
+Exemplo conceitual:
+
+```text
+balanced_expected_return =
+  adjusted_target_return * weight_target
+  + historical_return * weight_historical
+  + momentum_signal * weight_momentum
+  + valuation_signal * weight_valuation
+  + dividend_signal * weight_dividend
+  - uncertainty_penalty
+  - regime_penalty
+```
+
+Em regime de stress:
+
+- aumentar shrinkage dos targets;
+- reduzir peso do retorno baseado em target;
+- elevar penalidade de incerteza;
+- reduzir concentracao maxima;
+- elevar hurdle de execucao, mas sem zerar a carteira-alvo.
+
+### Funcao Objetivo
+
+Criar uma funcao objetivo propria para a Carteira Ponderada:
+
+```text
+score =
+  balanced_expected_return
+  + quality_bonus
+  + diversification_bonus
+  - volatility_penalty
+  - drawdown_penalty
+  - concentration_penalty
+  - low_quality_penalty
+  - liquidity_penalty
+  - regime_stress_penalty
+```
+
+Essa funcao deve buscar uma carteira investivel, nao o maior retorno bruto.
+
+### Restricoes
+
+Parametros iniciais sugeridos:
+
+- Peso maximo por ativo: `BALANCED_MAX_ASSET_WEIGHT_PCT`.
+- Peso maximo por setor: `BALANCED_MAX_SECTOR_WEIGHT_PCT`.
+- Peso maximo agregado em targets `low`: `BALANCED_MAX_LOW_QUALITY_WEIGHT_PCT`.
+- Peso em targets `reject`: `0%`.
+- Numero minimo e maximo de ativos: `BALANCED_MIN_POSITIONS` e `BALANCED_MAX_POSITIONS`.
+- HHI maximo: `BALANCED_MAX_HHI`.
+- Top 5 maximo: `BALANCED_MAX_TOP5_WEIGHT_PCT`.
+- Liquidez minima negociada: `MIN_BALANCED_ADTV_BRL`.
+- Posicao maxima vs liquidez diaria: `MAX_BALANCED_POSITION_TO_ADTV_RATIO`.
+
+### Scripts
+
+- Criar `build_balanced_target_portfolio` ou equivalente em `C_OptimizedPortfolio.py`.
+- Separar claramente:
+  - construcao da Carteira Acida;
+  - construcao da Carteira Ponderada;
+  - comparacao Atual -> Acida;
+  - comparacao Atual -> Ponderada;
+  - decisao de execucao.
+- Persistir a Carteira Ponderada como `recommendations.balanced` com `portfolio_type = independent_balanced_target`.
+- Persistir o universo elegivel e os candidatos rejeitados:
+  - `balanced_universe.eligible`.
+  - `balanced_universe.excluded`.
+  - `balanced_universe.exclusion_reasons`.
+- Calcular `comparisons.current_to_balanced` somente depois que a Ponderada independente existir.
+- Manter `execution_plans.balanced` derivado da comparacao Atual -> Ponderada.
+- Registrar historico separado da Ponderada:
+  - pesos;
+  - score;
+  - retorno ajustado;
+  - risco;
+  - restricoes ativas;
+  - diferenca vs Atual;
+  - decisao de execucao.
+
+### Dados Esperados
+
+`optimized_recommendation.json` deve conter:
+
+```json
+{
+  "recommendations": {
+    "balanced": {
+      "portfolio_type": "independent_balanced_target",
+      "stocks": [],
+      "weights": {},
+      "expected_return_pct": 0,
+      "adjusted_expected_return_pct": 0,
+      "balanced_expected_return_pct": 0,
+      "risk": {},
+      "quality": {},
+      "constraints": {},
+      "constraint_violations": [],
+      "eligible_universe_size": 0
+    }
+  },
+  "balanced_universe": {
+    "eligible": [],
+    "excluded": []
+  },
+  "comparisons": {
+    "current_to_balanced": {}
+  },
+  "execution_plans": {
+    "balanced": {}
+  }
+}
+```
+
+### Dashboard
+
+- Mostrar a composicao da Carteira Ponderada mesmo quando a decisao for `HOLD`.
+- Diferenciar "carteira-alvo ponderada" de "plano de execucao".
+- Mostrar por que cada ativo entrou ou foi excluido da Ponderada.
+- Mostrar restricoes ativas: peso maximo, setor, liquidez, target quality e concentracao.
+- Exibir `HOLD` como decisao operacional, nao como ausencia de carteira-alvo.
+
+### Criterios De Aceite
+
+- A Carteira Ponderada pode ser diferente da Atual quando a decisao final for `HOLD`.
+- A decisao `HOLD` nao substitui nem apaga a carteira-alvo ponderada.
+- A Ponderada nao usa targets `reject`.
+- A Ponderada limita targets `low` e exibe alerta quando houver exposicao residual.
+- O usuario consegue ver:
+  - composicao da Atual;
+  - composicao da Acida;
+  - composicao da Ponderada;
+  - plano Atual -> Ponderada;
+  - motivo para executar ou nao executar.
+- O turnover influencia somente a execucao, nao a existencia da carteira ponderada.
+- O filtro de liquidez minima exclui baixa liquidez e registra o motivo.
+
 ## Sequencia Recomendada De Trabalho
 
 1. Implementar Fase 0 nos scripts.
@@ -849,6 +1043,7 @@ O objetivo de `risk.html` deixa de ser apenas explicar o ambiente de mercado e p
 11. Seguir para Fases 5 a 8 apenas depois que os sinais estiverem interpretaveis.
 12. Fase 9 implementada: carteira atual como referencia, carteira acida como radar agressivo e carteira ponderada como destino operacional.
 13. Fase 10 implementada: `model.html` e `risk.html` reorganizados em torno da Atual, da Acida e da Ponderada.
+14. Implementar Fase 11 para criar uma Carteira Ponderada independente da Atual e separar construcao de carteira da decisao de execucao.
 
 ## Checklist Por Ciclo
 
@@ -928,6 +1123,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Decisao | Motivo |
 |---|---|---|
+| 2026-06-07 | Criar gerador independente para a Carteira Ponderada | A carteira ponderada atual esta ancorada na carteira real via penalidade de turnover; isso pode manter uma carteira herdada da logica acida |
 | 2026-06-07 | Reestruturar `model.html` e `risk.html` apos separar as carteiras | As paginas atuais acumulam diagnosticos e nao servem bem para estudar destinos e planos de execucao |
 | 2026-06-07 | Separar carteira acida e carteira ponderada | A decisao deve escolher entre dois destinos possiveis a partir da carteira atual: acida, ponderada ou nenhuma alteracao |
 | 2026-06-05 | Usar modo shadow em vez de pipeline duplicado | Permite evoluir sem quebrar a decisao oficial |
@@ -938,6 +1134,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-07 | Fase 11 planejada: criar gerador independente da Carteira Ponderada, com universo elegivel, filtro de liquidez minima negociada, retorno esperado ponderado, restricoes proprias e execucao separada |
 | 2026-06-07 | Fase 10 implementada: `model.html` prioriza decisao, comparacao e planos por destino, movendo backtest/origem do retorno/gate para auditoria; `risk.html` compara Atual, Acida e Ponderada com matriz de risco, concentracao e charts por carteira; header mostra retorno ajustado do destino oficial |
 | 2026-06-07 | Fase 9 implementada: `optimized_recommendation.json` ganhou `comparison.current`, `recommendations.acid`, `recommendations.balanced`, `comparisons.current_to_acid`, `comparisons.current_to_balanced`, `execution_plans.*` e `decision_destination`; `model.html` compara Atual, Acida e Ponderada e mostra planos por destino |
 | 2026-06-07 | Fase 10 planejada: reestruturar `model.html` e `risk.html` como cockpit comparativo de carteiras, riscos e planos de execucao por destino |
