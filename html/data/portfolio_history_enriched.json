@@ -360,6 +360,47 @@
     "excess_return_pct": null
   },
   {
+    "run_id": "20260608-222806",
+    "timestamp": "2026-06-08 23:19:06",
+    "n_assets": 11,
+    "stocks": [
+      "KLBN4.SA",
+      "AGRO3.SA",
+      "CMIG3.SA",
+      "BBSE3.SA",
+      "PETR3.SA",
+      "SLCE3.SA",
+      "RADL3.SA",
+      "CXSE3.SA",
+      "ISAE4.SA",
+      "AMBP3.SA",
+      "PSSA3.SA"
+    ],
+    "weights": [
+      0.3429,
+      0.0764,
+      0.1251,
+      0.0483,
+      0.0828,
+      0.0252,
+      0.0653,
+      0.0126,
+      0.0491,
+      0.1091,
+      0.0633
+    ],
+    "sharpe_forward": 25.1019,
+    "ret_hist_12m": 2.45,
+    "vol_12m": 18.59,
+    "ret_proj_12m": 344.42,
+    "score": 1.7859,
+    "momentum": -0.0822,
+    "decision": "HOLD",
+    "transition_cost_pct": 0.0182,
+    "holdings_return_pct": 334.38,
+    "excess_return_pct": 42.085
+  },
+  {
     "run_id": "20260606-081506",
     "timestamp": "2026-06-06 08:39:23",
     "n_assets": 8,
