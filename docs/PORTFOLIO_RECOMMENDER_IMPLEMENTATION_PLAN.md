@@ -98,7 +98,7 @@ Frontend:
 | 8 | Promocao para decisao oficial | Implementado em 2026-06-06 | Substituir decisao oficial com seguranca |
 | 9 | Duas carteiras recomendadas | Implementado em 2026-06-07 | Escolher entre acida, ponderada ou manter atual |
 | 10 | Reestruturacao das paginas Modelo e Risco | Implementado em 2026-06-07 | Criar cockpit comparativo para estudar carteiras, riscos e planos de execucao |
-| 11 | Gerador independente da Carteira Ponderada | Planejado | Construir carteira-alvo ponderada propria, sem ancora na carteira atual |
+| 11 | Gerador independente da Carteira Ponderada | Implementado em 2026-06-09 | Construir carteira-alvo ponderada propria, sem ancora na carteira atual |
 
 ## Fase 0: Baseline E Diagnostico Atual
 
@@ -1045,7 +1045,7 @@ Parametros iniciais sugeridos:
 11. Seguir para Fases 5 a 8 apenas depois que os sinais estiverem interpretaveis.
 12. Fase 9 implementada: carteira atual como referencia, carteira acida como radar agressivo e carteira ponderada como destino operacional.
 13. Fase 10 implementada: `model.html` e `risk.html` reorganizados em torno da Atual, da Acida e da Ponderada.
-14. Implementar Fase 11 para criar uma Carteira Ponderada independente da Atual e separar construcao de carteira da decisao de execucao.
+14. Fase 11 implementada: Carteira Ponderada independente da Atual, com universo elegivel, filtros de qualidade/liquidez, retorno esperado composto, restricoes proprias e execucao separada.
 
 ## Checklist Por Ciclo
 
@@ -1125,6 +1125,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Decisao | Motivo |
 |---|---|---|
+| 2026-06-09 | Promover a Carteira Ponderada para gerador independente | A Ponderada deve existir como carteira-alvo propria; `HOLD` significa nao executar agora, nao manter a carteira herdada da logica acida |
 | 2026-06-07 | Criar gerador independente para a Carteira Ponderada | A carteira ponderada atual esta ancorada na carteira real via penalidade de turnover; isso pode manter uma carteira herdada da logica acida |
 | 2026-06-07 | Reestruturar `model.html` e `risk.html` apos separar as carteiras | As paginas atuais acumulam diagnosticos e nao servem bem para estudar destinos e planos de execucao |
 | 2026-06-07 | Separar carteira acida e carteira ponderada | A decisao deve escolher entre dois destinos possiveis a partir da carteira atual: acida, ponderada ou nenhuma alteracao |
@@ -1136,6 +1137,7 @@ Lista inicial, sem compromisso de valores finais:
 
 | Data | Mudanca |
 |---|---|
+| 2026-06-09 | Fase 11 implementada: `C_OptimizedPortfolio.py` cria `recommendations.balanced` como `independent_balanced_target`, registra `balanced_universe`, exclui targets `reject`, limita targets `low`, aplica filtros de liquidez/historico, calcula retorno esperado composto e deixa turnover somente para `execution_plans.balanced` |
 | 2026-06-07 | Fase 11 planejada: criar gerador independente da Carteira Ponderada, com universo elegivel, filtro de liquidez minima negociada, retorno esperado ponderado, restricoes proprias e execucao separada |
 | 2026-06-07 | Fase 10 implementada: `model.html` prioriza decisao, comparacao e planos por destino, movendo backtest/origem do retorno/gate para auditoria; `risk.html` compara Atual, Acida e Ponderada com matriz de risco, concentracao e charts por carteira; header mostra retorno ajustado do destino oficial |
 | 2026-06-07 | Fase 9 implementada: `optimized_recommendation.json` ganhou `comparison.current`, `recommendations.acid`, `recommendations.balanced`, `comparisons.current_to_acid`, `comparisons.current_to_balanced`, `execution_plans.*` e `decision_destination`; `model.html` compara Atual, Acida e Ponderada e mostra planos por destino |

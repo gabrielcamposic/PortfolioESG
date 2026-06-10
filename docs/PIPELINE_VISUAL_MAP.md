@@ -207,7 +207,8 @@ flowchart TD
   optpar["optpar.txt<br/>thresholds, custos, gates"] --> C
 
   C --> acid["recommendations.acid<br/>radar agressivo"]
-  C --> balanced["recommendations.balanced<br/>destino ponderado"]
+  C --> buniverse["balanced_universe<br/>elegibilidade e restricoes"]
+  buniverse --> balanced["recommendations.balanced<br/>destino ponderado independente"]
   C --> currentref["comparison.current<br/>referencia real"]
 
   currentref --> compA["comparisons.current_to_acid"]
@@ -227,7 +228,7 @@ flowchart TD
 |---|---|---|
 | Carteira Atual | Fotografia real vinda de `ledger_positions.json`; referencia de partida. | Nao e uma carteira otimizada. |
 | Carteira Acida | Radar agressivo baseado no sinal bruto do modelo/targets. | Ajuda a enxergar oportunidades e distorcoes, mas nao e necessariamente o destino operacional. |
-| Carteira Ponderada | Destino investivel/oficial no modelo atual. | No codigo atual ainda deriva da otimizacao estavel da fase 6; a fase 11 planejada cria um gerador independente. |
+| Carteira Ponderada | Destino investivel/oficial no modelo atual. | Gerada por `independent_balanced_target`, com universo proprio, filtros de qualidade/liquidez, diversificacao e retorno esperado composto. |
 | Comparacao Atual -> Acida | Mede retorno, risco, qualidade, turnover, custos e trades para migrar para a Acida. | Usada para estudo e radar. |
 | Comparacao Atual -> Ponderada | Mede retorno, risco, qualidade, turnover, custos e trades para migrar para a Ponderada. | Base do plano operacional. |
 | Plano de execucao | Traduz a comparacao em acao: executar, parcial, observar ou manter. | Aplica tolerancias, orcamento de turnover, custo minimo e maximo de acoes. |
@@ -243,7 +244,7 @@ Criterios importantes em `C_OptimizedPortfolio.py`:
 | Regime de mercado | `REGIME_*` em `optpar.txt` | Detecta stress/watch e sugere ajuste de hurdle, shrinkage e turnover budget. |
 | Gate operacional | `SHADOW_*` | Compara ganho ajustado contra hurdle dinamico, persistencia, qualidade minima e turnover. |
 | Execucao | `EXECUTION_*` | Define banda por ativo/setor, minimo por trade, limite de acoes e orcamento semanal/mensal. |
-| Estabilidade | `TURNOVER_PENALTY_*`, `STABLE_*` | Hoje seleciona um candidato mais estavel; sera substituido/isolado pela fase 11 para a Ponderada independente. |
+| Estabilidade | `TURNOVER_PENALTY_*`, `STABLE_*` | Permanece como referencia de auditoria em `shadow.stable_optimization`; nao e a fonte principal da Ponderada. |
 
 ## Etapa D - Publicacao
 
@@ -311,8 +312,8 @@ Leitura correta:
 
 - A carteira atual e sempre a referencia real, nao um "modelo legado".
 - A carteira acida responde mais rapido a sinais brutos e volatilidade.
-- A carteira ponderada deve representar o destino investivel e conservador.
-- `HOLD` ou `STAY_CURRENT` significa "nao executar agora"; depois da fase 11, isso nao deve apagar nem igualar a carteira-alvo ponderada.
+- A carteira ponderada representa o destino investivel e conservador, construido de forma independente da Atual.
+- `HOLD` ou `STAY_CURRENT` significa "nao executar agora"; isso nao apaga nem iguala a carteira-alvo ponderada.
 
 ## Controles De Qualidade E Pontos De Falha
 
@@ -326,15 +327,12 @@ Leitura correta:
 | Publicacao unica | `D_Publish.py` | Evita divergencia entre `data/` e `html/data/`. |
 | Checkpoint GCP | `scripts/gcp_runner.py` | Permite retomar A1-A4 depois de preempcao/interrupcao. |
 
-## Estado Atual E Proxima Evolucao
+## Estado Atual
 
-O mapa acima reflete o codigo atual. O ponto conceitual mais importante em aberto e a **fase 11**, ja registrada no plano de implementacao:
+O mapa acima reflete o codigo atual apos a implementacao da **fase 11**:
 
-- Hoje, a Ponderada e produzida a partir da otimizacao estavel/turnover-aware.
-- A fase 11 deve criar uma Ponderada independente, baseada em qualidade, risco, liquidez, diversificacao e retorno ajustado antes da decisao de execucao.
-- Depois da fase 11, este documento deve ser atualizado para separar visualmente:
-  - construcao da Acida;
-  - construcao independente da Ponderada;
-  - comparacao Atual -> Acida;
-  - comparacao Atual -> Ponderada;
-  - plano de execucao.
+- A Acida segue como radar agressivo, sensivel ao sinal bruto do modelo e aos targets.
+- A Ponderada agora e uma carteira-alvo independente (`independent_balanced_target`), construida antes da decisao de execucao.
+- `balanced_universe` registra ativos elegiveis, ativos excluidos, motivos de exclusao, restricoes e eventuais violacoes.
+- A comparacao Atual -> Ponderada e o `execution_plans.balanced` acontecem depois da construcao da carteira-alvo.
+- A otimizacao estavel/turnover-aware antiga permanece em `shadow.stable_optimization` como auditoria e fallback, nao como fonte principal da Ponderada.

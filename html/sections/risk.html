@@ -398,6 +398,11 @@ async function render() {
     const currentToAcid = recommendation?.comparisons?.current_to_acid || dashboard.model?.comparisons?.current_to_acid || {};
     const currentToBalanced = recommendation?.comparisons?.current_to_balanced || dashboard.model?.comparisons?.current_to_balanced || {};
     const context = recommendation?.decision_context || {};
+    const balancedUniverse = recommendation?.balanced_universe || {};
+    const balancedViolations = balancedUniverse.constraint_violations || balanced.constraint_violations || [];
+    const balancedRestrictionText = balancedViolations.length
+      ? balancedViolations.map(v => `${v.code}: ${fmtNum(v.actual, 2)} > ${fmtNum(v.threshold, 2)}`).join(' · ')
+      : 'Dentro dos limites';
 
     const riskCard = (kind, title, portfolio, transition, sub, mainValue) => `
       <div class="risk-portfolio-card ${kind}">
@@ -430,6 +435,7 @@ async function render() {
       </thead>
       <tbody>
         <tr><td>Papel</td><td>Referência</td><td>Radar agressivo</td><td>Destino operacional</td></tr>
+        <tr><td>Construção</td><td>Carteira real</td><td>Sinal bruto do modelo</td><td>${esc(balanced.portfolio_type || 'independent_balanced_target')}</td></tr>
         <tr><td>Sinal</td><td>—</td><td>${esc(signalLabel(context.acid_signal))}</td><td>${esc(signalLabel(context.balanced_signal))}</td></tr>
         <tr><td>Retorno ajustado</td><td>${fmtPctPoint(current.adjusted_expected_return_pct, 2)}</td><td>${fmtPctPoint(acid.adjusted_net_return_pct, 2)}</td><td>${fmtPctPoint(balanced.adjusted_net_return_pct, 2)}</td></tr>
         <tr><td>Delta ajustado vs atual</td><td>—</td><td>${fmtSignedPctPoint(currentToAcid.adjusted_net_delta_pct, 2)}</td><td>${fmtSignedPctPoint(currentToBalanced.adjusted_net_delta_pct, 2)}</td></tr>
@@ -439,6 +445,8 @@ async function render() {
         <tr><td>Top 5 posições</td><td>${fmtPctPoint(current.concentration?.top5_weight_pct, 2)}</td><td>${fmtPctPoint(acid.concentration?.top5_weight_pct, 2)}</td><td>${fmtPctPoint(balanced.concentration?.top5_weight_pct, 2)}</td></tr>
         <tr><td>Qualidade de target</td><td>—</td><td>${fmtNum(acid.target_quality_score, 2)}</td><td>${fmtNum(balanced.target_quality_score, 2)}</td></tr>
         <tr><td>Peso low/reject</td><td>—</td><td>${fmtPctPoint(acid.low_reject_weight_pct, 2)}</td><td>${fmtPctPoint(balanced.low_reject_weight_pct, 2)}</td></tr>
+        <tr><td>Universo da ponderada</td><td>—</td><td>—</td><td>${fmtNum(balanced.eligible_universe_size ?? balancedUniverse.eligible?.length, 0)} elegíveis · ${fmtNum(balanced.excluded_universe_size ?? balancedUniverse.excluded?.length, 0)} excluídos</td></tr>
+        <tr><td>Restrições da ponderada</td><td>—</td><td>—</td><td>${esc(balancedRestrictionText)}</td></tr>
         <tr><td>Risco histórico da atual</td><td>Vol ${realVol} · Sharpe ${realSharpe} · Beta ${realBeta}</td><td colspan="2">Risco prospectivo detalhado será calibrado na próxima evolução de risk profiles.</td></tr>
       </tbody>
     </table>`;

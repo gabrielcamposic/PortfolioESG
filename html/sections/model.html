@@ -798,10 +798,18 @@ function renderSummary(dashboard, recommendation) {
     const currentToAcid = comparisons.current_to_acid || {};
     const currentToBalanced = comparisons.current_to_balanced || {};
     const context = recommendation.decision_context || {};
+    const balancedUniverse = recommendation.balanced_universe || {};
     const destination = recommendation.decision_destination || context.destination || model.decision?.destination || 'STAY_CURRENT';
     const decisionState = recommendation.decision || model.decision?.verdict || 'HOLD';
     const badgeCls = String(decisionState).toLowerCase();
     const reason = recommendation.destination_reason || recommendation.reason || context.reason || '';
+    const exclusionSummary = Object.entries(balancedUniverse.exclusion_reasons || {})
+      .map(([reasonCode, count]) => `${reasonCode}: ${count}`)
+      .join(' · ');
+    const violations = balancedUniverse.constraint_violations || balanced.constraint_violations || [];
+    const violationSummary = violations.length
+      ? violations.map(v => `${v.code}: ${fmtNum(v.actual, 2)} > ${fmtNum(v.threshold, 2)}`).join(' · ')
+      : 'restrições dentro dos limites';
 
     const card = (kind, title, portfolio, comparison, mainKey, subText) => `
       <div class="portfolio-card ${kind}">
@@ -862,6 +870,15 @@ function renderSummary(dashboard, recommendation) {
       { label: 'Ponderada HHI', value: fmtNum(balanced.concentration?.hhi, 4) },
     ];
 
+    const balancedMetaHtml = `
+      <div class="official-note">
+        Ponderada independente: ${fmtNum(balanced.eligible_universe_size ?? balancedUniverse.eligible?.length, 0)} elegíveis,
+        ${fmtNum(balanced.excluded_universe_size ?? balancedUniverse.excluded?.length, 0)} excluídos,
+        ${fmtNum((balanced.stocks || []).length, 0)} selecionados.
+        ${exclusionSummary ? `Exclusões: ${esc(exclusionSummary)}.` : ''}
+        Restrições: ${esc(violationSummary)}.
+      </div>`;
+
     const riskRowHtml = `
       <div class="risk-section-label">Comparação operacional</div>
       <div class="risk-row">
@@ -877,6 +894,7 @@ function renderSummary(dashboard, recommendation) {
         <span class="badge ${badgeCls}">${esc(destinationLabel(destination))}</span>
       </div>
       ${cockpitHtml}
+      ${balancedMetaHtml}
       ${riskRowHtml}
     `;
     return;

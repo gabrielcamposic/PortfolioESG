@@ -65,6 +65,7 @@ TICKERS_FILE = os.path.join(ROOT, 'parameters', 'tickers.txt')
 
 # Global caches for database data (loaded once)
 _STOCK_PRICES_CACHE = None
+_STOCK_DAILY_CACHE = None
 _FINANCIALS_CACHE = None
 
 
@@ -104,6 +105,32 @@ def _load_stock_prices_db(logger: logging.Logger):
         logger.error(f"Failed to load StockDataDB: {e}")
 
     return _STOCK_PRICES_CACHE
+
+
+def _load_stock_daily_db(logger: logging.Logger) -> Dict[str, pd.DataFrame]:
+    """Load daily close/volume data from StockDataDB.csv into memory cache."""
+    global _STOCK_DAILY_CACHE
+
+    if _STOCK_DAILY_CACHE is not None:
+        return _STOCK_DAILY_CACHE
+
+    _STOCK_DAILY_CACHE = {}
+    if not os.path.exists(STOCK_DATA_DB):
+        logger.warning(f"StockDataDB not found: {STOCK_DATA_DB}")
+        return _STOCK_DAILY_CACHE
+
+    try:
+        df = pd.read_csv(STOCK_DATA_DB, usecols=['Date', 'Stock', 'Close', 'Volume'])
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df = df.dropna(subset=['Date', 'Stock', 'Close'])
+        for stock, group in df.groupby('Stock'):
+            clean = str(stock)
+            _STOCK_DAILY_CACHE[clean] = group.sort_values('Date').reset_index(drop=True)
+        logger.info(f"Loaded daily close/volume data for {len(_STOCK_DAILY_CACHE)} tickers")
+    except Exception as e:
+        logger.warning(f"Could not load daily stock database: {e}")
+
+    return _STOCK_DAILY_CACHE
 
 
 def _load_financials_db(logger: logging.Logger):
@@ -304,6 +331,38 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'STABLE_UNCERTAINTY_PENALTY_LAMBDA': float,
         'STABLE_CONCENTRATION_PENALTY_LAMBDA': float,
         'STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA': float,
+        'BALANCED_MAX_ASSET_WEIGHT_PCT': float,
+        'BALANCED_MAX_SECTOR_WEIGHT_PCT': float,
+        'BALANCED_MAX_LOW_QUALITY_WEIGHT_PCT': float,
+        'BALANCED_MIN_POSITIONS': int,
+        'BALANCED_MAX_POSITIONS': int,
+        'BALANCED_MAX_HHI': float,
+        'BALANCED_MAX_TOP5_WEIGHT_PCT': float,
+        'BALANCED_DISCRETIZATION_TOLERANCE_PCT': float,
+        'MIN_BALANCED_ADTV_BRL': float,
+        'MAX_BALANCED_POSITION_TO_ADTV_RATIO': float,
+        'BALANCED_MIN_PRICE_HISTORY_DAYS': int,
+        'BALANCED_MIN_TARGET_QUALITY_SCORE': float,
+        'BALANCED_TARGET_RETURN_WEIGHT': float,
+        'BALANCED_HISTORICAL_RETURN_WEIGHT': float,
+        'BALANCED_MOMENTUM_WEIGHT': float,
+        'BALANCED_VALUATION_WEIGHT': float,
+        'BALANCED_DIVIDEND_WEIGHT': float,
+        'BALANCED_TARGET_RETURN_CAP_PCT': float,
+        'BALANCED_COMPONENT_CAP_PCT': float,
+        'BALANCED_DIVIDEND_CAP_PCT': float,
+        'BALANCED_QUALITY_BONUS_PCT': float,
+        'BALANCED_COMPOSITE_SCORE_BONUS_PCT': float,
+        'BALANCED_UNCERTAINTY_PENALTY_PCT': float,
+        'BALANCED_VOLATILITY_PENALTY_LAMBDA': float,
+        'BALANCED_DRAWDOWN_FREE_PCT': float,
+        'BALANCED_DRAWDOWN_PENALTY_LAMBDA': float,
+        'BALANCED_LOW_QUALITY_PENALTY_PCT': float,
+        'BALANCED_LIQUIDITY_PENALTY_PCT': float,
+        'BALANCED_REGIME_STRESS_PENALTY_PCT': float,
+        'BALANCED_STRESS_TARGET_WEIGHT_MULTIPLIER': float,
+        'BALANCED_SCORE_WEIGHT_POWER': float,
+        'BALANCED_EXCLUDE_CLASS_MISMATCH': int,
     }
 
     params = {}
@@ -378,6 +437,38 @@ def load_parameters(logger: logging.Logger) -> Dict[str, Any]:
         'STABLE_UNCERTAINTY_PENALTY_LAMBDA': 0.03,
         'STABLE_CONCENTRATION_PENALTY_LAMBDA': 0.02,
         'STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA': 0.03,
+        'BALANCED_MAX_ASSET_WEIGHT_PCT': 12.0,
+        'BALANCED_MAX_SECTOR_WEIGHT_PCT': 30.0,
+        'BALANCED_MAX_LOW_QUALITY_WEIGHT_PCT': 8.0,
+        'BALANCED_MIN_POSITIONS': 9,
+        'BALANCED_MAX_POSITIONS': 12,
+        'BALANCED_MAX_HHI': 0.13,
+        'BALANCED_MAX_TOP5_WEIGHT_PCT': 60.0,
+        'BALANCED_DISCRETIZATION_TOLERANCE_PCT': 1.25,
+        'MIN_BALANCED_ADTV_BRL': 1000000.0,
+        'MAX_BALANCED_POSITION_TO_ADTV_RATIO': 0.05,
+        'BALANCED_MIN_PRICE_HISTORY_DAYS': 126,
+        'BALANCED_MIN_TARGET_QUALITY_SCORE': 0.20,
+        'BALANCED_TARGET_RETURN_WEIGHT': 0.30,
+        'BALANCED_HISTORICAL_RETURN_WEIGHT': 0.25,
+        'BALANCED_MOMENTUM_WEIGHT': 0.15,
+        'BALANCED_VALUATION_WEIGHT': 0.15,
+        'BALANCED_DIVIDEND_WEIGHT': 0.10,
+        'BALANCED_TARGET_RETURN_CAP_PCT': 60.0,
+        'BALANCED_COMPONENT_CAP_PCT': 60.0,
+        'BALANCED_DIVIDEND_CAP_PCT': 15.0,
+        'BALANCED_QUALITY_BONUS_PCT': 3.0,
+        'BALANCED_COMPOSITE_SCORE_BONUS_PCT': 3.0,
+        'BALANCED_UNCERTAINTY_PENALTY_PCT': 6.0,
+        'BALANCED_VOLATILITY_PENALTY_LAMBDA': 0.08,
+        'BALANCED_DRAWDOWN_FREE_PCT': 15.0,
+        'BALANCED_DRAWDOWN_PENALTY_LAMBDA': 0.04,
+        'BALANCED_LOW_QUALITY_PENALTY_PCT': 8.0,
+        'BALANCED_LIQUIDITY_PENALTY_PCT': 2.0,
+        'BALANCED_REGIME_STRESS_PENALTY_PCT': 2.0,
+        'BALANCED_STRESS_TARGET_WEIGHT_MULTIPLIER': 0.50,
+        'BALANCED_SCORE_WEIGHT_POWER': 1.20,
+        'BALANCED_EXCLUDE_CLASS_MISMATCH': 1,
     }
 
     for key, default in defaults.items():
@@ -1172,6 +1263,44 @@ def _round_or_none(value: Any, digits: int = 2) -> Optional[float]:
     if not math.isfinite(numeric):
         return None
     return round(numeric, digits)
+
+
+def _float_or_default(value: Any, default: float = 0.0) -> float:
+    """Convert a value to finite float, returning default for blanks/NaN."""
+    if value is None:
+        return default
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(numeric):
+        return default
+    return numeric
+
+
+def _clean_text(value: Any, default: str = '') -> str:
+    if value is None:
+        return default
+    try:
+        if pd.isna(value):
+            return default
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    return text if text else default
+
+
+def _split_flags(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(flag) for flag in value if str(flag)]
+    text = _clean_text(value)
+    if not text:
+        return []
+    return [flag.strip() for flag in text.replace(',', ';').split(';') if flag.strip()]
+
+
+def _clip(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
 
 
 def _turnover_pct_from_transition_cost(
@@ -2663,11 +2792,721 @@ def build_stable_optimization_shadow(
     }
 
 
+def _load_latest_scored_universe(logger: logging.Logger) -> pd.DataFrame:
+    """Load the latest scoring run as the universe for the Balanced portfolio."""
+    scored_path = os.path.join(ROOT, 'data', 'results', 'scored_stocks.csv')
+    if not os.path.exists(scored_path):
+        logger.warning(f"Scored stocks file not found for balanced portfolio: {scored_path}")
+        return pd.DataFrame()
+
+    try:
+        df = pd.read_csv(scored_path)
+        if df.empty:
+            return pd.DataFrame()
+        if 'run_timestamp' in df.columns:
+            df['run_timestamp'] = pd.to_datetime(df['run_timestamp'], errors='coerce')
+            latest_ts = df['run_timestamp'].max()
+            if pd.notna(latest_ts):
+                df = df[df['run_timestamp'] == latest_ts].copy()
+        elif 'run_id' in df.columns:
+            latest_run = sorted(df['run_id'].dropna().astype(str).unique())[-1]
+            df = df[df['run_id'].astype(str) == latest_run].copy()
+        if 'CompositeScore' in df.columns:
+            df = df.sort_values('CompositeScore', ascending=False)
+        df = df.drop_duplicates(subset=['Stock'], keep='first')
+        logger.info(f"Loaded {len(df)} rows from latest scored universe for Balanced portfolio")
+        return df
+    except Exception as e:
+        logger.warning(f"Could not load scored universe for balanced portfolio: {e}")
+        return pd.DataFrame()
+
+
+def _daily_history_metrics(symbol: str, logger: logging.Logger) -> Dict[str, Any]:
+    """Return history count, ADTV and recent drawdown for one ticker."""
+    clean = symbol if symbol.endswith('.SA') else f'{symbol}.SA'
+    daily = _load_stock_daily_db(logger).get(clean)
+    if daily is None or daily.empty:
+        return {
+            'price_history_days': 0,
+            'average_daily_traded_value_21d_brl': None,
+            'drawdown_6m_pct': None,
+        }
+
+    recent = daily.dropna(subset=['Close']).tail(126)
+    traded = daily.dropna(subset=['Close', 'Volume']).tail(21)
+    adtv = None
+    if not traded.empty:
+        adtv = float((traded['Close'].astype(float) * traded['Volume'].astype(float)).mean())
+
+    drawdown = None
+    if not recent.empty:
+        peak = float(recent['Close'].max())
+        last = float(recent['Close'].iloc[-1])
+        if peak > 0:
+            drawdown = ((last / peak) - 1.0) * 100.0
+
+    return {
+        'price_history_days': int(len(daily.dropna(subset=['Close']))),
+        'average_daily_traded_value_21d_brl': adtv,
+        'drawdown_6m_pct': drawdown,
+    }
+
+
+def _balanced_regime_settings(
+    market_regime: Dict[str, Any],
+    params: Dict[str, Any],
+) -> Dict[str, float]:
+    state = str(market_regime.get('state') or '').lower()
+    stress_penalty = float(params.get('BALANCED_REGIME_STRESS_PENALTY_PCT', 2.0))
+    stress_target_mult = float(params.get('BALANCED_STRESS_TARGET_WEIGHT_MULTIPLIER', 0.50))
+
+    if state == 'stress':
+        return {
+            'target_weight_multiplier': stress_target_mult,
+            'regime_penalty_pct': stress_penalty,
+        }
+    if state in {'watch', 'caution'}:
+        return {
+            'target_weight_multiplier': (1.0 + stress_target_mult) / 2.0,
+            'regime_penalty_pct': stress_penalty / 2.0,
+        }
+    return {
+        'target_weight_multiplier': 1.0,
+        'regime_penalty_pct': 0.0,
+    }
+
+
+def _valuation_signal_pct(row: pd.Series) -> float:
+    forward_pe = _float_or_default(row.get('forwardPE'), 0.0)
+    sector_pe = _float_or_default(row.get('SectorMedianPE'), 0.0)
+    if forward_pe <= 0 or sector_pe <= 0:
+        return 0.0
+    return _clip(((sector_pe / forward_pe) - 1.0) * 10.0, -30.0, 30.0)
+
+
+def _normalize_scores_with_caps(
+    score_by_symbol: Dict[str, float],
+    cap_by_symbol: Dict[str, float],
+) -> Dict[str, float]:
+    """Normalize positive scores to weights while respecting per-asset caps."""
+    active = set(score_by_symbol.keys())
+    fixed: Dict[str, float] = {}
+    remaining = 1.0
+
+    for _ in range(len(active) + 2):
+        if not active or remaining <= 0:
+            break
+        total_score = sum(max(score_by_symbol.get(sym, 0.0), 0.0001) for sym in active)
+        if total_score <= 0:
+            total_score = float(len(active))
+            tentative = {sym: remaining / total_score for sym in active}
+        else:
+            tentative = {
+                sym: remaining * max(score_by_symbol.get(sym, 0.0), 0.0001) / total_score
+                for sym in active
+            }
+
+        breached = [
+            sym for sym, weight in tentative.items()
+            if weight > cap_by_symbol.get(sym, 1.0)
+        ]
+        if not breached:
+            fixed.update(tentative)
+            active.clear()
+            break
+
+        for sym in breached:
+            cap = max(cap_by_symbol.get(sym, 0.0), 0.0)
+            fixed[sym] = cap
+            remaining -= cap
+            active.remove(sym)
+
+    if active:
+        equal = remaining / len(active) if active else 0.0
+        for sym in active:
+            fixed[sym] = min(equal, cap_by_symbol.get(sym, equal))
+
+    total = sum(weight for weight in fixed.values() if weight > 0)
+    if total > 0:
+        fixed = {sym: weight / total for sym, weight in fixed.items() if weight > 0}
+    return fixed
+
+
+def _redistribute_weight(
+    weights: Dict[str, float],
+    scores: Dict[str, float],
+    caps: Dict[str, float],
+    freed: float,
+    locked: set,
+) -> None:
+    """Redistribute freed weight to unlocked assets with remaining capacity."""
+    if freed <= 1e-9:
+        return
+
+    for _ in range(len(weights) + 1):
+        receivers = [
+            sym for sym, weight in weights.items()
+            if sym not in locked and weight < caps.get(sym, 1.0) - 1e-9
+        ]
+        if not receivers or freed <= 1e-9:
+            return
+        total_score = sum(max(scores.get(sym, 0.0), 0.0001) for sym in receivers)
+        used = 0.0
+        for sym in receivers:
+            share = freed * max(scores.get(sym, 0.0), 0.0001) / total_score
+            room = max(caps.get(sym, 1.0) - weights.get(sym, 0.0), 0.0)
+            add = min(share, room)
+            weights[sym] += add
+            used += add
+        if used <= 1e-9:
+            return
+        freed -= used
+
+
+def _apply_balanced_group_caps(
+    weights: Dict[str, float],
+    score_by_symbol: Dict[str, float],
+    cap_by_symbol: Dict[str, float],
+    sector_by_symbol: Dict[str, str],
+    quality_by_symbol: Dict[str, str],
+    params: Dict[str, Any],
+) -> Dict[str, float]:
+    """Apply sector and low-quality aggregate caps after per-asset caps."""
+    max_sector = float(params.get('BALANCED_MAX_SECTOR_WEIGHT_PCT', 30.0)) / 100.0
+    max_low = float(params.get('BALANCED_MAX_LOW_QUALITY_WEIGHT_PCT', 8.0)) / 100.0
+    clean = dict(weights)
+
+    for _ in range(8):
+        changed = False
+
+        sectors = sorted(set(sector_by_symbol.get(sym, 'Unknown') for sym in clean))
+        for sector in sectors:
+            members = [sym for sym in clean if sector_by_symbol.get(sym, 'Unknown') == sector]
+            total = sum(clean[sym] for sym in members)
+            if total <= max_sector + 1e-9:
+                continue
+            factor = max_sector / total if total > 0 else 1.0
+            freed = 0.0
+            for sym in members:
+                old = clean[sym]
+                clean[sym] = old * factor
+                freed += old - clean[sym]
+            _redistribute_weight(clean, score_by_symbol, cap_by_symbol, freed, set(members))
+            changed = True
+
+        low_members = [sym for sym in clean if quality_by_symbol.get(sym) == 'low']
+        low_total = sum(clean[sym] for sym in low_members)
+        if low_total > max_low + 1e-9:
+            factor = max_low / low_total if low_total > 0 else 1.0
+            freed = 0.0
+            for sym in low_members:
+                old = clean[sym]
+                clean[sym] = old * factor
+                freed += old - clean[sym]
+            _redistribute_weight(clean, score_by_symbol, cap_by_symbol, freed, set(low_members))
+            changed = True
+
+        if not changed:
+            break
+
+    total = sum(clean.values())
+    if total > 0:
+        clean = {sym: weight / total for sym, weight in clean.items() if weight > 0.0001}
+    return clean
+
+
+def _sector_exposure_from_weights(
+    weights: Dict[str, float],
+    meta_by_symbol: Dict[str, Dict[str, Any]],
+    logger: logging.Logger,
+) -> List[Dict[str, Any]]:
+    sectors: Dict[str, float] = {}
+    for symbol, weight in (weights or {}).items():
+        sector = meta_by_symbol.get(symbol, {}).get('sector')
+        if not sector:
+            sector = get_target_metadata(symbol, logger).get('sector') or 'Unknown'
+        sectors[sector] = sectors.get(sector, 0.0) + float(weight or 0.0)
+
+    rows = [
+        {
+            'sector': sector,
+            'pct': round(weight, 6),
+            'weight_pct': round(weight * 100, 2),
+        }
+        for sector, weight in sectors.items()
+    ]
+    rows.sort(key=lambda row: row.get('pct') or 0, reverse=True)
+    return rows
+
+
+def _balanced_constraint_violations(
+    weights: Dict[str, float],
+    meta_by_symbol: Dict[str, Dict[str, Any]],
+    constraints: Dict[str, Any],
+    logger: logging.Logger,
+) -> List[Dict[str, Any]]:
+    violations: List[Dict[str, Any]] = []
+    tolerance_pct = float(constraints.get('discretization_tolerance_pct', 0.0) or 0.0)
+    concentration = _portfolio_concentration_summary(weights)
+    sector_rows = _sector_exposure_from_weights(weights, meta_by_symbol, logger)
+    low_weight_pct = sum(
+        weight * 100
+        for symbol, weight in weights.items()
+        if meta_by_symbol.get(symbol, {}).get('target_quality_bucket') == 'low'
+    )
+
+    checks = [
+        ('max_asset_weight_pct', concentration.get('max_weight_pct'), constraints.get('max_asset_weight_pct')),
+        ('max_sector_weight_pct', max([row.get('weight_pct', 0) for row in sector_rows] or [0]), constraints.get('max_sector_weight_pct')),
+        ('max_low_quality_weight_pct', low_weight_pct, constraints.get('max_low_quality_weight_pct')),
+        ('max_top5_weight_pct', concentration.get('top5_weight_pct'), constraints.get('max_top5_weight_pct')),
+    ]
+    for code, actual, threshold in checks:
+        if actual is not None and threshold is not None and actual > threshold + tolerance_pct:
+            violations.append({
+                'code': code,
+                'actual': _round_or_none(actual, 4),
+                'threshold': _round_or_none(threshold, 4),
+                'tolerance_pct': _round_or_none(tolerance_pct, 4),
+            })
+
+    hhi_tolerance = max(0.0001, tolerance_pct / 100.0)
+    if concentration.get('hhi') is not None and concentration.get('hhi') > constraints.get('max_hhi', 1.0) + hhi_tolerance:
+        violations.append({
+            'code': 'max_hhi',
+            'actual': concentration.get('hhi'),
+            'threshold': constraints.get('max_hhi'),
+            'tolerance': round(hhi_tolerance, 4),
+        })
+
+    num_positions = len([w for w in weights.values() if w > 0])
+    if num_positions < constraints.get('min_positions', 0):
+        violations.append({
+            'code': 'min_positions',
+            'actual': num_positions,
+            'threshold': constraints.get('min_positions'),
+        })
+    if num_positions > constraints.get('max_positions', 999):
+        violations.append({
+            'code': 'max_positions',
+            'actual': num_positions,
+            'threshold': constraints.get('max_positions'),
+        })
+
+    return violations
+
+
+def build_balanced_target_portfolio(
+    holdings: Dict[str, Any],
+    ideal: Dict[str, Any],
+    params: Dict[str, Any],
+    logger: logging.Logger,
+) -> Dict[str, Any]:
+    """Build an independent, investable Balanced target portfolio for Phase 11."""
+    scored = _load_latest_scored_universe(logger)
+    if scored.empty:
+        return {
+            'phase': '11_independent_balanced_target',
+            'enabled': False,
+            'reason': 'scored_universe_missing',
+            'portfolio': {},
+            'eligible': [],
+            'excluded': [],
+        }
+
+    market_regime = _build_market_regime_diagnostics(logger, params)
+    regime_settings = _balanced_regime_settings(market_regime, params)
+    financials = _load_financials_db(logger)
+    portfolio_value = float(holdings.get('total_value') or 0.0)
+
+    max_asset_pct = float(params.get('BALANCED_MAX_ASSET_WEIGHT_PCT', 12.0))
+    max_sector_pct = float(params.get('BALANCED_MAX_SECTOR_WEIGHT_PCT', 30.0))
+    max_low_pct = float(params.get('BALANCED_MAX_LOW_QUALITY_WEIGHT_PCT', 8.0))
+    min_positions = int(params.get('BALANCED_MIN_POSITIONS', 9))
+    max_positions = int(params.get('BALANCED_MAX_POSITIONS', 12))
+    min_needed_for_asset_cap = int(math.ceil(100.0 / max(max_asset_pct, 1.0)))
+    target_count = max(min_positions, min_needed_for_asset_cap)
+    target_count = min(max_positions, max(target_count, 1))
+
+    constraints = {
+        'max_asset_weight_pct': max_asset_pct,
+        'max_sector_weight_pct': max_sector_pct,
+        'max_low_quality_weight_pct': max_low_pct,
+        'min_positions': min_positions,
+        'max_positions': max_positions,
+        'max_hhi': float(params.get('BALANCED_MAX_HHI', 0.13)),
+        'max_top5_weight_pct': float(params.get('BALANCED_MAX_TOP5_WEIGHT_PCT', 60.0)),
+        'discretization_tolerance_pct': float(params.get('BALANCED_DISCRETIZATION_TOLERANCE_PCT', 1.25)),
+        'min_adtv_brl': float(params.get('MIN_BALANCED_ADTV_BRL', 1000000.0)),
+        'max_position_to_adtv_ratio': float(params.get('MAX_BALANCED_POSITION_TO_ADTV_RATIO', 0.05)),
+        'min_price_history_days': int(params.get('BALANCED_MIN_PRICE_HISTORY_DAYS', 126)),
+        'min_target_quality_score': float(params.get('BALANCED_MIN_TARGET_QUALITY_SCORE', 0.20)),
+    }
+
+    excluded: List[Dict[str, Any]] = []
+    eligible: List[Dict[str, Any]] = []
+    meta_by_symbol: Dict[str, Dict[str, Any]] = {}
+
+    target_w = float(params.get('BALANCED_TARGET_RETURN_WEIGHT', 0.30))
+    hist_w = float(params.get('BALANCED_HISTORICAL_RETURN_WEIGHT', 0.25))
+    momentum_w = float(params.get('BALANCED_MOMENTUM_WEIGHT', 0.15))
+    valuation_w = float(params.get('BALANCED_VALUATION_WEIGHT', 0.15))
+    dividend_w = float(params.get('BALANCED_DIVIDEND_WEIGHT', 0.10))
+    target_cap = float(params.get('BALANCED_TARGET_RETURN_CAP_PCT', 60.0))
+    component_cap = float(params.get('BALANCED_COMPONENT_CAP_PCT', 60.0))
+    dividend_cap = float(params.get('BALANCED_DIVIDEND_CAP_PCT', 15.0))
+    class_mismatch_flags = {
+        'target_class_mismatch_suspected',
+        'unit_or_share_class_mismatch_suspected',
+        'corporate_action_check_required',
+    }
+
+    def exclude(symbol: str, reason: str, details: Optional[Dict[str, Any]] = None) -> None:
+        excluded.append({
+            'stock': symbol,
+            'reason': reason,
+            **(details or {}),
+        })
+
+    for _, row in scored.iterrows():
+        symbol = _clean_text(row.get('Stock'))
+        if not symbol or symbol.startswith('^'):
+            continue
+        if not symbol.endswith('.SA'):
+            symbol = f'{symbol}.SA'
+
+        current_price = get_current_price(symbol, logger)
+        if current_price is None or current_price <= 0:
+            current_price = _float_or_default(row.get('CurrentPrice'), 0.0)
+        if current_price <= 0:
+            exclude(symbol, 'missing_current_price')
+            continue
+
+        quality_bucket = _clean_text(row.get('TargetQualityBucket'), 'unknown').lower()
+        quality_score = _float_or_default(row.get('TargetQualityScore'), 0.0)
+        flags = _split_flags(row.get('TargetQualityFlags'))
+        if quality_bucket == 'reject':
+            exclude(symbol, 'target_quality_reject', {'flags': flags})
+            continue
+        if quality_score < constraints['min_target_quality_score']:
+            exclude(symbol, 'target_quality_below_minimum', {
+                'target_quality_score': _round_or_none(quality_score, 4),
+                'threshold': constraints['min_target_quality_score'],
+            })
+            continue
+        if int(params.get('BALANCED_EXCLUDE_CLASS_MISMATCH', 1)) and class_mismatch_flags.intersection(flags):
+            exclude(symbol, 'target_class_mismatch', {'flags': flags})
+            continue
+
+        hist_metrics = _daily_history_metrics(symbol, logger)
+        if hist_metrics['price_history_days'] < constraints['min_price_history_days']:
+            exclude(symbol, 'insufficient_price_history', {
+                'price_history_days': hist_metrics['price_history_days'],
+                'threshold': constraints['min_price_history_days'],
+            })
+            continue
+
+        fin = financials.get(symbol, {})
+        adtv = hist_metrics.get('average_daily_traded_value_21d_brl')
+        if adtv is None:
+            avg_volume = _float_or_default(fin.get('average_volume'), 0.0)
+            adtv = avg_volume * current_price if avg_volume > 0 else 0.0
+        if adtv < constraints['min_adtv_brl']:
+            exclude(symbol, 'liquidity_below_minimum', {
+                'adtv_brl': _round_or_none(adtv, 2),
+                'threshold': constraints['min_adtv_brl'],
+            })
+            continue
+
+        max_position_pct_by_liquidity = (
+            (adtv * constraints['max_position_to_adtv_ratio'] / portfolio_value) * 100
+            if portfolio_value > 0 else max_asset_pct
+        )
+        asset_cap_pct = min(max_asset_pct, max_position_pct_by_liquidity)
+        if asset_cap_pct <= 0:
+            exclude(symbol, 'liquidity_position_cap_zero', {
+                'adtv_brl': _round_or_none(adtv, 2),
+            })
+            continue
+
+        adjusted_target_pct = _clip(
+            _float_or_default(row.get('AdjustedExpectedReturnPct'), 0.0),
+            -target_cap,
+            target_cap,
+        )
+        historical_pct = _clip(
+            _float_or_default(row.get('AnnualizedMeanReturn'), 0.0) * 100.0,
+            -component_cap,
+            component_cap,
+        )
+        momentum_pct = _clip(
+            _float_or_default(row.get('Momentum'), 0.0) * 100.0,
+            -component_cap,
+            component_cap,
+        )
+        valuation_pct = _valuation_signal_pct(row)
+        dividend_pct = _clip(_float_or_default(fin.get('dividendYield'), 0.0), 0.0, dividend_cap)
+        annual_vol_pct = max(0.0, _float_or_default(row.get('AnnualizedStdDev'), 0.0) * 100.0)
+        drawdown_pct = _float_or_default(hist_metrics.get('drawdown_6m_pct'), 0.0)
+
+        uncertainty_penalty = max(0.0, 1.0 - quality_score) * float(
+            params.get('BALANCED_UNCERTAINTY_PENALTY_PCT', 6.0)
+        )
+        volatility_penalty = annual_vol_pct * float(params.get('BALANCED_VOLATILITY_PENALTY_LAMBDA', 0.08))
+        drawdown_excess = max(0.0, abs(min(drawdown_pct, 0.0)) - float(params.get('BALANCED_DRAWDOWN_FREE_PCT', 15.0)))
+        drawdown_penalty = drawdown_excess * float(params.get('BALANCED_DRAWDOWN_PENALTY_LAMBDA', 0.04))
+        low_quality_penalty = (
+            float(params.get('BALANCED_LOW_QUALITY_PENALTY_PCT', 8.0))
+            if quality_bucket == 'low' else 0.0
+        )
+        liquidity_penalty = (
+            float(params.get('BALANCED_LIQUIDITY_PENALTY_PCT', 2.0))
+            if adtv < constraints['min_adtv_brl'] * 2 else 0.0
+        )
+
+        balanced_expected_pct = (
+            adjusted_target_pct * target_w * regime_settings['target_weight_multiplier']
+            + historical_pct * hist_w
+            + momentum_pct * momentum_w
+            + valuation_pct * valuation_w
+            + dividend_pct * dividend_w
+            - uncertainty_penalty
+            - regime_settings['regime_penalty_pct']
+        )
+        quality_bonus = quality_score * float(params.get('BALANCED_QUALITY_BONUS_PCT', 3.0))
+        composite_bonus = _float_or_default(row.get('CompositeScore'), 0.0) * float(
+            params.get('BALANCED_COMPOSITE_SCORE_BONUS_PCT', 3.0)
+        )
+        balanced_score = (
+            balanced_expected_pct
+            + quality_bonus
+            + composite_bonus
+            - volatility_penalty
+            - drawdown_penalty
+            - low_quality_penalty
+            - liquidity_penalty
+        )
+
+        target_price = get_target_price(symbol, logger)
+        raw_target_pct = (
+            ((target_price / current_price) - 1.0) * 100.0
+            if target_price and current_price > 0 else None
+        )
+        sector = _clean_text(row.get('Sector'), fin.get('sector') or 'Unknown')
+        meta = {
+            'stock': symbol,
+            'sector': sector,
+            'target_quality_bucket': quality_bucket,
+            'target_quality_score': _round_or_none(quality_score, 4),
+            'target_quality_flags': flags,
+            'balanced_score': round(balanced_score, 4),
+            'balanced_expected_return_pct': round(balanced_expected_pct, 4),
+            'raw_target_return_pct': _round_or_none(raw_target_pct, 4),
+            'adjusted_target_return_pct': round(adjusted_target_pct, 4),
+            'historical_return_pct': round(historical_pct, 4),
+            'momentum_pct': round(momentum_pct, 4),
+            'valuation_signal_pct': round(valuation_pct, 4),
+            'dividend_yield_pct': round(dividend_pct, 4),
+            'annual_volatility_pct': round(annual_vol_pct, 4),
+            'drawdown_6m_pct': _round_or_none(drawdown_pct, 4),
+            'average_daily_traded_value_21d_brl': _round_or_none(adtv, 2),
+            'max_weight_by_liquidity_pct': round(max_position_pct_by_liquidity, 4),
+            'asset_cap_pct': round(asset_cap_pct, 4),
+            'current_price': _round_or_none(current_price, 4),
+            'target_price': _round_or_none(target_price, 4),
+            'components': {
+                'adjusted_target_return_pct': round(adjusted_target_pct * target_w * regime_settings['target_weight_multiplier'], 4),
+                'historical_return_pct': round(historical_pct * hist_w, 4),
+                'momentum_pct': round(momentum_pct * momentum_w, 4),
+                'valuation_pct': round(valuation_pct * valuation_w, 4),
+                'dividend_pct': round(dividend_pct * dividend_w, 4),
+                'uncertainty_penalty_pct': round(uncertainty_penalty, 4),
+                'regime_penalty_pct': round(regime_settings['regime_penalty_pct'], 4),
+                'quality_bonus_pct': round(quality_bonus, 4),
+                'composite_bonus_pct': round(composite_bonus, 4),
+                'volatility_penalty_pct': round(volatility_penalty, 4),
+                'drawdown_penalty_pct': round(drawdown_penalty, 4),
+                'low_quality_penalty_pct': round(low_quality_penalty, 4),
+                'liquidity_penalty_pct': round(liquidity_penalty, 4),
+            },
+        }
+        eligible.append(meta)
+        meta_by_symbol[symbol] = meta
+
+    eligible.sort(key=lambda row: row.get('balanced_score', -float('inf')), reverse=True)
+    selected = eligible[:target_count]
+    if len(selected) < min_positions and len(eligible) > len(selected):
+        selected = eligible[:min(min_positions, len(eligible))]
+
+    if not selected:
+        return {
+            'phase': '11_independent_balanced_target',
+            'enabled': False,
+            'reason': 'no_eligible_assets',
+            'portfolio': {},
+            'eligible': eligible,
+            'excluded': excluded,
+            'constraints': constraints,
+            'market_regime': market_regime,
+        }
+
+    min_selected_score = min(row.get('balanced_score', 0.0) for row in selected)
+    power = float(params.get('BALANCED_SCORE_WEIGHT_POWER', 1.20))
+    score_by_symbol = {
+        row['stock']: max(0.05, row.get('balanced_score', 0.0) - min_selected_score + 0.10) ** power
+        for row in selected
+    }
+    cap_by_symbol = {
+        row['stock']: min(max_asset_pct, row.get('asset_cap_pct') or max_asset_pct) / 100.0
+        for row in selected
+    }
+    sector_by_symbol = {row['stock']: row.get('sector') or 'Unknown' for row in selected}
+    quality_by_symbol = {row['stock']: row.get('target_quality_bucket') or 'unknown' for row in selected}
+
+    weights = _normalize_scores_with_caps(score_by_symbol, cap_by_symbol)
+    weights = _apply_balanced_group_caps(
+        weights,
+        score_by_symbol,
+        cap_by_symbol,
+        sector_by_symbol,
+        quality_by_symbol,
+        params,
+    )
+
+    disc_weights, share_qtys, disc_total = discretize_to_integer_shares(
+        weights,
+        portfolio_value,
+        logger,
+    )
+    if disc_weights:
+        weights = {sym: weight for sym, weight in disc_weights.items() if weight > 0.0001}
+
+    selected_meta = {row['stock']: row for row in selected if row['stock'] in weights}
+    for symbol, weight in weights.items():
+        if symbol in selected_meta:
+            selected_meta[symbol]['target_weight_pct'] = round(weight * 100, 4)
+            selected_meta[symbol]['target_position_value_brl'] = round(weight * portfolio_value, 2)
+
+    def weighted_metric(key: str, default: float = 0.0) -> float:
+        return sum(
+            float(weights.get(symbol, 0.0)) * _float_or_default(selected_meta.get(symbol, {}).get(key), default)
+            for symbol in weights
+        )
+
+    balanced_expected_pct = weighted_metric('balanced_expected_return_pct')
+    raw_target_pct = weighted_metric('raw_target_return_pct')
+    adjusted_target_pct = weighted_metric('adjusted_target_return_pct')
+    historical_pct = weighted_metric('historical_return_pct')
+    volatility_pct = weighted_metric('annual_volatility_pct')
+    drawdown_pct = weighted_metric('drawdown_6m_pct')
+    target_prices = {
+        symbol: selected_meta[symbol].get('target_price')
+        for symbol in weights
+        if selected_meta.get(symbol, {}).get('target_price') is not None
+    }
+    current_prices = {
+        symbol: selected_meta[symbol].get('current_price')
+        for symbol in weights
+        if selected_meta.get(symbol, {}).get('current_price') is not None
+    }
+
+    sector_exposure = _sector_exposure_from_weights(weights, selected_meta, logger)
+    violations = _balanced_constraint_violations(weights, selected_meta, constraints, logger)
+    low_weight_pct = sum(
+        weight * 100
+        for symbol, weight in weights.items()
+        if selected_meta.get(symbol, {}).get('target_quality_bucket') == 'low'
+    )
+    quality_score = sum(
+        weight * _float_or_default(selected_meta.get(symbol, {}).get('target_quality_score'), 0.0)
+        for symbol, weight in weights.items()
+    )
+
+    portfolio = {
+        'portfolio_type': 'independent_balanced_target',
+        'construction_phase': '11_independent_balanced_target',
+        'stocks': list(weights.keys()),
+        'weights': weights,
+        'share_quantities': {symbol: int(qty) for symbol, qty in share_qtys.items() if symbol in weights and qty > 0},
+        'total_discretized': round(disc_total, 2),
+        'discretized': bool(disc_weights),
+        'expected_return': balanced_expected_pct,
+        'expected_return_pct': round(balanced_expected_pct, 4),
+        'balanced_expected_return_pct': round(balanced_expected_pct, 4),
+        'adjusted_expected_return_pct': round(balanced_expected_pct, 4),
+        'raw_target_return_pct': round(raw_target_pct, 4),
+        'adjusted_target_return_pct': round(adjusted_target_pct, 4),
+        'historical_return_pct': round(historical_pct, 4),
+        'net_return_pct': round(balanced_expected_pct, 4),
+        'adjusted_net_return_pct': round(balanced_expected_pct, 4),
+        'current_prices': current_prices,
+        'target_prices': target_prices,
+        'historical_returns': {
+            symbol: selected_meta[symbol].get('historical_return_pct', 0.0) / 100.0
+            for symbol in weights
+        },
+        'risk': {
+            'volatility_annual_pct': round(volatility_pct, 4),
+            'drawdown_6m_pct': round(drawdown_pct, 4),
+            'hhi': _portfolio_concentration_summary(weights).get('hhi'),
+        },
+        'quality': {
+            'target_quality_score': round(quality_score, 4),
+            'low_quality_weight_pct': round(low_weight_pct, 4),
+            'reject_weight_pct': 0.0,
+        },
+        'constraints': constraints,
+        'constraint_violations': violations,
+        'eligible_universe_size': len(eligible),
+        'excluded_universe_size': len(excluded),
+        'sector_exposure': sector_exposure,
+        'construction': {
+            'method': 'score_weighted_independent_target',
+            'target_count': target_count,
+            'market_regime_state': market_regime.get('state'),
+            'target_weight_multiplier': regime_settings['target_weight_multiplier'],
+            'component_weights': {
+                'adjusted_target': target_w,
+                'historical': hist_w,
+                'momentum': momentum_w,
+                'valuation': valuation_w,
+                'dividend': dividend_w,
+            },
+        },
+        'selected_assets': list(selected_meta.values()),
+    }
+
+    reason_counts: Dict[str, int] = {}
+    for row in excluded:
+        reason = row.get('reason') or 'unknown'
+        reason_counts[reason] = reason_counts.get(reason, 0) + 1
+
+    logger.info(
+        "Balanced independent portfolio: "
+        f"{len(weights)} positions, expected={balanced_expected_pct:.2f}%, "
+        f"quality={quality_score:.2f}, excluded={len(excluded)}"
+    )
+
+    return {
+        'phase': '11_independent_balanced_target',
+        'enabled': True,
+        'portfolio': portfolio,
+        'eligible': eligible,
+        'excluded': excluded,
+        'exclusion_reasons': reason_counts,
+        'constraints': constraints,
+        'constraint_violations': violations,
+        'market_regime': market_regime,
+        'selected_assets': list(selected_meta.values()),
+    }
+
+
 def generate_recommendation(
     holdings: Dict[str, Any],
     ideal: Dict[str, Any],
     optimal: Dict[str, Any],
     stable_optimization: Dict[str, Any],
+    balanced_target: Dict[str, Any],
     transaction_cost_pct: float,
     params: Dict,
     logger: logging.Logger
@@ -2793,33 +3632,35 @@ def generate_recommendation(
     })
 
     balanced_portfolio = (
-        stable_optimization.get('stable_portfolio', {})
-        if stable_optimization.get('enabled')
+        balanced_target.get('portfolio', {})
+        if balanced_target.get('enabled')
         else {}
     )
     if not balanced_portfolio:
-        balanced_portfolio = {
-            'stocks': holdings.get('stocks', []),
-            'weights': holdings.get('weights', {}),
-            'expected_return_pct': holdings_return,
-            'net_return_pct': holdings_return,
-            'adjusted_net_return_pct': holdings_adjusted_return,
-            'turnover_pct': 0.0,
-            'stable_score': None,
-        }
+        if stable_optimization.get('enabled'):
+            balanced_portfolio = {
+                **stable_optimization.get('stable_portfolio', {}),
+                'portfolio_type': 'stable_fallback_target',
+            }
+        else:
+            balanced_portfolio = {
+                'portfolio_type': 'current_fallback_target',
+                'stocks': holdings.get('stocks', []),
+                'weights': holdings.get('weights', {}),
+                'expected_return_pct': holdings_return,
+                'net_return_pct': holdings_return,
+                'adjusted_net_return_pct': holdings_adjusted_return,
+                'turnover_pct': 0.0,
+                'stable_score': None,
+            }
 
-    balanced_transactions = stable_optimization.get('stable_transactions', [])
-    if not isinstance(balanced_transactions, list):
-        balanced_transactions = []
-    balanced_transaction_summary = stable_optimization.get('stable_transaction_summary', {})
-    if not balanced_transaction_summary:
-        _, balanced_transactions = calculate_transition_cost(
-            holdings,
-            balanced_portfolio,
-            transaction_cost_pct,
-            logger,
-        )
-        balanced_transaction_summary = _build_transaction_summary(balanced_transactions)
+    _, balanced_transactions = calculate_transition_cost(
+        holdings,
+        balanced_portfolio,
+        transaction_cost_pct,
+        logger,
+    )
+    balanced_transaction_summary = _build_transaction_summary(balanced_transactions)
 
     balanced_transition_cost_pct = _trade_value_pct(
         balanced_transactions,
@@ -2835,7 +3676,20 @@ def generate_recommendation(
         logger,
     )
     balanced_diagnostics['phase'] = '9_balanced_recommendation'
-    balanced_adjusted_summary = balanced_diagnostics.get('adjusted_returns', {}).get('optimal', {}) or {}
+    balanced_adjusted_summary = {
+        **(balanced_diagnostics.get('adjusted_returns', {}).get('optimal', {}) or {}),
+        'balanced_expected_return_pct': _round_or_none(
+            balanced_portfolio.get('balanced_expected_return_pct'),
+            4,
+        ),
+        'adjusted_expected_return_pct': _portfolio_return_value(
+            balanced_portfolio,
+            'adjusted_expected_return_pct',
+            'balanced_expected_return_pct',
+            'expected_return_pct',
+            'expected_return',
+        ),
+    }
     balanced_adjusted_gross_return = balanced_adjusted_summary.get(
         'adjusted_expected_return_pct',
         balanced_portfolio.get('adjusted_expected_return_pct', balanced_portfolio.get('expected_return_pct', 0)),
@@ -2852,7 +3706,7 @@ def generate_recommendation(
     )
     balanced_raw_excess_return = balanced_raw_net_return - holdings_return
     balanced_adjusted_excess_return = balanced_adjusted_net_return - holdings_adjusted_return
-    balanced_raw_decision = 'REBALANCE' if balanced_raw_excess_return >= min_excess_threshold else 'HOLD'
+    balanced_raw_decision = 'REBALANCE' if balanced_adjusted_excess_return >= min_excess_threshold else 'HOLD'
     balanced_gate = _build_shadow_rebalance_gate(
         balanced_raw_decision,
         balanced_adjusted_excess_return,
@@ -2919,11 +3773,37 @@ def generate_recommendation(
         balanced_transition_cost_pct,
         balanced_transaction_summary,
         {
-            'blend_ratio': stable_optimization.get('selected_blend_ratio'),
-            'stable_score': stable_optimization.get('selected_stable_score'),
-            'stable_enabled': bool(stable_optimization.get('enabled')),
-            'turnover_saved_pct': stable_optimization.get('turnover_saved_pct'),
-            'adjusted_return_tradeoff_pct': stable_optimization.get('adjusted_return_tradeoff_pct'),
+            'portfolio_type': balanced_portfolio.get('portfolio_type', 'independent_balanced_target'),
+            'construction_phase': balanced_portfolio.get('construction_phase'),
+            'balanced_expected_return_pct': _round_or_none(
+                balanced_portfolio.get('balanced_expected_return_pct'),
+                4,
+            ),
+            'raw_target_return_pct': _round_or_none(balanced_portfolio.get('raw_target_return_pct'), 4),
+            'adjusted_target_return_pct': _round_or_none(
+                balanced_portfolio.get('adjusted_target_return_pct'),
+                4,
+            ),
+            'historical_return_pct': _round_or_none(balanced_portfolio.get('historical_return_pct'), 4),
+            'risk': balanced_portfolio.get('risk', {}),
+            'quality': balanced_portfolio.get('quality', {}),
+            'constraints': balanced_target.get('constraints', balanced_portfolio.get('constraints', {})),
+            'constraint_violations': balanced_target.get(
+                'constraint_violations',
+                balanced_portfolio.get('constraint_violations', []),
+            ),
+            'eligible_universe_size': balanced_portfolio.get('eligible_universe_size'),
+            'excluded_universe_size': balanced_portfolio.get('excluded_universe_size'),
+            'sector_exposure': balanced_portfolio.get('sector_exposure', []),
+            'construction': balanced_portfolio.get('construction', {}),
+            'selected_assets': balanced_portfolio.get('selected_assets', []),
+            'stable_reference': {
+                'enabled': bool(stable_optimization.get('enabled')),
+                'selected_blend_ratio': stable_optimization.get('selected_blend_ratio'),
+                'selected_stable_score': stable_optimization.get('selected_stable_score'),
+                'turnover_saved_pct': stable_optimization.get('turnover_saved_pct'),
+                'adjusted_return_tradeoff_pct': stable_optimization.get('adjusted_return_tradeoff_pct'),
+            },
         },
     )
 
@@ -2951,7 +3831,7 @@ def generate_recommendation(
         if destination == 'MOVE_TO_BALANCED'
         else _build_transaction_summary([])
     )
-    decision_engine_version = 'v3_dual_recommendation_destinations'
+    decision_engine_version = 'v4_independent_balanced_target'
     acid_raw_decision_engine_version = 'v1_raw_excess_return'
     decision = selected_plan.get('decision_state') or 'HOLD'
     reason = _destination_reason(destination, balanced_execution_plan, acid_signal)
@@ -2983,7 +3863,7 @@ def generate_recommendation(
         'decision': decision,
         'reason': reason,
         'decision_engine_version': decision_engine_version,
-        'decision_engine_phase': '9_dual_recommendation_destinations',
+        'decision_engine_phase': '11_independent_balanced_target',
         'decision_engine_promoted_from': 'decision_context.destination',
         'decision_transition_window_days': 60,
         'decision_destination': destination,
@@ -3047,6 +3927,17 @@ def generate_recommendation(
             'acid': acid_payload,
             'balanced': balanced_payload,
         },
+        'balanced_universe': {
+            'phase': balanced_target.get('phase', '11_independent_balanced_target'),
+            'enabled': bool(balanced_target.get('enabled')),
+            'eligible': balanced_target.get('eligible', []),
+            'excluded': balanced_target.get('excluded', []),
+            'exclusion_reasons': balanced_target.get('exclusion_reasons', {}),
+            'constraints': balanced_target.get('constraints', {}),
+            'constraint_violations': balanced_target.get('constraint_violations', []),
+            'market_regime': balanced_target.get('market_regime', {}),
+            'selected_assets': balanced_target.get('selected_assets', []),
+        },
         'comparisons': {
             'current_to_acid': current_to_acid,
             'current_to_balanced': current_to_balanced,
@@ -3060,7 +3951,7 @@ def generate_recommendation(
             'destination': destination,
             'destination_label': _destination_label(destination),
             'reason': reason,
-            'policy': 'balanced_operational_official_with_acid_radar',
+            'policy': 'independent_balanced_target_with_acid_radar',
             'current': 'reference_only',
             'acid_signal': acid_signal,
             'acid_signal_state': acid_execution_plan.get('decision_state'),
@@ -3073,16 +3964,17 @@ def generate_recommendation(
         'transaction_summary': selected_transaction_summary,
         'diagnostics': {
             **diagnostics,
-            'phase': '9_dual_recommendation_destinations',
+            'phase': '11_independent_balanced_target',
             'description': (
                 'Compares current portfolio against Acid and Balanced recommended destinations. '
-                'Current is reference-only; Acid is aggressive radar; Balanced is official investable destination.'
+                'Current is reference-only; Acid is aggressive radar; Balanced is an independent investable target.'
             ),
             'balanced': balanced_diagnostics,
+            'balanced_target': balanced_target,
             'destination': destination,
         },
         'shadow': {
-            'phase': '9_dual_recommendation_destinations',
+            'phase': '11_independent_balanced_target',
             'official_decision': decision,
             'destination': destination,
             'destination_label': _destination_label(destination),
@@ -3112,6 +4004,7 @@ def generate_recommendation(
             'acid_aggressive_gate': acid_aggressive_gate,
             'acid_operational_gate': acid_operational_gate,
             'balanced_gate': balanced_gate,
+            'balanced_target': balanced_target,
             'stable_optimization': stable_optimization,
         },
         'transaction_cost_pct_used': round(transaction_cost_pct, 4),
@@ -3152,6 +4045,36 @@ def generate_recommendation(
             'stable_concentration_penalty_lambda': float(params.get('STABLE_CONCENTRATION_PENALTY_LAMBDA', 0.02)),
             'stable_suspicious_return_penalty_lambda': float(
                 params.get('STABLE_SUSPICIOUS_RETURN_PENALTY_LAMBDA', 0.03)
+            ),
+            'balanced_max_asset_weight_pct': float(params.get('BALANCED_MAX_ASSET_WEIGHT_PCT', 12.0)),
+            'balanced_max_sector_weight_pct': float(params.get('BALANCED_MAX_SECTOR_WEIGHT_PCT', 30.0)),
+            'balanced_max_low_quality_weight_pct': float(
+                params.get('BALANCED_MAX_LOW_QUALITY_WEIGHT_PCT', 8.0)
+            ),
+            'balanced_min_positions': int(params.get('BALANCED_MIN_POSITIONS', 9)),
+            'balanced_max_positions': int(params.get('BALANCED_MAX_POSITIONS', 12)),
+            'balanced_max_hhi': float(params.get('BALANCED_MAX_HHI', 0.13)),
+            'balanced_max_top5_weight_pct': float(params.get('BALANCED_MAX_TOP5_WEIGHT_PCT', 60.0)),
+            'balanced_discretization_tolerance_pct': float(
+                params.get('BALANCED_DISCRETIZATION_TOLERANCE_PCT', 1.25)
+            ),
+            'min_balanced_adtv_brl': float(params.get('MIN_BALANCED_ADTV_BRL', 1000000.0)),
+            'max_balanced_position_to_adtv_ratio': float(
+                params.get('MAX_BALANCED_POSITION_TO_ADTV_RATIO', 0.05)
+            ),
+            'balanced_min_price_history_days': int(params.get('BALANCED_MIN_PRICE_HISTORY_DAYS', 126)),
+            'balanced_min_target_quality_score': float(
+                params.get('BALANCED_MIN_TARGET_QUALITY_SCORE', 0.20)
+            ),
+            'balanced_target_return_weight': float(params.get('BALANCED_TARGET_RETURN_WEIGHT', 0.30)),
+            'balanced_historical_return_weight': float(
+                params.get('BALANCED_HISTORICAL_RETURN_WEIGHT', 0.25)
+            ),
+            'balanced_momentum_weight': float(params.get('BALANCED_MOMENTUM_WEIGHT', 0.15)),
+            'balanced_valuation_weight': float(params.get('BALANCED_VALUATION_WEIGHT', 0.15)),
+            'balanced_dividend_weight': float(params.get('BALANCED_DIVIDEND_WEIGHT', 0.10)),
+            'balanced_stress_target_weight_multiplier': float(
+                params.get('BALANCED_STRESS_TARGET_WEIGHT_MULTIPLIER', 0.50)
             ),
         }
     }
@@ -3243,6 +4166,25 @@ def save_recommendation(
             ),
             'balanced_target_quality_score': (
                 recommendation.get('recommendations', {}).get('balanced', {}).get('target_quality_score')
+            ),
+            'balanced_portfolio_type': (
+                recommendation.get('recommendations', {}).get('balanced', {}).get('portfolio_type')
+            ),
+            'balanced_universe_enabled': (
+                recommendation.get('balanced_universe', {}).get('enabled')
+            ),
+            'balanced_eligible_universe_size': (
+                recommendation.get('recommendations', {}).get('balanced', {}).get('eligible_universe_size')
+            ),
+            'balanced_excluded_universe_size': (
+                recommendation.get('recommendations', {}).get('balanced', {}).get('excluded_universe_size')
+            ),
+            'balanced_constraint_violation_codes': [
+                row.get('code')
+                for row in recommendation.get('balanced_universe', {}).get('constraint_violations', [])
+            ],
+            'balanced_exclusion_reasons': (
+                recommendation.get('balanced_universe', {}).get('exclusion_reasons', {})
             ),
             'diagnostic_holdings_top2_contribution_pct': (
                 recommendation.get('diagnostics', {})
@@ -3540,6 +4482,27 @@ def main():
             f"turnover_saved={stable_optimization.get('turnover_saved_pct'):.2f}%"
         )
 
+    balanced_target = build_balanced_target_portfolio(
+        holdings,
+        ideal,
+        params,
+        logger,
+    )
+    if balanced_target.get('enabled'):
+        balanced_portfolio = balanced_target.get('portfolio', {})
+        logger.info(
+            "Balanced independent target: "
+            f"{len(balanced_portfolio.get('stocks', []))} positions, "
+            f"expected={balanced_portfolio.get('balanced_expected_return_pct', 0):.2f}%, "
+            f"eligible={len(balanced_target.get('eligible', []))}, "
+            f"excluded={len(balanced_target.get('excluded', []))}"
+        )
+    else:
+        logger.warning(
+            "Balanced independent target was not built: "
+            f"{balanced_target.get('reason', 'unknown')}. Falling back to stable/current target."
+        )
+
     # ── Discretize to integer shares (B3 constraint) ──────────────────
     # MVO optimises in continuous weight-space, but B3 only allows
     # integer shares.  Discretize the optimal portfolio and recalculate
@@ -3608,7 +4571,7 @@ def main():
 
     # Generate recommendation (uses discretized weights)
     recommendation = generate_recommendation(
-        holdings, ideal, optimal, stable_optimization, transaction_cost_pct, params, logger
+        holdings, ideal, optimal, stable_optimization, balanced_target, transaction_cost_pct, params, logger
     )
 
     # Save results
