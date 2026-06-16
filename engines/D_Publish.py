@@ -92,6 +92,7 @@ SCORED_TARGETS_JSON = DERIVED_DIR / "scored_targets.json"
 PIPELINE_LATEST_JSON = DERIVED_DIR / "pipeline_latest.json"
 DASHBOARD_LATEST_JSON = DERIVED_DIR / "dashboard_latest.json"
 MODEL_CALIBRATION_JSON = DERIVED_DIR / "model_calibration.json"
+MODEL_RETURN_HISTORY_JSON = DERIVED_DIR / "model_return_history.json"
 
 # --- Progress files (written live by engines, canonical in data/) ---
 PROGRESS_DIR = SRC
@@ -2443,6 +2444,111 @@ def publish_history_enriched() -> None:
     logger.info(f"  Saved portfolio_history_enriched.json ({len(enriched)} runs)")
 
 
+def publish_model_return_history() -> None:
+    """Step 9: Publish model return history for the Model page trend chart.
+
+    Normalizes the JSONL decision history into a compact JSON contract for the
+    frontend. This is intentionally read-only with respect to model decisions.
+    """
+    logger.info("Step 9: Generating model_return_history.json")
+
+    if not OPTIMIZED_HISTORY_JSONL.exists():
+        logger.warning("  optimized_portfolio_history.jsonl not found — skipping")
+        return
+
+    entries: List[Dict[str, Any]] = []
+    invalid_lines = 0
+
+    try:
+        with open(OPTIMIZED_HISTORY_JSONL, "r", encoding="utf-8") as f:
+            for line_no, line in enumerate(f, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                    if isinstance(row, dict):
+                        entries.append(row)
+                except json.JSONDecodeError:
+                    invalid_lines += 1
+                    logger.warning(f"  Invalid JSONL row {line_no}; ignoring")
+    except Exception as e:
+        logger.error(f"  Failed to read optimized history JSONL: {e}")
+        return
+
+    if not entries:
+        payload = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "source": str(OPTIMIZED_HISTORY_JSONL.relative_to(ROOT)),
+            "current_return_kind": "target_based_raw",
+            "series": [],
+        }
+        write_json(MODEL_RETURN_HISTORY_JSON, payload)
+        ensure_symlink(MODEL_RETURN_HISTORY_JSON, DST)
+        logger.info("  Saved empty model_return_history.json")
+        return
+
+    deduped: Dict[str, Dict[str, Any]] = {}
+    for idx, row in enumerate(entries):
+        key = str(row.get("run_id") or row.get("timestamp") or idx)
+        deduped[key] = row
+
+    def parse_ts(row: Dict[str, Any]) -> datetime:
+        raw = row.get("timestamp") or row.get("date") or ""
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(str(raw), fmt)
+            except ValueError:
+                continue
+        return datetime.min
+
+    normalized: List[Dict[str, Any]] = []
+    for row in sorted(deduped.values(), key=parse_ts):
+        normalized.append({
+            "run_id": row.get("run_id"),
+            "timestamp": row.get("timestamp"),
+            "date": row.get("date"),
+            "decision": row.get("decision"),
+            "decision_destination": row.get("decision_destination"),
+            "decision_engine_version": row.get("decision_engine_version"),
+            "returns": {
+                "current_pct": safe_float(row.get("holdings_return_pct"), None),
+                "acid_raw_pct": safe_float(row.get("acid_expected_return_pct"), None),
+                "acid_adjusted_net_pct": safe_float(row.get("acid_adjusted_net_return_pct"), None),
+                "balanced_raw_pct": safe_float(row.get("balanced_expected_return_pct"), None),
+                "balanced_adjusted_net_pct": safe_float(row.get("balanced_adjusted_net_return_pct"), None),
+                "optimal_raw_pct": safe_float(row.get("optimal_return_pct"), None),
+                "optimal_net_pct": safe_float(row.get("optimal_net_return_pct"), None),
+            },
+            "signals": {
+                "acid": row.get("acid_signal"),
+                "balanced": row.get("balanced_signal"),
+                "shadow": row.get("shadow_decision"),
+                "execution": row.get("execution_state"),
+            },
+            "quality": {
+                "acid_target_quality_score": safe_float(row.get("acid_target_quality_score"), None),
+                "balanced_target_quality_score": safe_float(row.get("balanced_target_quality_score"), None),
+            },
+            "turnover": {
+                "acid_pct": safe_float(row.get("acid_turnover_pct"), None),
+                "balanced_pct": safe_float(row.get("balanced_turnover_pct"), None),
+            },
+        })
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source": str(OPTIMIZED_HISTORY_JSONL.relative_to(ROOT)),
+        "invalid_lines": invalid_lines,
+        "current_return_kind": "target_based_raw",
+        "series": normalized,
+    }
+
+    write_json(MODEL_RETURN_HISTORY_JSON, payload)
+    ensure_symlink(MODEL_RETURN_HISTORY_JSON, DST)
+    logger.info(f"  Saved model_return_history.json ({len(normalized)} runs)")
+
+
 def main() -> int:
     start_time = datetime.now()
     logger.info(f"D_Publish.py v{D_PUBLISH_VERSION} — Starting frontend asset publication")
@@ -2498,6 +2604,9 @@ def main() -> int:
 
         # Step 8: Enriched history JSON (A3 + C merged for frontend)
         publish_history_enriched()
+
+        # Step 9: Model return history JSON for model.html trend chart
+        publish_model_return_history()
 
         elapsed = (datetime.now() - start_time).total_seconds()
         logger.info(f"D_Publish.py completed in {elapsed:.1f}s")

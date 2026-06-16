@@ -9,15 +9,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   /* ── Dashboard Layout Grids ── */
-  .cards-grid {
+  .model-main-stack {
     display: grid;
-    grid-template-columns: 1.6fr 1fr;
+    grid-template-columns: 1fr;
     gap: 14px;
     margin-bottom: 16px;
     opacity: 0;
     transform: translateY(10px);
     animation: fadeInUp 0.6s ease forwards;
   }
+  .model-support-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 14px;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+  .sector-card .chart-container { height: 300px; min-height: 300px; }
 
   /* card override for this page */
   .card {
@@ -116,7 +124,9 @@
   .portfolio-card { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card-alt); padding: 12px; min-height: 126px; }
   .portfolio-card.acid { border-color: rgba(199, 143, 64, 0.40); background: rgba(199, 143, 64, 0.08); }
   .portfolio-card.balanced { border-color: rgba(79, 140, 201, 0.38); background: rgba(79, 140, 201, 0.07); }
-  .portfolio-card.decision { border-color: rgba(46, 125, 50, 0.32); background: var(--bg-positive); }
+  .portfolio-card.decision { grid-column: span 2; border-color: rgba(46, 125, 50, 0.32); background: var(--bg-positive); }
+  .portfolio-card.decision .portfolio-main { font-size: 26px; }
+  .portfolio-card.decision .portfolio-sub { max-width: 680px; font-size: 12px; }
   .portfolio-name { font-size: 9px; font-weight: var(--font-weight-emphasis); color: var(--color-label); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
   .portfolio-main { font-size: 20px; line-height: 1; font-weight: var(--font-weight-light); color: var(--text-primary); margin-bottom: 6px; }
   .portfolio-sub { font-size: 11px; line-height: 1.35; color: var(--text-secondary); font-weight: var(--font-weight-emphasis); }
@@ -137,6 +147,22 @@
   .audit-details summary { cursor: pointer; padding: 10px 12px; font-size: 10px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); letter-spacing: 0.08em; text-transform: uppercase; }
   .audit-body { padding: 0 12px 12px; }
   .official-note { border: 1px solid rgba(46, 125, 50, 0.35); background: var(--bg-positive); color: var(--text-primary); border-radius: 8px; padding: 9px 11px; font-size: 11px; font-weight: var(--font-weight-emphasis); line-height: 1.35; margin-bottom: 12px; }
+
+  /* ── Model return history ── */
+  .history-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .history-title { font-size: 10px; font-weight: var(--font-weight-emphasis); color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.08em; }
+  .history-sub { margin-top: 4px; font-size: 11px; color: var(--text-secondary); font-weight: var(--font-weight-emphasis); line-height: 1.35; }
+  .history-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+  .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--bg-card-alt); }
+  .segmented button { border: 0; border-right: 1px solid var(--border); background: transparent; color: var(--text-secondary); padding: 6px 9px; font: inherit; font-size: 10px; font-weight: var(--font-weight-emphasis); text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
+  .segmented button:last-child { border-right: 0; }
+  .segmented button.active { background: rgba(79, 140, 201, 0.12); color: var(--brand-blue); }
+  .history-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .history-metric { border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card-alt); padding: 8px; }
+  .history-metric span { display: block; font-size: 8px; color: var(--color-label); font-weight: var(--font-weight-emphasis); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .history-metric strong { display: block; font-size: 13px; color: var(--text-primary); }
+  .history-chart-wrap { position: relative; height: 240px; min-height: 240px; }
+  .history-note { margin-top: 9px; color: var(--text-muted); font-size: 10px; font-weight: var(--font-weight-emphasis); letter-spacing: 0.04em; text-transform: uppercase; }
 
   /* ── Risk Row ── */
   .risk-section-label { font-size: 9px; text-transform: uppercase; font-weight: var(--font-weight-emphasis); color: var(--color-label); margin-bottom: 8px; padding-top: 14px; border-top: 1px solid var(--border-strong); letter-spacing: 0.08em; }
@@ -292,14 +318,20 @@
   }
   
   @media (max-width: 1024px) {
-    .cards-grid { grid-template-columns: 1fr; }
+    .model-support-grid { grid-template-columns: 1fr; }
     .portfolio-cockpit { grid-template-columns: 1fr 1fr; }
+    .portfolio-card.decision { grid-column: span 2; }
     .plan-grid { grid-template-columns: 1fr; }
     .return-comparison { grid-template-columns: 1fr; }
     .rc-middle { flex-direction: row; justify-content: space-between; padding: 8px; border-radius: 8px; background: var(--bg-card-alt); }
+    .history-card-head { flex-direction: column; }
+    .history-controls { justify-content: flex-start; }
+    .history-metrics { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 640px) {
     .portfolio-cockpit { grid-template-columns: 1fr; }
+    .portfolio-card.decision { grid-column: span 1; }
+    .history-metrics { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -307,9 +339,15 @@
 
 <div class="section-title">Carteiras do Modelo</div>
 
-<div class="cards-grid">
+<div class="model-main-stack">
   <div class="card" id="summary-card"><span class="loading">Carregando modelo...</span></div>
+</div>
+
+<div class="model-support-grid">
   <div class="card">
+    <div id="model-return-history"><span class="loading">Carregando histórico...</span></div>
+  </div>
+  <div class="card sector-card">
     <div class="card-header">Exposição por Setor</div>
     <div class="chart-container"><canvas id="sector-chart"></canvas></div>
   </div>
@@ -405,6 +443,219 @@ function portfolioMetric(portfolio, key) {
 }
 function renderMini(label, value) {
   return `<div class="portfolio-mini"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+let modelReturnHistoryChart = null;
+const modelReturnHistoryState = { mode: 'adjusted', window: '30' };
+
+function compactDate(row) {
+  const stamp = row.timestamp || row.date || '';
+  if (!stamp) return '—';
+  const [date, time] = stamp.split(' ');
+  const parts = date.split('-');
+  if (parts.length !== 3) return stamp;
+  const label = `${parts[2]}/${parts[1]}`;
+  return time ? `${label} ${time.slice(0, 5)}` : label;
+}
+
+function normalizeHistoryRows(history) {
+  return (history?.series || [])
+    .map(row => ({
+      ...row,
+      _ts: row.timestamp || row.date || '',
+      _label: compactDate(row),
+      returns: row.returns || {},
+      signals: row.signals || {},
+      quality: row.quality || {},
+      turnover: row.turnover || {},
+    }))
+    .filter(row => row._ts);
+}
+
+function historyWindowRows(rows, windowKey) {
+  if (windowKey === 'all') return rows;
+  const limit = Number(windowKey);
+  if (!limit || rows.length <= limit) return rows;
+  return rows.slice(rows.length - limit);
+}
+
+function historyValue(row, field) {
+  const value = row.returns?.[field];
+  return value == null || isNaN(value) ? null : Number(value);
+}
+
+function detectReturnJumps(rows, field, threshold) {
+  const jumps = new Set();
+  let prev = null;
+  rows.forEach((row, idx) => {
+    const value = historyValue(row, field);
+    if (value != null && prev != null && Math.abs(value - prev) >= threshold) jumps.add(idx);
+    if (value != null) prev = value;
+  });
+  return jumps;
+}
+
+function lastNonNull(rows, field) {
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const value = historyValue(rows[i], field);
+    if (value != null) return value;
+  }
+  return null;
+}
+
+function buildReturnHistoryDatasets(rows, mode) {
+  const adjusted = mode === 'adjusted';
+  const fields = adjusted
+    ? [
+        { label: 'Atual (target)', field: 'current_pct', color: '#697586', threshold: 25 },
+        { label: 'Ácida ajustada', field: 'acid_adjusted_net_pct', color: '#C78F40', threshold: 5 },
+        { label: 'Ponderada ajustada', field: 'balanced_adjusted_net_pct', color: '#4F8CC9', threshold: 5 },
+      ]
+    : [
+        { label: 'Atual (target)', field: 'current_pct', color: '#697586', threshold: 25 },
+        { label: 'Ácida bruta', field: 'acid_raw_pct', color: '#C78F40', threshold: 25 },
+        { label: 'Ponderada bruta', field: 'balanced_raw_pct', color: '#4F8CC9', threshold: 25 },
+      ];
+
+  return fields.map(item => {
+    const jumps = detectReturnJumps(rows, item.field, item.threshold);
+    return {
+      label: item.label,
+      data: rows.map(row => historyValue(row, item.field)),
+      borderColor: item.color,
+      backgroundColor: item.color,
+      borderWidth: 2,
+      pointRadius: rows.map((_, idx) => jumps.has(idx) ? 4 : 2),
+      pointHoverRadius: 5,
+      pointBorderWidth: rows.map((_, idx) => jumps.has(idx) ? 2 : 0),
+      pointBorderColor: rows.map((_, idx) => jumps.has(idx) ? '#B86D5D' : item.color),
+      tension: 0.25,
+      spanGaps: true,
+      hidden: adjusted && item.field === 'current_pct',
+    };
+  });
+}
+
+function historyDecisionLabel(decision) {
+  return shadowDecisionLabel(decision);
+}
+
+function renderModelReturnHistory(history) {
+  const el = document.getElementById('model-return-history');
+  if (!el) return;
+
+  const rows = normalizeHistoryRows(history);
+  if (rows.length < 2) {
+    el.innerHTML = '<span class="loading">Histórico de retornos ainda não publicado.</span>';
+    return;
+  }
+
+  const windowRows = historyWindowRows(rows, modelReturnHistoryState.window);
+  const datasets = buildReturnHistoryDatasets(windowRows, modelReturnHistoryState.mode);
+  const latest = windowRows[windowRows.length - 1] || {};
+  const lastAdjusted = lastNonNull(windowRows, 'balanced_adjusted_net_pct');
+  const lastAcid = lastNonNull(windowRows, 'acid_adjusted_net_pct');
+  const lastCurrent = lastNonNull(windowRows, 'current_pct');
+  const engine = latest.decision_engine_version || '—';
+  const latestLabel = latest.timestamp || latest.date || '—';
+
+  el.innerHTML = `
+    <div class="history-card-head">
+      <div>
+        <div class="history-title">Tendência dos Modelos</div>
+        <div class="history-sub">Retorno calculado por execução; diagnóstico histórico, não ordem de operação.</div>
+      </div>
+      <div class="history-controls">
+        <div class="segmented" aria-label="Modo do histórico">
+          <button type="button" data-history-mode="adjusted" class="${modelReturnHistoryState.mode === 'adjusted' ? 'active' : ''}">Ajustado</button>
+          <button type="button" data-history-mode="raw" class="${modelReturnHistoryState.mode === 'raw' ? 'active' : ''}">Bruto</button>
+        </div>
+        <div class="segmented" aria-label="Janela do histórico">
+          <button type="button" data-history-window="30" class="${modelReturnHistoryState.window === '30' ? 'active' : ''}">30 exec.</button>
+          <button type="button" data-history-window="90" class="${modelReturnHistoryState.window === '90' ? 'active' : ''}">90 exec.</button>
+          <button type="button" data-history-window="all" class="${modelReturnHistoryState.window === 'all' ? 'active' : ''}">Tudo</button>
+        </div>
+      </div>
+    </div>
+    <div class="history-metrics">
+      ${renderMini('Atual', fmtPct(lastCurrent))}
+      ${renderMini('Ácida ajust.', fmtPct(lastAcid))}
+      ${renderMini('Ponderada ajust.', fmtPct(lastAdjusted))}
+      ${renderMini('Última execução', esc(latestLabel))}
+    </div>
+    <div class="history-chart-wrap"><canvas id="model-return-history-chart"></canvas></div>
+    <div class="history-note">Motor: ${esc(engine)} · Atual histórico usa retorno por target enquanto não houver série ajustada própria.</div>
+  `;
+
+  el.querySelectorAll('[data-history-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      modelReturnHistoryState.mode = btn.dataset.historyMode;
+      renderModelReturnHistory(history);
+    });
+  });
+  el.querySelectorAll('[data-history-window]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      modelReturnHistoryState.window = btn.dataset.historyWindow;
+      renderModelReturnHistory(history);
+    });
+  });
+
+  if (modelReturnHistoryChart) modelReturnHistoryChart.destroy();
+  const ctx = document.getElementById('model-return-history-chart').getContext('2d');
+  modelReturnHistoryChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: windowRows.map(row => row._label),
+      datasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          ticks: { color: 'var(--text-muted)', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+          grid: { display: false },
+        },
+        y: {
+          ticks: { color: 'var(--text-muted)', callback: value => `${value}%` },
+          grid: { color: 'rgba(138,122,101,0.14)' },
+        },
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: 'var(--text-secondary)', usePointStyle: true, boxWidth: 8, font: { size: 11, weight: 600 } },
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          padding: 12,
+          cornerRadius: 10,
+          titleColor: '#ffffff',
+          bodyColor: '#e2e8f0',
+          callbacks: {
+            title(items) {
+              const row = windowRows[items[0]?.dataIndex] || {};
+              return row.timestamp || row.date || '—';
+            },
+            beforeBody(items) {
+              const row = windowRows[items[0]?.dataIndex] || {};
+              return [
+                `Decisão: ${historyDecisionLabel(row.decision)}`,
+                `Destino: ${destinationLabel(row.decision_destination)}`,
+                `Motor: ${row.decision_engine_version || '—'}`,
+              ];
+            },
+            label(ctx) {
+              const value = ctx.parsed.y;
+              if (value == null || isNaN(value)) return `${ctx.dataset.label}: —`;
+              return `${ctx.dataset.label}: ${fmtPct(value)}`;
+            },
+          },
+        },
+      },
+    },
+  });
 }
 
 function renderReturnDiagnostics(dashboard, recommendation) {
@@ -840,6 +1091,7 @@ function renderSummary(dashboard, recommendation) {
     const cockpitHtml = `
       <div class="official-note">A recomendação oficial usa a Carteira Ponderada como destino investível. A Carteira Ácida é um radar agressivo: aparece para estudo, mas não vira ordem sem você escolher esse destino.</div>
       <div class="portfolio-cockpit">
+        ${decisionHtml}
         <div class="portfolio-card">
           <div class="portfolio-name">Carteira Atual</div>
           <div class="portfolio-main" style="color:${plColor((current.adjusted_expected_return_pct || 0) / 100)}">${fmtPct(current.adjusted_expected_return_pct)}</div>
@@ -851,9 +1103,8 @@ function renderSummary(dashboard, recommendation) {
             ${renderMini('Top 5', fmtPct(current.concentration?.top5_weight_pct))}
           </div>
         </div>
-        ${card('acid', 'Carteira Ácida', acid, currentToAcid, 'adjusted_net_return_pct', 'radar agressivo; sensível a targets e distorções')}
         ${card('balanced', 'Carteira Ponderada', balanced, currentToBalanced, 'adjusted_net_return_pct', 'destino investível e operacional')}
-        ${decisionHtml}
+        ${card('acid', 'Carteira Ácida', acid, currentToAcid, 'adjusted_net_return_pct', 'radar agressivo; sensível a targets e distorções')}
       </div>
       <div class="destination-strip">
         <span class="destination-chip ${destination === 'STAY_CURRENT' ? 'active' : ''}">Manter atual</span>
@@ -1528,9 +1779,18 @@ async function render() {
     renderAllocation(recommendation, pipeline);
     renderTransactions(recommendation);
     renderAudit(dashboard, recommendation);
+
+    try {
+      const returnHistory = await fetchJSON('model_return_history.json');
+      renderModelReturnHistory(returnHistory);
+    } catch (historyErr) {
+      console.warn('Model return history unavailable:', historyErr.message);
+      renderModelReturnHistory(null);
+    }
   } catch (err) {
     console.error('Model page error:', err);
     document.getElementById('summary-card').innerHTML = `<span class="loading" style="color:var(--brand-red)">Erro: ${err.message}</span>`;
+    renderModelReturnHistory(null);
   }
 
   try {
