@@ -1,0 +1,2302 @@
+{
+  "generated_at": "2026-06-16T00:03:28.904689+00:00",
+  "source": "data/results/optimized_portfolio_history.jsonl",
+  "invalid_lines": 0,
+  "current_return_kind": "target_based_raw",
+  "series": [
+    {
+      "run_id": null,
+      "timestamp": "2026-03-29 04:46:34",
+      "date": "2026-03-29",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 43.89,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 15.65,
+        "optimal_net_pct": 15.6
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-03-29 11:25:24",
+      "date": "2026-03-29",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 43.89,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 15.9,
+        "optimal_net_pct": 15.86
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-03-30 20:37:52",
+      "date": "2026-03-30",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 44.15,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 15.45,
+        "optimal_net_pct": 15.41
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-03-31 21:32:08",
+      "date": "2026-03-31",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 43.9,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 14.01,
+        "optimal_net_pct": 13.96
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-02 14:10:31",
+      "date": "2026-04-02",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 42.32,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 11.76,
+        "optimal_net_pct": 11.7
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-03 09:30:35",
+      "date": "2026-04-03",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 42.72,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 10.33,
+        "optimal_net_pct": 10.27
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-04 07:47:23",
+      "date": "2026-04-04",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 42.75,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 10.63,
+        "optimal_net_pct": 10.57
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-06 21:42:14",
+      "date": "2026-04-06",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 42.61,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 10.96,
+        "optimal_net_pct": 10.9
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-06 22:25:59",
+      "date": "2026-04-06",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 5.16,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 11.18,
+        "optimal_net_pct": 11.13
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-06 23:02:54",
+      "date": "2026-04-06",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 5.16,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 3.46,
+        "optimal_net_pct": 3.43
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-07 07:34:16",
+      "date": "2026-04-07",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 8.38,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 3.51,
+        "optimal_net_pct": 3.48
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-07 21:34:52",
+      "date": "2026-04-07",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 9.91,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 4.17,
+        "optimal_net_pct": 4.14
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-08 22:28:08",
+      "date": "2026-04-08",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 9.53,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 3.82,
+        "optimal_net_pct": 3.79
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-09 20:23:24",
+      "date": "2026-04-09",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 6.62,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 1.25,
+        "optimal_net_pct": 1.2
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-10 23:05:50",
+      "date": "2026-04-10",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 5.99,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": -1.89,
+        "optimal_net_pct": -1.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-13 21:08:44",
+      "date": "2026-04-13",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 7.68,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 1.86,
+        "optimal_net_pct": 1.83
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-13 22:50:19",
+      "date": "2026-04-13",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 7.68,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 0.27,
+        "optimal_net_pct": 0.22
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-15 22:44:41",
+      "date": "2026-04-15",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 7.68,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 102.03,
+        "optimal_net_pct": 102.02
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-15 23:12:36",
+      "date": "2026-04-15",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 11.58,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 103.91,
+        "optimal_net_pct": 103.9
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-17 14:25:18",
+      "date": "2026-04-17",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 12.38,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 103.84,
+        "optimal_net_pct": 103.83
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-20 06:34:16",
+      "date": "2026-04-20",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 13.51,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 101.65,
+        "optimal_net_pct": 101.64
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-20 15:11:23",
+      "date": "2026-04-20",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 18.44,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 109.98,
+        "optimal_net_pct": 109.97
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-20 22:33:12",
+      "date": "2026-04-20",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 18.44,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 99.98,
+        "optimal_net_pct": 99.96
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-20 23:16:27",
+      "date": "2026-04-20",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 17.99,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 102.35,
+        "optimal_net_pct": 102.33
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-22 22:12:09",
+      "date": "2026-04-22",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 18.03,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 101.26,
+        "optimal_net_pct": 101.24
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-23 08:54:27",
+      "date": "2026-04-23",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 18.13,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 101.18,
+        "optimal_net_pct": 101.17
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-23 22:02:44",
+      "date": "2026-04-23",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 22.29,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 101.38,
+        "optimal_net_pct": 101.37
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-27 22:49:07",
+      "date": "2026-04-27",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 25.23,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 100.14,
+        "optimal_net_pct": 100.13
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-27 23:31:37",
+      "date": "2026-04-27",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 25.23,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 101.39,
+        "optimal_net_pct": 101.37
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-27 23:49:20",
+      "date": "2026-04-27",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 109.48,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 132.01,
+        "optimal_net_pct": 132.01
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-28 22:18:03",
+      "date": "2026-04-28",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 113.7,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 135.12,
+        "optimal_net_pct": 135.12
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-04-29 22:30:58",
+      "date": "2026-04-29",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 112.29,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 138.72,
+        "optimal_net_pct": 138.71
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-01 11:49:32",
+      "date": "2026-05-01",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 130.59,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 150.17,
+        "optimal_net_pct": 150.16
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-04 20:44:36",
+      "date": "2026-05-04",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 139.46,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 155.41,
+        "optimal_net_pct": 155.4
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-05 07:20:11",
+      "date": "2026-05-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 139.46,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 285.28,
+        "optimal_net_pct": 285.24
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-05 08:00:03",
+      "date": "2026-05-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 139.46,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 284.63,
+        "optimal_net_pct": 284.59
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-05 21:25:36",
+      "date": "2026-05-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 140.61,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 304.4,
+        "optimal_net_pct": 304.36
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-06 22:05:20",
+      "date": "2026-05-06",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 140.72,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 316.64,
+        "optimal_net_pct": 316.6
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-07 21:50:38",
+      "date": "2026-05-07",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 302.6,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 297.18,
+        "optimal_net_pct": 297.15
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-09 10:45:59",
+      "date": "2026-05-09",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 299.78,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 263.19,
+        "optimal_net_pct": 263.17
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-11 20:53:04",
+      "date": "2026-05-11",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 304.13,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 328.59,
+        "optimal_net_pct": 328.57
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-13 21:48:05",
+      "date": "2026-05-13",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 332.33,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 382.54,
+        "optimal_net_pct": 382.53
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-18 21:07:54",
+      "date": "2026-05-18",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 325.8,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 392.7,
+        "optimal_net_pct": 392.69
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-19 20:53:33",
+      "date": "2026-05-19",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 330.01,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 396.99,
+        "optimal_net_pct": 396.98
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-20 21:49:44",
+      "date": "2026-05-20",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 325.78,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 335.59,
+        "optimal_net_pct": 335.58
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-24 10:01:58",
+      "date": "2026-05-24",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 331.25,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 338.22,
+        "optimal_net_pct": 338.2
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-26 22:05:59",
+      "date": "2026-05-26",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 338.67,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 316.96,
+        "optimal_net_pct": 316.94
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-28 06:56:42",
+      "date": "2026-05-28",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 337.97,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 326.41,
+        "optimal_net_pct": 326.38
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-28 21:03:32",
+      "date": "2026-05-28",
+      "decision": "HOLD",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 337.97,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 326.41,
+        "optimal_net_pct": 326.39
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-28 22:09:29",
+      "date": "2026-05-28",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 339.05,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 398.28,
+        "optimal_net_pct": 398.26
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-31 07:38:28",
+      "date": "2026-05-31",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 340.55,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 356.56,
+        "optimal_net_pct": 356.55
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-31 08:08:47",
+      "date": "2026-05-31",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 340.55,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 366.89,
+        "optimal_net_pct": 366.87
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-31 08:15:20",
+      "date": "2026-05-31",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 340.55,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 370.56,
+        "optimal_net_pct": 370.54
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-05-31 19:00:01",
+      "date": "2026-05-31",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 340.55,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 376.74,
+        "optimal_net_pct": 376.72
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-01 23:05:15",
+      "date": "2026-06-01",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 327.54,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 338.82,
+        "optimal_net_pct": 338.8
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-03 11:24:13",
+      "date": "2026-06-03",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 330.65,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 392.32,
+        "optimal_net_pct": 392.3
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-03 12:09:57",
+      "date": "2026-06-03",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-05 16:32:41",
+      "date": "2026-06-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-05 16:47:01",
+      "date": "2026-06-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-05 17:16:07",
+      "date": "2026-06-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-05 17:16:58",
+      "date": "2026-06-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-05 18:44:24",
+      "date": "2026-06-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": null,
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-05 19:27:37",
+      "date": "2026-06-05",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": "WATCH",
+        "execution": null
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-06 07:02:28",
+      "date": "2026-06-06",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": "WATCH",
+        "execution": "WATCH"
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-06 07:21:58",
+      "date": "2026-06-06",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": "WATCH",
+        "execution": "WATCH"
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-06 07:25:19",
+      "date": "2026-06-06",
+      "decision": "REBALANCE",
+      "decision_destination": null,
+      "decision_engine_version": null,
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": "WATCH",
+        "execution": "WATCH"
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-06 07:56:37",
+      "date": "2026-06-06",
+      "decision": "WATCH",
+      "decision_destination": null,
+      "decision_engine_version": "v2_operational_shadow_conservative",
+      "returns": {
+        "current_pct": 344.3,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 403.93,
+        "optimal_net_pct": 403.92
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": "WATCH",
+        "execution": "WATCH"
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-06 08:40:26",
+      "date": "2026-06-06",
+      "decision": "WATCH",
+      "decision_destination": null,
+      "decision_engine_version": "v2_operational_shadow_conservative",
+      "returns": {
+        "current_pct": 338.63,
+        "acid_raw_pct": null,
+        "acid_adjusted_net_pct": null,
+        "balanced_raw_pct": null,
+        "balanced_adjusted_net_pct": null,
+        "optimal_raw_pct": 350.4,
+        "optimal_net_pct": 350.39
+      },
+      "signals": {
+        "acid": null,
+        "balanced": null,
+        "shadow": "WATCH",
+        "execution": "WATCH"
+      },
+      "quality": {
+        "acid_target_quality_score": null,
+        "balanced_target_quality_score": null
+      },
+      "turnover": {
+        "acid_pct": null,
+        "balanced_pct": null
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-07 10:52:25",
+      "date": "2026-06-07",
+      "decision": "HOLD",
+      "decision_destination": "STAY_CURRENT",
+      "decision_engine_version": "v3_dual_recommendation_destinations",
+      "returns": {
+        "current_pct": 338.63,
+        "acid_raw_pct": 350.4033,
+        "acid_adjusted_net_pct": 11.8449,
+        "balanced_raw_pct": 338.6319,
+        "balanced_adjusted_net_pct": 18.14,
+        "optimal_raw_pct": 350.4,
+        "optimal_net_pct": 350.39
+      },
+      "signals": {
+        "acid": "MOVE_TO_ACID",
+        "balanced": "STAY_CURRENT",
+        "shadow": "HOLD",
+        "execution": "HOLD"
+      },
+      "quality": {
+        "acid_target_quality_score": 0.5327,
+        "balanced_target_quality_score": 0.5606
+      },
+      "turnover": {
+        "acid_pct": 52.5588,
+        "balanced_pct": 0.0
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-08 23:20:14",
+      "date": "2026-06-08",
+      "decision": "HOLD",
+      "decision_destination": "STAY_CURRENT",
+      "decision_engine_version": "v3_dual_recommendation_destinations",
+      "returns": {
+        "current_pct": 334.38,
+        "acid_raw_pct": 376.4876,
+        "acid_adjusted_net_pct": 13.8318,
+        "balanced_raw_pct": 334.3844,
+        "balanced_adjusted_net_pct": 18.17,
+        "optimal_raw_pct": 376.49,
+        "optimal_net_pct": 376.47
+      },
+      "signals": {
+        "acid": "MOVE_TO_ACID",
+        "balanced": "STAY_CURRENT",
+        "shadow": "HOLD",
+        "execution": "HOLD"
+      },
+      "quality": {
+        "acid_target_quality_score": 0.4935,
+        "balanced_target_quality_score": 0.5635
+      },
+      "turnover": {
+        "acid_pct": 63.1261,
+        "balanced_pct": 0.0
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-09 07:34:49",
+      "date": "2026-06-09",
+      "decision": "HOLD",
+      "decision_destination": "STAY_CURRENT",
+      "decision_engine_version": "v4_independent_balanced_target",
+      "returns": {
+        "current_pct": 334.38,
+        "acid_raw_pct": 376.4876,
+        "acid_adjusted_net_pct": 13.8318,
+        "balanced_raw_pct": 14.4311,
+        "balanced_adjusted_net_pct": 14.4311,
+        "optimal_raw_pct": 376.49,
+        "optimal_net_pct": 376.47
+      },
+      "signals": {
+        "acid": "MOVE_TO_ACID",
+        "balanced": "STAY_CURRENT",
+        "shadow": "HOLD",
+        "execution": "HOLD"
+      },
+      "quality": {
+        "acid_target_quality_score": 0.4935,
+        "balanced_target_quality_score": 1.0
+      },
+      "turnover": {
+        "acid_pct": 63.1261,
+        "balanced_pct": 187.8391
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-09 07:38:18",
+      "date": "2026-06-09",
+      "decision": "HOLD",
+      "decision_destination": "STAY_CURRENT",
+      "decision_engine_version": "v4_independent_balanced_target",
+      "returns": {
+        "current_pct": 334.38,
+        "acid_raw_pct": 376.4876,
+        "acid_adjusted_net_pct": 13.8318,
+        "balanced_raw_pct": 14.4311,
+        "balanced_adjusted_net_pct": 14.4311,
+        "optimal_raw_pct": 376.49,
+        "optimal_net_pct": 376.47
+      },
+      "signals": {
+        "acid": "MOVE_TO_ACID",
+        "balanced": "STAY_CURRENT",
+        "shadow": "HOLD",
+        "execution": "HOLD"
+      },
+      "quality": {
+        "acid_target_quality_score": 0.4935,
+        "balanced_target_quality_score": 1.0
+      },
+      "turnover": {
+        "acid_pct": 63.1261,
+        "balanced_pct": 187.8391
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-09 22:33:01",
+      "date": "2026-06-09",
+      "decision": "WATCH",
+      "decision_destination": "STAY_CURRENT",
+      "decision_engine_version": "v4_independent_balanced_target",
+      "returns": {
+        "current_pct": 227.99,
+        "acid_raw_pct": 252.1076,
+        "acid_adjusted_net_pct": 9.945,
+        "balanced_raw_pct": 14.3471,
+        "balanced_adjusted_net_pct": 14.3471,
+        "optimal_raw_pct": 252.11,
+        "optimal_net_pct": 252.09
+      },
+      "signals": {
+        "acid": "MOVE_TO_ACID",
+        "balanced": "STAY_CURRENT",
+        "shadow": "WATCH",
+        "execution": "WATCH"
+      },
+      "quality": {
+        "acid_target_quality_score": 0.4691,
+        "balanced_target_quality_score": 1.0
+      },
+      "turnover": {
+        "acid_pct": 52.0766,
+        "balanced_pct": 188.443
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-15 21:03:12",
+      "date": "2026-06-15",
+      "decision": "PARTIAL_REBALANCE",
+      "decision_destination": "MOVE_TO_BALANCED",
+      "decision_engine_version": "v4_independent_balanced_target",
+      "returns": {
+        "current_pct": 225.84,
+        "acid_raw_pct": 248.9219,
+        "acid_adjusted_net_pct": 14.7513,
+        "balanced_raw_pct": 14.9192,
+        "balanced_adjusted_net_pct": 14.9192,
+        "optimal_raw_pct": 248.92,
+        "optimal_net_pct": 248.9
+      },
+      "signals": {
+        "acid": "MOVE_TO_ACID",
+        "balanced": "MOVE_TO_BALANCED",
+        "shadow": "PARTIAL_REBALANCE",
+        "execution": "PARTIAL_REBALANCE"
+      },
+      "quality": {
+        "acid_target_quality_score": 0.5285,
+        "balanced_target_quality_score": 1.0
+      },
+      "turnover": {
+        "acid_pct": 65.0483,
+        "balanced_pct": 186.5572
+      }
+    }
+  ]
+}

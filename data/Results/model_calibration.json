@@ -1,15 +1,15 @@
 {
   "phase": "7_backtest_calibration",
   "status": "diagnostic",
-  "generated_at": "2026-06-10T01:33:18.047205+00:00",
+  "generated_at": "2026-06-16T00:03:28.362625+00:00",
   "history": {
-    "raw_runs": 73,
-    "distinct_dates": 42,
+    "raw_runs": 74,
+    "distinct_dates": 43,
     "first_date": "2026-03-29",
-    "last_date": "2026-06-09",
-    "shadow_available_dates": 5,
-    "stable_available_dates": 4,
-    "forward_21d_available_dates": 26,
+    "last_date": "2026-06-15",
+    "shadow_available_dates": 6,
+    "stable_available_dates": 5,
+    "forward_21d_available_dates": 28,
     "dedupe_rule": "latest_run_per_date"
   },
   "realized_return_source": {
@@ -17,8 +17,8 @@
     "source": "portfolio_real_daily.csv",
     "return_column": "consolidated_return",
     "first_date": "2025-10-20",
-    "last_date": "2026-06-09",
-    "trading_days": 137
+    "last_date": "2026-06-15",
+    "trading_days": 141
   },
   "threshold_snapshot": {
     "shadow_base_hurdle_pct": 0.5,
@@ -32,46 +32,47 @@
     {
       "key": "official_current",
       "label": "Oficial atual",
-      "available_runs": 42,
+      "available_runs": 43,
       "coverage_pct": 100.0,
       "decision_counts": {
         "HOLD": 17,
         "REBALANCE": 23,
-        "WATCH": 2
+        "WATCH": 2,
+        "PARTIAL_REBALANCE": 1
       },
       "trade_signals": 23,
-      "trade_frequency_pct": 54.76,
+      "trade_frequency_pct": 53.49,
       "cumulative_turnover_pct": 61.85,
       "avg_turnover_on_signal_pct": 2.6891,
-      "avg_expected_gain_pct": 27.0707,
-      "avg_asset_set_stability_pct": 77.5175,
+      "avg_expected_gain_pct": 26.9776,
+      "avg_asset_set_stability_pct": 78.0528,
       "suspicious_trade_signals": 1,
       "suspicious_trade_rate_pct": 4.35,
       "extreme_target_false_positive_count": 0,
       "forward_5d": {
-        "observations": 21,
-        "avg_portfolio_return_pct": -1.4735,
-        "avg_benchmark_return_pct": -2.0578,
-        "avg_alpha_pct": 0.5843,
-        "avg_volatility_annual_pct": 8.9876,
-        "avg_max_drawdown_pct": -1.4532,
-        "alpha_hit_rate_pct": 66.67
+        "observations": 23,
+        "avg_portfolio_return_pct": -1.2571,
+        "avg_benchmark_return_pct": -1.8248,
+        "avg_alpha_pct": 0.5678,
+        "avg_volatility_annual_pct": 9.0245,
+        "avg_max_drawdown_pct": -1.3569,
+        "alpha_hit_rate_pct": 69.57
       },
       "forward_21d": {
-        "observations": 12,
-        "avg_portfolio_return_pct": -5.0349,
-        "avg_benchmark_return_pct": -8.169,
-        "avg_alpha_pct": 3.1341,
-        "avg_volatility_annual_pct": 8.0555,
-        "avg_max_drawdown_pct": -5.1114,
+        "observations": 14,
+        "avg_portfolio_return_pct": -4.7611,
+        "avg_benchmark_return_pct": -7.7644,
+        "avg_alpha_pct": 3.0034,
+        "avg_volatility_annual_pct": 8.1232,
+        "avg_max_drawdown_pct": -4.9541,
         "alpha_hit_rate_pct": 100.0
       },
       "performance_by_regime": [
         {
           "regime": "stress",
-          "available_runs": 5,
+          "available_runs": 6,
           "trade_signals": 1,
-          "trade_frequency_pct": 20.0,
+          "trade_frequency_pct": 16.67,
           "avg_forward_alpha_21d_pct": null
         },
         {
@@ -79,7 +80,7 @@
           "available_runs": 37,
           "trade_signals": 22,
           "trade_frequency_pct": 59.46,
-          "avg_forward_alpha_21d_pct": 3.1341
+          "avg_forward_alpha_21d_pct": 3.0034
         }
       ],
       "turnover_reduction_vs_official_pct": 0.0,
@@ -88,18 +89,116 @@
     {
       "key": "adjusted_return",
       "label": "Retorno ajustado",
-      "available_runs": 5,
-      "coverage_pct": 11.9,
+      "available_runs": 6,
+      "coverage_pct": 13.95,
       "decision_counts": {
         "HOLD": 4,
-        "REBALANCE": 1
+        "REBALANCE": 2
+      },
+      "trade_signals": 2,
+      "trade_frequency_pct": 33.33,
+      "cumulative_turnover_pct": 375.0,
+      "avg_turnover_on_signal_pct": 187.5,
+      "avg_expected_gain_pct": 0.7406,
+      "avg_asset_set_stability_pct": 79.0293,
+      "suspicious_trade_signals": 0,
+      "suspicious_trade_rate_pct": 0.0,
+      "extreme_target_false_positive_count": 0,
+      "forward_5d": {
+        "observations": 0,
+        "avg_portfolio_return_pct": null,
+        "avg_benchmark_return_pct": null,
+        "avg_alpha_pct": null,
+        "avg_volatility_annual_pct": null,
+        "avg_max_drawdown_pct": null,
+        "alpha_hit_rate_pct": null
+      },
+      "forward_21d": {
+        "observations": 0,
+        "avg_portfolio_return_pct": null,
+        "avg_benchmark_return_pct": null,
+        "avg_alpha_pct": null,
+        "avg_volatility_annual_pct": null,
+        "avg_max_drawdown_pct": null,
+        "alpha_hit_rate_pct": null
+      },
+      "performance_by_regime": [
+        {
+          "regime": "stress",
+          "available_runs": 6,
+          "trade_signals": 2,
+          "trade_frequency_pct": 33.33,
+          "avg_forward_alpha_21d_pct": null
+        }
+      ],
+      "turnover_reduction_vs_official_pct": -313.15,
+      "trade_frequency_delta_vs_official_pct": -20.16
+    },
+    {
+      "key": "shadow_gate",
+      "label": "Gate shadow",
+      "available_runs": 6,
+      "coverage_pct": 13.95,
+      "decision_counts": {
+        "WATCH": 3,
+        "HOLD": 2,
+        "PARTIAL_REBALANCE": 1
+      },
+      "trade_signals": 1,
+      "trade_frequency_pct": 16.67,
+      "cumulative_turnover_pct": 24.5,
+      "avg_turnover_on_signal_pct": 24.5,
+      "avg_expected_gain_pct": 0.7406,
+      "avg_asset_set_stability_pct": 89.7436,
+      "suspicious_trade_signals": 0,
+      "suspicious_trade_rate_pct": 0.0,
+      "extreme_target_false_positive_count": 0,
+      "forward_5d": {
+        "observations": 0,
+        "avg_portfolio_return_pct": null,
+        "avg_benchmark_return_pct": null,
+        "avg_alpha_pct": null,
+        "avg_volatility_annual_pct": null,
+        "avg_max_drawdown_pct": null,
+        "alpha_hit_rate_pct": null
+      },
+      "forward_21d": {
+        "observations": 0,
+        "avg_portfolio_return_pct": null,
+        "avg_benchmark_return_pct": null,
+        "avg_alpha_pct": null,
+        "avg_volatility_annual_pct": null,
+        "avg_max_drawdown_pct": null,
+        "alpha_hit_rate_pct": null
+      },
+      "performance_by_regime": [
+        {
+          "regime": "stress",
+          "available_runs": 6,
+          "trade_signals": 1,
+          "trade_frequency_pct": 16.67,
+          "avg_forward_alpha_21d_pct": null
+        }
+      ],
+      "turnover_reduction_vs_official_pct": 37.35,
+      "trade_frequency_delta_vs_official_pct": -36.82
+    },
+    {
+      "key": "execution_state",
+      "label": "Plano executável",
+      "available_runs": 5,
+      "coverage_pct": 11.63,
+      "decision_counts": {
+        "WATCH": 2,
+        "HOLD": 2,
+        "PARTIAL_REBALANCE": 1
       },
       "trade_signals": 1,
       "trade_frequency_pct": 20.0,
-      "cumulative_turnover_pct": 188.44,
-      "avg_turnover_on_signal_pct": 188.44,
-      "avg_expected_gain_pct": -0.6752,
-      "avg_asset_set_stability_pct": 87.1429,
+      "cumulative_turnover_pct": 11.85,
+      "avg_turnover_on_signal_pct": 11.85,
+      "avg_expected_gain_pct": 1.8422,
+      "avg_asset_set_stability_pct": 87.6923,
       "suspicious_trade_signals": 0,
       "suspicious_trade_rate_pct": 0.0,
       "extreme_target_false_positive_count": 0,
@@ -130,24 +229,23 @@
           "avg_forward_alpha_21d_pct": null
         }
       ],
-      "turnover_reduction_vs_official_pct": -126.59,
-      "trade_frequency_delta_vs_official_pct": -34.76
+      "turnover_reduction_vs_official_pct": 50.0,
+      "trade_frequency_delta_vs_official_pct": -33.49
     },
     {
-      "key": "shadow_gate",
-      "label": "Gate shadow",
+      "key": "stable_optimization",
+      "label": "Otimização estável",
       "available_runs": 5,
-      "coverage_pct": 11.9,
+      "coverage_pct": 11.63,
       "decision_counts": {
-        "WATCH": 3,
-        "HOLD": 2
+        "STAY_CURRENT": 5
       },
       "trade_signals": 0,
       "trade_frequency_pct": 0.0,
       "cumulative_turnover_pct": 0,
       "avg_turnover_on_signal_pct": null,
-      "avg_expected_gain_pct": -0.6752,
-      "avg_asset_set_stability_pct": 100.0,
+      "avg_expected_gain_pct": 3.7981,
+      "avg_asset_set_stability_pct": 99.8769,
       "suspicious_trade_signals": 0,
       "suspicious_trade_rate_pct": null,
       "extreme_target_false_positive_count": 0,
@@ -179,102 +277,7 @@
         }
       ],
       "turnover_reduction_vs_official_pct": 61.85,
-      "trade_frequency_delta_vs_official_pct": -54.76
-    },
-    {
-      "key": "execution_state",
-      "label": "Plano executável",
-      "available_runs": 4,
-      "coverage_pct": 9.52,
-      "decision_counts": {
-        "WATCH": 2,
-        "HOLD": 2
-      },
-      "trade_signals": 0,
-      "trade_frequency_pct": 0.0,
-      "cumulative_turnover_pct": 0,
-      "avg_turnover_on_signal_pct": null,
-      "avg_expected_gain_pct": 0.348,
-      "avg_asset_set_stability_pct": 100.0,
-      "suspicious_trade_signals": 0,
-      "suspicious_trade_rate_pct": null,
-      "extreme_target_false_positive_count": 0,
-      "forward_5d": {
-        "observations": 0,
-        "avg_portfolio_return_pct": null,
-        "avg_benchmark_return_pct": null,
-        "avg_alpha_pct": null,
-        "avg_volatility_annual_pct": null,
-        "avg_max_drawdown_pct": null,
-        "alpha_hit_rate_pct": null
-      },
-      "forward_21d": {
-        "observations": 0,
-        "avg_portfolio_return_pct": null,
-        "avg_benchmark_return_pct": null,
-        "avg_alpha_pct": null,
-        "avg_volatility_annual_pct": null,
-        "avg_max_drawdown_pct": null,
-        "alpha_hit_rate_pct": null
-      },
-      "performance_by_regime": [
-        {
-          "regime": "stress",
-          "available_runs": 4,
-          "trade_signals": 0,
-          "trade_frequency_pct": 0.0,
-          "avg_forward_alpha_21d_pct": null
-        }
-      ],
-      "turnover_reduction_vs_official_pct": 61.85,
-      "trade_frequency_delta_vs_official_pct": -54.76
-    },
-    {
-      "key": "stable_optimization",
-      "label": "Otimização estável",
-      "available_runs": 4,
-      "coverage_pct": 9.52,
-      "decision_counts": {
-        "STAY_CURRENT": 4
-      },
-      "trade_signals": 0,
-      "trade_frequency_pct": 0.0,
-      "cumulative_turnover_pct": 0,
-      "avg_turnover_on_signal_pct": null,
-      "avg_expected_gain_pct": 5.0182,
-      "avg_asset_set_stability_pct": 100.0,
-      "suspicious_trade_signals": 0,
-      "suspicious_trade_rate_pct": null,
-      "extreme_target_false_positive_count": 0,
-      "forward_5d": {
-        "observations": 0,
-        "avg_portfolio_return_pct": null,
-        "avg_benchmark_return_pct": null,
-        "avg_alpha_pct": null,
-        "avg_volatility_annual_pct": null,
-        "avg_max_drawdown_pct": null,
-        "alpha_hit_rate_pct": null
-      },
-      "forward_21d": {
-        "observations": 0,
-        "avg_portfolio_return_pct": null,
-        "avg_benchmark_return_pct": null,
-        "avg_alpha_pct": null,
-        "avg_volatility_annual_pct": null,
-        "avg_max_drawdown_pct": null,
-        "alpha_hit_rate_pct": null
-      },
-      "performance_by_regime": [
-        {
-          "regime": "stress",
-          "available_runs": 4,
-          "trade_signals": 0,
-          "trade_frequency_pct": 0.0,
-          "avg_forward_alpha_21d_pct": null
-        }
-      ],
-      "turnover_reduction_vs_official_pct": 61.85,
-      "trade_frequency_delta_vs_official_pct": -54.76
+      "trade_frequency_delta_vs_official_pct": -53.49
     }
   ],
   "notes": [

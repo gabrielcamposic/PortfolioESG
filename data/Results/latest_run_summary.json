@@ -1,94 +1,103 @@
 {
-    "last_updated_run_id": "20260609-214659",
-    "scoring_run_id": "20260609-214659",
-    "last_updated_timestamp": "2026-06-09 22:31:48",
+    "last_updated_run_id": "20260615-202122",
+    "scoring_run_id": "20260615-202122",
+    "last_updated_timestamp": "2026-06-15 21:02:17",
     "best_portfolio_details": {
         "stocks": [
-            "SAPR11.SA",
-            "KLBN4.SA",
-            "CMIG3.SA",
-            "BBSE3.SA",
-            "PETR4.SA",
+            "PNVL3.SA",
             "SLCE3.SA",
+            "CMIG3.SA",
+            "ABCB4.SA",
+            "FIQE3.SA",
+            "BRSR6.SA",
             "AMBP3.SA",
-            "CURY3.SA"
+            "ISAE4.SA",
+            "PETR4.SA",
+            "KLBN4.SA"
         ],
         "weights": [
-            0.0506,
-            0.3742,
-            0.1242,
-            0.0899,
-            0.1361,
-            0.1137,
-            0.0937,
-            0.0176
+            0.084,
+            0.114,
+            0.0537,
+            0.002,
+            0.0468,
+            0.033,
+            0.1158,
+            0.0859,
+            0.0979,
+            0.3669
         ],
-        "sharpe_forward": 24.018,
-        "expected_return_annual_pct": 4.25,
-        "expected_volatility_annual_pct": 18.16,
+        "sharpe_forward": 24.1668,
+        "expected_return_annual_pct": -0.11,
+        "expected_volatility_annual_pct": 19.69,
         "initial_investment": 5000.0,
         "sector_exposure": {
-            "Utilities": 0.1748,
-            "Basic Materials": 0.3742,
-            "Financial Services": 0.0899,
-            "Energy": 0.1361,
-            "Consumer Defensive": 0.1137,
-            "Industrials": 0.0937,
-            "Real Estate": 0.0176
+            "Healthcare": 0.084,
+            "Consumer Defensive": 0.114,
+            "Utilities": 0.1395,
+            "Financial Services": 0.035,
+            "Communication Services": 0.0468,
+            "Industrials": 0.1158,
+            "Energy": 0.0979,
+            "Basic Materials": 0.3669
         },
         "sector_exposure_list": [
             {
                 "sector": "Basic Materials",
-                "pct": 0.3742
+                "pct": 0.3669
             },
             {
                 "sector": "Utilities",
-                "pct": 0.1748
-            },
-            {
-                "sector": "Energy",
-                "pct": 0.1361
-            },
-            {
-                "sector": "Consumer Defensive",
-                "pct": 0.1137
+                "pct": 0.1395
             },
             {
                 "sector": "Industrials",
-                "pct": 0.0937
+                "pct": 0.1158
+            },
+            {
+                "sector": "Consumer Defensive",
+                "pct": 0.114
+            },
+            {
+                "sector": "Energy",
+                "pct": 0.0979
+            },
+            {
+                "sector": "Healthcare",
+                "pct": 0.084
+            },
+            {
+                "sector": "Communication Services",
+                "pct": 0.0468
             },
             {
                 "sector": "Financial Services",
-                "pct": 0.0899
-            },
-            {
-                "sector": "Real Estate",
-                "pct": 0.0176
+                "pct": 0.035
             }
         ],
         "concentration_risk": {
-            "hhi": 0.2067,
-            "top_5_holdings_pct": 0.8419,
+            "hhi": 0.1912,
+            "top_5_holdings_pct": 0.7805,
             "top_5_holdings": [
                 {
                     "stock": "KLBN4.SA",
-                    "weight": 0.3742
-                },
-                {
-                    "stock": "PETR4.SA",
-                    "weight": 0.1361
-                },
-                {
-                    "stock": "CMIG3.SA",
-                    "weight": 0.1242
-                },
-                {
-                    "stock": "SLCE3.SA",
-                    "weight": 0.1137
+                    "weight": 0.3669
                 },
                 {
                     "stock": "AMBP3.SA",
-                    "weight": 0.0937
+                    "weight": 0.1158
+                },
+                {
+                    "stock": "SLCE3.SA",
+                    "weight": 0.114
+                },
+                {
+                    "stock": "PETR4.SA",
+                    "weight": 0.0979
+                },
+                {
+                    "stock": "ISAE4.SA",
+                    "weight": 0.0859
                 }
             ]
         },
@@ -100,53 +109,65 @@
             "portfolio_dividend_yield": null
         },
         "holdings_meta": {
-            "SAPR11.SA": {
-                "forwardPE": 6.746377,
-                "Momentum": 0.0202740185881313,
-                "currentPrice": 37.2400016784668,
-                "targetPrice": 43.61182
+            "PNVL3.SA": {
+                "forwardPE": 7.8723407,
+                "Momentum": 0.1044776289360536,
+                "currentPrice": 11.100000381469728,
+                "targetPrice": 18.6
+            },
+            "SLCE3.SA": {
+                "forwardPE": 8.665181,
+                "Momentum": -0.0278457303596465,
+                "currentPrice": 14.119999885559082,
+                "targetPrice": 18.73636
+            },
+            "CMIG3.SA": {
+                "forwardPE": 5.5684214,
+                "Momentum": 0.1215547924663098,
+                "currentPrice": 15.869999885559082,
+                "targetPrice": 30.802830631338576
+            },
+            "ABCB4.SA": {
+                "forwardPE": 5.021952,
+                "Momentum": 0.0156057147767347,
+                "currentPrice": 24.729999542236328,
+                "targetPrice": 28.11111
+            },
+            "FIQE3.SA": {
+                "forwardPE": 9.136364,
+                "Momentum": 0.2684285754407363,
+                "currentPrice": 6.03000020980835,
+                "targetPrice": 6.76667
+            },
+            "BRSR6.SA": {
+                "forwardPE": 4.4004335,
+                "Momentum": 0.0287719191166393,
+                "currentPrice": 14.65999984741211,
+                "targetPrice": 15.1
+            },
+            "AMBP3.SA": {
+                "forwardPE": 0.14400001,
+                "Momentum": -0.4000000000000001,
+                "currentPrice": 0.1800000071525573,
+                "targetPrice": 1.9800000786781304
+            },
+            "ISAE4.SA": {
+                "forwardPE": 9.616959,
+                "Momentum": 0.036397794918866,
+                "currentPrice": 27.6200008392334,
+                "targetPrice": 30.07357
+            },
+            "PETR4.SA": {
+                "forwardPE": 4.04306,
+                "Momentum": 0.2451386779830746,
+                "currentPrice": 39.060001373291016,
+                "targetPrice": 55.45
             },
             "KLBN4.SA": {
                 "forwardPE": 1.6208532,
-                "Momentum": -0.0297189215741117,
+                "Momentum": -0.0739409164218074,
                 "currentPrice": 3.4200000762939453,
                 "targetPrice": 24.75248
-            },
-            "CMIG3.SA": {
-                "forwardPE": 5.5614038,
-                "Momentum": 0.1297220729250225,
-                "currentPrice": 15.850000381469728,
-                "targetPrice": 30.829445202574817
-            },
-            "BBSE3.SA": {
-                "forwardPE": 8.149858,
-                "Momentum": 0.0473851303301602,
-                "currentPrice": 36.25,
-                "targetPrice": 36.91667
-            },
-            "PETR4.SA": {
-                "forwardPE": 4.261463,
-                "Momentum": 0.2926215910784713,
-                "currentPrice": 41.16999816894531,
-                "targetPrice": 55.45
-            },
-            "SLCE3.SA": {
-                "forwardPE": 8.935202,
-                "Momentum": 0.0018349263194696,
-                "currentPrice": 14.5600004196167,
-                "targetPrice": 19.14545
-            },
-            "AMBP3.SA": {
-                "forwardPE": 0.12799999,
-                "Momentum": -0.3600000143051147,
-                "currentPrice": 0.1599999964237213,
-                "targetPrice": 1.7599999606609344
-            },
-            "CURY3.SA": {
-                "forwardPE": 6.1910872,
-                "Momentum": -0.2010581647491084,
-                "currentPrice": 30.200000762939453,
-                "targetPrice": 46.04167
             }
         }
     }
