@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-16T00:03:28.904689+00:00",
+  "generated_at": "2026-06-17T00:14:00.242477+00:00",
   "source": "data/results/optimized_portfolio_history.jsonl",
   "invalid_lines": 0,
   "current_return_kind": "target_based_raw",
@@ -2296,6 +2296,37 @@
       "turnover": {
         "acid_pct": 65.0483,
         "balanced_pct": 186.5572
+      }
+    },
+    {
+      "run_id": null,
+      "timestamp": "2026-06-16 21:13:44",
+      "date": "2026-06-16",
+      "decision": "PARTIAL_REBALANCE",
+      "decision_destination": "MOVE_TO_BALANCED",
+      "decision_engine_version": "v4_independent_balanced_target",
+      "returns": {
+        "current_pct": 228.73,
+        "acid_raw_pct": 258.148,
+        "acid_adjusted_net_pct": 14.5262,
+        "balanced_raw_pct": 14.9252,
+        "balanced_adjusted_net_pct": 14.9252,
+        "optimal_raw_pct": 258.15,
+        "optimal_net_pct": 258.13
+      },
+      "signals": {
+        "acid": "MOVE_TO_ACID",
+        "balanced": "MOVE_TO_BALANCED",
+        "shadow": "PARTIAL_REBALANCE",
+        "execution": "PARTIAL_REBALANCE"
+      },
+      "quality": {
+        "acid_target_quality_score": 0.4799,
+        "balanced_target_quality_score": 1.0
+      },
+      "turnover": {
+        "acid_pct": 47.8549,
+        "balanced_pct": 186.6327
       }
     }
   ]
